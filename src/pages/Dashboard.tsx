@@ -14,14 +14,22 @@ import {
   Trash2,
   FileText,
   Waves,
-  Loader2
+  Loader2,
+  QrCode,
+  ExternalLink
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 
+interface Pin {
+  pin_code: string;
+  status: string;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [booklets, setBooklets] = useState<any[]>([]);
+  const [pins, setPins] = useState<Record<string, Pin>>({});
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
 
@@ -48,6 +56,24 @@ const Dashboard = () => {
 
       if (error) throw error;
       setBooklets(data || []);
+
+      // Fetch PINs for published booklets
+      const publishedIds = data?.filter(b => b.status === 'published').map(b => b.id) || [];
+      if (publishedIds.length > 0) {
+        const { data: pinsData } = await supabase
+          .from("pins")
+          .select("booklet_id, pin_code, status")
+          .in("booklet_id", publishedIds)
+          .eq("status", "active");
+
+        if (pinsData) {
+          const pinsMap: Record<string, Pin> = {};
+          pinsData.forEach(pin => {
+            pinsMap[pin.booklet_id] = pin;
+          });
+          setPins(pinsMap);
+        }
+      }
     } catch (error) {
       console.error("Error fetching booklets:", error);
       toast.error("Erreur lors du chargement des livrets");
@@ -105,6 +131,46 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Error duplicating booklet:", error);
       toast.error("Erreur lors de la duplication");
+    }
+  };
+
+  const handlePreview = (id: string) => {
+    window.open(`/preview/${id}`, '_blank');
+  };
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast.success("Code copié !");
+  };
+
+  const handleCopyLink = (code: string) => {
+    const link = `${window.location.origin}/view/${code}`;
+    navigator.clipboard.writeText(link);
+    toast.success("Lien copié !");
+  };
+
+  const handleGenerateQR = async (code: string, propertyName: string) => {
+    try {
+      const link = `${window.location.origin}/view/${code}`;
+      // Using QR Server API for QR code generation
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(link)}`;
+      
+      // Download the QR code
+      const response = await fetch(qrUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `qr-${propertyName.replace(/\s+/g, '-')}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("QR Code téléchargé !");
+    } catch (error) {
+      console.error("Error generating QR:", error);
+      toast.error("Erreur lors de la génération du QR code");
     }
   };
 
@@ -166,78 +232,119 @@ const Dashboard = () => {
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {booklets.map((booklet) => (
-              <Card key={booklet.id} className="glass shadow-md border-0 transition-smooth hover:shadow-premium">
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg mb-1 truncate">
-                        {booklet.title || booklet.property_name || "Sans titre"}
-                      </CardTitle>
-                      {(booklet.subtitle || booklet.welcome_message) && (
-                        <CardDescription className="text-sm line-clamp-2">
-                          {booklet.subtitle || booklet.welcome_message}
-                        </CardDescription>
+            {booklets.map((booklet) => {
+              const pin = pins[booklet.id];
+              
+              return (
+                <Card key={booklet.id} className="glass shadow-md border-0 transition-smooth hover:shadow-premium">
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg mb-1 truncate">
+                          {booklet.title || booklet.property_name || "Sans titre"}
+                        </CardTitle>
+                        {(booklet.subtitle || booklet.welcome_message) && (
+                          <CardDescription className="text-sm line-clamp-2">
+                            {booklet.subtitle || booklet.welcome_message}
+                          </CardDescription>
+                        )}
+                      </div>
+                      <Badge variant={booklet.status === 'published' ? 'default' : 'secondary'} className="flex-shrink-0">
+                        {booklet.status === 'published' ? 'Publié' : 'Brouillon'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {/* PIN Display for published booklets */}
+                      {booklet.status === 'published' && pin && (
+                        <div className="p-3 bg-primary/5 rounded-lg space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-muted-foreground">Code PIN</span>
+                            <code className="text-sm font-bold text-primary">{pin.pin_code}</code>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 text-xs"
+                              onClick={() => handleCopyCode(pin.pin_code)}
+                            >
+                              <Copy className="w-3 h-3 mr-1" />
+                              Code
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 text-xs"
+                              onClick={() => handleCopyLink(pin.pin_code)}
+                            >
+                              <ExternalLink className="w-3 h-3 mr-1" />
+                              Lien
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 text-xs"
+                              onClick={() => handleGenerateQR(pin.pin_code, booklet.property_name || 'livret')}
+                            >
+                              <QrCode className="w-3 h-3 mr-1" />
+                              QR
+                            </Button>
+                          </div>
+                        </div>
                       )}
-                    </div>
-                    <Badge variant={booklet.status === 'published' ? 'default' : 'secondary'} className="flex-shrink-0">
-                      {booklet.status === 'published' ? 'Publié' : 'Brouillon'}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>Vues: {booklet.views_count || 0}</span>
-                      <span className="truncate ml-2">
-                        {formatDistanceToNow(new Date(booklet.updated_at), { 
-                          addSuffix: true, 
-                          locale: fr 
-                        })}
-                      </span>
-                    </div>
-                    
-                    <div className="flex gap-2 flex-wrap">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 min-w-[100px]"
-                        onClick={() => navigate(`/booklets/${booklet.id}/edit`)}
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Modifier
-                      </Button>
-                      {booklet.status === 'published' && (
+                      
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <span>Vues: {booklet.views_count || 0}</span>
+                        <span className="truncate ml-2">
+                          {formatDistanceToNow(new Date(booklet.updated_at), { 
+                            addSuffix: true, 
+                            locale: fr 
+                          })}
+                        </span>
+                      </div>
+                      
+                      <div className="flex gap-2 flex-wrap">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/share/${booklet.id}`)}
-                          title="Voir le partage"
+                          className="flex-1 min-w-[100px]"
+                          onClick={() => navigate(`/booklets/${booklet.id}/edit`)}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Modifier
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePreview(booklet.id)}
+                          title="Prévisualiser (créateur)"
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDuplicate(booklet)}
-                        title="Dupliquer"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(booklet.id)}
-                        title="Supprimer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDuplicate(booklet)}
+                          title="Dupliquer"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(booklet.id)}
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </main>

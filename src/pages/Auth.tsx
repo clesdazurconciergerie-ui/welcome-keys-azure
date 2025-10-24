@@ -191,6 +191,29 @@ const Auth = () => {
               </TabsContent>
             </Tabs>
 
+            {/* Access by code section */}
+            <div className="mt-6 pt-6 border-t">
+              <div className="text-center mb-4">
+                <p className="text-sm font-medium">Accéder à un livret par code</p>
+                <p className="text-xs text-muted-foreground mt-1">Sans avoir besoin de compte</p>
+              </div>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const code = formData.get('code') as string;
+                if (code) navigate(`/view/${code}`);
+                else toast.error("Veuillez entrer un code");
+              }} className="flex gap-2">
+                <Input
+                  name="code"
+                  placeholder="Entrez votre code"
+                  className="flex-1"
+                  required
+                />
+                <Button type="submit">Consulter</Button>
+              </form>
+            </div>
+
             <div className="mt-6 text-center">
               <Button
                 variant="ghost"

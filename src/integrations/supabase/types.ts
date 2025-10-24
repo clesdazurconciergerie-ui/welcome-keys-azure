@@ -26,8 +26,10 @@ export type Database = {
           cover_image_url: string | null
           created_at: string
           emergency_contacts: string | null
+          gallery: Json | null
           house_rules: string | null
           id: string
+          nearby: Json | null
           property_address: string
           property_name: string
           property_type: string | null
@@ -49,8 +51,10 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           emergency_contacts?: string | null
+          gallery?: Json | null
           house_rules?: string | null
           id?: string
+          nearby?: Json | null
           property_address: string
           property_name: string
           property_type?: string | null
@@ -72,8 +76,10 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           emergency_contacts?: string | null
+          gallery?: Json | null
           house_rules?: string | null
           id?: string
+          nearby?: Json | null
           property_address?: string
           property_name?: string
           property_type?: string | null
@@ -100,18 +106,21 @@ export type Database = {
           created_at: string
           id: string
           pin_code: string
+          status: string
         }
         Insert: {
           booklet_id: string
           created_at?: string
           id?: string
           pin_code: string
+          status?: string
         }
         Update: {
           booklet_id?: string
           created_at?: string
           id?: string
           pin_code?: string
+          status?: string
         }
         Relationships: [
           {
@@ -160,6 +169,7 @@ export type Database = {
     Functions: {
       check_booklet_quota: { Args: { p_user_id: string }; Returns: boolean }
       generate_pin_code: { Args: never; Returns: string }
+      generate_unique_pin: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never

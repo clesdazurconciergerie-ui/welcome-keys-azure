@@ -161,40 +161,21 @@ const EditBooklet = () => {
 
   const handlePublish = async () => {
     if (!id) return;
+    setSaving(true);
 
     try {
-      // Update status to published
-      const { error: updateError } = await supabase
-        .from("booklets")
-        .update({ status: 'published' })
-        .eq("id", id);
+      const { data, error } = await supabase.functions.invoke('publish-booklet/' + id);
 
-      if (updateError) throw updateError;
+      if (error) throw error;
 
-      // Check if PIN already exists
-      const { data: existingPins, error: pinsError } = await supabase
-        .from("pins")
-        .select("*")
-        .eq("booklet_id", id)
-        .limit(1);
-
-      if (pinsError) throw pinsError;
-
-      // Create PIN if it doesn't exist
-      if (!existingPins || existingPins.length === 0) {
-        const pinCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-        const { error: pinError } = await supabase
-          .from("pins")
-          .insert([{ booklet_id: id, pin_code: pinCode }]);
-
-        if (pinError) throw pinError;
-      }
-
-      toast.success("Livret publié avec succès !");
-      navigate(`/share/${id}`);
+      toast.success(`Livret publié ! Code: ${data.code}`);
+      fetchBooklet();
+      navigate('/dashboard');
     } catch (error) {
       console.error("Error publishing booklet:", error);
       toast.error("Erreur lors de la publication");
+    } finally {
+      setSaving(false);
     }
   };
 
