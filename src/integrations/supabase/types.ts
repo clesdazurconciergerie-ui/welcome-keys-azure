@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      booklet_contacts: {
+        Row: {
+          booklet_id: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          booklet_id: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          booklet_id?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booklet_contacts_booklet_id_fkey"
+            columns: ["booklet_id"]
+            isOneToOne: false
+            referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booklets: {
         Row: {
           amenities: Json | null
@@ -21,8 +56,6 @@ export type Database = {
           chatbot_enabled: boolean | null
           check_in_time: string | null
           check_out_time: string | null
-          contact_email: string | null
-          contact_phone: string | null
           cover_image_url: string | null
           created_at: string
           emergency_contacts: string | null
@@ -44,8 +77,6 @@ export type Database = {
           chatbot_enabled?: boolean | null
           check_in_time?: string | null
           check_out_time?: string | null
-          contact_email?: string | null
-          contact_phone?: string | null
           cover_image_url?: string | null
           created_at?: string
           emergency_contacts?: string | null
@@ -67,8 +98,6 @@ export type Database = {
           chatbot_enabled?: boolean | null
           check_in_time?: string | null
           check_out_time?: string | null
-          contact_email?: string | null
-          contact_phone?: string | null
           cover_image_url?: string | null
           created_at?: string
           emergency_contacts?: string | null

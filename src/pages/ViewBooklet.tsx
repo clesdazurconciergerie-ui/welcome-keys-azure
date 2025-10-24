@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Home, MapPin, Wifi, Phone, Mail, Clock, Eye, Loader2 } from "lucide-react";
+import { Home, MapPin, Wifi, Clock, Eye, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Booklet {
@@ -18,8 +18,6 @@ interface Booklet {
   check_out_time?: string;
   house_rules?: string;
   emergency_contacts?: string;
-  contact_phone?: string;
-  contact_email?: string;
   amenities?: any[];
   nearby?: any[];
   gallery?: any[];
@@ -358,32 +356,7 @@ export default function ViewBooklet() {
           </Card>
         )}
 
-        {/* Contacts */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Contact</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {booklet.contact_phone && (
-              <div className="flex items-center gap-3">
-                <Phone className="h-5 w-5 text-muted-foreground" />
-                <a href={`tel:${booklet.contact_phone}`} className="text-brand-blue hover:underline">
-                  {booklet.contact_phone}
-                </a>
-              </div>
-            )}
-            {booklet.contact_email && (
-              <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-muted-foreground" />
-                <a href={`mailto:${booklet.contact_email}`} className="text-brand-blue hover:underline">
-                  {booklet.contact_email}
-                </a>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Emergency Contacts */}
+        {/* Contacts - Removed for security: owner contact info no longer exposed publicly */}
         {booklet.emergency_contacts && (
           <Card>
             <CardHeader>

@@ -69,7 +69,7 @@ serve(async (req) => {
     const pin = pins[0];
     console.log('Found PIN:', pin);
 
-    // Get published booklet - only public fields (wifi moved to separate table)
+    // Get published booklet - only public fields (wifi and contacts moved to separate tables)
     const { data: booklet, error: bookletError } = await supabase
       .from('booklets')
       .select(`
@@ -83,8 +83,6 @@ serve(async (req) => {
         check_out_time,
         house_rules,
         emergency_contacts,
-        contact_phone,
-        contact_email,
         amenities,
         nearby,
         gallery,

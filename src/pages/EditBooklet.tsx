@@ -71,8 +71,6 @@ const EditBooklet = () => {
       setCheckInTime(data.check_in_time || "");
       setCheckOutTime(data.check_out_time || "");
       setHouseRules(data.house_rules || "");
-      setContactPhone(data.contact_phone || "");
-      setContactEmail(data.contact_email || "");
       setEmergencyContacts(data.emergency_contacts || "");
 
       // Fetch WiFi credentials from separate table
@@ -85,6 +83,18 @@ const EditBooklet = () => {
       if (wifiData) {
         setWifiName(wifiData.ssid || "");
         setWifiPassword(wifiData.password || "");
+      }
+
+      // Fetch contact information from separate table
+      const { data: contactData } = await supabase
+        .from("booklet_contacts")
+        .select("contact_email, contact_phone")
+        .eq("booklet_id", id)
+        .maybeSingle();
+
+      if (contactData) {
+        setContactPhone(contactData.contact_phone || "");
+        setContactEmail(contactData.contact_email || "");
       }
     } catch (error) {
       console.error("Error fetching booklet:", error);
@@ -110,8 +120,6 @@ const EditBooklet = () => {
           check_in_time: checkInTime,
           check_out_time: checkOutTime,
           house_rules: houseRules,
-          contact_phone: contactPhone,
-          contact_email: contactEmail,
           emergency_contacts: emergencyContacts,
         })
         .eq("id", id);
@@ -131,6 +139,21 @@ const EditBooklet = () => {
           });
 
         if (wifiError) throw wifiError;
+      }
+
+      // Update or insert contact information in separate table
+      if (contactPhone || contactEmail) {
+        const { error: contactError } = await supabase
+          .from("booklet_contacts")
+          .upsert({
+            booklet_id: id,
+            contact_email: contactEmail,
+            contact_phone: contactPhone,
+          }, {
+            onConflict: 'booklet_id'
+          });
+
+        if (contactError) throw contactError;
       }
 
       toast.success("Modifications sauvegardées");
