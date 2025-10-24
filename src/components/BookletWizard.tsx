@@ -277,30 +277,11 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
           <div className="col-span-9">
             <Card className="p-6">
               <StepComponent
-                bookletId={bookletData?.id}
                 data={bookletData}
                 onUpdate={autoSave}
               />
 
               <div className="flex items-center justify-between mt-8 pt-6 border-t">
-                <Button
-                  variant="outline"
-                  onClick={handlePrevious}
-                  disabled={currentStep === 1}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Précédent
-                </Button>
-                <Button
-                  onClick={handleNext}
-                  disabled={currentStep === STEPS.length}
-                >
-                  Suivant
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </div>
-            </Card>
-          </div>
                 <Button
                   variant="outline"
                   onClick={handlePrevious}
