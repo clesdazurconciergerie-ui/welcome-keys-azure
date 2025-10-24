@@ -49,8 +49,18 @@ const EditBooklet = () => {
   const [emergencyContacts, setEmergencyContacts] = useState("");
 
   useEffect(() => {
-    fetchBooklet();
+    checkAuthAndFetch();
   }, [id]);
+
+  const checkAuthAndFetch = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error("Vous devez être connecté pour modifier un livret");
+      navigate("/auth");
+      return;
+    }
+    await fetchBooklet();
+  };
 
   const fetchBooklet = async () => {
     if (!id) return;
