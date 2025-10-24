@@ -21,7 +21,8 @@ import {
   Phone,
   Image as ImageIcon,
   MessageSquare,
-  Sparkles
+  Sparkles,
+  Wand2
 } from "lucide-react";
 
 const EditBooklet = () => {
@@ -30,6 +31,9 @@ const EditBooklet = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [booklet, setBooklet] = useState<any>(null);
+  const [generatingWelcome, setGeneratingWelcome] = useState(false);
+  const [generatingRules, setGeneratingRules] = useState(false);
+  const [generatingEmergency, setGeneratingEmergency] = useState(false);
 
   // Form states
   const [propertyName, setPropertyName] = useState("");
@@ -111,6 +115,47 @@ const EditBooklet = () => {
       toast.error("Erreur lors de la sauvegarde");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleGenerateContent = async (contentType: 'welcome_message' | 'house_rules' | 'emergency_contacts') => {
+    if (!propertyName) {
+      toast.error("Veuillez d'abord renseigner le nom de la propriété");
+      return;
+    }
+
+    const setGeneratingState = contentType === 'welcome_message' ? setGeneratingWelcome :
+                                contentType === 'house_rules' ? setGeneratingRules :
+                                setGeneratingEmergency;
+    
+    setGeneratingState(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-description', {
+        body: {
+          propertyName,
+          propertyAddress: propertyAddress || '',
+          contentType
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.generatedText) {
+        if (contentType === 'welcome_message') {
+          setWelcomeMessage(data.generatedText);
+        } else if (contentType === 'house_rules') {
+          setHouseRules(data.generatedText);
+        } else if (contentType === 'emergency_contacts') {
+          setEmergencyContacts(data.generatedText);
+        }
+        toast.success("Description générée avec succès !");
+      }
+    } catch (error) {
+      console.error('Error generating content:', error);
+      toast.error("Erreur lors de la génération");
+    } finally {
+      setGeneratingState(false);
     }
   };
 
@@ -267,7 +312,23 @@ const EditBooklet = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="welcome-message">Message de bienvenue</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="welcome-message">Message de bienvenue</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleGenerateContent('welcome_message')}
+                      disabled={generatingWelcome}
+                    >
+                      {generatingWelcome ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-4 h-4 mr-2" />
+                      )}
+                      Générer avec IA
+                    </Button>
+                  </div>
                   <Textarea
                     id="welcome-message"
                     value={welcomeMessage}
@@ -355,7 +416,23 @@ const EditBooklet = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="house-rules">Règles de la maison</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="house-rules">Règles de la maison</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleGenerateContent('house_rules')}
+                      disabled={generatingRules}
+                    >
+                      {generatingRules ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-4 h-4 mr-2" />
+                      )}
+                      Générer avec IA
+                    </Button>
+                  </div>
                   <Textarea
                     id="house-rules"
                     value={houseRules}
@@ -398,7 +475,23 @@ const EditBooklet = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="emergency">Contacts d'urgence</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="emergency">Contacts d'urgence</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleGenerateContent('emergency_contacts')}
+                      disabled={generatingEmergency}
+                    >
+                      {generatingEmergency ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-4 h-4 mr-2" />
+                      )}
+                      Générer avec IA
+                    </Button>
+                  </div>
                   <Textarea
                     id="emergency"
                     value={emergencyContacts}
