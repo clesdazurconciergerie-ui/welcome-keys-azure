@@ -21,9 +21,10 @@ export default function AccessBooklet() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate input
+    // Validate and normalize input
     try {
-      const validatedCode = codeSchema.parse(code.toUpperCase());
+      const normalizedCode = code.replace(/\s+/g, '').toUpperCase();
+      const validatedCode = codeSchema.parse(normalizedCode);
       setLoading(true);
       
       // Redirect to view page - it will handle validation

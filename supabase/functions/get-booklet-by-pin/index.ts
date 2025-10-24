@@ -15,12 +15,19 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     // Use service role key to bypass RLS and access published booklets
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
 
     // Get PIN code from URL and normalize
     const url = new URL(req.url);
     const rawPinCode = url.pathname.split('/').pop();
+    
+    console.log('Raw PIN code:', rawPinCode);
     
     if (!rawPinCode) {
       return new Response(
@@ -32,25 +39,37 @@ serve(async (req) => {
     // Normalize PIN: trim, remove spaces, uppercase
     const pinCode = rawPinCode.replace(/\s+/g, '').toUpperCase();
 
-    console.log('Looking for PIN:', pinCode);
+    console.log('Normalized PIN:', pinCode);
 
     // Find active PIN
-    const { data: pin, error: pinError } = await supabase
+    const { data: pins, error: pinError } = await supabase
       .from('pins')
-      .select('booklet_id')
+      .select('booklet_id, status, pin_code')
       .eq('pin_code', pinCode)
-      .eq('status', 'active')
-      .maybeSingle();
+      .eq('status', 'active');
 
-    if (pinError || !pin) {
-      console.log('PIN not found or error:', pinError);
+    console.log('PIN query result:', { pins, pinError, count: pins?.length });
+
+    if (pinError) {
+      console.error('PIN query error:', pinError);
+      return new Response(
+        JSON.stringify({ error: 'Erreur de recherche du code', details: pinError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!pins || pins.length === 0) {
+      console.log('No PIN found for code:', pinCode);
       return new Response(
         JSON.stringify({ error: 'Code invalide ou désactivé' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get published booklet - only public fields
+    const pin = pins[0];
+    console.log('Found PIN:', pin);
+
+    // Get published booklet - only public fields (wifi moved to separate table)
     const { data: booklet, error: bookletError } = await supabase
       .from('booklets')
       .select(`
@@ -60,8 +79,6 @@ serve(async (req) => {
         property_type,
         welcome_message,
         cover_image_url,
-        wifi_name,
-        wifi_password,
         check_in_time,
         check_out_time,
         house_rules,
@@ -78,13 +95,25 @@ serve(async (req) => {
       .eq('status', 'published')
       .maybeSingle();
 
-    if (bookletError || !booklet) {
-      console.log('Booklet not found or not published:', bookletError);
+    console.log('Booklet query result:', { booklet: booklet?.id, bookletError });
+
+    if (bookletError) {
+      console.error('Booklet query error:', bookletError);
+      return new Response(
+        JSON.stringify({ error: 'Erreur de récupération du livret', details: bookletError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!booklet) {
+      console.log('Booklet not found or not published for ID:', pin.booklet_id);
       return new Response(
         JSON.stringify({ error: 'Livret non trouvé ou non publié' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Successfully returning booklet:', booklet.property_name);
 
     return new Response(
       JSON.stringify({ booklet }),
@@ -95,7 +124,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Unexpected error:', error);
     const message = error instanceof Error ? error.message : 'Une erreur est survenue';
     return new Response(
       JSON.stringify({ error: message }),
