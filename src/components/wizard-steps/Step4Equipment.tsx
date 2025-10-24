@@ -18,7 +18,8 @@ interface Equipment {
 }
 
 interface Step4EquipmentProps {
-  bookletId: string;
+  data: any;
+  onUpdate: (updates: any) => void;
 }
 
 const CATEGORIES = [
@@ -26,12 +27,17 @@ const CATEGORIES = [
   "Multimédia", "Salle de bain", "Autre"
 ];
 
-export default function Step4Equipment({ bookletId }: Step4EquipmentProps) {
+export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
+  const bookletId = data?.id;
 
   useEffect(() => {
-    fetchEquipment();
+    if (bookletId) {
+      fetchEquipment();
+    } else {
+      setLoading(false);
+    }
   }, [bookletId]);
 
   const fetchEquipment = async () => {

@@ -56,7 +56,7 @@ const NewBooklet = () => {
       if (error) throw error;
 
       toast.success("Livret créé avec succès !");
-      navigate(`/booklets/${data.id}/edit`);
+      navigate(`/booklets/${data.id}/wizard`);
     } catch (error: any) {
       console.error("Error creating booklet:", error);
       toast.error("Erreur lors de la création du livret");

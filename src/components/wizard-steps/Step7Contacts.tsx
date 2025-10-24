@@ -7,17 +7,23 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Shield } from "lucide-react";
 
 interface Step7ContactsProps {
-  bookletId: string;
+  data: any;
+  onUpdate: (updates: any) => void;
 }
 
-export default function Step7Contacts({ bookletId }: Step7ContactsProps) {
+export default function Step7Contacts({ data, onUpdate }: Step7ContactsProps) {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [emergencyNumber, setEmergencyNumber] = useState("");
   const [loading, setLoading] = useState(true);
+  const bookletId = data?.id;
 
   useEffect(() => {
-    fetchContactData();
+    if (bookletId) {
+      fetchContactData();
+    } else {
+      setLoading(false);
+    }
   }, [bookletId]);
 
   const fetchContactData = async () => {

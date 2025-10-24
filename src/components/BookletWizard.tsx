@@ -4,11 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { 
   Home, ArrowLeft, ArrowRight, Save, Eye, Send,
   Wifi, MapPin, FileText, Wrench, Trash2, Store,
-  MessageSquare, Shield, Gift, CheckCircle2
+  MessageSquare, Shield, Gift, CheckCircle2, Copy, QrCode, ExternalLink
 } from "lucide-react";
 import Step1Identity from "./wizard-steps/Step1Identity";
 import Step2Practical from "./wizard-steps/Step2Practical";
@@ -44,6 +47,9 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
   const [bookletData, setBookletData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [publishDialog, setPublishDialog] = useState(false);
+  const [publishedCode, setPublishedCode] = useState<string>("");
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     if (bookletId) {
@@ -143,6 +149,7 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
   const handlePublish = async () => {
     if (!bookletData?.id) return;
 
+    setPublishing(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
@@ -161,12 +168,46 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
       if (!response.ok) throw new Error('Failed to publish');
 
       const data = await response.json();
-      toast.success(`Livret publié ! Code PIN: ${data.pin_code}`);
-      navigate('/dashboard');
+      setPublishedCode(data.code);
+      setPublishDialog(true);
+      
+      // Update local state
+      setBookletData({ ...bookletData, status: 'published' });
     } catch (error) {
       console.error("Publish error:", error);
       toast.error("Erreur lors de la publication");
+    } finally {
+      setPublishing(false);
     }
+  };
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(publishedCode);
+    toast.success("Code copié !");
+  };
+
+  const handleCopyLink = () => {
+    const link = `${window.location.origin}/view/${publishedCode}`;
+    navigator.clipboard.writeText(link);
+    toast.success("Lien copié !");
+  };
+
+  const handleDownloadQR = async () => {
+    const link = `${window.location.origin}/view/${publishedCode}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(link)}`;
+    
+    const response = await fetch(qrUrl);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `qr-${bookletData?.property_name?.replace(/\s+/g, '-')}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    toast.success("QR Code téléchargé !");
   };
 
   if (loading) {
@@ -219,9 +260,9 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
                 Prévisualiser
               </Button>
               {currentStep === STEPS.length && (
-                <Button onClick={handlePublish}>
+                <Button onClick={handlePublish} disabled={publishing}>
                   <Send className="w-4 h-4 mr-2" />
-                  Publier
+                  {publishing ? "Publication..." : "Publier"}
                 </Button>
               )}
             </div>
@@ -229,6 +270,76 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
           <Progress value={progress} className="mt-4" />
         </div>
       </header>
+
+      {/* Publish Success Dialog */}
+      <Dialog open={publishDialog} onOpenChange={setPublishDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              Livret publié avec succès !
+            </DialogTitle>
+            <DialogDescription>
+              Votre livret est maintenant accessible aux voyageurs
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="pin-code">Code PIN</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="pin-code"
+                  value={publishedCode}
+                  readOnly
+                  className="font-mono text-lg font-bold text-center"
+                />
+                <Button size="icon" variant="outline" onClick={handleCopyCode}>
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="public-link">Lien public</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="public-link"
+                  value={`${window.location.origin}/view/${publishedCode}`}
+                  readOnly
+                  className="text-sm"
+                />
+                <Button size="icon" variant="outline" onClick={handleCopyLink}>
+                  <ExternalLink className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={handleDownloadQR}>
+                <QrCode className="w-4 h-4 mr-2" />
+                Télécharger QR Code
+              </Button>
+              <Button className="flex-1" onClick={() => {
+                setPublishDialog(false);
+                navigate('/dashboard');
+              }}>
+                <Home className="w-4 h-4 mr-2" />
+                Tableau de bord
+              </Button>
+            </div>
+
+            <div className="text-center">
+              <Button
+                variant="link"
+                onClick={() => window.open(`/view/${publishedCode}`, '_blank')}
+              >
+                Voir le livret publié
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-12 gap-6">

@@ -18,7 +18,8 @@ interface Place {
 }
 
 interface Step6NearbyProps {
-  bookletId: string;
+  data: any;
+  onUpdate: (updates: any) => void;
 }
 
 const TYPES = [
@@ -26,12 +27,17 @@ const TYPES = [
   "Activité", "Lieu touristique", "Transport", "Urgence"
 ];
 
-export default function Step6Nearby({ bookletId }: Step6NearbyProps) {
+export default function Step6Nearby({ data, onUpdate }: Step6NearbyProps) {
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
+  const bookletId = data?.id;
 
   useEffect(() => {
-    fetchPlaces();
+    if (bookletId) {
+      fetchPlaces();
+    } else {
+      setLoading(false);
+    }
   }, [bookletId]);
 
   const fetchPlaces = async () => {

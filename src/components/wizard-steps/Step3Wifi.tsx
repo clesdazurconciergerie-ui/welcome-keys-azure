@@ -9,19 +9,23 @@ import { QrCode } from "lucide-react";
 import { toast } from "sonner";
 
 interface Step3WifiProps {
-  bookletId: string;
   data: any;
   onUpdate: (updates: any) => void;
 }
 
-export default function Step3Wifi({ bookletId, data, onUpdate }: Step3WifiProps) {
+export default function Step3Wifi({ data, onUpdate }: Step3WifiProps) {
   const [ssid, setSsid] = useState("");
   const [password, setPassword] = useState("");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
+  const bookletId = data?.id;
 
   useEffect(() => {
-    fetchWifiData();
+    if (bookletId) {
+      fetchWifiData();
+    } else {
+      setLoading(false);
+    }
   }, [bookletId]);
 
   const fetchWifiData = async () => {
@@ -44,7 +48,7 @@ export default function Step3Wifi({ bookletId, data, onUpdate }: Step3WifiProps)
   };
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && bookletId && (ssid || password)) {
       const timer = setTimeout(async () => {
         try {
           await supabase
@@ -61,7 +65,7 @@ export default function Step3Wifi({ bookletId, data, onUpdate }: Step3WifiProps)
 
       return () => clearTimeout(timer);
     }
-  }, [ssid, password, loading]);
+  }, [ssid, password, loading, bookletId]);
 
   const generateQRCode = () => {
     if (!ssid || !password) {

@@ -15,15 +15,21 @@ interface FAQ {
 }
 
 interface Step8FAQProps {
-  bookletId: string;
+  data: any;
+  onUpdate: (updates: any) => void;
 }
 
-export default function Step8FAQ({ bookletId }: Step8FAQProps) {
+export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [loading, setLoading] = useState(true);
+  const bookletId = data?.id;
 
   useEffect(() => {
-    fetchFAQs();
+    if (bookletId) {
+      fetchFAQs();
+    } else {
+      setLoading(false);
+    }
   }, [bookletId]);
 
   const fetchFAQs = async () => {
