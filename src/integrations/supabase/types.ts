@@ -51,67 +51,127 @@ export type Database = {
       }
       booklets: {
         Row: {
+          access_code: string | null
+          airbnb_license: string | null
           amenities: Json | null
           chatbot_config: Json | null
           chatbot_enabled: boolean | null
           check_in_time: string | null
           check_out_time: string | null
+          checkin_procedure: string | null
+          checkout_procedure: string | null
+          cleaning_rules: string | null
+          cleaning_tips: string | null
           cover_image_url: string | null
           created_at: string
+          disclaimer: string | null
           emergency_contacts: string | null
           gallery: Json | null
+          gdpr_notice: string | null
+          google_maps_link: string | null
           house_rules: string | null
           id: string
+          is_complete: boolean | null
+          language: string | null
+          manual_pdf_url: string | null
           nearby: Json | null
+          parking_info: string | null
           property_address: string
           property_name: string
           property_type: string | null
+          safety_instructions: string | null
+          safety_tips: string | null
+          show_logo: boolean | null
+          sorting_instructions: string | null
           status: string
+          tagline: string | null
           updated_at: string
           user_id: string
+          waste_location: string | null
           welcome_message: string | null
+          wizard_step: number | null
         }
         Insert: {
+          access_code?: string | null
+          airbnb_license?: string | null
           amenities?: Json | null
           chatbot_config?: Json | null
           chatbot_enabled?: boolean | null
           check_in_time?: string | null
           check_out_time?: string | null
+          checkin_procedure?: string | null
+          checkout_procedure?: string | null
+          cleaning_rules?: string | null
+          cleaning_tips?: string | null
           cover_image_url?: string | null
           created_at?: string
+          disclaimer?: string | null
           emergency_contacts?: string | null
           gallery?: Json | null
+          gdpr_notice?: string | null
+          google_maps_link?: string | null
           house_rules?: string | null
           id?: string
+          is_complete?: boolean | null
+          language?: string | null
+          manual_pdf_url?: string | null
           nearby?: Json | null
+          parking_info?: string | null
           property_address: string
           property_name: string
           property_type?: string | null
+          safety_instructions?: string | null
+          safety_tips?: string | null
+          show_logo?: boolean | null
+          sorting_instructions?: string | null
           status?: string
+          tagline?: string | null
           updated_at?: string
           user_id: string
+          waste_location?: string | null
           welcome_message?: string | null
+          wizard_step?: number | null
         }
         Update: {
+          access_code?: string | null
+          airbnb_license?: string | null
           amenities?: Json | null
           chatbot_config?: Json | null
           chatbot_enabled?: boolean | null
           check_in_time?: string | null
           check_out_time?: string | null
+          checkin_procedure?: string | null
+          checkout_procedure?: string | null
+          cleaning_rules?: string | null
+          cleaning_tips?: string | null
           cover_image_url?: string | null
           created_at?: string
+          disclaimer?: string | null
           emergency_contacts?: string | null
           gallery?: Json | null
+          gdpr_notice?: string | null
+          google_maps_link?: string | null
           house_rules?: string | null
           id?: string
+          is_complete?: boolean | null
+          language?: string | null
+          manual_pdf_url?: string | null
           nearby?: Json | null
+          parking_info?: string | null
           property_address?: string
           property_name?: string
           property_type?: string | null
+          safety_instructions?: string | null
+          safety_tips?: string | null
+          show_logo?: boolean | null
+          sorting_instructions?: string | null
           status?: string
+          tagline?: string | null
           updated_at?: string
           user_id?: string
+          waste_location?: string | null
           welcome_message?: string | null
+          wizard_step?: number | null
         }
         Relationships: [
           {
@@ -119,6 +179,120 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment: {
+        Row: {
+          booklet_id: string
+          category: string
+          created_at: string
+          id: string
+          instructions: string | null
+          manual_url: string | null
+          name: string
+        }
+        Insert: {
+          booklet_id: string
+          category: string
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          manual_url?: string | null
+          name: string
+        }
+        Update: {
+          booklet_id?: string
+          category?: string
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          manual_url?: string | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_booklet_id_fkey"
+            columns: ["booklet_id"]
+            isOneToOne: false
+            referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      faq: {
+        Row: {
+          answer: string
+          booklet_id: string
+          created_at: string
+          id: string
+          order_index: number | null
+          question: string
+        }
+        Insert: {
+          answer: string
+          booklet_id: string
+          created_at?: string
+          id?: string
+          order_index?: number | null
+          question: string
+        }
+        Update: {
+          answer?: string
+          booklet_id?: string
+          created_at?: string
+          id?: string
+          order_index?: number | null
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faq_booklet_id_fkey"
+            columns: ["booklet_id"]
+            isOneToOne: false
+            referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nearby_places: {
+        Row: {
+          booklet_id: string
+          created_at: string
+          description: string | null
+          distance: string | null
+          id: string
+          maps_link: string | null
+          name: string
+          type: string
+        }
+        Insert: {
+          booklet_id: string
+          created_at?: string
+          description?: string | null
+          distance?: string | null
+          id?: string
+          maps_link?: string | null
+          name: string
+          type: string
+        }
+        Update: {
+          booklet_id?: string
+          created_at?: string
+          description?: string | null
+          distance?: string | null
+          id?: string
+          maps_link?: string | null
+          name?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nearby_places_booklet_id_fkey"
+            columns: ["booklet_id"]
+            isOneToOne: false
+            referencedRelation: "booklets"
             referencedColumns: ["id"]
           },
         ]

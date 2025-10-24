@@ -11,6 +11,7 @@ import EditBooklet from "./pages/EditBooklet";
 import ViewBooklet from "./pages/ViewBooklet";
 import PreviewBooklet from "./pages/PreviewBooklet";
 import AccessBooklet from "./pages/AccessBooklet";
+import BookletWizardPage from "./pages/BookletWizardPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/booklets/new" element={<NewBooklet />} />
           <Route path="/booklets/:id/edit" element={<EditBooklet />} />
+          <Route path="/booklets/:id/wizard" element={<BookletWizardPage />} />
           <Route path="/view/:code" element={<ViewBooklet />} />
           <Route path="/preview/:id" element={<PreviewBooklet />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
