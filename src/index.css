@@ -8,89 +8,116 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
+    /* Clés d'Azur Premium Design System */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 216 20% 15%;
 
+    /* Brand - Azur Blue */
+    --brand-blue: 190 84% 49%;
+    --brand-blue-light: 190 84% 60%;
+    --brand-blue-dark: 190 84% 40%;
+    
+    /* Card with glassmorphism effect */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 216 20% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 216 20% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary = Brand Blue */
+    --primary: 190 84% 49%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Soft gray */
+    --secondary: 210 25% 97%;
+    --secondary-foreground: 216 20% 15%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted - Light backgrounds */
+    --muted: 210 25% 97%;
+    --muted-foreground: 216 15% 50%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Cyan variant */
+    --accent: 184 80% 52%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Borders - Very light */
+    --border: 210 20% 92%;
+    --input: 210 20% 92%;
+    --ring: 190 84% 49%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* Premium shadows with blue tint */
+    --shadow-sm: 0 1px 2px 0 rgba(24, 192, 223, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(24, 192, 223, 0.1), 0 2px 4px -1px rgba(24, 192, 223, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(24, 192, 223, 0.12), 0 4px 6px -2px rgba(24, 192, 223, 0.08);
+    --shadow-xl: 0 20px 25px -5px rgba(24, 192, 223, 0.15), 0 10px 10px -5px rgba(24, 192, 223, 0.08);
+    
+    /* Glass effect */
+    --glass-bg: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(190, 84%, 49%) 0%, hsl(184, 80%, 52%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(190, 84%, 49%) 0%, hsl(184, 80%, 60%) 50%, hsl(190, 84%, 70%) 100%);
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
+    --sidebar-primary: 190 84% 49%;
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 190 84% 49%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 216 25% 8%;
+    --foreground: 210 20% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --brand-blue: 190 84% 49%;
+    --brand-blue-light: 190 84% 60%;
+    --brand-blue-dark: 190 84% 40%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --card: 216 25% 10%;
+    --card-foreground: 210 20% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --popover: 216 25% 10%;
+    --popover-foreground: 210 20% 95%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --primary: 190 84% 49%;
+    --primary-foreground: 0 0% 100%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --secondary: 216 25% 15%;
+    --secondary-foreground: 210 20% 95%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --muted: 216 25% 15%;
+    --muted-foreground: 216 15% 60%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --accent: 184 80% 52%;
+    --accent-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 216 25% 20%;
+    --input: 216 25% 20%;
+    --ring: 190 84% 49%;
+
+    --glass-bg: rgba(20, 25, 35, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.1);
+
+    --sidebar-background: 216 25% 8%;
+    --sidebar-foreground: 210 20% 95%;
+    --sidebar-primary: 190 84% 49%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 216 25% 15%;
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 216 25% 20%;
+    --sidebar-ring: 190 84% 49%;
   }
 }
 
@@ -100,6 +127,66 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  /* Glass effect utility */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Premium shadow */
+  .shadow-premium {
+    box-shadow: var(--shadow-xl);
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Animation for floating elements */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  /* Pulse animation for new items */
+  @keyframes pulse-subtle {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2s ease-in-out infinite;
   }
 }
