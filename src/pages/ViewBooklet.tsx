@@ -45,24 +45,50 @@ export default function ViewBooklet() {
       }
 
       try {
-        const { data, error } = await supabase.functions.invoke(
-          'get-booklet-by-pin',
+        // Normalize code: trim, remove spaces, uppercase
+        const normalizedCode = code.replace(/\s+/g, '').toUpperCase();
+        
+        // Call the edge function with code in path
+        const response = await fetch(
+          `https://otxnzjkyzkpoymeypmef.supabase.co/functions/v1/get-booklet-by-pin/${normalizedCode}`,
           {
-            body: { code },
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
           }
         );
 
-        if (error || !data?.booklet) {
-          setError(true);
+        if (!response.ok) {
+          if (response.status === 404) {
+            setError(true);
+            toast({
+              title: "Code invalide",
+              description: "Ce code n'existe pas ou a été désactivé.",
+              variant: "destructive",
+            });
+          } else {
+            setError(true);
+            toast({
+              title: "Erreur",
+              description: "Problème temporaire. Réessayez dans une minute.",
+              variant: "destructive",
+            });
+          }
         } else {
-          setBooklet(data.booklet);
+          const data = await response.json();
+          if (data?.booklet) {
+            setBooklet(data.booklet);
+          } else {
+            setError(true);
+          }
         }
       } catch (err) {
         console.error('Error fetching booklet:', err);
         setError(true);
         toast({
           title: "Erreur",
-          description: "Impossible de charger le livret",
+          description: "Problème de connexion. Vérifiez votre réseau.",
           variant: "destructive",
         });
       } finally {

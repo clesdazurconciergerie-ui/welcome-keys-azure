@@ -17,16 +17,21 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get PIN code from URL
+    // Get PIN code from URL and normalize
     const url = new URL(req.url);
-    const pinCode = url.pathname.split('/').pop();
-
-    if (!pinCode) {
+    const rawPinCode = url.pathname.split('/').pop();
+    
+    if (!rawPinCode) {
       return new Response(
         JSON.stringify({ error: 'Code PIN manquant' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Normalize PIN: trim, remove spaces, uppercase
+    const pinCode = rawPinCode.replace(/\s+/g, '').toUpperCase();
+
+    console.log('Looking for PIN:', pinCode);
 
     // Find active PIN
     const { data: pin, error: pinError } = await supabase
@@ -37,6 +42,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (pinError || !pin) {
+      console.log('PIN not found or error:', pinError);
       return new Response(
         JSON.stringify({ error: 'Code invalide ou désactivé' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -72,6 +78,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (bookletError || !booklet) {
+      console.log('Booklet not found or not published:', bookletError);
       return new Response(
         JSON.stringify({ error: 'Livret non trouvé ou non publié' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

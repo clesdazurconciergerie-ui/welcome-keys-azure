@@ -174,6 +174,41 @@ const Dashboard = () => {
     }
   };
 
+  const handleRegeneratePin = async (bookletId: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir régénérer le code PIN ? L'ancien code sera désactivé.")) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Session expirée");
+        return;
+      }
+
+      const response = await fetch(
+        `https://otxnzjkyzkpoymeypmef.supabase.co/functions/v1/regenerate-pin/${bookletId}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erreur lors de la régénération');
+      }
+
+      const data = await response.json();
+      toast.success(`Nouveau code généré : ${data.pin_code}`);
+      fetchBooklets(); // Refresh the list
+    } catch (error) {
+      console.error("Error regenerating PIN:", error);
+      toast.error(error instanceof Error ? error.message : "Erreur lors de la régénération du code");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -263,11 +298,11 @@ const Dashboard = () => {
                             <span className="text-xs font-medium text-muted-foreground">Code PIN</span>
                             <code className="text-sm font-bold text-primary">{pin.pin_code}</code>
                           </div>
-                          <div className="flex gap-1">
+                          <div className="flex gap-1 flex-wrap">
                             <Button
                               variant="outline"
                               size="sm"
-                              className="flex-1 text-xs"
+                              className="flex-1 text-xs min-w-[70px]"
                               onClick={() => handleCopyCode(pin.pin_code)}
                             >
                               <Copy className="w-3 h-3 mr-1" />
@@ -276,7 +311,7 @@ const Dashboard = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="flex-1 text-xs"
+                              className="flex-1 text-xs min-w-[70px]"
                               onClick={() => handleCopyLink(pin.pin_code)}
                             >
                               <ExternalLink className="w-3 h-3 mr-1" />
@@ -285,13 +320,21 @@ const Dashboard = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="flex-1 text-xs"
+                              className="flex-1 text-xs min-w-[60px]"
                               onClick={() => handleGenerateQR(pin.pin_code, booklet.property_name || 'livret')}
                             >
                               <QrCode className="w-3 h-3 mr-1" />
                               QR
                             </Button>
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-xs text-muted-foreground hover:text-destructive"
+                            onClick={() => handleRegeneratePin(booklet.id)}
+                          >
+                            Régénérer le code PIN
+                          </Button>
                         </div>
                       )}
                       
