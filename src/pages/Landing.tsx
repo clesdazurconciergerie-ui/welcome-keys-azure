@@ -9,7 +9,9 @@ import {
   Smartphone, 
   Sparkles,
   ArrowRight,
-  Check
+  Check,
+  KeyRound,
+  Info
 } from "lucide-react";
 
 const Landing = () => {
@@ -51,62 +53,77 @@ const Landing = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Waves className="w-5 h-5 text-primary" />
-            </div>
-            <span className="text-xl font-bold gradient-text">Clés d'Azur</span>
+    <div className="min-h-screen bg-white">
+      {/* Hero Section - Simplified for travelers */}
+      <section className="min-h-screen flex flex-col items-center justify-center px-4 py-20">
+        <div className="max-w-2xl mx-auto text-center space-y-8">
+          {/* Logo */}
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary/10 mb-4">
+            <Waves className="w-12 h-12 text-primary" />
           </div>
-          <div className="flex gap-3">
-            <Button variant="ghost" onClick={() => navigate("/auth")}>
-              Connexion
-            </Button>
-            <Button onClick={() => navigate("/auth")}>
-              Commencer
-            </Button>
+          
+          {/* Title & Slogan */}
+          <div>
+            <h1 className="text-5xl lg:text-6xl font-bold gradient-text mb-4">
+              Clés d'Azur
+            </h1>
+            <p className="text-2xl text-muted-foreground font-medium">
+              Votre bien, notre expertise.
+            </p>
           </div>
-        </div>
-      </header>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 lg:py-32">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
-            <Sparkles className="w-4 h-4" />
-            Livrets d'accueil nouvelle génération
-          </div>
-          
-          <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight">
-            Des livrets d'accueil
-            <br />
-            <span className="gradient-text">numériques premium</span>
-          </h1>
-          
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Offrez une expérience d'accueil inoubliable à vos locataires avec des livrets 
-            numériques élégants, accessibles via PIN et équipés d'un chatbot intelligent.
+          {/* Explanation */}
+          <p className="text-lg text-gray-600 max-w-xl mx-auto leading-relaxed">
+            Accédez à votre livret d'accueil numérique en quelques secondes 
+            grâce à votre code d'accès personnel.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" onClick={() => navigate("/auth")} className="gap-2">
-              Créer un livret
-              <ArrowRight className="w-5 h-5" />
+          {/* Main CTAs */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+            <Button 
+              size="lg" 
+              onClick={() => navigate("/acces-livret")}
+              className="gap-2 h-14 text-lg px-8"
+            >
+              <KeyRound className="w-5 h-5" />
+              Accéder à un livret
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate("/auth")}>
-              Se connecter
+            <Button 
+              size="lg" 
+              variant="outline"
+              onClick={() => {
+                document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="gap-2 h-14 text-lg px-8"
+            >
+              <Info className="w-5 h-5" />
+              Découvrir Clés d'Azur
             </Button>
+          </div>
+
+          {/* Small link for owners */}
+          <div className="pt-8 border-t border-gray-200 mt-8">
+            <p className="text-sm text-muted-foreground">
+              Vous êtes propriétaire ou gestionnaire de biens ?{" "}
+              <button
+                onClick={() => navigate("/auth")}
+                className="text-primary hover:underline font-medium"
+              >
+                Accéder au dashboard
+              </button>
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="container mx-auto px-4 py-20 bg-white/50">
+      {/* About Section */}
+      <section id="about" className="container mx-auto px-4 py-20 bg-gradient-to-br from-blue-50 via-white to-cyan-50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
+              <Sparkles className="w-4 h-4" />
+              Livrets d'accueil nouvelle génération
+            </div>
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">
               Tout ce dont vous avez besoin
             </h2>
@@ -159,15 +176,16 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="container mx-auto px-4 py-20">
+      {/* CTA Section for property owners */}
+      <section className="container mx-auto px-4 py-20 bg-gradient-to-br from-blue-50 via-white to-cyan-50">
         <Card className="glass border-0 shadow-premium max-w-4xl mx-auto">
           <CardContent className="py-16 text-center">
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              Prêt à commencer ?
+              Propriétaire de location saisonnière ?
             </h2>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Créez votre premier livret d'accueil numérique dès maintenant
+              Créez votre premier livret d'accueil numérique dès maintenant et offrez 
+              une expérience inoubliable à vos voyageurs.
             </p>
             <Button size="lg" onClick={() => navigate("/auth")} className="gap-2">
               Créer mon premier livret
@@ -178,9 +196,13 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-white/80 backdrop-blur-sm py-8">
+      <footer className="border-t bg-white py-8">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>© 2024 Clés d'Azur. Tous droits réservés.</p>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Waves className="w-5 h-5 text-primary" />
+            <span className="font-semibold gradient-text">Clés d'Azur</span>
+          </div>
+          <p className="text-sm">© 2024 Clés d'Azur. Tous droits réservés.</p>
         </div>
       </footer>
     </div>

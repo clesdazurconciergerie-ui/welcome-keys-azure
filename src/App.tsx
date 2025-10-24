@@ -10,6 +10,7 @@ import NewBooklet from "./pages/NewBooklet";
 import EditBooklet from "./pages/EditBooklet";
 import ViewBooklet from "./pages/ViewBooklet";
 import PreviewBooklet from "./pages/PreviewBooklet";
+import AccessBooklet from "./pages/AccessBooklet";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/acces-livret" element={<AccessBooklet />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/booklets/new" element={<NewBooklet />} />
