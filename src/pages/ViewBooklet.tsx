@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Home, MapPin, Wifi, Phone, Mail, Clock } from "lucide-react";
+import { Home, MapPin, Wifi, Phone, Mail, Clock, Eye, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Booklet {
@@ -14,8 +14,6 @@ interface Booklet {
   property_type?: string;
   welcome_message?: string;
   cover_image_url?: string;
-  wifi_name?: string;
-  wifi_password?: string;
   check_in_time?: string;
   check_out_time?: string;
   house_rules?: string;
@@ -29,12 +27,20 @@ interface Booklet {
   chatbot_config?: any;
 }
 
+interface WifiCredentials {
+  ssid: string;
+  password: string;
+}
+
 export default function ViewBooklet() {
   const { code } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [booklet, setBooklet] = useState<Booklet | null>(null);
   const [error, setError] = useState(false);
+  const [wifiCredentials, setWifiCredentials] = useState<WifiCredentials | null>(null);
+  const [showWifiPassword, setShowWifiPassword] = useState(false);
+  const [loadingWifi, setLoadingWifi] = useState(false);
 
   useEffect(() => {
     const fetchBooklet = async () => {
@@ -98,6 +104,56 @@ export default function ViewBooklet() {
 
     fetchBooklet();
   }, [code]);
+
+  const handleShowWifiPassword = async () => {
+    if (!code || loadingWifi || wifiCredentials) return;
+
+    setLoadingWifi(true);
+    try {
+      const normalizedCode = code.replace(/\s+/g, '').toUpperCase();
+      const response = await fetch(
+        `https://otxnzjkyzkpoymeypmef.supabase.co/functions/v1/get-wifi-by-pin/${normalizedCode}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de récupérer les identifiants WiFi",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const data = await response.json();
+      setWifiCredentials(data);
+      setShowWifiPassword(true);
+    } catch (err) {
+      console.error('Error fetching WiFi credentials:', err);
+      toast({
+        title: "Erreur",
+        description: "Problème de connexion",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingWifi(false);
+    }
+  };
+
+  const handleCopyWifiPassword = () => {
+    if (wifiCredentials?.password) {
+      navigator.clipboard.writeText(wifiCredentials.password);
+      toast({
+        title: "Copié !",
+        description: "Mot de passe WiFi copié dans le presse-papiers",
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -185,15 +241,63 @@ export default function ViewBooklet() {
               </div>
             )}
             
-            {(booklet.wifi_name || booklet.wifi_password) && (
-              <div className="flex items-start gap-3">
-                <Wifi className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  {booklet.wifi_name && <p><strong>WiFi :</strong> {booklet.wifi_name}</p>}
-                  {booklet.wifi_password && <p><strong>Mot de passe :</strong> {booklet.wifi_password}</p>}
-                </div>
+            {/* WiFi Section - Secure */}
+            <div className="flex items-start gap-3 border-t pt-4">
+              <Wifi className="h-5 w-5 text-muted-foreground mt-0.5" />
+              <div className="flex-1">
+                {wifiCredentials ? (
+                  <>
+                    <p><strong>WiFi :</strong> {wifiCredentials.ssid}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <p className="flex-1">
+                        <strong>Mot de passe :</strong>{' '}
+                        {showWifiPassword ? wifiCredentials.password : '••••••••'}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowWifiPassword(!showWifiPassword)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {showWifiPassword && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCopyWifiPassword}
+                        >
+                          Copier
+                        </Button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <p className="text-muted-foreground mb-2">
+                      Les identifiants WiFi sont disponibles pour les voyageurs
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleShowWifiPassword}
+                      disabled={loadingWifi}
+                    >
+                      {loadingWifi ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Chargement...
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Afficher les identifiants WiFi
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 

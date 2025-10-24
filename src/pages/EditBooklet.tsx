@@ -70,12 +70,22 @@ const EditBooklet = () => {
       setWelcomeMessage(data.welcome_message || "");
       setCheckInTime(data.check_in_time || "");
       setCheckOutTime(data.check_out_time || "");
-      setWifiName(data.wifi_name || "");
-      setWifiPassword(data.wifi_password || "");
       setHouseRules(data.house_rules || "");
       setContactPhone(data.contact_phone || "");
       setContactEmail(data.contact_email || "");
       setEmergencyContacts(data.emergency_contacts || "");
+
+      // Fetch WiFi credentials from separate table
+      const { data: wifiData } = await supabase
+        .from("wifi_credentials")
+        .select("ssid, password")
+        .eq("booklet_id", id)
+        .maybeSingle();
+
+      if (wifiData) {
+        setWifiName(wifiData.ssid || "");
+        setWifiPassword(wifiData.password || "");
+      }
     } catch (error) {
       console.error("Error fetching booklet:", error);
       toast.error("Erreur lors du chargement du livret");
@@ -90,7 +100,8 @@ const EditBooklet = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      // Update booklet basic info
+      const { error: bookletError } = await supabase
         .from("booklets")
         .update({
           property_name: propertyName,
@@ -98,8 +109,6 @@ const EditBooklet = () => {
           welcome_message: welcomeMessage,
           check_in_time: checkInTime,
           check_out_time: checkOutTime,
-          wifi_name: wifiName,
-          wifi_password: wifiPassword,
           house_rules: houseRules,
           contact_phone: contactPhone,
           contact_email: contactEmail,
@@ -107,7 +116,23 @@ const EditBooklet = () => {
         })
         .eq("id", id);
 
-      if (error) throw error;
+      if (bookletError) throw bookletError;
+
+      // Update or insert WiFi credentials in separate table
+      if (wifiName || wifiPassword) {
+        const { error: wifiError } = await supabase
+          .from("wifi_credentials")
+          .upsert({
+            booklet_id: id,
+            ssid: wifiName,
+            password: wifiPassword,
+          }, {
+            onConflict: 'booklet_id'
+          });
+
+        if (wifiError) throw wifiError;
+      }
+
       toast.success("Modifications sauvegardées");
       fetchBooklet();
     } catch (error) {

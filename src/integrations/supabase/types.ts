@@ -37,8 +37,6 @@ export type Database = {
           updated_at: string
           user_id: string
           welcome_message: string | null
-          wifi_name: string | null
-          wifi_password: string | null
         }
         Insert: {
           amenities?: Json | null
@@ -62,8 +60,6 @@ export type Database = {
           updated_at?: string
           user_id: string
           welcome_message?: string | null
-          wifi_name?: string | null
-          wifi_password?: string | null
         }
         Update: {
           amenities?: Json | null
@@ -87,8 +83,6 @@ export type Database = {
           updated_at?: string
           user_id?: string
           welcome_message?: string | null
-          wifi_name?: string | null
-          wifi_password?: string | null
         }
         Relationships: [
           {
@@ -161,6 +155,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      wifi_credentials: {
+        Row: {
+          booklet_id: string
+          created_at: string
+          id: string
+          password: string
+          ssid: string
+          updated_at: string
+        }
+        Insert: {
+          booklet_id: string
+          created_at?: string
+          id?: string
+          password: string
+          ssid: string
+          updated_at?: string
+        }
+        Update: {
+          booklet_id?: string
+          created_at?: string
+          id?: string
+          password?: string
+          ssid?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wifi_credentials_booklet_id_fkey"
+            columns: ["booklet_id"]
+            isOneToOne: false
+            referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
