@@ -45,7 +45,7 @@ const THEME_PRESETS: Record<string, AppearanceConfig['colors']> = {
   clair: {
     background: '#ffffff',
     surface: '#ffffff',
-    accent: '#18c0df',
+    accent: '#071552',
     text: '#1a1a1a',
     muted: '#6b7280'
   },
@@ -59,14 +59,14 @@ const THEME_PRESETS: Record<string, AppearanceConfig['colors']> = {
   marine: {
     background: '#f0f4f8',
     surface: '#ffffff',
-    accent: '#18c0df',
+    accent: '#071552',
     text: '#0f172a',
     muted: '#64748b'
   },
   nuit: {
     background: '#0f172a',
     surface: '#1e293b',
-    accent: '#18c0df',
+    accent: '#071552',
     text: '#f1f5f9',
     muted: '#94a3b8'
   },

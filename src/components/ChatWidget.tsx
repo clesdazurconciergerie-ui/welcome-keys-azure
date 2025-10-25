@@ -94,7 +94,7 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 left-5 h-14 w-14 rounded-full shadow-lg z-[1000] bg-[#18C0DF] hover:bg-[#18C0DF] hover:scale-105 transition-all duration-250 md:bottom-6 md:left-6"
+          className="fixed bottom-5 left-5 h-14 w-14 rounded-full shadow-lg z-[1000] bg-[#071552] hover:bg-[#071552] hover:scale-105 transition-all duration-250 md:bottom-6 md:left-6"
           size="icon"
           style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
         >
@@ -108,7 +108,7 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
           style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b bg-[#18C0DF] text-white rounded-t-lg">
+          <div className="flex items-center justify-between p-4 border-b bg-[#071552] text-white rounded-t-lg">
             <div className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5" />
               <h3 className="font-semibold">Assistant virtuel</h3>
@@ -155,7 +155,7 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
                     <div
                       className={`max-w-[80%] rounded-lg px-3.5 py-2.5 ${
                         msg.role === 'user'
-                          ? 'bg-[#18C0DF] text-white'
+                          ? 'bg-[#071552] text-white'
                           : 'bg-[#F8F8F8] text-[#1A1A1A]'
                       }`}
                       style={{ wordWrap: 'break-word' }}
