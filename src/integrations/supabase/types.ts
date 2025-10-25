@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      _signup_errors: {
+        Row: {
+          details: string | null
+          id: number
+          occurred_at: string | null
+        }
+        Insert: {
+          details?: string | null
+          id?: number
+          occurred_at?: string | null
+        }
+        Update: {
+          details?: string | null
+          id?: number
+          occurred_at?: string | null
+        }
+        Relationships: []
+      }
       activities: {
         Row: {
           age_restrictions: string | null
