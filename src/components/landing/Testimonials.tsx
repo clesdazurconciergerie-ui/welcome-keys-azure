@@ -33,6 +33,89 @@ const Testimonials = () => {
       });
     }
   };
-  return;
+  return (
+    <section className="py-12 md:py-16 bg-secondary">
+      <div className="container mx-auto px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-8 md:mb-12"
+        >
+          <h2 className="font-display font-bold text-foreground mb-3">
+            Des hôtes & voyageurs satisfaits
+          </h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Rejoignez des milliers d'hôtes qui ont amélioré l'expérience de leurs voyageurs
+          </p>
+        </motion.div>
+
+        {/* Mobile Controls */}
+        <div className="flex md:hidden justify-center gap-2 mb-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => scroll('left')}
+            aria-label="Témoignage précédent"
+            className="rounded-full"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => scroll('right')}
+            aria-label="Témoignage suivant"
+            className="rounded-full"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Testimonials Container */}
+        <div
+          ref={scrollRef}
+          className="flex md:grid md:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-visible snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0 carousel-container"
+          role="region"
+          aria-label="Témoignages clients"
+        >
+          {testimonials.map((testimonial, index) => (
+            <motion.article
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              className="min-w-[85%] md:min-w-0 snap-start bg-card border border-border rounded-2xl p-6 shadow-sm"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <Avatar>
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {testimonial.avatar}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold text-foreground">{testimonial.name}</p>
+                  <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                </div>
+                <BadgeCheck className="ml-auto h-5 w-5 text-primary" />
+              </div>
+              
+              <div className="flex gap-0.5 mb-3">
+                {[...Array(testimonial.rating)].map((_, i) => (
+                  <Star key={i} className="h-4 w-4 fill-primary text-primary" />
+                ))}
+              </div>
+              
+              <p className="text-foreground leading-relaxed">
+                {testimonial.text}
+              </p>
+            </motion.article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 };
 export default Testimonials;

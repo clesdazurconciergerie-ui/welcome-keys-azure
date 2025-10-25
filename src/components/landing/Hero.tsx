@@ -44,9 +44,9 @@ const Hero = () => {
     }} />
 
       <div className="container mx-auto px-4">
-        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+        <div className="max-w-4xl mx-auto">
           {/* Content */}
-          <motion.div className="relative z-10 text-center lg:text-left" variants={containerVariants} initial="hidden" animate="visible">
+          <motion.div className="relative z-10 text-center" variants={containerVariants} initial="hidden" animate="visible">
             {/* Main Title */}
             <motion.h1 variants={itemVariants} className="font-display font-bold text-foreground">
               Améliorez l'expérience de vos voyageurs.
@@ -59,7 +59,7 @@ const Hero = () => {
             </motion.p>
 
             {/* CTAs */}
-            <motion.div variants={itemVariants} className="mt-6 lg:mt-8 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-3">
+            <motion.div variants={itemVariants} className="mt-6 lg:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button size="lg" onClick={() => navigate("/auth")} className="w-full sm:w-auto h-12 px-6 bg-primary hover:bg-[hsl(var(--brand-cyan-hover))] text-white rounded-[18px] shadow-lg hover:shadow-xl transition-all">
                 <Sparkles className="w-5 h-5 mr-2" />
                 Essayer gratuitement
@@ -71,7 +71,7 @@ const Hero = () => {
             </motion.div>
 
             {/* Social Proof */}
-            <motion.div variants={itemVariants} className="mt-6 lg:mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-4 lg:gap-6 text-sm text-muted-foreground">
+            <motion.div variants={itemVariants} className="mt-6 lg:mt-8 flex flex-wrap items-center justify-center gap-4 lg:gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <span className="text-primary">✓</span>
                 <span>Déjà 3 000+ livrets créés</span>
@@ -81,22 +81,6 @@ const Hero = () => {
                 <span>Note moyenne 4,8/5</span>
               </div>
             </motion.div>
-          </motion.div>
-
-          {/* Mockup */}
-          <motion.div initial={{
-          opacity: 0,
-          x: 20
-        }} animate={{
-          opacity: 1,
-          x: 0
-        }} transition={{
-          duration: 0.8,
-          delay: 0.3
-        }} className="relative">
-            <div className="relative aspect-[4/3] lg:aspect-auto">
-              
-            </div>
           </motion.div>
         </div>
       </div>
