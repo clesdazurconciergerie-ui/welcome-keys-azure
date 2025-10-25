@@ -8,6 +8,8 @@ import { Home, MapPin, Wifi, Clock, Eye, Loader2, Package, Trash2, MapPinIcon, P
 import { toast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import ChatWidget from "@/components/ChatWidget";
+import FreeTrialWatermark from "@/components/FreeTrialWatermark";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Photo {
   url: string;
@@ -60,6 +62,7 @@ interface AppearanceConfig {
 
 interface Booklet {
   id: string;
+  user_id?: string;
   property_name: string;
   tagline?: string;
   property_address: string;
@@ -116,6 +119,7 @@ export default function ViewBooklet() {
   const [loadingWifi, setLoadingWifi] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<{ url: string; alt: string } | null>(null);
+  const [ownerRole, setOwnerRole] = useState<string | null>(null);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -166,6 +170,19 @@ export default function ViewBooklet() {
           const data = await response.json();
           if (data?.booklet) {
             setBooklet(data.booklet);
+            
+            // Récupérer le rôle du propriétaire du livret
+            if (data.booklet.user_id) {
+              const { data: userData } = await supabase
+                .from('users')
+                .select('role')
+                .eq('id', data.booklet.user_id)
+                .single();
+              
+              if (userData) {
+                setOwnerRole(userData.role);
+              }
+            }
           } else {
             setError(true);
           }
@@ -1005,6 +1022,9 @@ export default function ViewBooklet() {
 
       {/* Chatbot Widget */}
       <ChatWidget pin={code || ''} locale={booklet.language || 'fr'} />
+
+      {/* Free Trial Watermark */}
+      <FreeTrialWatermark userRole={ownerRole || undefined} />
 
       {/* Lightbox for Equipment Photos */}
       {lightboxImage && (

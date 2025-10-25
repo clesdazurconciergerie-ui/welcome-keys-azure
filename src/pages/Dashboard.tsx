@@ -38,6 +38,8 @@ const Dashboard = () => {
   const [subscriptionStatus, setSubscriptionStatus] = useState("");
   const [canCreateBooklet, setCanCreateBooklet] = useState(true);
   const [quotaMessage, setQuotaMessage] = useState("");
+  const [trialExpiresAt, setTrialExpiresAt] = useState<string | null>(null);
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -68,13 +70,23 @@ const Dashboard = () => {
     // Fetch user subscription status
     const { data: userData } = await supabase
       .from('users')
-      .select('role, subscription_status')
+      .select('role, subscription_status, trial_expires_at')
       .eq('id', session.user.id)
       .single();
 
     if (userData) {
-      setUserRole(userData.role || 'free');
+      setUserRole(userData.role || 'free_trial');
       setSubscriptionStatus(userData.subscription_status || 'none');
+      setTrialExpiresAt(userData.trial_expires_at);
+      
+      // Calculer les jours restants pour l'essai gratuit
+      if (userData.role === 'free_trial' && userData.trial_expires_at) {
+        const now = new Date();
+        const expiresAt = new Date(userData.trial_expires_at);
+        const diffTime = expiresAt.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        setDaysRemaining(diffDays > 0 ? diffDays : 0);
+      }
     }
   };
 
@@ -90,25 +102,42 @@ const Dashboard = () => {
 
       // Check quota
       const bookletCount = data?.length || 0;
-      const role = userRole || 'free';
+      const role = userRole || 'free_trial';
       const status = subscriptionStatus || 'none';
 
-      if (status !== 'active' || role === 'free') {
-        setCanCreateBooklet(false);
-        setQuotaMessage("Abonnez-vous au plan Starter pour créer votre premier livret.");
+      let canCreate = true;
+      let message = '';
+
+      if (role === 'free_trial') {
+        // Vérifier si l'essai est expiré
+        if (trialExpiresAt) {
+          const now = new Date();
+          const expiresAt = new Date(trialExpiresAt);
+          
+          if (now >= expiresAt) {
+            canCreate = false;
+            message = "Votre essai gratuit est terminé. Souscrivez un abonnement pour continuer.";
+          } else if (bookletCount >= 1) {
+            canCreate = false;
+            message = "Vous avez créé votre livret d'essai. Souscrivez un abonnement pour créer plus de livrets.";
+          }
+        }
+      } else if (status !== 'active' || role === 'free') {
+        canCreate = false;
+        message = "Abonnez-vous au plan Starter pour créer votre premier livret.";
       } else if (role === 'pack_starter' && bookletCount >= 1) {
-        setCanCreateBooklet(false);
-        setQuotaMessage("Vous avez atteint votre quota (1/1 livret). Passez au plan Pro pour créer plus de livrets.");
+        canCreate = false;
+        message = "Vous avez atteint votre quota (1/1 livret). Passez au plan Pro pour créer plus de livrets.";
       } else if (role === 'pack_pro' && bookletCount >= 5) {
-        setCanCreateBooklet(false);
-        setQuotaMessage("Vous avez atteint votre quota (5/5 livrets). Passez au plan Business pour créer plus de livrets.");
+        canCreate = false;
+        message = "Vous avez atteint votre quota (5/5 livrets). Passez au plan Business pour créer plus de livrets.";
       } else if (role === 'pack_business' && bookletCount >= 15) {
-        setCanCreateBooklet(false);
-        setQuotaMessage("Vous avez atteint votre quota (15/15 livrets). Passez au plan Premium pour des livrets illimités.");
-      } else {
-        setCanCreateBooklet(true);
-        setQuotaMessage("");
+        canCreate = false;
+        message = "Vous avez atteint votre quota (15/15 livrets). Passez au plan Premium pour des livrets illimités.";
       }
+
+      setCanCreateBooklet(canCreate);
+      setQuotaMessage(message);
 
       // Fetch PINs for published booklets
       const publishedIds = data?.filter(b => b.status === 'published').map(b => b.id) || [];
@@ -262,15 +291,21 @@ const Dashboard = () => {
 
   const handleCreateBooklet = () => {
     if (!canCreateBooklet) {
-      supabase.auth.getSession().then(({ data }) => {
-        if (data?.session?.user) {
-          const baseUrl = "https://buy.stripe.com/cNi5kDeMB6Cd8htgEQ5kk00";
-          const url = new URL(baseUrl);
-          url.searchParams.set('prefilled_email', data.session.user.email || '');
-          url.searchParams.set('client_reference_id', data.session.user.id);
-          window.location.href = url.toString();
-        }
-      });
+      // Si l'essai est expiré ou si pas d'abonnement, rediriger vers Stripe
+      if (userRole === 'free_trial' || !userRole || subscriptionStatus !== 'active') {
+        supabase.auth.getSession().then(({ data }) => {
+          if (data?.session?.user) {
+            const baseUrl = "https://buy.stripe.com/cNi5kDeMB6Cd8htgEQ5kk00";
+            const url = new URL(baseUrl);
+            url.searchParams.set('prefilled_email', data.session.user.email || '');
+            url.searchParams.set('client_reference_id', data.session.user.id);
+            window.location.href = url.toString();
+          }
+        });
+        return;
+      }
+      
+      toast.error(quotaMessage);
       return;
     }
     navigate("/booklets/new");
@@ -331,6 +366,39 @@ const Dashboard = () => {
           </p>
         </motion.div>
 
+        {/* Free Trial Banner */}
+        {userRole === 'free_trial' && daysRemaining !== null && daysRemaining > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-6"
+          >
+            <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-foreground mb-1">
+                      Essai gratuit actif
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Il vous reste <span className="font-semibold text-foreground">{daysRemaining} jour{daysRemaining > 1 ? 's' : ''}</span> pour tester Welkom et créer votre premier livret d'accueil.
+                    </p>
+                    <Button
+                      size="sm"
+                      onClick={() => navigate('/tarifs')}
+                      variant="outline"
+                      className="border-primary text-primary hover:bg-primary/10"
+                    >
+                      Découvrir les plans
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Quota Banner */}
         {!canCreateBooklet && quotaMessage && (
           <motion.div
@@ -339,23 +407,17 @@ const Dashboard = () => {
             transition={{ duration: 0.5 }}
             className="mb-6"
           >
-            <Card className="bg-primary/5 border-primary/20">
+            <Card className="bg-destructive/5 border-destructive/20">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
                   <div className="flex-1">
                     <p className="text-sm text-foreground mb-2">{quotaMessage}</p>
                     <Button
                       size="sm"
-                      onClick={() => {
-                        supabase.auth.getSession().then(({ data }) => {
-                          if (data?.session?.user) {
-                            window.open('/tarifs', '_blank');
-                          }
-                        });
-                      }}
+                      onClick={() => navigate('/tarifs')}
                       className="bg-primary hover:bg-primary/90 text-white"
                     >
-                      Voir les offres
+                      Voir les tarifs
                     </Button>
                   </div>
                 </div>
