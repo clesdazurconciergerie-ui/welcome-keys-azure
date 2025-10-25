@@ -205,4 +205,16 @@ All colors MUST be HSL.
     white-space: pre-line;
     line-height: 1.5;
   }
+
+  /* Animation chatbot */
+  @keyframes chatbot-slide-up {
+    from {
+      transform: translateY(50px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
 }

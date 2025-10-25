@@ -94,18 +94,21 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))] hover:scale-110 transition-transform"
+          className="fixed bottom-5 left-5 h-14 w-14 rounded-full shadow-lg z-[1000] bg-[#18C0DF] hover:bg-[#18C0DF] hover:scale-105 transition-all duration-250 md:bottom-6 md:left-6"
           size="icon"
+          style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle className="h-6 w-6 text-white" />
         </Button>
       )}
 
       {/* Chat Panel */}
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-[90vw] max-w-md h-[600px] max-h-[80vh] shadow-2xl z-50 flex flex-col">
+        <Card className="fixed bottom-20 left-2.5 w-[calc(100vw-20px)] md:w-[380px] md:left-5 h-[600px] max-h-[70vh] shadow-2xl z-[1001] flex flex-col animate-chatbot-slide-up"
+          style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b bg-[hsl(var(--primary))] text-white rounded-t-lg">
+          <div className="flex items-center justify-between p-4 border-b bg-[#18C0DF] text-white rounded-t-lg">
             <div className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5" />
               <h3 className="font-semibold">Assistant virtuel</h3>
@@ -152,7 +155,7 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
                     <div
                       className={`max-w-[80%] rounded-lg px-4 py-2 ${
                         msg.role === 'user'
-                          ? 'bg-[hsl(var(--primary))] text-white'
+                          ? 'bg-[#18C0DF] text-white'
                           : 'bg-muted text-foreground'
                       }`}
                     >
