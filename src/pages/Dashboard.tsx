@@ -34,11 +34,23 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("");
+  const [subscriptionStatus, setSubscriptionStatus] = useState("");
+  const [canCreateBooklet, setCanCreateBooklet] = useState(true);
+  const [quotaMessage, setQuotaMessage] = useState("");
 
   useEffect(() => {
-    checkAuth();
-    fetchBooklets();
+    const init = async () => {
+      await checkAuth();
+    };
+    init();
   }, []);
+
+  useEffect(() => {
+    if (userRole && subscriptionStatus) {
+      fetchBooklets();
+    }
+  }, [userRole, subscriptionStatus]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -48,9 +60,22 @@ const Dashboard = () => {
     }
     const email = session.user.email || "";
     setUserEmail(email);
+    
     // Extract first name from email
     const name = email.split('@')[0].split('.')[0];
     setUserName(name.charAt(0).toUpperCase() + name.slice(1));
+
+    // Fetch user subscription status
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role, subscription_status')
+      .eq('id', session.user.id)
+      .single();
+
+    if (userData) {
+      setUserRole(userData.role || 'free');
+      setSubscriptionStatus(userData.subscription_status || 'none');
+    }
   };
 
   const fetchBooklets = async () => {
@@ -62,6 +87,28 @@ const Dashboard = () => {
 
       if (error) throw error;
       setBooklets(data || []);
+
+      // Check quota
+      const bookletCount = data?.length || 0;
+      const role = userRole || 'free';
+      const status = subscriptionStatus || 'none';
+
+      if (status !== 'active' || role === 'free') {
+        setCanCreateBooklet(false);
+        setQuotaMessage("Abonnez-vous au plan Starter pour créer votre premier livret.");
+      } else if (role === 'pack_starter' && bookletCount >= 1) {
+        setCanCreateBooklet(false);
+        setQuotaMessage("Vous avez atteint votre quota (1/1 livret). Passez au plan Pro pour créer plus de livrets.");
+      } else if (role === 'pack_pro' && bookletCount >= 5) {
+        setCanCreateBooklet(false);
+        setQuotaMessage("Vous avez atteint votre quota (5/5 livrets). Passez au plan Business pour créer plus de livrets.");
+      } else if (role === 'pack_business' && bookletCount >= 15) {
+        setCanCreateBooklet(false);
+        setQuotaMessage("Vous avez atteint votre quota (15/15 livrets). Passez au plan Premium pour des livrets illimités.");
+      } else {
+        setCanCreateBooklet(true);
+        setQuotaMessage("");
+      }
 
       // Fetch PINs for published booklets
       const publishedIds = data?.filter(b => b.status === 'published').map(b => b.id) || [];
@@ -213,6 +260,22 @@ const Dashboard = () => {
     }
   };
 
+  const handleCreateBooklet = () => {
+    if (!canCreateBooklet) {
+      supabase.auth.getSession().then(({ data }) => {
+        if (data?.session?.user) {
+          const baseUrl = "https://buy.stripe.com/cN5kDeMB6Cd8htgEQ";
+          const email = encodeURIComponent(data.session.user.email || "");
+          const clientRef = encodeURIComponent(data.session.user.id);
+          const stripeUrl = `${baseUrl}?prefilled_email=${email}&client_reference_id=${clientRef}`;
+          window.open(stripeUrl, '_blank');
+        }
+      });
+      return;
+    }
+    navigate("/booklets/new");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-[#F7F9FC]">
@@ -268,6 +331,39 @@ const Dashboard = () => {
           </p>
         </motion.div>
 
+        {/* Quota Banner */}
+        {!canCreateBooklet && quotaMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-6"
+          >
+            <Card className="bg-primary/5 border-primary/20">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm text-foreground mb-2">{quotaMessage}</p>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        supabase.auth.getSession().then(({ data }) => {
+                          if (data?.session?.user) {
+                            window.open('/tarifs', '_blank');
+                          }
+                        });
+                      }}
+                      className="bg-primary hover:bg-primary/90 text-white"
+                    >
+                      Voir les offres
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Page Title & CTA */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -284,9 +380,10 @@ const Dashboard = () => {
             </p>
           </div>
           <Button 
-            onClick={() => navigate("/booklets/new")} 
+            onClick={handleCreateBooklet}
             size="lg"
-            className="bg-primary hover:bg-[#122372] text-white rounded-xl px-6 py-3 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            disabled={!canCreateBooklet}
+            className="bg-primary hover:bg-[#122372] text-white rounded-xl px-6 py-3 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-5 h-5 mr-2" />
             Nouveau livret
@@ -316,9 +413,10 @@ const Dashboard = () => {
                   Créez votre premier livret d'accueil pour commencer
                 </p>
                 <Button 
-                  onClick={() => navigate("/booklets/new")}
+                  onClick={handleCreateBooklet}
                   size="lg"
-                  className="bg-primary hover:bg-[#122372] text-white rounded-xl px-8"
+                  disabled={!canCreateBooklet}
+                  className="bg-primary hover:bg-[#122372] text-white rounded-xl px-8 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="w-5 h-5 mr-2" />
                   Créer mon premier livret

@@ -36,7 +36,7 @@ serve(async (req) => {
       ],
       mode: 'subscription',
       success_url: `${req.headers.get('origin')}/billing-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/tarifs`,
+      cancel_url: `${req.headers.get('origin')}/tarifs?canceled=1`,
       client_reference_id: userId,
       customer_email: userEmail,
       metadata: {

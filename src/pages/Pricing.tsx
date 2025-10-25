@@ -31,36 +31,27 @@ const Pricing = () => {
       return;
     }
 
-    try {
-      toast.loading("Création de la session de paiement...");
+    // Vérifier le statut d'abonnement de l'utilisateur
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role, subscription_status')
+      .eq('id', user.id)
+      .single();
 
-      // Map plan IDs to Stripe price IDs
-      const priceIds: Record<string, string> = {
-        starter: 'price_starter_id', // Replace with your actual Stripe price IDs
-        pro: 'price_pro_id',
-        business: 'price_business_id',
-        premium: 'price_premium_id',
-      };
-
-      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: {
-          priceId: priceIds[planId],
-          userId: user.id,
-          userEmail: user.email,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('No checkout URL returned');
-      }
-    } catch (error) {
-      console.error('Error creating checkout session:', error);
-      toast.error("Erreur lors de la création de la session de paiement");
+    // Si déjà abonné actif, aller au dashboard
+    if (userData?.subscription_status === 'active' && userData?.role && userData.role !== 'free') {
+      navigate('/dashboard');
+      return;
     }
+
+    // Sinon, rediriger vers Stripe
+    const baseUrl = "https://buy.stripe.com/cN5kDeMB6Cd8htgEQ";
+    const email = encodeURIComponent(user.email || "");
+    const clientRef = encodeURIComponent(user.id);
+    const stripeUrl = `${baseUrl}?prefilled_email=${email}&client_reference_id=${clientRef}`;
+    
+    window.open(stripeUrl, '_blank');
+    toast.success("Redirection vers Stripe...");
   };
 
   const plans = [

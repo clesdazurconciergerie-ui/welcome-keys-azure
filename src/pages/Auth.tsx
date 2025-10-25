@@ -68,13 +68,40 @@ const Auth = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+      
+      // Check subscription status
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role, subscription_status')
+        .eq('id', data.user.id)
+        .single();
+
       toast.success("Connexion réussie !");
+
+      // Check for next parameter in URL
+      const searchParams = new URLSearchParams(window.location.search);
+      const next = searchParams.get('next');
+
+      if (next === '/tarifs') {
+        // If coming from pricing page, check subscription
+        if (userData?.subscription_status !== 'active' || userData?.role === 'free') {
+          // Redirect to Stripe if not subscribed
+          const baseUrl = "https://buy.stripe.com/cN5kDeMB6Cd8htgEQ";
+          const emailParam = encodeURIComponent(data.user.email || "");
+          const clientRef = encodeURIComponent(data.user.id);
+          const stripeUrl = `${baseUrl}?prefilled_email=${emailParam}&client_reference_id=${clientRef}`;
+          window.location.href = stripeUrl;
+          return;
+        }
+      }
+
+      // Default: go to dashboard
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Signin error:", error);
