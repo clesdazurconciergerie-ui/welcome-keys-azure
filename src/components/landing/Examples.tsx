@@ -1,0 +1,102 @@
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ExternalLink } from "lucide-react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+
+const Examples = () => {
+  const navigate = useNavigate();
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  const examples = [
+    {
+      title: "T2 centre-ville",
+      description: "Appartement moderne avec toutes commodités",
+      image: "🏙️",
+      color: "from-blue-50 to-blue-100",
+    },
+    {
+      title: "Villa avec piscine",
+      description: "Maison familiale avec jardin et piscine",
+      image: "🏊",
+      color: "from-cyan-50 to-cyan-100",
+    },
+    {
+      title: "Studio vue mer",
+      description: "Cosy studio avec vue panoramique",
+      image: "🌊",
+      color: "from-sky-50 to-sky-100",
+    },
+  ];
+
+  return (
+    <section id="examples" className="py-20 md:py-32 bg-[#F7F8FB] scroll-mt-20">
+      <div className="container mx-auto px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16"
+        >
+          <h2 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl text-primary mb-4">
+            Exemples de livrets
+          </h2>
+          <p className="text-lg md:text-xl text-[#6C6C6C] max-w-2xl mx-auto">
+            Découvrez comment nos livrets s'adaptent à différents types de biens
+          </p>
+        </motion.div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto mb-12">
+          {examples.map((example, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              onHoverStart={() => setHoveredIndex(index)}
+              onHoverEnd={() => setHoveredIndex(null)}
+            >
+              <Card className="h-full overflow-hidden border-[#ECEEF3] hover:shadow-xl transition-all duration-300 cursor-pointer group">
+                <CardContent className="p-0">
+                  <div
+                    className={`h-40 flex items-center justify-center text-6xl bg-gradient-to-br ${example.color} transition-transform duration-300 ${
+                      hoveredIndex === index ? "scale-110" : ""
+                    }`}
+                  >
+                    {example.image}
+                  </div>
+                  <div className="p-6">
+                    <h3 className="font-display font-semibold text-xl text-primary mb-2 group-hover:underline">
+                      {example.title}
+                    </h3>
+                    <p className="text-[#6C6C6C] text-sm">{example.description}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="text-center"
+        >
+          <button
+            onClick={() => navigate("/acces-livret")}
+            className="inline-flex items-center gap-2 text-primary hover:underline font-medium text-lg focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-4 py-2"
+          >
+            Voir un exemple réel
+            <ExternalLink className="w-5 h-5" />
+          </button>
+        </motion.div>
+      </div>
+    </section>
+  );
+};
+
+export default Examples;
