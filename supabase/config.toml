@@ -1,7 +1,7 @@
 project_id = "otxnzjkyzkpoymeypmef"
 
 [functions.generate-description]
-verify_jwt = false
+verify_jwt = true
 
 [functions.publish-booklet]
 verify_jwt = false
@@ -16,7 +16,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.chat-ask]
-verify_jwt = false
+verify_jwt = true
 
 [functions.get-wifi-by-pin]
 verify_jwt = false

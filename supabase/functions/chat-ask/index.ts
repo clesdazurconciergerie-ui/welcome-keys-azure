@@ -198,12 +198,43 @@ serve(async (req) => {
   try {
     const { pin: pinCode, message, locale = 'fr' } = await req.json();
 
-    if (!pinCode || !message) {
+    // ========== VALIDATION DES ENTRÉES (SÉCURITÉ) ==========
+    if (!pinCode || typeof pinCode !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'PIN et message requis' }),
+        JSON.stringify({ error: 'Code PIN requis' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    if (!message || typeof message !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Message requis' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validation de la longueur du message
+    if (message.length > 500) {
+      return new Response(
+        JSON.stringify({ error: 'Message trop long (maximum 500 caractères)' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Sanitization basique (retire caractères HTML dangereux)
+    const sanitizedMessage = message
+      .replace(/[<>]/g, '')  // Retire < et >
+      .trim();
+
+    if (sanitizedMessage.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Message vide après sanitization' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[SECURITY] Chat request - PIN length: ${pinCode.length}, Message length: ${sanitizedMessage.length}`);
+    // ========== FIN VALIDATION ==========
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -220,12 +251,12 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const normalizedPin = pinCode.replace(/\s+/g, '').toUpperCase();
 
-    // Détecter l'intent de la question
-    const intent = detectIntent(message);
-    console.log('Intent détecté:', intent, 'pour:', message);
+    // Détecter l'intent de la question (utiliser le message sanitized)
+    const intent = detectIntent(sanitizedMessage);
+    console.log('Intent détecté:', intent, 'pour:', sanitizedMessage);
 
     // Bloquer les demandes sensibles explicites
-    const normalized = normalize(message);
+    const normalized = normalize(sanitizedMessage);
     const isSensitiveRequest = 
       /(?:adresse exacte|code porte|digicode|numero de porte|email|telephone|tel|proprietaire|owner)/.test(normalized);
 
@@ -586,7 +617,7 @@ Compose une réponse utile en utilisant les FACTS. Donne TOUJOURS des noms concr
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
+          { role: 'user', content: sanitizedMessage }
         ],
         temperature: 0.7,
         max_tokens: 400,

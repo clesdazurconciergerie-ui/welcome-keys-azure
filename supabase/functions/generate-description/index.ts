@@ -34,13 +34,53 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY not configured');
     }
 
+    // ========== VALIDATION DES ENTRÉES (SÉCURITÉ) ==========
+    // Validation du nom de propriété
+    if (!propertyName || typeof propertyName !== 'string') {
+      throw new Error('Le nom de propriété est requis');
+    }
+    if (propertyName.length > 200) {
+      throw new Error('Le nom de propriété est trop long (max 200 caractères)');
+    }
+
+    // Validation de l'adresse
+    if (!propertyAddress || typeof propertyAddress !== 'string') {
+      throw new Error('L\'adresse est requise');
+    }
+    if (propertyAddress.length > 500) {
+      throw new Error('L\'adresse est trop longue (max 500 caractères)');
+    }
+
+    // Validation du type de contenu (whitelist stricte)
+    const validContentTypes = [
+      'welcome_message',
+      'checkin_procedure',
+      'checkout_procedure',
+      'parking_info',
+      'house_rules',
+      'waste_location',
+      'sorting_instructions',
+      'cleaning_rules',
+      'safety_instructions'
+    ];
+    if (!validContentTypes.includes(contentType)) {
+      throw new Error('Type de contenu invalide');
+    }
+
+    // Sanitization basique (retire caractères potentiellement dangereux)
+    const sanitizedPropertyName = propertyName.replace(/[<>]/g, '').trim();
+    const sanitizedPropertyAddress = propertyAddress.replace(/[<>]/g, '').trim();
+
+    console.log(`[SECURITY] Validated request - contentType: ${contentType}, propertyName length: ${sanitizedPropertyName.length}`);
+    // ========== FIN VALIDATION ==========
+
     let systemPrompt = '';
     let userPrompt = '';
 
     switch (contentType) {
       case 'welcome_message':
         systemPrompt = 'Tu es un assistant qui rédige des messages de bienvenue chaleureux pour des locations de vacances de luxe. Le ton doit être professionnel, accueillant et personnalisé.';
-        userPrompt = `Rédige un message de bienvenue pour le bien "${propertyName}" situé à ${propertyAddress}. 
+        userPrompt = `Rédige un message de bienvenue pour le bien "${sanitizedPropertyName}" situé à ${sanitizedPropertyAddress}.
 
 RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide et professionnel, SANS caractères Markdown ni listes à puces
@@ -59,7 +99,7 @@ Rédige maintenant le message de bienvenue.`;
       
       case 'checkin_procedure':
         systemPrompt = 'Tu es un assistant qui rédige des procédures de check-in claires pour des locations de vacances.';
-        userPrompt = `Rédige une procédure de check-in détaillée pour le bien "${propertyName}" situé à ${propertyAddress}. 
+        userPrompt = `Rédige une procédure de check-in détaillée pour le bien "${sanitizedPropertyName}" situé à ${sanitizedPropertyAddress}.
 
 RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide SANS Markdown ni listes à puces
@@ -72,7 +112,7 @@ Inclus : récupération des clés, parking temporaire, accès au logement.`;
       
       case 'checkout_procedure':
         systemPrompt = 'Tu es un assistant qui rédige des procédures de check-out claires pour des locations de vacances.';
-        userPrompt = `Rédige une procédure de check-out pour le bien "${propertyName}". 
+        userPrompt = `Rédige une procédure de check-out pour le bien "${sanitizedPropertyName}".
 
 RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide SANS Markdown ni listes
@@ -85,7 +125,7 @@ Inclus : heure limite, restitution des clés, état des lieux, poubelles, élect
       
       case 'parking_info':
         systemPrompt = 'Tu es un assistant qui rédige des informations de stationnement pour des locations de vacances.';
-        userPrompt = `Rédige les informations de stationnement pour le bien "${propertyName}" situé à ${propertyAddress}. 
+        userPrompt = `Rédige les informations de stationnement pour le bien "${sanitizedPropertyName}" situé à ${sanitizedPropertyAddress}.
 
 RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide SANS Markdown
@@ -98,7 +138,7 @@ Mentionne : parking privé ou public, gratuit/payant, places à proximité, rest
       
       case 'house_rules':
         systemPrompt = 'Tu es un assistant qui rédige des règlements intérieurs pour des locations de vacances. Le ton doit être clair, professionnel mais amical.';
-        userPrompt = `Rédige un règlement intérieur pour le bien "${propertyName}". 
+        userPrompt = `Rédige un règlement intérieur pour le bien "${sanitizedPropertyName}".
 
 RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide en phrases complètes, PAS de listes à puces
@@ -118,7 +158,7 @@ Nombre maximum d'occupants`;
       
       case 'waste_location':
         systemPrompt = 'Tu es un assistant qui rédige des instructions pour la gestion des déchets dans des locations de vacances.';
-        userPrompt = `Rédige les informations sur l'emplacement des poubelles pour le bien "${propertyName}". 
+        userPrompt = `Rédige les informations sur l'emplacement des poubelles pour le bien "${sanitizedPropertyName}".
 
 RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide SANS Markdown
@@ -131,7 +171,7 @@ Indique : emplacement des containers, jours de collecte, accès.`;
       
       case 'sorting_instructions':
         systemPrompt = 'Tu es un assistant qui rédige des instructions de tri sélectif claires et pédagogiques.';
-        userPrompt = `Rédige les instructions de tri sélectif pour le bien "${propertyName}". 
+        userPrompt = `Rédige les instructions de tri sélectif pour le bien "${sanitizedPropertyName}".
 
 RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide SANS listes à puces ni Markdown
@@ -144,7 +184,7 @@ Explique : verre, recyclage, ordures ménagères, compost si applicable.`;
       
       case 'cleaning_rules':
         systemPrompt = 'Tu es un assistant qui rédige des règles de nettoyage pour des locations de vacances.';
-        userPrompt = `Rédige les règles de nettoyage avant le départ pour le bien "${propertyName}". 
+        userPrompt = `Rédige les règles de nettoyage avant le départ pour le bien "${sanitizedPropertyName}".
 
 RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide SANS Markdown
@@ -157,7 +197,7 @@ Inclus : vaisselle, poubelles, état général attendu.`;
       
       case 'safety_instructions':
         systemPrompt = 'Tu es un assistant qui rédige des consignes de sécurité pour des locations de vacances.';
-        userPrompt = `Rédige les consignes de sécurité essentielles pour le bien "${propertyName}". 
+        userPrompt = `Rédige les consignes de sécurité essentielles pour le bien "${sanitizedPropertyName}".
 
 RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide en phrases complètes, PAS de listes
