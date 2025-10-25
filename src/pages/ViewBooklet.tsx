@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Home, MapPin, Wifi, Clock, Eye, Loader2, Package, Trash2, MapPinIcon, Phone, HelpCircle } from "lucide-react";
+import { Home, MapPin, Wifi, Clock, Eye, Loader2, Package, Trash2, MapPinIcon, Phone, HelpCircle, DoorOpen, LogIn, LogOut, Car, FileText, Shield, Recycle, Calendar, Menu, X, Sparkles, ChevronRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import ChatWidget from "@/components/ChatWidget";
@@ -83,6 +83,15 @@ export default function ViewBooklet() {
   const [wifiCredentials, setWifiCredentials] = useState<WifiCredentials | null>(null);
   const [showWifiPassword, setShowWifiPassword] = useState(false);
   const [loadingWifi, setLoadingWifi] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setShowMenu(false);
+    }
+  };
 
   useEffect(() => {
     const fetchBooklet = async () => {
@@ -231,167 +240,272 @@ export default function ViewBooklet() {
     );
   }
 
+  const menuItems = [
+    { id: 'welcome', label: 'Bienvenue', icon: DoorOpen },
+    { id: 'practical', label: 'Infos pratiques', icon: Clock },
+    { id: 'wifi', label: 'WiFi', icon: Wifi },
+    { id: 'equipment', label: 'Équipements', icon: Package },
+    { id: 'cleaning', label: 'Ménage & Tri', icon: Trash2 },
+    { id: 'nearby', label: 'À proximité', icon: MapPinIcon },
+    { id: 'faq', label: 'Questions', icon: HelpCircle },
+    { id: 'legal', label: 'Informations légales', icon: Shield },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
+    <div className="min-h-screen bg-gradient-to-b from-secondary/30 to-background">
+      {/* Floating Navigation Menu */}
+      <div className="fixed top-4 right-4 z-50">
+        <Button
+          onClick={() => setShowMenu(!showMenu)}
+          size="icon"
+          className="h-12 w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90"
+        >
+          {showMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+        
+        {showMenu && (
+          <div className="absolute top-16 right-0 w-64 bg-card border border-border rounded-2xl shadow-xl p-3 space-y-1 animate-in slide-in-from-top-5">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => scrollToSection(item.id)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-secondary transition-all text-left group"
+                >
+                  <Icon className="h-4 w-4 text-primary" />
+                  <span className="flex-1 text-sm font-medium">{item.label}</span>
+                  <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Hero Section with Enhanced Gradient */}
       <div 
-        className="relative h-64 md:h-80 bg-gradient-to-br from-brand-blue to-brand-blue-dark flex items-center justify-center"
+        className="relative h-72 md:h-80 bg-gradient-to-br from-primary to-primary/80 flex items-end"
         style={booklet.cover_image_url ? {
           backgroundImage: `url(${booklet.cover_image_url})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         } : {}}
       >
-        <div className="absolute inset-0 bg-black/40" />
-        <div className="relative z-10 text-center text-white px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-2">{booklet.property_name}</h1>
-          {booklet.tagline && (
-            <p className="text-lg md:text-xl mb-2">{booklet.tagline}</p>
-          )}
-          <p className="text-lg flex items-center justify-center gap-2">
-            <MapPin className="h-5 w-5" />
-            {booklet.property_address}
-          </p>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+        <div className="relative z-10 w-full px-4 md:px-8 pb-8 text-white">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-3xl md:text-5xl font-display font-bold mb-2">{booklet.property_name}</h1>
+            {booklet.tagline && (
+              <p className="text-lg md:text-xl mb-3 text-white/90">{booklet.tagline}</p>
+            )}
+            <p className="text-sm md:text-base flex items-center gap-2 text-white/80">
+              <MapPin className="h-4 w-4" />
+              {booklet.property_address}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-10 space-y-8">
         {/* Welcome Message */}
         {booklet.welcome_message && (
-          <Card>
+          <Card id="welcome" className="shadow-lg border-0 bg-gradient-to-br from-card to-secondary/20">
             <CardHeader>
-              <CardTitle>Bienvenue</CardTitle>
+              <CardTitle className="flex items-center gap-3 text-2xl">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <DoorOpen className="h-6 w-6 text-primary" />
+                </div>
+                <span>Bienvenue</span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="whitespace-pre-wrap ai-description">{booklet.welcome_message}</p>
+              <p className="whitespace-pre-wrap ai-description text-base leading-relaxed">{booklet.welcome_message}</p>
             </CardContent>
           </Card>
         )}
 
-        {/* Practical Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Informations pratiques
+        {/* Practical Info - Enhanced Grid Layout */}
+        <Card id="practical" className="shadow-lg border-0">
+          <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+            <CardTitle className="flex items-center gap-3 text-2xl">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Clock className="h-6 w-6 text-primary" />
+              </div>
+              <span>Informations pratiques</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {booklet.google_maps_link && (
-              <div>
-                <strong>Localisation :</strong>{' '}
-                <a href={booklet.google_maps_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                  Voir sur Google Maps
-                </a>
-              </div>
-            )}
-            
-            {booklet.access_code && (
-              <div>
-                <strong>Code d'accès :</strong>
-                <p className="whitespace-pre-wrap mt-1">{booklet.access_code}</p>
-              </div>
-            )}
-
-            {(booklet.check_in_time || booklet.check_out_time) && (
-              <div className="grid grid-cols-2 gap-4">
-                {booklet.check_in_time && (
-                  <div>
-                    <strong>Arrivée :</strong>
-                    <p>{booklet.check_in_time}</p>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Check-in/out times */}
+              {(booklet.check_in_time || booklet.check_out_time) && (
+                <>
+                  {booklet.check_in_time && (
+                    <div className="bg-secondary/50 p-5 rounded-xl border border-border/50 hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-2">
+                        <LogIn className="h-5 w-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Arrivée</h3>
+                      </div>
+                      <p className="text-2xl font-bold text-primary">{booklet.check_in_time}</p>
+                    </div>
+                  )}
+                  {booklet.check_out_time && (
+                    <div className="bg-secondary/50 p-5 rounded-xl border border-border/50 hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-2">
+                        <LogOut className="h-5 w-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Départ</h3>
+                      </div>
+                      <p className="text-2xl font-bold text-primary">{booklet.check_out_time}</p>
+                    </div>
+                  )}
+                </>
+              )}
+              
+              {/* Access code */}
+              {booklet.access_code && (
+                <div className="bg-secondary/50 p-5 rounded-xl border border-border/50 hover:shadow-md transition-shadow md:col-span-2">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Shield className="h-5 w-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Code d'accès</h3>
                   </div>
-                )}
-                {booklet.check_out_time && (
-                  <div>
-                    <strong>Départ :</strong>
-                    <p>{booklet.check_out_time}</p>
+                  <p className="whitespace-pre-wrap mt-1 font-mono text-lg">{booklet.access_code}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Full-width sections */}
+            <div className="space-y-5 mt-6">
+              {booklet.google_maps_link && (
+                <div className="bg-secondary/30 p-5 rounded-xl border border-border/50">
+                  <div className="flex items-center gap-3 mb-2">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    <strong className="text-base">Localisation</strong>
                   </div>
-                )}
-              </div>
-            )}
+                  <a 
+                    href={booklet.google_maps_link} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-primary hover:underline font-medium inline-flex items-center gap-2"
+                  >
+                    Voir sur Google Maps
+                    <ChevronRight className="h-4 w-4" />
+                  </a>
+                </div>
+              )}
 
-            {booklet.checkin_procedure && (
-              <div>
-                <strong>Procédure d'arrivée :</strong>
-                <p className="whitespace-pre-wrap mt-1 ai-description">{booklet.checkin_procedure}</p>
-              </div>
-            )}
+              {booklet.checkin_procedure && (
+                <div className="bg-secondary/30 p-5 rounded-xl border border-border/50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <LogIn className="h-5 w-5 text-primary" />
+                    <strong className="text-base">Procédure d'arrivée</strong>
+                  </div>
+                  <p className="whitespace-pre-wrap ai-description">{booklet.checkin_procedure}</p>
+                </div>
+              )}
 
-            {booklet.checkout_procedure && (
-              <div>
-                <strong>Procédure de départ :</strong>
-                <p className="whitespace-pre-wrap mt-1 ai-description">{booklet.checkout_procedure}</p>
-              </div>
-            )}
+              {booklet.checkout_procedure && (
+                <div className="bg-secondary/30 p-5 rounded-xl border border-border/50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <LogOut className="h-5 w-5 text-primary" />
+                    <strong className="text-base">Procédure de départ</strong>
+                  </div>
+                  <p className="whitespace-pre-wrap ai-description">{booklet.checkout_procedure}</p>
+                </div>
+              )}
 
-            {booklet.parking_info && (
-              <div>
-                <strong>Stationnement :</strong>
-                <p className="whitespace-pre-wrap mt-1">{booklet.parking_info}</p>
-              </div>
-            )}
+              {booklet.parking_info && (
+                <div className="bg-secondary/30 p-5 rounded-xl border border-border/50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Car className="h-5 w-5 text-primary" />
+                    <strong className="text-base">Stationnement</strong>
+                  </div>
+                  <p className="whitespace-pre-wrap">{booklet.parking_info}</p>
+                </div>
+              )}
 
-            {booklet.manual_pdf_url && (
-              <div>
-                <a href={booklet.manual_pdf_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                  📄 Télécharger le manuel complet
-                </a>
-              </div>
-            )}
+              {booklet.manual_pdf_url && (
+                <div className="bg-secondary/30 p-5 rounded-xl border border-border/50">
+                  <a 
+                    href={booklet.manual_pdf_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-primary hover:underline font-medium inline-flex items-center gap-2"
+                  >
+                    <FileText className="h-5 w-5" />
+                    Télécharger le manuel complet
+                    <ChevronRight className="h-4 w-4" />
+                  </a>
+                </div>
+              )}
 
-            {booklet.safety_tips && (
-              <div>
-                <strong>Conseils de sécurité :</strong>
-                <p className="whitespace-pre-wrap mt-1">{booklet.safety_tips}</p>
-              </div>
-            )}
+              {booklet.safety_tips && (
+                <div className="bg-secondary/30 p-5 rounded-xl border border-border/50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Shield className="h-5 w-5 text-primary" />
+                    <strong className="text-base">Conseils de sécurité</strong>
+                  </div>
+                  <p className="whitespace-pre-wrap">{booklet.safety_tips}</p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
         {/* WiFi Section */}
         {booklet.wifi_ssid && (
-          <Card>
+          <Card id="wifi" className="shadow-lg border-0 bg-gradient-to-br from-card to-blue-50/30 dark:to-blue-950/20">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wifi className="h-5 w-5" />
-                WiFi
+              <CardTitle className="flex items-center gap-3 text-2xl">
+                <div className="p-2 rounded-xl bg-blue-500/10">
+                  <Wifi className="h-6 w-6 text-blue-600" />
+                </div>
+                <span>WiFi</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {wifiCredentials ? (
-                <div className="space-y-3">
-                  <div>
-                    <strong>Réseau :</strong> {wifiCredentials.ssid}
+                <div className="space-y-4">
+                  <div className="bg-background p-4 rounded-xl border border-blue-200/50">
+                    <strong className="text-sm text-muted-foreground">Réseau</strong>
+                    <p className="text-lg font-semibold mt-1">{wifiCredentials.ssid}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <strong>Mot de passe :</strong>
-                    <span className="flex-1 font-mono">{showWifiPassword ? wifiCredentials.password : '••••••••'}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowWifiPassword(!showWifiPassword)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    {showWifiPassword && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleCopyWifiPassword}
-                      >
-                        Copier
-                      </Button>
-                    )}
+                  <div className="bg-background p-4 rounded-xl border border-blue-200/50">
+                    <div className="flex items-center justify-between mb-2">
+                      <strong className="text-sm text-muted-foreground">Mot de passe</strong>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowWifiPassword(!showWifiPassword)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {showWifiPassword && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleCopyWifiPassword}
+                          >
+                            Copier
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-lg font-mono font-semibold">{showWifiPassword ? wifiCredentials.password : '••••••••'}</p>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <p><strong>Réseau :</strong> {booklet.wifi_ssid}</p>
+                <div className="space-y-4">
+                  <div className="bg-background p-4 rounded-xl border border-blue-200/50">
+                    <strong className="text-sm text-muted-foreground">Réseau</strong>
+                    <p className="text-lg font-semibold mt-1">{booklet.wifi_ssid}</p>
+                  </div>
                   <Button
-                    variant="outline"
-                    size="sm"
+                    variant="default"
+                    size="lg"
                     onClick={handleShowWifiPassword}
                     disabled={loadingWifi}
+                    className="w-full"
                   >
                     {loadingWifi ? (
                       <>
@@ -413,30 +527,39 @@ export default function ViewBooklet() {
 
         {/* Equipment */}
         {booklet.equipment && booklet.equipment.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Équipements & Modes d'emploi
+          <Card id="equipment" className="shadow-lg border-0">
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+              <CardTitle className="flex items-center gap-3 text-2xl">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Package className="h-6 w-6 text-primary" />
+                </div>
+                <span>Équipements & Modes d'emploi</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               <Accordion type="single" collapsible className="w-full">
                 {booklet.equipment.map((item, index) => (
-                  <AccordionItem key={item.id} value={`item-${index}`}>
-                    <AccordionTrigger>
-                      <div className="flex items-center gap-2">
-                        <strong>{item.name}</strong>
-                        <span className="text-sm text-muted-foreground">({item.category})</span>
+                  <AccordionItem key={item.id} value={`item-${index}`} className="border-b border-border/50">
+                    <AccordionTrigger className="hover:no-underline hover:bg-secondary/50 px-4 rounded-lg transition-colors">
+                      <div className="flex items-center gap-3">
+                        <strong className="text-base">{item.name}</strong>
+                        <Badge variant="secondary" className="text-xs">{item.category}</Badge>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent>
+                    <AccordionContent className="px-4 pt-3 pb-4">
                       {item.instructions && (
-                        <p className="whitespace-pre-wrap mb-2">{item.instructions}</p>
+                        <p className="whitespace-pre-wrap mb-3 text-muted-foreground">{item.instructions}</p>
                       )}
                       {item.manual_url && (
-                        <a href={item.manual_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                          📄 Voir le manuel
+                        <a 
+                          href={item.manual_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-primary hover:underline inline-flex items-center gap-2 font-medium"
+                        >
+                          <FileText className="h-4 w-4" />
+                          Voir le manuel
+                          <ChevronRight className="h-4 w-4" />
                         </a>
                       )}
                     </AccordionContent>
@@ -449,36 +572,62 @@ export default function ViewBooklet() {
 
         {/* Cleaning & Waste */}
         {(booklet.waste_location || booklet.sorting_instructions || booklet.cleaning_rules || booklet.cleaning_tips) && (
-          <Card>
+          <Card id="cleaning" className="shadow-lg border-0 bg-gradient-to-br from-card to-green-50/30 dark:to-green-950/20">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trash2 className="h-5 w-5" />
-                Ménage & Tri
+              <CardTitle className="flex items-center gap-3 text-2xl">
+                <div className="p-2 rounded-xl bg-green-500/10">
+                  <Recycle className="h-6 w-6 text-green-600" />
+                </div>
+                <span>Ménage & Tri des déchets</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {booklet.waste_location && (
-                <div>
-                  <strong>Emplacement des poubelles :</strong>
-                  <p className="whitespace-pre-wrap mt-1 ai-description">{booklet.waste_location}</p>
+            <CardContent className="space-y-5">
+              {booklet.sorting_instructions && (
+                <div className="bg-gradient-to-r from-green-50 to-transparent dark:from-green-950/30 p-5 rounded-xl border border-green-200/50 dark:border-green-800/50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Calendar className="h-5 w-5 text-green-600" />
+                    <strong className="text-base">Collecte des déchets</strong>
+                  </div>
+                  <div className="whitespace-pre-wrap ai-description space-y-2">
+                    {booklet.sorting_instructions.split('\n').map((line, i) => {
+                      if (line.trim()) {
+                        return (
+                          <p key={i} className="flex items-start gap-2">
+                            <span className="text-green-600 font-bold mt-1">•</span>
+                            <span>{line}</span>
+                          </p>
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
                 </div>
               )}
-              {booklet.sorting_instructions && (
-                <div>
-                  <strong>Instructions de tri :</strong>
-                  <p className="whitespace-pre-wrap mt-1 ai-description">{booklet.sorting_instructions}</p>
+              {booklet.waste_location && (
+                <div className="bg-background p-5 rounded-xl border border-border/50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    <strong className="text-base">Accès aux containers</strong>
+                  </div>
+                  <p className="whitespace-pre-wrap ai-description">{booklet.waste_location}</p>
                 </div>
               )}
               {booklet.cleaning_rules && (
-                <div>
-                  <strong>Règles de nettoyage :</strong>
-                  <p className="whitespace-pre-wrap mt-1 ai-description">{booklet.cleaning_rules}</p>
+                <div className="bg-background p-5 rounded-xl border border-border/50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    <strong className="text-base">Règles de nettoyage</strong>
+                  </div>
+                  <p className="whitespace-pre-wrap ai-description">{booklet.cleaning_rules}</p>
                 </div>
               )}
               {booklet.cleaning_tips && (
-                <div>
-                  <strong>Conseils d'entretien :</strong>
-                  <p className="whitespace-pre-wrap mt-1 ai-description">{booklet.cleaning_tips}</p>
+                <div className="bg-background p-5 rounded-xl border border-border/50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    <strong className="text-base">Conseils d'entretien</strong>
+                  </div>
+                  <p className="whitespace-pre-wrap ai-description">{booklet.cleaning_tips}</p>
                 </div>
               )}
             </CardContent>
@@ -487,12 +636,17 @@ export default function ViewBooklet() {
 
         {/* House Rules */}
         {booklet.house_rules && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Règlement intérieur</CardTitle>
+          <Card className="shadow-lg border-0">
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+              <CardTitle className="flex items-center gap-3 text-2xl">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Shield className="h-6 w-6 text-primary" />
+                </div>
+                <span>Règlement intérieur</span>
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="whitespace-pre-wrap ai-description">{booklet.house_rules}</p>
+            <CardContent className="pt-6">
+              <p className="whitespace-pre-wrap ai-description leading-relaxed">{booklet.house_rules}</p>
             </CardContent>
           </Card>
         )}
@@ -523,42 +677,52 @@ export default function ViewBooklet() {
           });
 
           return sortedPlaces.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPinIcon className="h-5 w-5" />
-                  À proximité
+            <Card id="nearby" className="shadow-lg border-0">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+                <CardTitle className="flex items-center gap-3 text-2xl">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <MapPinIcon className="h-6 w-6 text-primary" />
+                  </div>
+                  <span>À proximité</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
+              <CardContent className="pt-6">
+                <div className="grid gap-5 md:grid-cols-2">
                   {sortedPlaces.map((place: any) => (
-                    <Card key={place.id} className="p-4">
-                      <div className="flex items-start gap-2 mb-2">
-                        <h3 className="font-semibold flex-1">{place.name}</h3>
-                        <Badge variant="secondary" className="text-xs">
-                          {place.category}
-                        </Badge>
+                    <div 
+                      key={place.id} 
+                      className="bg-secondary/30 p-5 rounded-xl border border-border/50 hover:shadow-lg hover:border-primary/20 transition-all"
+                    >
+                      <div className="flex items-start gap-3 mb-3">
+                        <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-1">{place.name}</h3>
+                          <Badge variant="secondary" className="text-xs">
+                            {place.category}
+                          </Badge>
+                        </div>
                       </div>
                       {place.distance && (
-                        <p className="text-sm text-muted-foreground mb-2">
-                          • {place.distance}
+                        <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          {place.distance}
                         </p>
                       )}
                       {place.note && (
-                        <p className="text-sm mb-2">{place.note}</p>
+                        <p className="text-sm mb-3 text-foreground/80">{place.note}</p>
                       )}
                       {place.mapsUrl && (
                         <a
                           href={place.mapsUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
+                          className="text-sm text-primary hover:underline inline-flex items-center gap-2 font-medium"
                         >
-                          Itinéraire →
+                          Voir l'itinéraire
+                          <ChevronRight className="h-4 w-4" />
                         </a>
                       )}
-                    </Card>
+                    </div>
                   ))}
                 </div>
               </CardContent>
@@ -567,35 +731,68 @@ export default function ViewBooklet() {
         })()}
 
 
+        {/* FAQ */}
+        {booklet.faq && booklet.faq.length > 0 && (
+          <Card id="faq" className="shadow-lg border-0">
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+              <CardTitle className="flex items-center gap-3 text-2xl">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <HelpCircle className="h-6 w-6 text-primary" />
+                </div>
+                <span>Questions fréquentes</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <Accordion type="single" collapsible className="w-full">
+                {booklet.faq.map((item, index) => (
+                  <AccordionItem key={item.id} value={`faq-${index}`} className="border-b border-border/50">
+                    <AccordionTrigger className="hover:no-underline hover:bg-secondary/50 px-4 rounded-lg transition-colors text-left">
+                      <span className="font-semibold">{item.question}</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pt-3 pb-4 text-muted-foreground">
+                      {item.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Legal & Safety */}
         {(booklet.airbnb_license || booklet.safety_instructions || booklet.gdpr_notice || booklet.disclaimer) && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations légales & Sécurité</CardTitle>
+          <Card id="legal" className="shadow-lg border-0">
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+              <CardTitle className="flex items-center gap-3 text-2xl">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Shield className="h-6 w-6 text-primary" />
+                </div>
+                <span>Informations légales & Sécurité</span>
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm">
+            <CardContent className="space-y-4 text-sm pt-6">
               {booklet.airbnb_license && (
-                <div>
-                  <strong>Numéro de licence :</strong>
-                  <p>{booklet.airbnb_license}</p>
+                <div className="bg-secondary/30 p-4 rounded-xl">
+                  <strong className="text-base">Numéro de licence</strong>
+                  <p className="mt-1">{booklet.airbnb_license}</p>
                 </div>
               )}
               {booklet.safety_instructions && (
-                <div>
-                  <strong>Consignes de sécurité :</strong>
-                  <p className="whitespace-pre-wrap mt-1">{booklet.safety_instructions}</p>
+                <div className="bg-secondary/30 p-4 rounded-xl">
+                  <strong className="text-base">Consignes de sécurité</strong>
+                  <p className="whitespace-pre-wrap mt-2">{booklet.safety_instructions}</p>
                 </div>
               )}
               {booklet.gdpr_notice && (
-                <div>
-                  <strong>RGPD :</strong>
-                  <p className="whitespace-pre-wrap mt-1">{booklet.gdpr_notice}</p>
+                <div className="bg-secondary/30 p-4 rounded-xl">
+                  <strong className="text-base">RGPD</strong>
+                  <p className="whitespace-pre-wrap mt-2">{booklet.gdpr_notice}</p>
                 </div>
               )}
               {booklet.disclaimer && (
-                <div>
-                  <strong>Clause de non-responsabilité :</strong>
-                  <p className="whitespace-pre-wrap mt-1">{booklet.disclaimer}</p>
+                <div className="bg-secondary/30 p-4 rounded-xl">
+                  <strong className="text-base">Clause de non-responsabilité</strong>
+                  <p className="whitespace-pre-wrap mt-2">{booklet.disclaimer}</p>
                 </div>
               )}
             </CardContent>
@@ -604,19 +801,25 @@ export default function ViewBooklet() {
 
         {/* Gallery */}
         {booklet.gallery && booklet.gallery.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Galerie</CardTitle>
+          <Card className="shadow-lg border-0">
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+              <CardTitle className="flex items-center gap-3 text-2xl">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <span>Galerie</span>
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {booklet.gallery.map((image: any, index: number) => (
-                  <img
-                    key={index}
-                    src={image.url || image}
-                    alt={`Photo ${index + 1}`}
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
+                  <div key={index} className="relative overflow-hidden rounded-xl aspect-video group">
+                    <img
+                      src={image.url || image}
+                      alt={`Photo ${index + 1}`}
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    />
+                  </div>
                 ))}
               </div>
             </CardContent>
@@ -624,9 +827,14 @@ export default function ViewBooklet() {
         )}
 
         {/* Footer */}
-        <div className="text-center py-8">
-          <Button onClick={() => navigate('/')} variant="outline">
-            <Home className="mr-2 h-4 w-4" />
+        <div className="text-center py-10">
+          <Button 
+            onClick={() => navigate('/')} 
+            variant="outline" 
+            size="lg"
+            className="shadow-md hover:shadow-lg transition-shadow"
+          >
+            <Home className="mr-2 h-5 w-5" />
             Retour à l'accueil
           </Button>
         </div>
