@@ -25,8 +25,8 @@ const Landing = () => {
       <Customization />
       <Process />
       <ConcreteResults />
-      <ForEveryone />
-      <Personas />
+      
+      
       <Testimonials />
       <Regions />
       <FAQ />
