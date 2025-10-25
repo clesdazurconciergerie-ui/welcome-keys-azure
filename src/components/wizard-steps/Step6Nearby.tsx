@@ -163,9 +163,9 @@ export default function Step6Nearby({ data, onUpdate }: Step6NearbyProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 md:space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">À proximité</h2>
+        <h2 className="text-2xl font-bold mb-4">À proximité</h2>
         <p className="text-muted-foreground">
           Commerces, restaurants, activités et lieux d'intérêt
         </p>

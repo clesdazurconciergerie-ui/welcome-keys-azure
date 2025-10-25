@@ -73,9 +73,9 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 md:space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">Informations pratiques</h2>
+        <h2 className="text-2xl font-bold mb-4">Informations pratiques</h2>
         <p className="text-muted-foreground">
           Toutes les informations essentielles pour l'arrivée et le séjour
         </p>

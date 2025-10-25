@@ -227,7 +227,7 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
+        <div className="max-w-[1140px] mx-auto px-4 md:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
@@ -343,11 +343,11 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
         </DialogContent>
       </Dialog>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-12 gap-6">
+      <div className="max-w-[1140px] mx-auto px-4 md:px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Steps sidebar */}
-          <div className="col-span-3">
-            <Card className="p-4 sticky top-24">
+          <div className="lg:col-span-3">
+            <div className="bg-white border border-[#E6EDF2] rounded-2xl p-6 md:p-4 lg:sticky lg:top-24">
               <div className="space-y-2">
                 {STEPS.map((step) => {
                   const Icon = step.icon;
@@ -383,12 +383,12 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
                   );
                 })}
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* Step content */}
-          <div className="col-span-9">
-            <Card className="p-6">
+          <div className="lg:col-span-9">
+            <div className="bg-white border border-[#E6EDF2] rounded-2xl p-4 md:p-6">
               <StepComponent
                 bookletId={bookletData?.id}
                 data={bookletData}
@@ -396,7 +396,7 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
                 onNext={handleNext}
               />
 
-              <div className="flex items-center justify-between mt-8 pt-6 border-t">
+              <div className="flex items-center justify-between gap-4 pt-6 border-t">
                 <Button
                   variant="outline"
                   onClick={handlePrevious}
@@ -413,7 +413,7 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
-            </Card>
+            </div>
           </div>
         </div>
       </div>

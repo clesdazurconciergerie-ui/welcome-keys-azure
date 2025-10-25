@@ -264,9 +264,9 @@ export default function Step0Appearance({ bookletId, onNext }: Step0AppearancePr
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 md:space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">🎨 Apparence</h2>
+        <h2 className="text-2xl font-bold mb-4">🎨 Apparence</h2>
         <p className="text-muted-foreground">
           Personnalisez le design de votre livret pour refléter votre identité visuelle
         </p>

@@ -70,9 +70,9 @@ export default function Step7Contacts({ data, onUpdate }: Step7ContactsProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 md:space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">Contacts et assistance</h2>
+        <h2 className="text-2xl font-bold mb-4">Contacts et assistance</h2>
         <p className="text-muted-foreground">
           Informations de contact pour la conciergerie
         </p>

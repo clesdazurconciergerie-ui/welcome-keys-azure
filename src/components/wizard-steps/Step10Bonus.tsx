@@ -11,9 +11,9 @@ interface Step10BonusProps {
 
 export default function Step10Bonus({ data, onUpdate }: Step10BonusProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 md:space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">Bonus (optionnel)</h2>
+        <h2 className="text-2xl font-bold mb-4">Bonus (optionnel)</h2>
         <p className="text-muted-foreground">
           Fonctionnalités supplémentaires pour enrichir l'expérience
         </p>

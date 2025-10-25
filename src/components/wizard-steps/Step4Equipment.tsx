@@ -108,10 +108,10 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 md:space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold mb-2">Équipements et modes d'emploi</h2>
+          <h2 className="text-2xl font-bold mb-4">Équipements et modes d'emploi</h2>
           <p className="text-muted-foreground">
             Listez tous les équipements avec leurs instructions
           </p>

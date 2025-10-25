@@ -58,9 +58,9 @@ export default function Step5Cleaning({ data, onUpdate }: Step5CleaningProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 md:space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">Ménage et tri</h2>
+        <h2 className="text-2xl font-bold mb-4">Ménage et tri</h2>
         <p className="text-muted-foreground">
           Instructions pour le tri des déchets et le ménage de départ
         </p>

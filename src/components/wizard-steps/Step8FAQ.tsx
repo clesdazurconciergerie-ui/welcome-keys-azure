@@ -118,10 +118,10 @@ export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 md:space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold mb-2">FAQ et Chatbot</h2>
+          <h2 className="text-2xl font-bold mb-4">FAQ et Chatbot</h2>
           <p className="text-muted-foreground">
             Questions fréquentes pour l'assistant automatique
           </p>
