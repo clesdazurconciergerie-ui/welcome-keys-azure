@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Home, MapPin, Wifi, Clock, Eye, Loader2, Package, Trash2, MapPinIcon, Phone, HelpCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -55,7 +56,8 @@ interface Booklet {
   sorting_instructions?: string;
   cleaning_rules?: string;
   cleaning_tips?: string;
-  nearby_places: NearbyPlace[];
+  nearby_places?: NearbyPlace[];
+  nearby?: any;
   faq: FAQ[];
   airbnb_license?: string;
   safety_instructions?: string;
@@ -495,37 +497,73 @@ export default function ViewBooklet() {
         )}
 
         {/* Nearby Places */}
-        {booklet.nearby_places && booklet.nearby_places.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPinIcon className="h-5 w-5" />
-                À proximité
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {booklet.nearby_places.map((place) => (
-                  <div key={place.id} className="border-b pb-3 last:border-0">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <strong>{place.name}</strong>
-                        <span className="text-sm text-muted-foreground ml-2">({place.type})</span>
-                        {place.distance && <p className="text-sm text-muted-foreground">{place.distance}</p>}
-                        {place.description && <p className="mt-1">{place.description}</p>}
+        {(() => {
+          const nearbyPlaces = (() => {
+            try {
+              if (Array.isArray(booklet.nearby)) return booklet.nearby;
+              if (typeof booklet.nearby === 'string') return JSON.parse(booklet.nearby);
+              return [];
+            } catch {
+              return [];
+            }
+          })();
+
+          const validPlaces = nearbyPlaces.filter((p: any) => 
+            p.name && p.name.trim().length >= 2 && p.category
+          );
+
+          const sortedPlaces = validPlaces.sort((a: any, b: any) => {
+            if (a.distance && b.distance) {
+              const distA = parseInt(a.distance);
+              const distB = parseInt(b.distance);
+              if (!isNaN(distA) && !isNaN(distB)) return distA - distB;
+            }
+            return a.name.localeCompare(b.name);
+          });
+
+          return sortedPlaces.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPinIcon className="h-5 w-5" />
+                  À proximité
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {sortedPlaces.map((place: any) => (
+                    <Card key={place.id} className="p-4">
+                      <div className="flex items-start gap-2 mb-2">
+                        <h3 className="font-semibold flex-1">{place.name}</h3>
+                        <Badge variant="secondary" className="text-xs">
+                          {place.category}
+                        </Badge>
                       </div>
-                      {place.maps_link && (
-                        <a href={place.maps_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm whitespace-nowrap ml-2">
-                          Voir sur Maps
+                      {place.distance && (
+                        <p className="text-sm text-muted-foreground mb-2">
+                          • {place.distance}
+                        </p>
+                      )}
+                      {place.note && (
+                        <p className="text-sm mb-2">{place.note}</p>
+                      )}
+                      {place.mapsUrl && (
+                        <a
+                          href={place.mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
+                        >
+                          Itinéraire →
                         </a>
                       )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : null;
+        })()}
 
         {/* FAQ */}
         {booklet.faq && booklet.faq.length > 0 && (
