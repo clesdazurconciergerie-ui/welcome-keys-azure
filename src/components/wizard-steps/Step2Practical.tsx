@@ -84,63 +84,58 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
       <div className="space-y-4">
         <div className="space-y-2">
           <Label>
-            Adresse complète <Badge variant="destructive">Requis</Badge>
+            Adresse complète
           </Label>
           <Input
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="123 Avenue de la Croisette, 06400 Cannes"
-            required
           />
         </div>
 
         <div className="space-y-2">
           <Label>
-            Lien Google Maps <Badge variant="destructive">Requis</Badge>
+            Lien Google Maps
           </Label>
           <Input
             value={mapsLink}
             onChange={(e) => setMapsLink(e.target.value)}
             placeholder="https://maps.google.com/..."
             type="url"
-            required
           />
         </div>
 
         <div className="space-y-2">
           <Label>
-            Code d'accès / Instructions d'entrée <Badge variant="destructive">Requis</Badge>
+            Code d'accès / Instructions d'entrée
           </Label>
           <Textarea
             value={accessCode}
             onChange={(e) => setAccessCode(e.target.value)}
             placeholder="Code porte : 1234A, Boîte à clés n°5"
             rows={3}
-            required
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>
-              Heure d'arrivée <Badge variant="destructive">Requis</Badge>
+              Heure d'arrivée
             </Label>
             <Input
               value={checkInTime}
               onChange={(e) => setCheckInTime(e.target.value)}
               placeholder="16h00"
-              required
             />
           </div>
           <div className="space-y-2">
             <Label>
-              Heure de départ <Badge variant="destructive">Requis</Badge>
+              Heure de départ
             </Label>
             <Input
               value={checkOutTime}
               onChange={(e) => setCheckOutTime(e.target.value)}
               placeholder="10h00"
-              required
             />
           </div>
         </div>
@@ -148,7 +143,7 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-2">
             <Label>
-              Procédure de check-in <Badge variant="destructive">Requis</Badge>
+              Procédure de check-in
             </Label>
             <Button
               type="button"
@@ -170,14 +165,13 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
             onChange={(e) => setCheckinProcedure(e.target.value)}
             placeholder="1. Récupérez les clés dans la boîte à clés...&#10;2. Entrez le code..."
             rows={4}
-            required
           />
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-2">
             <Label>
-              Procédure de check-out <Badge variant="destructive">Requis</Badge>
+              Procédure de check-out
             </Label>
             <Button
               type="button"
@@ -199,14 +193,13 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
             onChange={(e) => setCheckoutProcedure(e.target.value)}
             placeholder="1. Fermez les fenêtres...&#10;2. Déposez les clés..."
             rows={4}
-            required
           />
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-2">
             <Label>
-              Stationnement <Badge variant="destructive">Requis</Badge>
+              Stationnement
             </Label>
             <Button
               type="button"
@@ -228,14 +221,13 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
             onChange={(e) => setParking(e.target.value)}
             placeholder="Place de parking n°12 au sous-sol..."
             rows={3}
-            required
           />
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-2">
             <Label>
-              Règlement intérieur <Badge variant="destructive">Requis</Badge>
+              Règlement intérieur
             </Label>
             <Button
               type="button"
@@ -257,7 +249,6 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
             onChange={(e) => setHouseRules(e.target.value)}
             placeholder="- Non fumeur&#10;- Pas de fêtes&#10;- Respectez le voisinage..."
             rows={6}
-            required
           />
         </div>
 

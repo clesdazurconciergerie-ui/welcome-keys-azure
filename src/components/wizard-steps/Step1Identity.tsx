@@ -126,14 +126,13 @@ export default function Step1Identity({ data, onUpdate }: Step1IdentityProps) {
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="propertyName">
-            Nom du logement <Badge variant="destructive" className="ml-2">Requis</Badge>
+            Nom du logement
           </Label>
           <Input
             id="propertyName"
             value={propertyName}
             onChange={(e) => setPropertyName(e.target.value)}
             placeholder="Ex: Villa Azure, Appartement du Port"
-            required
           />
         </div>
 
@@ -151,7 +150,7 @@ export default function Step1Identity({ data, onUpdate }: Step1IdentityProps) {
 
         <div className="space-y-2">
           <Label htmlFor="coverImage">
-            Photo principale <Badge variant="destructive" className="ml-2">Requis</Badge>
+            Photo principale
           </Label>
           
           {coverImage ? (
@@ -211,7 +210,7 @@ export default function Step1Identity({ data, onUpdate }: Step1IdentityProps) {
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-2">
             <Label htmlFor="welcomeMessage">
-              Message de bienvenue <Badge variant="destructive" className="ml-2">Requis</Badge>
+              Message de bienvenue
             </Label>
             <Button
               type="button"
@@ -234,7 +233,6 @@ export default function Step1Identity({ data, onUpdate }: Step1IdentityProps) {
             onChange={(e) => setWelcomeMessage(e.target.value)}
             placeholder="Bienvenue dans notre magnifique..."
             rows={6}
-            required
           />
           <p className="text-xs text-muted-foreground">
             Ce message sera affiché en premier à vos voyageurs
@@ -243,7 +241,7 @@ export default function Step1Identity({ data, onUpdate }: Step1IdentityProps) {
 
         <div className="space-y-2">
           <Label htmlFor="language">
-            Langue du livret <Badge variant="destructive" className="ml-2">Requis</Badge>
+            Langue du livret
           </Label>
           <Select value={language} onValueChange={setLanguage}>
             <SelectTrigger>

@@ -89,7 +89,7 @@ export default function Step9Legal({ data, onUpdate }: Step9LegalProps) {
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-2">
             <Label>
-              Consignes de sécurité <Badge variant="destructive">Requis</Badge>
+              Consignes de sécurité
             </Label>
             <Button
               type="button"
@@ -111,19 +111,17 @@ export default function Step9Legal({ data, onUpdate }: Step9LegalProps) {
             onChange={(e) => setSafetyInstructions(e.target.value)}
             placeholder="- Extincteur dans le placard de l'entrée&#10;- Alarme incendie au plafond&#10;- Sortie de secours..."
             rows={6}
-            required
           />
         </div>
 
         <div className="space-y-2">
           <Label>
-            Mentions RGPD <Badge variant="destructive">Requis</Badge>
+            Mentions RGPD
           </Label>
           <Textarea
             value={gdprNotice}
             onChange={(e) => setGdprNotice(e.target.value)}
             rows={5}
-            required
           />
           <p className="text-xs text-muted-foreground">
             Protection des données personnelles selon le RGPD
@@ -132,13 +130,12 @@ export default function Step9Legal({ data, onUpdate }: Step9LegalProps) {
 
         <div className="space-y-2">
           <Label>
-            Clause de non-responsabilité <Badge variant="destructive">Requis</Badge>
+            Clause de non-responsabilité
           </Label>
           <Textarea
             value={disclaimer}
             onChange={(e) => setDisclaimer(e.target.value)}
             rows={4}
-            required
           />
         </div>
       </div>

@@ -70,7 +70,7 @@ export default function Step5Cleaning({ data, onUpdate }: Step5CleaningProps) {
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-2">
             <Label>
-              Emplacement des poubelles <Badge variant="destructive">Requis</Badge>
+              Emplacement des poubelles
             </Label>
             <Button
               type="button"
@@ -92,14 +92,13 @@ export default function Step5Cleaning({ data, onUpdate }: Step5CleaningProps) {
             onChange={(e) => setWasteLocation(e.target.value)}
             placeholder="Les poubelles se trouvent dans le local à poubelles au rez-de-chaussée..."
             rows={3}
-            required
           />
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-2">
             <Label>
-              Instructions de tri <Badge variant="destructive">Requis</Badge>
+              Instructions de tri
             </Label>
             <Button
               type="button"
@@ -121,14 +120,13 @@ export default function Step5Cleaning({ data, onUpdate }: Step5CleaningProps) {
             onChange={(e) => setSortingInstructions(e.target.value)}
             placeholder="Poubelle verte : recyclable&#10;Poubelle noire : ordures ménagères&#10;Poubelle jaune : verre"
             rows={5}
-            required
           />
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-2">
             <Label>
-              Règles de nettoyage avant départ <Badge variant="destructive">Requis</Badge>
+              Règles de nettoyage avant départ
             </Label>
             <Button
               type="button"
@@ -150,7 +148,6 @@ export default function Step5Cleaning({ data, onUpdate }: Step5CleaningProps) {
             onChange={(e) => setCleaningRules(e.target.value)}
             placeholder="- Faire la vaisselle&#10;- Sortir les poubelles&#10;- Retirer les draps..."
             rows={6}
-            required
           />
         </div>
 
