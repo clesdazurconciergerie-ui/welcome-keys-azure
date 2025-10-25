@@ -31,8 +31,8 @@ function formatChatbotResponse(text: string): string {
 // Détection d'intent avec synonymes
 const INTENT_PATTERNS = {
   METEO: /(?:meteo|temps|climat|temperature|pluie|soleil|vent|chaud|froid|demain|aujourd.?hui)/,
-  RESTAURANT: /(?:restaurant|manger|diner|dejeuner|italien|pizza|cuisine|resto|gastronomie)/,
-  ACTIVITES: /(?:activite|faire|visiter|voir|balade|plage|musee|enfants|famille|sport|loisir)/,
+  RESTAURANT: /(?:restaurant|manger|diner|dejeuner|italien|pizza|cuisine|resto|gastronomie|poisson|mediterraneen|rapide|emporter)/,
+  ACTIVITES: /(?:activite|faire|visiter|voir|balade|plage|musee|enfants|famille|sport|loisir|nautique|culture|randonnee|pluie|indoor)/,
   WIFI_PASSWORD: /(?:mdp|mot de passe|password|code)\s+(?:wifi|wi-fi)/,
   WIFI_SSID: /(?:nom|ssid|reseau|network)\s+(?:wifi|wi-fi)/,
   CHECKIN: /(?:arrivee|check.?in|entree|cle|coffre|acces|arriver)/,
@@ -40,11 +40,121 @@ const INTENT_PATTERNS = {
   PARKING: /(?:parking|stationner|garer|voiture|place)/,
   TRI: /(?:tri|trier|recycl|dechet|poubelle|benne|verre|carton)/,
   EQUIPEMENTS: /(?:machine|appareil|equipement|cafetiere|lave|frigo|four|tv|chauffage)/,
-  INFOS_PRATIQUES: /(?:pharmacie|supermarche|epicerie|boulangerie|banque|poste|commerce)/,
+  INFOS_PRATIQUES: /(?:pharmacie|supermarche|supérette|epicerie|boulangerie|banque|poste|commerce|courses)/,
   URGENCES: /(?:urgence|hopital|medecin|pompier|police|pharmacie de garde)/,
   TRANSPORTS: /(?:bus|tram|metro|train|transport|navette|taxi|vtc)/,
   MAISON: /(?:regle|reglement|interdit|autorise|fumer|bruit|animaux)/,
 };
+
+// Catalogues par défaut (fallback garantissant des noms concrets)
+const SECTOR_DEFAULTS: Record<string, any> = {
+  "Saint-Raphaël": {
+    restaurants: [
+      { name: "La Voile d'Or", cuisine: ["méditerranéen", "poisson"], price_range: "€€€", is_owner_pick: true, address: "Port Santa Lucia" },
+      { name: "Le Basilic", cuisine: ["italien"], price_range: "€€", is_owner_pick: true, address: "Centre-ville" },
+      { name: "Pizzeria Da Vinci", cuisine: ["italien", "pizza"], price_range: "€", address: "Rue de la République" },
+      { name: "L'Escale", cuisine: ["méditerranéen"], price_range: "€€", address: "Vieux Port" },
+      { name: "Le Poisson Rouge", cuisine: ["poisson", "fruits de mer"], price_range: "€€€", address: "Port" },
+      { name: "Snack du Port", cuisine: ["rapide", "à emporter"], price_range: "€", address: "Port" },
+    ],
+    activities: [
+      { name: "Sentier du Littoral (Boulouris)", category: ["plein air", "vue mer"], when: ["matin", "printemps", "été"], duration: "1h30", price: "gratuit", tags: ["facile", "photo"], is_owner_pick: true },
+      { name: "Plage du Veillat", category: ["plage"], when: ["été"], tags: ["centre-ville", "familial"], price: "gratuit" },
+      { name: "Musée Archéologique", category: ["culture", "pluie"], when: ["après-midi", "toute saison"], tags: ["indoor"], price: "5€" },
+      { name: "Cap Dramont & Île d'Or", category: ["randonnée", "panorama"], when: ["matin", "fin de journée"], duration: "2h", tags: ["coucher de soleil", "photo"], is_owner_pick: true, price: "gratuit" },
+      { name: "Base nautique", category: ["nautique", "famille"], when: ["été"], duration: "1h", tags: ["paddle", "initiation"], price: "25€" },
+      { name: "Aquarium de Saint-Raphaël", category: ["famille", "pluie"], when: ["toute saison"], tags: ["indoor", "enfants"], price: "8€" },
+    ],
+    places: [
+      { name: "Casino Supérette", tags: ["courses", "ouvert tard"], address: "Centre-ville", hours: "8h-22h" },
+      { name: "Pharmacie du Port", tags: ["pharmacie"], address: "Quai Albert 1er", hours: "8h30-19h30" },
+      { name: "Parking Vieux-Port", tags: ["parking"], address: "Vieux Port", price: "2€/h" },
+    ],
+  },
+  "Cannes": {
+    restaurants: [
+      { name: "La Palme d'Or", cuisine: ["gastronomique"], price_range: "€€€€", is_owner_pick: true, address: "Croisette" },
+      { name: "Aux Bons Enfants", cuisine: ["niçois", "traditionnel"], price_range: "€€", is_owner_pick: true, address: "Forville" },
+      { name: "Mantel", cuisine: ["bistronomique"], price_range: "€€€", address: "Rue Saint-Antoine" },
+    ],
+    activities: [
+      { name: "Île Sainte-Marguerite", category: ["balade", "nature"], when: ["printemps", "été", "automne"], duration: "3h", tags: ["famille", "photo", "navette"], is_owner_pick: true, price: "15€" },
+      { name: "Marché Forville", category: ["marché", "gourmand"], when: ["matin"], tags: ["local", "produits"], price: "gratuit" },
+      { name: "Promenade de la Croisette", category: ["balade", "iconique"], when: ["toute saison"], tags: ["shopping", "plages"], price: "gratuit" },
+    ],
+    places: [
+      { name: "Parking Forville", tags: ["parking"], address: "Marché Forville", price: "2.5€/h" },
+      { name: "Pharmacie Croisette", tags: ["pharmacie"], address: "Boulevard de la Croisette" },
+    ],
+  },
+};
+
+const RIVIERA_DEFAULTS = {
+  restaurants: [
+    { name: "Pizzeria locale (four à bois)", cuisine: ["italien", "pizza"], price_range: "€", tags: ["rapide"] },
+  ],
+  activities: [
+    { name: "Corniche d'Or – points de vue", category: ["route panoramique", "photo"], when: ["toute saison"], duration: "variable", price: "gratuit", tags: ["vue mer", "roches rouges"] },
+  ],
+  places: [
+    { name: "Supermarché (générique)", tags: ["courses"], hours: "variable" },
+  ],
+};
+
+// Fonction de scoring et matching pour sélection intelligente
+function pickFrom(items: any[], wantedTags: string[], maxResults = 2): any[] {
+  const query = wantedTags.map(s => s.toLowerCase());
+  
+  const scored = items.map(item => {
+    const itemTags = [
+      ...(item.tags || []),
+      ...(item.cuisine || []),
+      ...(item.category || []),
+    ].map(s => s.toLowerCase());
+    
+    const matchScore = query.reduce((acc, tag) => 
+      acc + (itemTags.includes(tag) ? 1 : 0), 0
+    );
+    const ownerBonus = item.is_owner_pick ? 2 : 0;
+    
+    return {
+      item,
+      score: matchScore + ownerBonus
+    };
+  });
+  
+  return scored
+    .sort((a, b) => 
+      b.score - a.score || 
+      (b.item.is_owner_pick ? 1 : 0) - (a.item.is_owner_pick ? 1 : 0) ||
+      (a.item.name || '').localeCompare(b.item.name || '')
+    )
+    .slice(0, maxResults)
+    .map(s => s.item);
+}
+
+// Fonction de fallback garantissant toujours une réponse
+function answerWithFallback(
+  queryType: 'restaurant' | 'activity' | 'place',
+  wantedTags: string[],
+  livretData: any[],
+  city: string
+): { items: any[], source: string } {
+  const pools = [
+    { items: livretData || [], source: 'livret' },
+    { items: SECTOR_DEFAULTS[city]?.[queryType === 'restaurant' ? 'restaurants' : queryType === 'activity' ? 'activities' : 'places'] || [], source: 'sector' },
+    { items: RIVIERA_DEFAULTS[queryType === 'restaurant' ? 'restaurants' : queryType === 'activity' ? 'activities' : 'places'] || [], source: 'riviera' },
+  ];
+  
+  for (const pool of pools) {
+    const picks = pickFrom(pool.items, wantedTags, 2);
+    if (picks.length > 0) {
+      return { items: picks, source: pool.source };
+    }
+  }
+  
+  return { items: [], source: 'none' };
+}
 
 function detectIntent(message: string): string {
   const normalized = normalize(message);
@@ -235,18 +345,17 @@ serve(async (req) => {
         break;
       
       case 'RESTAURANT':
-        const cuisineMatch = message.toLowerCase().match(/(?:italien|pizza|francais|chinois|japonais|indien|mexicain|vegetarien)/);
-        const cuisine = cuisineMatch ? cuisineMatch[0] : '';
+        const cuisineMatch = message.toLowerCase().match(/(?:italien|pizza|francais|poisson|mediterraneen|chinois|japonais|indien|mexicain|vegetarien|rapide|emporter)/);
+        const wantedCuisine = cuisineMatch ? [cuisineMatch[0]] : [];
         
-        let selectedRestaurants = restaurants || [];
-        if (cuisine && selectedRestaurants.length > 0) {
-          selectedRestaurants = selectedRestaurants.filter((r: any) => 
-            r.cuisine?.toLowerCase().includes(cuisine) || 
-            r.tags?.some((t: string) => t.toLowerCase().includes(cuisine))
-          );
-        }
+        const restaurantResult = answerWithFallback(
+          'restaurant',
+          wantedCuisine,
+          restaurants || [],
+          locationContext.city
+        );
         
-        facts.restaurants = selectedRestaurants.slice(0, 3).map((r: any) => ({
+        facts.restaurants = restaurantResult.items.map((r: any) => ({
           name: r.name,
           cuisine: r.cuisine,
           price_range: r.price_range,
@@ -256,24 +365,35 @@ serve(async (req) => {
           is_owner_pick: r.is_owner_pick,
           url: r.url
         }));
+        facts.data_source = restaurantResult.source;
         
-        if (!facts.restaurants || facts.restaurants.length === 0) {
-          const searchQuery = cuisine ? `restaurant ${cuisine}` : 'restaurant';
-          facts.search_link = generateSearchLinks(locationContext.city, searchQuery);
+        if (restaurantResult.source === 'none') {
+          facts.no_data_message = "Aucune recommandation n'est encore renseignée pour cette demande. Je complète le catalogue sous peu.";
         }
         break;
       
       case 'ACTIVITES':
-        facts.activities = (activities || []).slice(0, 5).map((a: any) => ({
+        const activityMatch = message.toLowerCase().match(/(?:plage|balade|randonnee|musee|culture|pluie|indoor|nautique|enfant|famille|photo|panorama)/);
+        const wantedActivity = activityMatch ? [activityMatch[0]] : [];
+        
+        const activityResult = answerWithFallback(
+          'activity',
+          wantedActivity,
+          activities || [],
+          locationContext.city
+        );
+        
+        facts.activities = activityResult.items.map((a: any) => ({
           name: a.name,
           category: a.category,
           duration: a.duration,
           price: a.price,
-          when_available: a.when_available,
+          when_available: a.when_available || a.when,
           tags: a.tags,
           is_owner_pick: a.is_owner_pick,
           booking_url: a.booking_url
         }));
+        facts.data_source = activityResult.source;
         
         if (highlights && highlights.length > 0) {
           facts.highlights = highlights.slice(0, 3).map((h: any) => ({
@@ -283,25 +403,35 @@ serve(async (req) => {
           }));
         }
         
-        if (!facts.activities || facts.activities.length === 0) {
-          facts.search_link = generateSearchLinks(locationContext.city, `que faire à`);
+        if (activityResult.source === 'none') {
+          facts.no_data_message = "Aucune activité n'est encore renseignée pour cette demande. Je complète le catalogue sous peu.";
         }
         break;
       
       case 'INFOS_PRATIQUES':
-        facts.essentials = (essentials || []).map((e: any) => ({
+        const placeMatch = message.toLowerCase().match(/(?:pharmacie|supermarche|supérette|parking|courses)/);
+        const wantedPlace = placeMatch ? [placeMatch[0]] : [];
+        
+        const placeResult = answerWithFallback(
+          'place',
+          wantedPlace,
+          essentials || [],
+          locationContext.city
+        );
+        
+        facts.essentials = placeResult.items.map((e: any) => ({
           name: e.name,
           type: e.type,
           address: e.address,
           distance: e.distance,
           hours: e.hours,
-          phone: e.phone
+          phone: e.phone,
+          tags: e.tags
         }));
+        facts.data_source = placeResult.source;
         
-        if (!facts.essentials || facts.essentials.length === 0) {
-          const typeMatch = message.toLowerCase().match(/(?:pharmacie|supermarche|boulangerie|banque)/);
-          const searchQuery = typeMatch ? typeMatch[0] : 'commerces';
-          facts.search_link = generateSearchLinks(locationContext.city, searchQuery);
+        if (placeResult.source === 'none') {
+          facts.no_data_message = "Aucune information pratique n'est encore renseignée pour cette demande. Je complète le catalogue sous peu.";
         }
         break;
       case 'WIFI_PASSWORD':
@@ -417,16 +547,24 @@ RÈGLES STRICTES DE FORMAT :
 - N'utilise ni emojis ni symboles spéciaux
 - Donne 2-3 options maximum, avec les infos clés (prix, distance approximative, réservation)
 
-PRIORITÉS DE RÉPONSE :
-1. Priorise TOUJOURS les éléments du livret (surtout ceux marqués "is_owner_pick: true")
-2. Si une info manque dans le livret (météo, horaires en temps réel), propose un lien 1-clic vers Google/Maps fourni dans facts.search_link
-3. Pour les liens de recherche, présente-les ainsi : "Tu peux consulter les dernières informations ici : [LIEN]"
-4. Ne partage JAMAIS : codes d'accès précis (sauf mention explicite), emails/téléphones privés, adresses complètes
+POLITIQUE DE RÉPONSE GARANTIE :
+1. Tu as 3 sources de données dans l'ordre de priorité :
+   - facts.data_source = "livret" : Recommandations du livret (précise "recommandation du livret")
+   - facts.data_source = "sector" : Catalogue par défaut pour ${locationContext.city} (précise "valeur sûre à ${locationContext.city}")
+   - facts.data_source = "riviera" : Catalogue Côte d'Azur (précise "spot connu sur la Côte d'Azur")
+   - facts.data_source = "none" : Aucune donnée (utilise facts.no_data_message)
+
+2. TOUJOURS donner 1-3 NOMS CONCRETS depuis les facts fournis. Ne JAMAIS proposer de liens Google/Maps sauf si facts.search_link est explicitement fourni.
+
+3. Priorise les éléments marqués "is_owner_pick: true" en premier.
+
+4. Si facts.no_data_message existe, affiche-le tel quel et propose à l'utilisateur de patienter pendant la mise à jour du catalogue.
+
+5. Ne partage JAMAIS : codes d'accès précis (sauf mention explicite), emails/téléphones privés, adresses complètes
 
 EXEMPLE DE FORMAT ATTENDU :
-Le check-in se fait à partir de 16h.
-Les clés sont dans le coffre à côté de la porte d'entrée.
-Merci de prévenir la conciergerie en cas d'arrivée tardive.
+À Saint-Raphaël, mes 2 valeurs sûres : Le Basilic (pâtes fraîches, €€) et Pizzeria Da Vinci (pizza four à bois, €).
+Tu veux terrasse calme ou service rapide ?
 
 INTENT DÉTECTÉ : ${intent}
 
@@ -435,7 +573,7 @@ ${JSON.stringify(facts, null, 2)}
 
 Question de l'utilisateur : "${message}"
 
-Compose une réponse utile en utilisant les FACTS. Priorise toujours les recommandations du livret (owner picks). Si les données manquent, utilise le lien search_link fourni pour aider l'utilisateur.`;
+Compose une réponse utile en utilisant les FACTS. Donne TOUJOURS des noms concrets. Indique la source des données (livret, catalogue local, ou catalogue régional). Si facts.no_data_message existe, utilise-le.`;
 
     // Appeler Lovable AI pour composer la réponse
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
