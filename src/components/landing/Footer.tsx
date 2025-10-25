@@ -5,6 +5,7 @@ const Footer = () => {
 
   const links = [
     { label: "Sécurité", href: "#security" },
+    { label: "Tarifs", href: "#pricing" },
     { label: "Mentions légales", href: "#" },
     { label: "Contact", href: "#" },
   ];
@@ -19,7 +20,7 @@ const Footer = () => {
   };
 
   return (
-    <footer className="border-t border-[#ECEEF3] bg-white py-12">
+    <footer className="border-t border-border bg-white py-12">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Logo */}
@@ -31,7 +32,7 @@ const Footer = () => {
               <button
                 key={index}
                 onClick={() => scrollToSection(link.href)}
-                className="text-sm text-[#6C6C6C] hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-2 py-1"
+                className="text-sm text-muted-foreground hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-2 py-1"
               >
                 {link.label}
               </button>
@@ -39,7 +40,9 @@ const Footer = () => {
           </div>
 
           {/* Copyright */}
-          <p className="text-sm text-[#6C6C6C]">© {currentYear} Wlekom by Clés d'Azur</p>
+          <p className="text-sm text-muted-foreground">
+            © {currentYear} Wlekom by Clés d'Azur — Tous droits réservés
+          </p>
         </div>
       </div>
     </footer>

@@ -31,6 +31,7 @@ const Navigation = () => {
     { label: "Comment ça marche", id: "process" },
     { label: "Sécurité", id: "security" },
     { label: "Exemples", id: "examples" },
+    { label: "Tarifs", id: "pricing" },
     { label: "FAQ", id: "faq" },
   ];
 
@@ -71,17 +72,18 @@ const Navigation = () => {
 
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center gap-4">
-            <button
-              onClick={() => navigate("/auth")}
-              className="text-sm text-primary hover:underline font-medium focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-2 py-1"
-            >
-              Tableau de bord
-            </button>
             <Button
+              variant="outline"
               onClick={() => navigate("/acces-livret")}
-              className="bg-primary hover:bg-primary/90 text-white rounded-xl px-6 shadow-md hover:shadow-lg transition-all focus:ring-2 focus:ring-primary"
+              className="border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-xl px-6 transition-all"
             >
               Accéder à un livret
+            </Button>
+            <Button
+              onClick={() => navigate("/auth")}
+              className="bg-primary hover:bg-primary/90 text-white rounded-xl px-6 shadow-md hover:shadow-lg transition-all"
+            >
+              Essayer gratuitement
             </Button>
           </div>
 
