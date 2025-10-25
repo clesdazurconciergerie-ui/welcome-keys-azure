@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import BrandMark from "@/components/BrandMark";
 
 const Navigation = () => {
   const navigate = useNavigate();
@@ -50,10 +51,9 @@ const Navigation = () => {
           {/* Logo */}
           <button
             onClick={scrollToTop}
-            className="flex items-center gap-2 font-display font-semibold text-lg text-primary hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
+            className="hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
           >
-            <img src="/favicon.png" alt="Wlekom" className="w-8 h-8" />
-            <span className="hidden sm:inline">Wlekom</span>
+            <BrandMark variant="compact" />
           </button>
 
           {/* Desktop Navigation */}

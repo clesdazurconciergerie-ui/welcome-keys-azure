@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { KeyRound, Waves } from "lucide-react";
+import { KeyRound } from "lucide-react";
 import { motion } from "framer-motion";
+import BrandMark from "@/components/BrandMark";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -19,13 +20,27 @@ const Hero = () => {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(circle at center, rgba(7,21,82,0.04), rgba(255,255,255,1))",
+          background: "radial-gradient(circle at center, rgba(7,21,82,0.04), rgba(255,255,255,1) 60%)",
         }}
       />
 
-      {/* Decorative watermark */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-[0.07] pointer-events-none">
-        <Waves className="w-[400px] h-[400px] text-primary" />
+      {/* Logo watermark */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-[0.08]"
+        style={{
+          backgroundImage: "url('/brand/logo-wlekom-icon.png')",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center 60px",
+          backgroundSize: "88px",
+        }}
+      >
+        <style>{`
+          @media (max-width: 768px) {
+            div[style*="logo-wlekom-icon.png"] {
+              background-size: 64px !important;
+            }
+          }
+        `}</style>
       </div>
 
       {/* Content */}
@@ -40,16 +55,9 @@ const Hero = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <img 
-            src="/favicon.png" 
-            alt="Wlekom" 
-            className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-6 animate-float" 
-          />
-          <h1 className="font-display font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-primary tracking-tight mb-4">
-            Wlekom by Clés d'Azur
-          </h1>
-          <div className="w-24 h-px bg-primary/20 mx-auto mb-6" />
-          <p className="font-display text-lg sm:text-xl md:text-2xl text-[#6C6C6C] font-medium tracking-wide mb-2">
+          <BrandMark variant="full" showIcon={true} />
+          <div className="w-24 h-px bg-primary/20 mx-auto my-6" />
+          <p className="font-display text-lg sm:text-xl md:text-2xl text-[#6C6C6C] font-medium tracking-wide">
             L'accueil réinventé pour les hôtes et voyageurs modernes.
           </p>
         </motion.div>
@@ -98,7 +106,7 @@ const Hero = () => {
             Propriétaire ou gestionnaire ?{" "}
             <button
               onClick={() => navigate("/auth")}
-              className="text-primary font-medium hover:underline transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary rounded-sm"
+              className="text-primary hover:underline font-medium focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-1"
             >
               Accéder au tableau de bord
             </button>

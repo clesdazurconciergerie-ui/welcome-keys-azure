@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { ArrowLeft, KeyRound } from "lucide-react";
 import { z } from "zod";
+import BrandMark from "@/components/BrandMark";
 
 const codeSchema = z.string()
   .trim()
@@ -44,15 +45,7 @@ export default function AccessBooklet() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img 
-            src="/favicon.png" 
-            alt="Wlekom" 
-            className="w-20 h-20 mb-6" 
-          />
-          <h1 className="text-4xl font-bold gradient-text mb-3">Wlekom by Clés d'Azur</h1>
-          <p className="text-muted-foreground text-lg">
-            L'accueil réinventé pour les hôtes et voyageurs modernes.
-          </p>
+          <BrandMark variant="full" showIcon={true} />
         </div>
 
         <Card className="glass shadow-premium border-0">

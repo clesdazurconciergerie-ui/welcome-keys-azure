@@ -20,6 +20,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { motion } from "framer-motion";
+import BrandMark from "@/components/BrandMark";
 
 interface Pin {
   pin_code: string;
@@ -239,12 +240,9 @@ const Dashboard = () => {
       >
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src="/favicon.png" alt="Wlekom" className="w-10 h-10" />
-              <div>
-                <h1 className="font-display text-lg font-semibold text-primary">Wlekom by Clés d'Azur</h1>
-                <p className="text-xs text-[#707070]">{userEmail}</p>
-              </div>
+            <div className="flex flex-col gap-1">
+              <BrandMark variant="compact" />
+              <p className="text-xs text-[#707070] ml-10">{userEmail}</p>
             </div>
             <Button 
               onClick={handleSignOut}

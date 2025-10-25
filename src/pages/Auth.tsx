@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import BrandMark from "@/components/BrandMark";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -87,13 +88,7 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img 
-            src="/favicon.png" 
-            alt="Wlekom" 
-            className="w-16 h-16 mb-4" 
-          />
-          <h1 className="text-3xl font-bold gradient-text mb-2">Wlekom by Clés d'Azur</h1>
-          <p className="text-muted-foreground">L'accueil réinventé pour les hôtes et voyageurs modernes</p>
+          <BrandMark variant="full" showIcon={true} />
         </div>
 
         <Card className="glass shadow-premium border-0">
@@ -173,7 +168,6 @@ const Auth = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={loading}
                       required
-                      minLength={6}
                     />
                     <p className="text-xs text-muted-foreground">
                       Minimum 6 caractères
@@ -193,40 +187,29 @@ const Auth = () => {
               </TabsContent>
             </Tabs>
 
-            {/* Access by code section */}
-            <div className="mt-6 pt-6 border-t">
-              <div className="text-center mb-4">
-                <p className="text-sm font-medium">Accéder à un livret par code</p>
-                <p className="text-xs text-muted-foreground mt-1">Sans avoir besoin de compte</p>
-              </div>
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const code = formData.get('code') as string;
-                if (code) navigate(`/view/${code}`);
-                else toast.error("Veuillez entrer un code");
-              }} className="flex gap-2">
-                <Input
-                  name="code"
-                  placeholder="Entrez votre code"
-                  className="flex-1"
-                  required
-                />
-                <Button type="submit">Consulter</Button>
-              </form>
-            </div>
-
-            <div className="mt-6 text-center">
+            <div className="mt-6 pt-6 border-t text-center">
               <Button
                 variant="ghost"
                 onClick={() => navigate("/")}
                 className="text-sm"
               >
-                ← Retour à l'accueil
+                Retour à l'accueil
               </Button>
             </div>
           </CardContent>
         </Card>
+
+        <div className="text-center mt-6">
+          <p className="text-sm text-muted-foreground">
+            Vous avez un code ?{" "}
+            <button
+              onClick={() => navigate("/acces-livret")}
+              className="text-primary hover:underline font-medium"
+            >
+              Accéder à un livret
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );

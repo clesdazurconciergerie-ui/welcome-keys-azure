@@ -1,3 +1,5 @@
+import BrandMark from "@/components/BrandMark";
+
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
@@ -21,10 +23,7 @@ const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <img src="/favicon.png" alt="Wlekom" className="w-6 h-6" />
-            <span className="font-display font-semibold text-lg text-primary">Wlekom by Clés d'Azur</span>
-          </div>
+          <BrandMark variant="compact" />
 
           {/* Links */}
           <div className="flex flex-wrap items-center justify-center gap-6">
