@@ -30,6 +30,9 @@ function formatChatbotResponse(text: string): string {
 
 // Détection d'intent avec synonymes
 const INTENT_PATTERNS = {
+  METEO: /(?:meteo|temps|climat|temperature|pluie|soleil|vent|chaud|froid|demain|aujourd.?hui)/,
+  RESTAURANT: /(?:restaurant|manger|diner|dejeuner|italien|pizza|cuisine|resto|gastronomie)/,
+  ACTIVITES: /(?:activite|faire|visiter|voir|balade|plage|musee|enfants|famille|sport|loisir)/,
   WIFI_PASSWORD: /(?:mdp|mot de passe|password|code)\s+(?:wifi|wi-fi)/,
   WIFI_SSID: /(?:nom|ssid|reseau|network)\s+(?:wifi|wi-fi)/,
   CHECKIN: /(?:arrivee|check.?in|entree|cle|coffre|acces|arriver)/,
@@ -37,9 +40,9 @@ const INTENT_PATTERNS = {
   PARKING: /(?:parking|stationner|garer|voiture|place)/,
   TRI: /(?:tri|trier|recycl|dechet|poubelle|benne|verre|carton)/,
   EQUIPEMENTS: /(?:machine|appareil|equipement|cafetiere|lave|frigo|four|tv|chauffage)/,
-  A_PROXIMITE: /(?:proche|proximite|restaurant|bar|plage|commerce|pharmacie|boulangerie|supermarche)/,
+  INFOS_PRATIQUES: /(?:pharmacie|supermarche|epicerie|boulangerie|banque|poste|commerce)/,
   URGENCES: /(?:urgence|hopital|medecin|pompier|police|pharmacie de garde)/,
-  TRANSPORTS: /(?:bus|tram|metro|train|transport|navette)/,
+  TRANSPORTS: /(?:bus|tram|metro|train|transport|navette|taxi|vtc)/,
   MAISON: /(?:regle|reglement|interdit|autorise|fumer|bruit|animaux)/,
 };
 
@@ -53,6 +56,28 @@ function detectIntent(message: string): string {
   }
   
   return 'AUTRE';
+}
+
+// Générer des liens 1-clic pour recherche Google/Maps
+function generateSearchLinks(city: string, query: string): { maps: string; web: string } {
+  const mapsQuery = encodeURIComponent(`${query} ${city}`);
+  const webQuery = encodeURIComponent(`${query} ${city}`);
+  return {
+    maps: `https://www.google.com/maps/search/${mapsQuery}`,
+    web: `https://www.google.com/search?q=${webQuery}`
+  };
+}
+
+// Initialiser le contexte de localisation depuis le livret
+function initLocationContext(booklet: any): any {
+  return {
+    city: booklet.city || 'la ville',
+    country: booklet.country || '',
+    lat: booklet.geo?.lat || null,
+    lon: booklet.geo?.lon || null,
+    timezone: booklet.timezone || 'Europe/Paris',
+    language: booklet.language || 'fr'
+  };
 }
 
 serve(async (req) => {
@@ -151,18 +176,134 @@ serve(async (req) => {
       .select('name, category, instructions, manual_url')
       .eq('booklet_id', booklet.id);
 
-    // Récupérer la FAQ
+    // Récupérer les FAQ
     const { data: faq } = await supabase
       .from('faq')
       .select('question, answer, order_index')
       .eq('booklet_id', booklet.id)
       .order('order_index');
 
+    // Récupérer les highlights
+    const { data: highlights } = await supabase
+      .from('highlights')
+      .select('title, type, description, url, rating, price_range, tags, order_index')
+      .eq('booklet_id', booklet.id)
+      .order('order_index');
+
+    // Récupérer les restaurants
+    const { data: restaurants } = await supabase
+      .from('restaurants')
+      .select('name, cuisine, price_range, address, phone, url, rating, tags, is_owner_pick, order_index')
+      .eq('booklet_id', booklet.id)
+      .order('is_owner_pick', { ascending: false })
+      .order('rating', { ascending: false })
+      .order('order_index');
+
+    // Récupérer les activités
+    const { data: activities } = await supabase
+      .from('activities')
+      .select('name, category, duration, price, when_available, booking_url, age_restrictions, tags, is_owner_pick, order_index')
+      .eq('booklet_id', booklet.id)
+      .order('is_owner_pick', { ascending: false })
+      .order('order_index');
+
+    // Récupérer les essentials
+    const { data: essentials } = await supabase
+      .from('essentials')
+      .select('name, type, address, distance, hours, phone, notes, order_index')
+      .eq('booklet_id', booklet.id)
+      .order('order_index');
+
+    // Récupérer les transports
+    const { data: transport } = await supabase
+      .from('transport')
+      .select('name, type, address, distance, price, instructions, url, order_index')
+      .eq('booklet_id', booklet.id)
+      .order('order_index');
+
+    // Initialiser le contexte de localisation
+    const locationContext = initLocationContext(booklet);
+
     // Construire les facts selon l'intent
-    let facts: any = {};
+    let facts: any = { location: locationContext };
     let needsWifiPassword = false;
 
     switch (intent) {
+      case 'METEO':
+        facts.meteo_info = "Je n'ai pas accès à la météo en direct.";
+        facts.search_link = generateSearchLinks(locationContext.city, `météo ${locationContext.city} demain`);
+        break;
+      
+      case 'RESTAURANT':
+        const cuisineMatch = message.toLowerCase().match(/(?:italien|pizza|francais|chinois|japonais|indien|mexicain|vegetarien)/);
+        const cuisine = cuisineMatch ? cuisineMatch[0] : '';
+        
+        let selectedRestaurants = restaurants || [];
+        if (cuisine && selectedRestaurants.length > 0) {
+          selectedRestaurants = selectedRestaurants.filter((r: any) => 
+            r.cuisine?.toLowerCase().includes(cuisine) || 
+            r.tags?.some((t: string) => t.toLowerCase().includes(cuisine))
+          );
+        }
+        
+        facts.restaurants = selectedRestaurants.slice(0, 3).map((r: any) => ({
+          name: r.name,
+          cuisine: r.cuisine,
+          price_range: r.price_range,
+          address: r.address,
+          rating: r.rating,
+          tags: r.tags,
+          is_owner_pick: r.is_owner_pick,
+          url: r.url
+        }));
+        
+        if (!facts.restaurants || facts.restaurants.length === 0) {
+          const searchQuery = cuisine ? `restaurant ${cuisine}` : 'restaurant';
+          facts.search_link = generateSearchLinks(locationContext.city, searchQuery);
+        }
+        break;
+      
+      case 'ACTIVITES':
+        facts.activities = (activities || []).slice(0, 5).map((a: any) => ({
+          name: a.name,
+          category: a.category,
+          duration: a.duration,
+          price: a.price,
+          when_available: a.when_available,
+          tags: a.tags,
+          is_owner_pick: a.is_owner_pick,
+          booking_url: a.booking_url
+        }));
+        
+        if (highlights && highlights.length > 0) {
+          facts.highlights = highlights.slice(0, 3).map((h: any) => ({
+            title: h.title,
+            type: h.type,
+            description: h.description
+          }));
+        }
+        
+        if (!facts.activities || facts.activities.length === 0) {
+          facts.search_link = generateSearchLinks(locationContext.city, `que faire à`);
+        }
+        break;
+      
+      case 'INFOS_PRATIQUES':
+        facts.essentials = (essentials || []).map((e: any) => ({
+          name: e.name,
+          type: e.type,
+          address: e.address,
+          distance: e.distance,
+          hours: e.hours,
+          phone: e.phone
+        }));
+        
+        if (!facts.essentials || facts.essentials.length === 0) {
+          const typeMatch = message.toLowerCase().match(/(?:pharmacie|supermarche|boulangerie|banque)/);
+          const searchQuery = typeMatch ? typeMatch[0] : 'commerces';
+          facts.search_link = generateSearchLinks(locationContext.city, searchQuery);
+        }
+        break;
       case 'WIFI_PASSWORD':
         facts.wifi_ssid = wifiData?.ssid || 'Non configuré';
         needsWifiPassword = true;
@@ -204,19 +345,6 @@ serve(async (req) => {
         })) || [];
         break;
       
-      case 'A_PROXIMITE':
-        const nearby = Array.isArray(booklet.nearby) ? booklet.nearby : 
-                      (typeof booklet.nearby === 'string' ? JSON.parse(booklet.nearby) : []);
-        facts.nearby = nearby
-          .filter((p: any) => p.name && p.category)
-          .slice(0, 5)
-          .map((p: any) => ({
-            name: p.name,
-            category: p.category,
-            distance: p.distance,
-            mapsUrl: p.mapsUrl
-          }));
-        break;
       
       case 'URGENCES':
         facts.emergency_contacts = booklet.emergency_contacts;
@@ -224,11 +352,19 @@ serve(async (req) => {
         break;
       
       case 'TRANSPORTS':
-        const nearbyAll = Array.isArray(booklet.nearby) ? booklet.nearby : 
-                         (typeof booklet.nearby === 'string' ? JSON.parse(booklet.nearby) : []);
-        facts.transports = nearbyAll
-          .filter((p: any) => p.category === 'Transport')
-          .map((p: any) => ({ name: p.name, distance: p.distance, mapsUrl: p.mapsUrl }));
+        facts.transport = (transport || []).map((t: any) => ({
+          name: t.name,
+          type: t.type,
+          address: t.address,
+          distance: t.distance,
+          price: t.price,
+          instructions: t.instructions,
+          url: t.url
+        }));
+        
+        if (!facts.transport || facts.transport.length === 0) {
+          facts.search_link = generateSearchLinks(locationContext.city, 'transports en commun');
+        }
         break;
       
       case 'MAISON':
@@ -268,7 +404,10 @@ serve(async (req) => {
     }
 
     // Construire le prompt de composition avec les facts
-    const systemPrompt = `Tu es l'assistant du livret d'accueil "${booklet.property_name}".
+    const systemPrompt = `Tu es l'assistant du livret d'accueil "${booklet.property_name}" à ${locationContext.city}, ${locationContext.country}.
+
+CONTEXTE DE LOCALISATION :
+Tu connais automatiquement la ville : ${locationContext.city}. Ne demande JAMAIS à l'utilisateur de préciser la ville sauf si c'est ambigu dans sa question.
 
 RÈGLES STRICTES DE FORMAT :
 - Formate ta réponse de manière claire et professionnelle
@@ -276,11 +415,13 @@ RÈGLES STRICTES DE FORMAT :
 - Fais un retour à la ligne après chaque phrase complète (après chaque point)
 - Le ton doit être naturel, accueillant et fluide
 - N'utilise ni emojis ni symboles spéciaux
-- Compose une réponse claire, concise et actionnable à partir des FACTS fournis
-- Ne partage JAMAIS : codes précis (sauf si fourni dans facts.access_code avec mention "code fourni"), emails/téléphones privés, adresses exactes complètes
-- Si une info manque dans les FACTS : propose une alternative utile ou indique poliment que l'info n'est pas disponible
-- Fournis des liens Maps quand disponibles
-- Format : français si locale=fr, anglais si locale=en
+- Donne 2-3 options maximum, avec les infos clés (prix, distance approximative, réservation)
+
+PRIORITÉS DE RÉPONSE :
+1. Priorise TOUJOURS les éléments du livret (surtout ceux marqués "is_owner_pick: true")
+2. Si une info manque dans le livret (météo, horaires en temps réel), propose un lien 1-clic vers Google/Maps fourni dans facts.search_link
+3. Pour les liens de recherche, présente-les ainsi : "Tu peux consulter les dernières informations ici : [LIEN]"
+4. Ne partage JAMAIS : codes d'accès précis (sauf mention explicite), emails/téléphones privés, adresses complètes
 
 EXEMPLE DE FORMAT ATTENDU :
 Le check-in se fait à partir de 16h.
@@ -294,7 +435,7 @@ ${JSON.stringify(facts, null, 2)}
 
 Question de l'utilisateur : "${message}"
 
-Compose une réponse utile en utilisant les FACTS. Si les FACTS sont vides ou insuffisants, dis-le poliment et propose de contacter la conciergerie.`;
+Compose une réponse utile en utilisant les FACTS. Priorise toujours les recommandations du livret (owner picks). Si les données manquent, utilise le lien search_link fourni pour aider l'utilisateur.`;
 
     // Appeler Lovable AI pour composer la réponse
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
