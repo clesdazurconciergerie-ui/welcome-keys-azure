@@ -147,6 +147,26 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    // Also add role to user_roles table for security
+    const { error: roleError } = await supabase
+      .from('user_roles')
+      .upsert(
+        {
+          user_id: uid,
+          role,
+          assigned_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'user_id,role',
+          ignoreDuplicates: true,
+        }
+      );
+
+    if (roleError) {
+      console.error('Error adding role to user_roles:', roleError);
+      // Don't fail the request, just log the error
+    }
 
     console.log('User updated successfully:', updateData);
 

@@ -80,6 +80,26 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    // Also add role to user_roles table for security
+    const { error: roleError } = await supabaseClient
+      .from('user_roles')
+      .upsert(
+        {
+          user_id: user.id,
+          role: 'demo_user',
+          assigned_at: now.toISOString(),
+        },
+        {
+          onConflict: 'user_id,role',
+          ignoreDuplicates: true,
+        }
+      );
+
+    if (roleError) {
+      console.error('Error adding role to user_roles:', roleError);
+      // Don't fail the request, just log the error
+    }
 
     return new Response(
       JSON.stringify({

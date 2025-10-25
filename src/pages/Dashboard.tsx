@@ -21,6 +21,7 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { motion } from "framer-motion";
 import BrandMark from "@/components/BrandMark";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 interface Pin {
   pin_code: string;
@@ -34,13 +35,15 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
-  const [userRole, setUserRole] = useState("");
   const [subscriptionStatus, setSubscriptionStatus] = useState("");
   const [canCreateBooklet, setCanCreateBooklet] = useState(true);
   const [quotaMessage, setQuotaMessage] = useState("");
   const [trialExpiresAt, setTrialExpiresAt] = useState<string | null>(null);
   const [demoExpiresAt, setDemoExpiresAt] = useState<string | null>(null);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
+  
+  // Utiliser le hook sécurisé pour les rôles
+  const { primaryRole: userRole, hasRole, isLoading: rolesLoading } = useUserRoles();
 
   useEffect(() => {
     const init = async () => {
@@ -50,10 +53,10 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (userRole && subscriptionStatus) {
+    if (!rolesLoading && userRole && subscriptionStatus) {
       fetchBooklets();
     }
-  }, [userRole, subscriptionStatus]);
+  }, [userRole, subscriptionStatus, rolesLoading]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -68,36 +71,17 @@ const Dashboard = () => {
     const name = email.split('@')[0].split('.')[0];
     setUserName(name.charAt(0).toUpperCase() + name.slice(1));
 
-    // Fetch user subscription status
+    // Fetch user subscription status and trial info
     const { data: userData } = await supabase
       .from('users')
-      .select('role, subscription_status, trial_expires_at, demo_token_expires_at')
+      .select('subscription_status, trial_expires_at, demo_token_expires_at')
       .eq('id', session.user.id)
       .single();
 
     if (userData) {
-      setUserRole(userData.role || 'free_trial');
       setSubscriptionStatus(userData.subscription_status || 'none');
       setTrialExpiresAt(userData.trial_expires_at);
       setDemoExpiresAt(userData.demo_token_expires_at);
-      
-      // Calculer les jours restants pour l'essai gratuit
-      if (userData.role === 'free_trial' && userData.trial_expires_at) {
-        const now = new Date();
-        const expiresAt = new Date(userData.trial_expires_at);
-        const diffTime = expiresAt.getTime() - now.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        setDaysRemaining(diffDays > 0 ? diffDays : 0);
-      }
-      
-      // Calculer les jours restants pour la démo
-      if (userData.role === 'demo_user' && userData.demo_token_expires_at) {
-        const now = new Date();
-        const expiresAt = new Date(userData.demo_token_expires_at);
-        const diffTime = expiresAt.getTime() - now.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        setDaysRemaining(diffDays > 0 ? diffDays : 0);
-      }
     }
   };
 
@@ -113,13 +97,29 @@ const Dashboard = () => {
 
       // Check quota
       const bookletCount = data?.length || 0;
-      const role = userRole || 'free_trial';
       const status = subscriptionStatus || 'none';
 
       let canCreate = true;
       let message = '';
+      
+      // Calculer les jours restants après avoir récupéré les données
+      if (userRole === 'free_trial' && trialExpiresAt) {
+        const now = new Date();
+        const expiresAt = new Date(trialExpiresAt);
+        const diffTime = expiresAt.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        setDaysRemaining(diffDays > 0 ? diffDays : 0);
+      }
+      
+      if (userRole === 'demo_user' && demoExpiresAt) {
+        const now = new Date();
+        const expiresAt = new Date(demoExpiresAt);
+        const diffTime = expiresAt.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        setDaysRemaining(diffDays > 0 ? diffDays : 0);
+      }
 
-      if (role === 'free_trial') {
+      if (userRole === 'free_trial') {
         // Vérifier si l'essai est expiré
         if (trialExpiresAt) {
           const now = new Date();
@@ -133,7 +133,7 @@ const Dashboard = () => {
             message = "Vous avez créé votre livret d'essai. Souscrivez un abonnement pour créer plus de livrets.";
           }
         }
-      } else if (role === 'demo_user') {
+      } else if (userRole === 'demo_user') {
         // Vérifier si la démo est expirée
         if (demoExpiresAt) {
           const now = new Date();
@@ -147,16 +147,19 @@ const Dashboard = () => {
             message = "Vous avez créé votre livret de démo. Souscrivez un abonnement pour créer plus de livrets.";
           }
         }
-      } else if (status !== 'active' || role === 'free') {
+      } else if (userRole === 'super_admin') {
+        // Super admin: pas de limite
+        canCreate = true;
+      } else if (status !== 'active' || userRole === 'free') {
         canCreate = false;
         message = "Abonnez-vous au plan Starter pour créer votre premier livret.";
-      } else if (role === 'pack_starter' && bookletCount >= 1) {
+      } else if (userRole === 'pack_starter' && bookletCount >= 1) {
         canCreate = false;
         message = "Vous avez atteint votre quota (1/1 livret). Passez au plan Pro pour créer plus de livrets.";
-      } else if (role === 'pack_pro' && bookletCount >= 5) {
+      } else if (userRole === 'pack_pro' && bookletCount >= 5) {
         canCreate = false;
         message = "Vous avez atteint votre quota (5/5 livrets). Passez au plan Business pour créer plus de livrets.";
-      } else if (role === 'pack_business' && bookletCount >= 15) {
+      } else if (userRole === 'pack_business' && bookletCount >= 15) {
         canCreate = false;
         message = "Vous avez atteint votre quota (15/15 livrets). Passez au plan Premium pour des livrets illimités.";
       }

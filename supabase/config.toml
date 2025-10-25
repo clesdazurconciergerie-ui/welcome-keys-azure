@@ -29,3 +29,6 @@ verify_jwt = true
 
 [functions.confirm-session]
 verify_jwt = true
+
+[functions.assign-role]
+verify_jwt = false

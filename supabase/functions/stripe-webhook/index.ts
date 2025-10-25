@@ -55,6 +55,7 @@ Deno.serve(async (req) => {
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         );
 
+        // Update users table
         const { data, error } = await supabase
           .from('users')
           .update({
@@ -69,6 +70,26 @@ Deno.serve(async (req) => {
         if (error) {
           console.error('Error updating user:', error);
           return new Response(`Database error: ${error.message}`, { status: 500, headers: corsHeaders });
+        }
+        
+        // Also add role to user_roles table for security
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .upsert(
+            {
+              user_id: userId,
+              role: 'pack_starter',
+              assigned_at: new Date().toISOString(),
+            },
+            {
+              onConflict: 'user_id,role',
+              ignoreDuplicates: true,
+            }
+          );
+
+        if (roleError) {
+          console.error('Error adding role to user_roles:', roleError);
+          // Don't fail the request, just log the error
         }
 
         console.log('User updated successfully:', data);
