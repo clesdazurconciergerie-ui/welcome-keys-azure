@@ -88,12 +88,57 @@ serve(async (req) => {
       .eq('booklet_id', booklet.id)
       .order('order_index');
 
+    // Classification d'intent
+    const messageLower = message.toLowerCase();
+    const isWifiPasswordRequest = messageLower.includes('wifi') && 
+      (messageLower.includes('mot de passe') || messageLower.includes('password') || messageLower.includes('mdp'));
+    
+    const isSensitiveRequest = 
+      messageLower.includes('adresse exacte') ||
+      messageLower.includes('code') ||
+      messageLower.includes('digicode') ||
+      messageLower.includes('numéro de porte') ||
+      messageLower.includes('email') ||
+      messageLower.includes('téléphone') ||
+      messageLower.includes('propriétaire') ||
+      messageLower.includes('tel ') ||
+      messageLower.includes('tél');
+
+    const isSearchableQuery = 
+      messageLower.includes('météo') ||
+      messageLower.includes('évènement') ||
+      messageLower.includes('événement') ||
+      messageLower.includes('transport') ||
+      messageLower.includes('bus') ||
+      messageLower.includes('pharmacie de garde') ||
+      messageLower.includes('sortie') ||
+      messageLower.includes('activité');
+
+    // Bloquer les demandes sensibles
+    if (isSensitiveRequest) {
+      return new Response(
+        JSON.stringify({ 
+          answer: "Je ne peux pas partager d'informations sensibles comme des codes d'accès, adresses précises ou contacts privés. Pour toute question urgente, contactez la conciergerie via les coordonnées fournies dans le livret." 
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } 
+        }
+      );
+    }
+
     // Construire le contexte pour le chatbot
     const nearby = Array.isArray(booklet.nearby) ? booklet.nearby : 
                    (typeof booklet.nearby === 'string' ? JSON.parse(booklet.nearby) : []);
 
     const context = `
-Tu es l'assistant virtuel du livret d'accueil "${booklet.property_name}". Réponds uniquement aux questions basées sur les informations ci-dessous. Si la question sort du périmètre, réponds : "Je n'ai pas cette information dans le livret. Contactez la conciergerie."
+Tu es l'assistant virtuel du livret d'accueil "${booklet.property_name}". 
+
+RÈGLES STRICTES :
+- Réponds UNIQUEMENT avec les informations ci-dessous
+- Ne partage JAMAIS : codes d'accès, mots de passe (sauf Wi-Fi via bouton dédié), emails/téléphones privés, adresses exactes, numéros de porte
+- Si l'info n'est pas dans le contexte : "Je n'ai pas cette information dans le livret. Contactez la conciergerie."
+- Pour le mot de passe Wi-Fi : "Cliquez sur le bouton 'Afficher le mot de passe Wi-Fi' dans la section Wi-Fi du livret."
 
 IDENTITÉ:
 - Nom: ${booklet.property_name}
@@ -143,7 +188,9 @@ LÉGAL:
 Réponds de manière concise, polie et factuelle en ${locale === 'en' ? 'anglais' : 'français'}. Propose des liens Maps si pertinent.
     `.trim();
 
-    // Appeler Lovable AI
+    let finalAnswer = '';
+
+    // Appeler Lovable AI avec le contexte du livret
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -171,10 +218,20 @@ Réponds de manière concise, polie et factuelle en ${locale === 'en' ? 'anglais
     }
 
     const aiData = await aiResponse.json();
-    const answer = aiData.choices?.[0]?.message?.content || 'Désolé, je n\'ai pas pu générer une réponse.';
+    finalAnswer = aiData.choices?.[0]?.message?.content || '';
+
+    // Si la réponse indique que l'info n'est pas dans le livret ET que c'est une question "searchable"
+    const noInfoInBooklet = finalAnswer.toLowerCase().includes("n'ai pas cette information") || 
+                           finalAnswer.toLowerCase().includes("contactez la conciergerie");
+    
+    if (noInfoInBooklet && isSearchableQuery) {
+      // Réponse générale pour les questions searchables non trouvées dans le livret
+      const cityName = booklet.property_address?.split(',').pop()?.trim() || 'la région';
+      finalAnswer = `Je n'ai pas cette information spécifique dans le livret. Pour des informations générales sur ${cityName} (météo, transports, événements), vous pouvez consulter les sites officiels locaux ou l'office du tourisme. Pour toute question urgente, contactez la conciergerie via les coordonnées fournies dans le livret.`;
+    }
 
     return new Response(
-      JSON.stringify({ answer }),
+      JSON.stringify({ answer: finalAnswer || 'Désolé, je n\'ai pas pu générer une réponse.' }),
       { 
         status: 200, 
         headers: { 

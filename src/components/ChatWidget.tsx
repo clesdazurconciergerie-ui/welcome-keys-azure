@@ -20,9 +20,9 @@ const quickActions = [
   { label: "Heures d'arrivée et départ", prompt: "Quelles sont les heures d'arrivée et de départ ?" },
   { label: "Mot de passe Wi-Fi", prompt: "Comment obtenir le mot de passe Wi-Fi ?" },
   { label: "Où jeter les poubelles ?", prompt: "Où se trouvent les poubelles et comment trier ?" },
-  { label: "Restaurants près d'ici", prompt: "Quels sont les restaurants à proximité ?" },
-  { label: "Parking / Stationnement", prompt: "Où puis-je me garer ?" },
-  { label: "Urgences et pharmacie", prompt: "Où se trouve la pharmacie de garde et les numéros d'urgence ?" },
+  { label: "Restaurants proches (général)", prompt: "Quels sont les restaurants à proximité ?" },
+  { label: "Transports (général)", prompt: "Quels sont les transports publics disponibles ?" },
+  { label: "Urgences", prompt: "Où se trouve la pharmacie de garde et les numéros d'urgence ?" },
 ];
 
 export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
@@ -125,7 +125,7 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
             {messages.length === 0 ? (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Bonjour ! Je peux vous aider avec des informations sur votre séjour. Choisissez une question ou posez la vôtre :
+                  Je m'appuie sur le livret. Si l'info n'y est pas, je peux donner des indications générales (pas de détails sensibles). Choisissez une question ou posez la vôtre :
                 </p>
                 <div className="grid gap-2">
                   {quickActions.map((action, idx) => (
