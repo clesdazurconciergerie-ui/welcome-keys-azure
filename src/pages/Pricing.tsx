@@ -44,8 +44,15 @@ const Pricing = () => {
       return;
     }
 
-    // Ouvrir le Payment Link Stripe avec paramètres
-    const baseUrl = "https://buy.stripe.com/cNi5kDeMB6Cd8htgEQ5kk00";
+    // Map des plans vers leurs Payment Links
+    const paymentLinks: Record<string, string> = {
+      starter: 'https://buy.stripe.com/cNi5kDeMB6Cd8htgEQ5kk00',
+      pro: 'https://buy.stripe.com/7sYfZh9sh4u57dpgEQ5kk01',
+      business: 'https://buy.stripe.com/14A4gzbAp6CdcxJcoA5kk02',
+      premium: 'https://buy.stripe.com/bJe5kD5c1aStdBN2O05kk03',
+    };
+
+    const baseUrl = paymentLinks[planId] || paymentLinks.starter;
     const url = new URL(baseUrl);
     url.searchParams.set('prefilled_email', user.email || '');
     url.searchParams.set('client_reference_id', user.id);

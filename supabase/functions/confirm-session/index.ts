@@ -7,6 +7,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Mapping des Payment Links vers les rôles
+const paymentLinkToRole: Record<string, string> = {
+  'cNi5kDeMB6Cd8htgEQ5kk00': 'pack_starter',
+  '7sYfZh9sh4u57dpgEQ5kk01': 'pack_pro',
+  '14A4gzbAp6CdcxJcoA5kk02': 'pack_business',
+  'bJe5kD5c1aStdBN2O05kk03': 'pack_premium',
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -67,7 +75,8 @@ serve(async (req) => {
     console.log('Stripe session retrieved:', {
       payment_status: session.payment_status,
       client_reference_id: session.client_reference_id,
-      customer_email: session.customer_details?.email || session.customer_email
+      customer_email: session.customer_details?.email || session.customer_email,
+      payment_link: session.payment_link
     });
 
     // Vérifier que le paiement est confirmé
@@ -92,11 +101,38 @@ serve(async (req) => {
       );
     }
 
+    // Détecter le rôle selon le Payment Link utilisé
+    let role = 'pack_starter'; // Par défaut
+    
+    if (session.payment_link) {
+      // Extraire l'ID du payment link depuis l'objet payment_link
+      const paymentLinkId = typeof session.payment_link === 'string' 
+        ? session.payment_link.split('_').pop() 
+        : null;
+      
+      // Chercher dans les metadata de la session
+      const metadata = session.metadata || {};
+      if (metadata.plan) {
+        role = `pack_${metadata.plan}`;
+      } else {
+        // Fallback: essayer de détecter via l'URL de succès
+        const successUrl = session.success_url || '';
+        for (const [linkId, roleValue] of Object.entries(paymentLinkToRole)) {
+          if (successUrl.includes(linkId)) {
+            role = roleValue;
+            break;
+          }
+        }
+      }
+    }
+
+    console.log('Assigning role:', role);
+
     // Mettre à jour l'utilisateur
     const { data: updateData, error: updateError } = await supabase
       .from('users')
       .update({
-        role: 'pack_starter',
+        role,
         subscription_status: 'active',
         stripe_customer_id: (session.customer as string) || null,
         latest_checkout_session_id: session.id,
@@ -115,7 +151,7 @@ serve(async (req) => {
     console.log('User updated successfully:', updateData);
 
     return new Response(
-      JSON.stringify({ ok: true, role: 'pack_starter', subscription_status: 'active' }),
+      JSON.stringify({ ok: true, role, subscription_status: 'active' }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
