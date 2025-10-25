@@ -12,9 +12,9 @@ serve(async (req) => {
   }
 
   try {
-    const { pin, message, locale = 'fr' } = await req.json();
+    const { pin: pinCode, message, locale = 'fr' } = await req.json();
 
-    if (!pin || !message) {
+    if (!pinCode || !message) {
       return new Response(
         JSON.stringify({ error: 'PIN et message requis' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -34,28 +34,59 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const normalizedPin = pin.replace(/\s+/g, '').toUpperCase();
+    const normalizedPin = pinCode.replace(/\s+/g, '').toUpperCase();
 
     // Récupérer le livret via le PIN
+    const { data: pinData, error: pinError } = await supabase
+      .from('pins')
+      .select('booklet_id')
+      .eq('pin_code', normalizedPin)
+      .eq('status', 'active')
+      .single();
+
+    if (pinError || !pinData) {
+      console.error('PIN non trouvé:', pinError);
+      return new Response(
+        JSON.stringify({ error: 'Code invalide ou expiré' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Récupérer le booklet
     const { data: booklet, error: bookletError } = await supabase
       .from('booklets')
-      .select(`
-        *,
-        wifi_credentials (wifi_ssid),
-        equipment (name, category, instructions, manual_url),
-        faq (question, answer, order_index)
-      `)
-      .eq('access_pin', normalizedPin)
+      .select('*')
+      .eq('id', pinData.booklet_id)
       .eq('status', 'published')
       .single();
 
     if (bookletError || !booklet) {
       console.error('Livret non trouvé:', bookletError);
       return new Response(
-        JSON.stringify({ error: 'Code invalide ou livret non publié' }),
+        JSON.stringify({ error: 'Livret non publié' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Récupérer les données Wi-Fi (SSID uniquement)
+    const { data: wifiData } = await supabase
+      .from('wifi_credentials')
+      .select('ssid')
+      .eq('booklet_id', booklet.id)
+      .maybeSingle();
+
+    // Récupérer les équipements
+    const { data: equipment } = await supabase
+      .from('equipment')
+      .select('name, category, instructions, manual_url')
+      .eq('booklet_id', booklet.id);
+
+    // Récupérer la FAQ
+    const { data: faq } = await supabase
+      .from('faq')
+      .select('question, answer, order_index')
+      .eq('booklet_id', booklet.id)
+      .order('order_index');
 
     // Construire le contexte pour le chatbot
     const nearby = Array.isArray(booklet.nearby) ? booklet.nearby : 
@@ -82,7 +113,7 @@ INFORMATIONS PRATIQUES:
 - Conseils de sécurité: ${booklet.safety_tips || 'Non renseigné'}
 
 WI-FI:
-- Réseau Wi-Fi: ${booklet.wifi_credentials?.[0]?.wifi_ssid || 'Non configuré'}
+- Réseau Wi-Fi: ${wifiData?.ssid || 'Non configuré'}
 - Pour obtenir le mot de passe Wi-Fi, dis à l'utilisateur : "Cliquez sur le bouton 'Afficher le mot de passe Wi-Fi' dans la section Wi-Fi du livret."
 
 MÉNAGE & TRI:
@@ -92,7 +123,7 @@ MÉNAGE & TRI:
 - Conseils d'entretien: ${booklet.cleaning_tips || 'Non renseignés'}
 
 ÉQUIPEMENTS:
-${booklet.equipment?.map((e: any) => `- ${e.name} (${e.category}): ${e.instructions || 'Pas d\'instructions'}`).join('\n') || 'Aucun équipement listé'}
+${equipment?.map((e: any) => `- ${e.name} (${e.category}): ${e.instructions || 'Pas d\'instructions'}`).join('\n') || 'Aucun équipement listé'}
 
 À PROXIMITÉ:
 ${nearby.filter((p: any) => p.name && p.category).map((p: any) => 
@@ -100,7 +131,7 @@ ${nearby.filter((p: any) => p.name && p.category).map((p: any) =>
 ).join('\n') || 'Aucun lieu enregistré'}
 
 FAQ (réponds directement aux questions similaires):
-${booklet.faq?.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+${faq?.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
   .map((f: any) => `Q: ${f.question}\nR: ${f.answer}`).join('\n\n') || 'Aucune FAQ'}
 
 LÉGAL:
