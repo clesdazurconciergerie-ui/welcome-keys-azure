@@ -91,12 +91,12 @@ const Auth = () => {
       if (next === '/tarifs') {
         // If coming from pricing page, check subscription
         if (userData?.subscription_status !== 'active' || userData?.role === 'free') {
-          // Redirect to Stripe if not subscribed
-          const baseUrl = "https://buy.stripe.com/cN5kDeMB6Cd8htgEQ";
-          const emailParam = encodeURIComponent(data.user.email || "");
-          const clientRef = encodeURIComponent(data.user.id);
-          const stripeUrl = `${baseUrl}?prefilled_email=${emailParam}&client_reference_id=${clientRef}`;
-          window.location.href = stripeUrl;
+          // Redirect to Payment Link if not subscribed
+          const baseUrl = "https://buy.stripe.com/cNi5kDeMB6Cd8htgEQ5kk00";
+          const url = new URL(baseUrl);
+          url.searchParams.set('prefilled_email', data.user.email || '');
+          url.searchParams.set('client_reference_id', data.user.id);
+          window.location.href = url.toString();
           return;
         }
       }

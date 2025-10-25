@@ -44,14 +44,13 @@ const Pricing = () => {
       return;
     }
 
-    // Sinon, rediriger vers Stripe
-    const baseUrl = "https://buy.stripe.com/cN5kDeMB6Cd8htgEQ";
-    const email = encodeURIComponent(user.email || "");
-    const clientRef = encodeURIComponent(user.id);
-    const stripeUrl = `${baseUrl}?prefilled_email=${email}&client_reference_id=${clientRef}`;
+    // Ouvrir le Payment Link Stripe avec paramètres
+    const baseUrl = "https://buy.stripe.com/cNi5kDeMB6Cd8htgEQ5kk00";
+    const url = new URL(baseUrl);
+    url.searchParams.set('prefilled_email', user.email || '');
+    url.searchParams.set('client_reference_id', user.id);
     
-    window.open(stripeUrl, '_blank');
-    toast.success("Redirection vers Stripe...");
+    window.location.href = url.toString();
   };
 
   const plans = [

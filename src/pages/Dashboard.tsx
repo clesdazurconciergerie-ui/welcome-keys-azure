@@ -264,11 +264,11 @@ const Dashboard = () => {
     if (!canCreateBooklet) {
       supabase.auth.getSession().then(({ data }) => {
         if (data?.session?.user) {
-          const baseUrl = "https://buy.stripe.com/cN5kDeMB6Cd8htgEQ";
-          const email = encodeURIComponent(data.session.user.email || "");
-          const clientRef = encodeURIComponent(data.session.user.id);
-          const stripeUrl = `${baseUrl}?prefilled_email=${email}&client_reference_id=${clientRef}`;
-          window.open(stripeUrl, '_blank');
+          const baseUrl = "https://buy.stripe.com/cNi5kDeMB6Cd8htgEQ5kk00";
+          const url = new URL(baseUrl);
+          url.searchParams.set('prefilled_email', data.session.user.email || '');
+          url.searchParams.set('client_reference_id', data.session.user.id);
+          window.location.href = url.toString();
         }
       });
       return;
