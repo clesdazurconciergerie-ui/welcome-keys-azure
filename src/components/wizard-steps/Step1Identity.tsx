@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Loader2 } from "lucide-react";
+import { Upload, X, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 interface Step1IdentityProps {
@@ -23,6 +23,7 @@ export default function Step1Identity({ data, onUpdate }: Step1IdentityProps) {
   const [language, setLanguage] = useState(data?.language || "fr");
   const [showLogo, setShowLogo] = useState(data?.show_logo ?? true);
   const [uploading, setUploading] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -43,13 +44,11 @@ export default function Step1Identity({ data, onUpdate }: Step1IdentityProps) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error("Veuillez sélectionner une image valide");
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("L'image ne doit pas dépasser 5 MB");
       return;
@@ -70,7 +69,6 @@ export default function Step1Identity({ data, onUpdate }: Step1IdentityProps) {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('booklet-images')
         .getPublicUrl(filePath);
@@ -87,6 +85,33 @@ export default function Step1Identity({ data, onUpdate }: Step1IdentityProps) {
 
   const handleRemoveImage = () => {
     setCoverImage("");
+  };
+
+  const handleGenerateWelcome = async () => {
+    if (!propertyName) {
+      toast.error("Veuillez remplir le nom du logement");
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('generate-description', {
+        body: { 
+          propertyName,
+          propertyAddress: data?.property_address || "",
+          contentType: 'welcome_message'
+        }
+      });
+
+      if (error) throw error;
+      setWelcomeMessage(result.generatedText);
+      toast.success("Message généré avec succès");
+    } catch (error) {
+      console.error('Error generating welcome message:', error);
+      toast.error("Erreur lors de la génération");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -184,9 +209,25 @@ export default function Step1Identity({ data, onUpdate }: Step1IdentityProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="welcomeMessage">
-            Message de bienvenue <Badge variant="destructive" className="ml-2">Requis</Badge>
-          </Label>
+          <div className="flex items-center justify-between mb-2">
+            <Label htmlFor="welcomeMessage">
+              Message de bienvenue <Badge variant="destructive" className="ml-2">Requis</Badge>
+            </Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateWelcome}
+              disabled={generating}
+            >
+              {generating ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              Générer avec IA
+            </Button>
+          </div>
           <Textarea
             id="welcomeMessage"
             value={welcomeMessage}

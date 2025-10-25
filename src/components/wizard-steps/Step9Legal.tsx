@@ -3,6 +3,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Sparkles, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Step9LegalProps {
   data: any;
@@ -18,6 +22,7 @@ export default function Step9Legal({ data, onUpdate }: Step9LegalProps) {
   const [safetyInstructions, setSafetyInstructions] = useState(data?.safety_instructions || "");
   const [gdprNotice, setGdprNotice] = useState(data?.gdpr_notice || DEFAULT_GDPR);
   const [disclaimer, setDisclaimer] = useState(data?.disclaimer || DEFAULT_DISCLAIMER);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -31,6 +36,31 @@ export default function Step9Legal({ data, onUpdate }: Step9LegalProps) {
 
     return () => clearTimeout(timer);
   }, [airbnbLicense, safetyInstructions, gdprNotice, disclaimer]);
+
+  const handleGenerateSafety = async () => {
+    const propertyName = (data as any)?.property_name || "votre logement";
+    const propertyAddress = (data as any)?.property_address || "l'adresse";
+
+    setGenerating(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('generate-description', {
+        body: { 
+          propertyName,
+          propertyAddress,
+          contentType: 'safety_instructions'
+        }
+      });
+
+      if (error) throw error;
+      setSafetyInstructions(result.generatedText);
+      toast.success("Consignes générées avec succès");
+    } catch (error) {
+      console.error('Error generating safety instructions:', error);
+      toast.error("Erreur lors de la génération");
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -57,9 +87,25 @@ export default function Step9Legal({ data, onUpdate }: Step9LegalProps) {
         </div>
 
         <div className="space-y-2">
-          <Label>
-            Consignes de sécurité <Badge variant="destructive">Requis</Badge>
-          </Label>
+          <div className="flex items-center justify-between mb-2">
+            <Label>
+              Consignes de sécurité <Badge variant="destructive">Requis</Badge>
+            </Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateSafety}
+              disabled={generating}
+            >
+              {generating ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              Générer avec IA
+            </Button>
+          </div>
           <Textarea
             value={safetyInstructions}
             onChange={(e) => setSafetyInstructions(e.target.value)}

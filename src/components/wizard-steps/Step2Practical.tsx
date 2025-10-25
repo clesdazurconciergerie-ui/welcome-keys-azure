@@ -3,6 +3,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Sparkles, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Step2PracticalProps {
   data: any;
@@ -21,6 +25,7 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
   const [houseRules, setHouseRules] = useState(data?.house_rules || "");
   const [manualPdf, setManualPdf] = useState(data?.manual_pdf_url || "");
   const [safetyTips, setSafetyTips] = useState(data?.safety_tips || "");
+  const [generating, setGenerating] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -41,6 +46,31 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
 
     return () => clearTimeout(timer);
   }, [address, mapsLink, accessCode, checkInTime, checkOutTime, checkinProcedure, checkoutProcedure, parking, houseRules, manualPdf, safetyTips]);
+
+  const handleGenerate = async (contentType: string, setter: (value: string) => void) => {
+    const propertyName = (data as any)?.property_name || "votre logement";
+    const propertyAddress = address || "l'adresse";
+
+    setGenerating(contentType);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('generate-description', {
+        body: { 
+          propertyName,
+          propertyAddress,
+          contentType
+        }
+      });
+
+      if (error) throw error;
+      setter(result.generatedText);
+      toast.success("Contenu généré avec succès");
+    } catch (error) {
+      console.error('Error generating content:', error);
+      toast.error("Erreur lors de la génération");
+    } finally {
+      setGenerating(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -116,9 +146,25 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
         </div>
 
         <div className="space-y-2">
-          <Label>
-            Procédure de check-in <Badge variant="destructive">Requis</Badge>
-          </Label>
+          <div className="flex items-center justify-between mb-2">
+            <Label>
+              Procédure de check-in <Badge variant="destructive">Requis</Badge>
+            </Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleGenerate('checkin_procedure', setCheckinProcedure)}
+              disabled={generating === 'checkin_procedure'}
+            >
+              {generating === 'checkin_procedure' ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              Générer avec IA
+            </Button>
+          </div>
           <Textarea
             value={checkinProcedure}
             onChange={(e) => setCheckinProcedure(e.target.value)}
@@ -129,9 +175,25 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
         </div>
 
         <div className="space-y-2">
-          <Label>
-            Procédure de check-out <Badge variant="destructive">Requis</Badge>
-          </Label>
+          <div className="flex items-center justify-between mb-2">
+            <Label>
+              Procédure de check-out <Badge variant="destructive">Requis</Badge>
+            </Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleGenerate('checkout_procedure', setCheckoutProcedure)}
+              disabled={generating === 'checkout_procedure'}
+            >
+              {generating === 'checkout_procedure' ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              Générer avec IA
+            </Button>
+          </div>
           <Textarea
             value={checkoutProcedure}
             onChange={(e) => setCheckoutProcedure(e.target.value)}
@@ -142,9 +204,25 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
         </div>
 
         <div className="space-y-2">
-          <Label>
-            Stationnement <Badge variant="destructive">Requis</Badge>
-          </Label>
+          <div className="flex items-center justify-between mb-2">
+            <Label>
+              Stationnement <Badge variant="destructive">Requis</Badge>
+            </Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleGenerate('parking_info', setParking)}
+              disabled={generating === 'parking_info'}
+            >
+              {generating === 'parking_info' ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              Générer avec IA
+            </Button>
+          </div>
           <Textarea
             value={parking}
             onChange={(e) => setParking(e.target.value)}
@@ -155,9 +233,25 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
         </div>
 
         <div className="space-y-2">
-          <Label>
-            Règlement intérieur <Badge variant="destructive">Requis</Badge>
-          </Label>
+          <div className="flex items-center justify-between mb-2">
+            <Label>
+              Règlement intérieur <Badge variant="destructive">Requis</Badge>
+            </Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleGenerate('house_rules', setHouseRules)}
+              disabled={generating === 'house_rules'}
+            >
+              {generating === 'house_rules' ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              Générer avec IA
+            </Button>
+          </div>
           <Textarea
             value={houseRules}
             onChange={(e) => setHouseRules(e.target.value)}
