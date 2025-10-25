@@ -2,51 +2,87 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import {
-  ArrowLeft,
-  Save,
-  Eye,
-  Loader2,
-  Home,
-  Info,
-  Wifi,
-  MapPin,
-  Phone,
-  Image as ImageIcon,
-  MessageSquare,
-  Sparkles,
-  Wand2
-} from "lucide-react";
+import { ArrowLeft, Save, Eye, Loader2, Sparkles } from "lucide-react";
+import { useSectionRouter } from "@/hooks/useSectionRouter";
+import { SectionKey } from "@/types/sections";
+import SectionTabs from "@/components/booklet-editor/SectionTabs";
+import GeneralSection from "@/components/booklet-editor/GeneralSection";
+import IdentitySection from "@/components/booklet-editor/IdentitySection";
+import AppearanceSection from "@/components/booklet-editor/AppearanceSection";
+import WifiSection from "@/components/booklet-editor/WifiSection";
+import RulesSection from "@/components/booklet-editor/RulesSection";
+import EquipmentsSection from "@/components/booklet-editor/EquipmentsSection";
+import NearbySection from "@/components/booklet-editor/NearbySection";
+import ChatbotSection from "@/components/booklet-editor/ChatbotSection";
+
+// Mapping 1–1 Section → Composant (pas d'ambiguïté)
+const SECTION_VIEWS: Record<SectionKey, React.FC<any>> = {
+  general: GeneralSection,
+  identity: IdentitySection,
+  appearance: AppearanceSection,
+  wifi: WifiSection,
+  equipments: EquipmentsSection,
+  nearby: NearbySection,
+  rules: RulesSection,
+  chatbot: ChatbotSection,
+};
 
 const EditBooklet = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { section, navigate: navigateSection } = useSectionRouter();
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [booklet, setBooklet] = useState<any>(null);
-  const [generatingWelcome, setGeneratingWelcome] = useState(false);
-  const [generatingRules, setGeneratingRules] = useState(false);
-  const [generatingEmergency, setGeneratingEmergency] = useState(false);
+  const [generating, setGenerating] = useState<Record<string, boolean>>({});
 
-  // Form states
-  const [propertyName, setPropertyName] = useState("");
-  const [propertyAddress, setPropertyAddress] = useState("");
-  const [welcomeMessage, setWelcomeMessage] = useState("");
-  const [checkInTime, setCheckInTime] = useState("");
-  const [checkOutTime, setCheckOutTime] = useState("");
-  const [wifiName, setWifiName] = useState("");
-  const [wifiPassword, setWifiPassword] = useState("");
-  const [houseRules, setHouseRules] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [emergencyContacts, setEmergencyContacts] = useState("");
+  // Form states - General
+  const [generalData, setGeneralData] = useState({
+    propertyName: "",
+    propertyAddress: "",
+    welcomeMessage: "",
+    checkInTime: "",
+    checkOutTime: "",
+    contactPhone: "",
+    contactEmail: "",
+    emergencyContacts: "",
+  });
+
+  // Form states - Identity
+  const [identityData, setIdentityData] = useState({
+    conciergeName: "",
+    logoUrl: "",
+  });
+
+  // Form states - Appearance
+  const [appearanceData, setAppearanceData] = useState({
+    colors: {
+      background: '#ffffff',
+      accent: '#071552',
+      text: '#0F172A',
+      muted: '#64748B'
+    },
+    font: 'Inter',
+    layout: 'comfortable'
+  });
+
+  // Form states - WiFi
+  const [wifiData, setWifiData] = useState({
+    ssid: "",
+    password: "",
+    note: "",
+  });
+
+  // Form states - Rules
+  const [rulesData, setRulesData] = useState({
+    houseRules: "",
+    checkInProcedure: "",
+    checkOutProcedure: "",
+    parkingInfo: "",
+  });
 
   useEffect(() => {
     checkAuthAndFetch();
@@ -75,41 +111,79 @@ const EditBooklet = () => {
       if (error) throw error;
 
       setBooklet(data);
-      setPropertyName(data.property_name || "");
-      setPropertyAddress(data.property_address || "");
-      setWelcomeMessage(data.welcome_message || "");
-      setCheckInTime(data.check_in_time || "");
-      setCheckOutTime(data.check_out_time || "");
-      setHouseRules(data.house_rules || "");
-      setEmergencyContacts(data.emergency_contacts || "");
+      
+      // Charger les données générales
+      setGeneralData({
+        propertyName: data.property_name || "",
+        propertyAddress: data.property_address || "",
+        welcomeMessage: data.welcome_message || "",
+        checkInTime: data.check_in_time || "",
+        checkOutTime: data.check_out_time || "",
+        contactPhone: "",
+        contactEmail: "",
+        emergencyContacts: data.emergency_contacts || "",
+      });
 
-      // Fetch WiFi credentials from separate table
-      const { data: wifiData } = await supabase
+      // Charger les données d'identité
+      setIdentityData({
+        conciergeName: data.concierge_name || "",
+        logoUrl: data.logo_url || "",
+      });
+
+      // Charger les données d'apparence
+      const appearance = data.appearance || {};
+      if (appearance && typeof appearance === 'object') {
+        const app = appearance as any;
+        if (app.colors || app.font || app.layout) {
+          setAppearanceData({
+            colors: app.colors || appearanceData.colors,
+            font: app.font || 'Inter',
+            layout: app.layout || 'comfortable'
+          });
+        }
+      }
+
+      // Charger les données de règles
+      setRulesData({
+        houseRules: data.house_rules || "",
+        checkInProcedure: data.checkin_procedure || "",
+        checkOutProcedure: data.checkout_procedure || "",
+        parkingInfo: data.parking_info || "",
+      });
+
+      // Charger WiFi depuis la table séparée
+      const { data: wifiDbData } = await supabase
         .from("wifi_credentials")
         .select("ssid, password")
         .eq("booklet_id", id)
         .maybeSingle();
 
-      if (wifiData) {
-        setWifiName(wifiData.ssid || "");
-        setWifiPassword(wifiData.password || "");
+      if (wifiDbData) {
+        setWifiData({
+          ssid: wifiDbData.ssid || "",
+          password: wifiDbData.password || "",
+          note: "",
+        });
       }
 
-      // Fetch contact information from separate table
+      // Charger les contacts depuis la table séparée
       const { data: contactData } = await supabase
         .from("booklet_contacts")
-        .select("contact_email, contact_phone")
+        .select("contact_phone, contact_email")
         .eq("booklet_id", id)
         .maybeSingle();
 
       if (contactData) {
-        setContactPhone(contactData.contact_phone || "");
-        setContactEmail(contactData.contact_email || "");
+        setGeneralData(prev => ({
+          ...prev,
+          contactPhone: contactData.contact_phone || "",
+          contactEmail: contactData.contact_email || "",
+        }));
       }
-    } catch (error) {
+
+    } catch (error: any) {
       console.error("Error fetching booklet:", error);
-      toast.error("Erreur lors du chargement du livret");
-      navigate("/dashboard");
+      toast.error("Erreur lors du chargement");
     } finally {
       setLoading(false);
     }
@@ -117,123 +191,169 @@ const EditBooklet = () => {
 
   const handleSave = async () => {
     if (!id) return;
-
+    
     setSaving(true);
     try {
-      // Update booklet basic info
+      // Sauvegarder les données principales
       const { error: bookletError } = await supabase
         .from("booklets")
         .update({
-          property_name: propertyName,
-          property_address: propertyAddress,
-          welcome_message: welcomeMessage,
-          check_in_time: checkInTime,
-          check_out_time: checkOutTime,
-          house_rules: houseRules,
-          emergency_contacts: emergencyContacts,
+          property_name: generalData.propertyName,
+          property_address: generalData.propertyAddress,
+          welcome_message: generalData.welcomeMessage,
+          check_in_time: generalData.checkInTime,
+          check_out_time: generalData.checkOutTime,
+          emergency_contacts: generalData.emergencyContacts,
+          concierge_name: identityData.conciergeName,
+          logo_url: identityData.logoUrl,
+          appearance: appearanceData,
+          house_rules: rulesData.houseRules,
+          checkin_procedure: rulesData.checkInProcedure,
+          checkout_procedure: rulesData.checkOutProcedure,
+          parking_info: rulesData.parkingInfo,
         })
         .eq("id", id);
 
       if (bookletError) throw bookletError;
 
-      // Update or insert WiFi credentials in separate table
-      if (wifiName || wifiPassword) {
+      // Sauvegarder les données WiFi
+      if (wifiData.ssid || wifiData.password) {
         const { error: wifiError } = await supabase
           .from("wifi_credentials")
           .upsert({
             booklet_id: id,
-            ssid: wifiName,
-            password: wifiPassword,
-          }, {
-            onConflict: 'booklet_id'
+            ssid: wifiData.ssid,
+            password: wifiData.password,
           });
 
         if (wifiError) throw wifiError;
       }
 
-      // Update or insert contact information in separate table
-      if (contactPhone || contactEmail) {
+      // Sauvegarder les données de contact
+      if (generalData.contactPhone || generalData.contactEmail) {
         const { error: contactError } = await supabase
           .from("booklet_contacts")
           .upsert({
             booklet_id: id,
-            contact_email: contactEmail,
-            contact_phone: contactPhone,
-          }, {
-            onConflict: 'booklet_id'
+            contact_phone: generalData.contactPhone,
+            contact_email: generalData.contactEmail,
           });
 
         if (contactError) throw contactError;
       }
 
-      toast.success("Modifications sauvegardées");
-      fetchBooklet();
-    } catch (error) {
-      console.error("Error saving booklet:", error);
+      toast.success("Livret sauvegardé avec succès");
+    } catch (error: any) {
+      console.error("Error saving:", error);
       toast.error("Erreur lors de la sauvegarde");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleGenerateContent = async (contentType: 'welcome_message' | 'house_rules' | 'emergency_contacts') => {
-    if (!propertyName) {
-      toast.error("Veuillez d'abord renseigner le nom de la propriété");
-      return;
-    }
-
-    const setGeneratingState = contentType === 'welcome_message' ? setGeneratingWelcome :
-                                contentType === 'house_rules' ? setGeneratingRules :
-                                setGeneratingEmergency;
-    
-    setGeneratingState(true);
+  const handleGenerate = async (field: string) => {
+    setGenerating(prev => ({ ...prev, [field]: true }));
     
     try {
-      const { data, error } = await supabase.functions.invoke('generate-description', {
-        body: {
-          propertyName,
-          propertyAddress: propertyAddress || '',
-          contentType
+      const { data: result, error } = await supabase.functions.invoke('generate-description', {
+        body: { 
+          propertyName: generalData.propertyName,
+          propertyAddress: generalData.propertyAddress,
+          contentType: field
         }
       });
 
       if (error) throw error;
 
-      if (data.generatedText) {
-        if (contentType === 'welcome_message') {
-          setWelcomeMessage(data.generatedText);
-        } else if (contentType === 'house_rules') {
-          setHouseRules(data.generatedText);
-        } else if (contentType === 'emergency_contacts') {
-          setEmergencyContacts(data.generatedText);
-        }
-        toast.success("Description générée avec succès !");
+      // Mettre à jour le champ approprié
+      switch (field) {
+        case 'welcome_message':
+          setGeneralData(prev => ({ ...prev, welcomeMessage: result.generatedText }));
+          break;
+        case 'emergency_contacts':
+          setGeneralData(prev => ({ ...prev, emergencyContacts: result.generatedText }));
+          break;
+        case 'house_rules':
+          setRulesData(prev => ({ ...prev, houseRules: result.generatedText }));
+          break;
+        case 'checkin_procedure':
+          setRulesData(prev => ({ ...prev, checkInProcedure: result.generatedText }));
+          break;
+        case 'checkout_procedure':
+          setRulesData(prev => ({ ...prev, checkOutProcedure: result.generatedText }));
+          break;
+        case 'parking_info':
+          setRulesData(prev => ({ ...prev, parkingInfo: result.generatedText }));
+          break;
       }
+
+      toast.success("Contenu généré avec succès");
     } catch (error) {
       console.error('Error generating content:', error);
       toast.error("Erreur lors de la génération");
     } finally {
-      setGeneratingState(false);
+      setGenerating(prev => ({ ...prev, [field]: false }));
     }
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Le logo ne doit pas dépasser 2 Mo');
+      return;
+    }
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${id}-logo-${Date.now()}.${fileExt}`;
+      const filePath = `logos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('booklet-assets')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('booklet-assets')
+        .getPublicUrl(filePath);
+
+      setIdentityData(prev => ({ ...prev, logoUrl: data.publicUrl }));
+      toast.success('Logo téléchargé avec succès');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error("Erreur lors de l'upload du logo");
+    }
+  };
+
+  const handleLogoRemove = () => {
+    setIdentityData(prev => ({ ...prev, logoUrl: '' }));
   };
 
   const handlePublish = async () => {
     if (!id) return;
-    setSaving(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('publish-booklet/' + id);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
 
-      if (error) throw error;
+      const response = await fetch(
+        `https://otxnzjkyzkpoymeypmef.supabase.co/functions/v1/publish-booklet/${id}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-      toast.success(`Livret publié ! Code: ${data.code}`);
-      fetchBooklet();
+      if (!response.ok) throw new Error('Failed to publish');
+
+      toast.success("Livret publié avec succès !");
       navigate('/dashboard');
     } catch (error) {
-      console.error("Error publishing booklet:", error);
+      console.error("Publish error:", error);
       toast.error("Erreur lors de la publication");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -245,10 +365,57 @@ const EditBooklet = () => {
     );
   }
 
+  // Récupérer le composant de la section active (avec fallback)
+  const SectionView = SECTION_VIEWS[section] || SECTION_VIEWS.general;
+
+  // Préparer les props pour chaque section
+  const sectionProps: Record<SectionKey, any> = {
+    general: {
+      data: generalData,
+      onChange: (updates: Partial<typeof generalData>) => 
+        setGeneralData(prev => ({ ...prev, ...updates })),
+      onGenerate: handleGenerate,
+      generating,
+    },
+    identity: {
+      data: identityData,
+      onChange: (updates: Partial<typeof identityData>) => 
+        setIdentityData(prev => ({ ...prev, ...updates })),
+      onLogoUpload: handleLogoUpload,
+      onLogoRemove: handleLogoRemove,
+    },
+    appearance: {
+      data: appearanceData,
+      onChange: (updates: Partial<typeof appearanceData>) => 
+        setAppearanceData(prev => ({ ...prev, ...updates })),
+    },
+    wifi: {
+      data: wifiData,
+      onChange: (updates: Partial<typeof wifiData>) => 
+        setWifiData(prev => ({ ...prev, ...updates })),
+    },
+    equipments: {
+      bookletId: id,
+    },
+    nearby: {
+      bookletId: id,
+    },
+    rules: {
+      data: rulesData,
+      onChange: (updates: Partial<typeof rulesData>) => 
+        setRulesData(prev => ({ ...prev, ...updates })),
+      onGenerate: handleGenerate,
+      generating,
+    },
+    chatbot: {
+      bookletId: id,
+    },
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
+    <div className="min-h-screen bg-[#F7FAFC]">
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4 flex-wrap">
+        <div className="max-w-[1140px] mx-auto px-4 md:px-6 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <Button 
               variant="ghost" 
@@ -258,9 +425,11 @@ const EditBooklet = () => {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Dashboard
             </Button>
-            <div className="h-6 w-px bg-border" />
+            <div className="h-6 w-px bg-[#E6EDF2]" />
             <div>
-              <h1 className="font-semibold">{propertyName || "Sans titre"}</h1>
+              <h1 className="font-semibold text-[#0F172A]">
+                {generalData.propertyName || "Sans titre"}
+              </h1>
               <Badge variant={booklet?.status === 'published' ? 'default' : 'secondary'} className="text-xs">
                 {booklet?.status === 'published' ? 'Publié' : 'Brouillon'}
               </Badge>
@@ -279,289 +448,33 @@ const EditBooklet = () => {
               )}
               Sauvegarder
             </Button>
-            {booklet?.status !== 'published' ? (
+            <Button 
+              variant="outline" 
+              onClick={() => window.open(`/preview/${id}`, '_blank')}
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Prévisualiser
+            </Button>
+            {booklet?.status !== 'published' && (
               <Button onClick={handlePublish}>
                 <Sparkles className="w-4 h-4 mr-2" />
                 Publier
-              </Button>
-            ) : (
-              <Button variant="outline" onClick={() => navigate(`/share/${id}`)}>
-                <Eye className="w-4 h-4 mr-2" />
-                Voir le partage
               </Button>
             )}
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="identity" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
-            <TabsTrigger value="identity" className="gap-2">
-              <Home className="w-4 h-4" />
-              <span className="hidden sm:inline">Identité</span>
-            </TabsTrigger>
-            <TabsTrigger value="practical" className="gap-2">
-              <Info className="w-4 h-4" />
-              <span className="hidden sm:inline">Infos</span>
-            </TabsTrigger>
-            <TabsTrigger value="wifi" className="gap-2">
-              <Wifi className="w-4 h-4" />
-              <span className="hidden sm:inline">WiFi</span>
-            </TabsTrigger>
-            <TabsTrigger value="rules" className="gap-2">
-              <MapPin className="w-4 h-4" />
-              <span className="hidden sm:inline">Règlement</span>
-            </TabsTrigger>
-            <TabsTrigger value="contacts" className="gap-2">
-              <Phone className="w-4 h-4" />
-              <span className="hidden sm:inline">Contacts</span>
-            </TabsTrigger>
-            <TabsTrigger value="gallery" className="gap-2">
-              <ImageIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">Galerie</span>
-            </TabsTrigger>
-          </TabsList>
+      <main className="max-w-[1140px] mx-auto px-4 md:px-6 py-6 md:py-8">
+        <div className="space-y-6">
+          {/* Navigation par onglets */}
+          <SectionTabs active={section} onChange={navigateSection} />
 
-          <TabsContent value="identity">
-            <Card className="glass border-0 shadow-md">
-              <CardHeader>
-                <CardTitle>Identité de la propriété</CardTitle>
-                <CardDescription>
-                  Les informations principales qui seront affichées en en-tête
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="property-name">Nom de la propriété *</Label>
-                  <Input
-                    id="property-name"
-                    value={propertyName}
-                    onChange={(e) => setPropertyName(e.target.value)}
-                    placeholder="Villa Les Oliviers"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="property-address">Adresse</Label>
-                  <Input
-                    id="property-address"
-                    value={propertyAddress}
-                    onChange={(e) => setPropertyAddress(e.target.value)}
-                    placeholder="123 Avenue de la Côte d'Azur, Nice"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="welcome-message">Message de bienvenue</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleGenerateContent('welcome_message')}
-                      disabled={generatingWelcome}
-                    >
-                      {generatingWelcome ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Wand2 className="w-4 h-4 mr-2" />
-                      )}
-                      Générer avec IA
-                    </Button>
-                  </div>
-                  <Textarea
-                    id="welcome-message"
-                    value={welcomeMessage}
-                    onChange={(e) => setWelcomeMessage(e.target.value)}
-                    placeholder="Bienvenue dans notre magnifique villa..."
-                    rows={4}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="practical">
-            <Card className="glass border-0 shadow-md">
-              <CardHeader>
-                <CardTitle>Informations pratiques</CardTitle>
-                <CardDescription>
-                  Horaires et informations importantes pour vos invités
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="checkin">Heure d'arrivée</Label>
-                    <Input
-                      id="checkin"
-                      value={checkInTime}
-                      onChange={(e) => setCheckInTime(e.target.value)}
-                      placeholder="Ex: 16h00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="checkout">Heure de départ</Label>
-                    <Input
-                      id="checkout"
-                      value={checkOutTime}
-                      onChange={(e) => setCheckOutTime(e.target.value)}
-                      placeholder="Ex: 10h00"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="wifi">
-            <Card className="glass border-0 shadow-md">
-              <CardHeader>
-                <CardTitle>Accès WiFi</CardTitle>
-                <CardDescription>
-                  Les identifiants WiFi pour vos invités
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="wifi-name">Nom du réseau WiFi</Label>
-                  <Input
-                    id="wifi-name"
-                    value={wifiName}
-                    onChange={(e) => setWifiName(e.target.value)}
-                    placeholder="VillaWiFi"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="wifi-password">Mot de passe WiFi</Label>
-                  <Input
-                    id="wifi-password"
-                    type="text"
-                    value={wifiPassword}
-                    onChange={(e) => setWifiPassword(e.target.value)}
-                    placeholder="••••••••"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="rules">
-            <Card className="glass border-0 shadow-md">
-              <CardHeader>
-                <CardTitle>Règlement intérieur</CardTitle>
-                <CardDescription>
-                  Les règles importantes à respecter
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="house-rules">Règles de la maison</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleGenerateContent('house_rules')}
-                      disabled={generatingRules}
-                    >
-                      {generatingRules ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Wand2 className="w-4 h-4 mr-2" />
-                      )}
-                      Générer avec IA
-                    </Button>
-                  </div>
-                  <Textarea
-                    id="house-rules"
-                    value={houseRules}
-                    onChange={(e) => setHouseRules(e.target.value)}
-                    placeholder="Ex: Non fumeur, pas d'animaux, respecter le voisinage..."
-                    rows={8}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="contacts">
-            <Card className="glass border-0 shadow-md">
-              <CardHeader>
-                <CardTitle>Contacts</CardTitle>
-                <CardDescription>
-                  Les coordonnées utiles pour vos invités
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="contact-phone">Téléphone conciergerie</Label>
-                  <Input
-                    id="contact-phone"
-                    type="tel"
-                    value={contactPhone}
-                    onChange={(e) => setContactPhone(e.target.value)}
-                    placeholder="+33 6 12 34 56 78"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contact-email">Email</Label>
-                  <Input
-                    id="contact-email"
-                    type="email"
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
-                    placeholder="contact@clesdazur.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="emergency">Contacts d'urgence</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleGenerateContent('emergency_contacts')}
-                      disabled={generatingEmergency}
-                    >
-                      {generatingEmergency ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Wand2 className="w-4 h-4 mr-2" />
-                      )}
-                      Générer avec IA
-                    </Button>
-                  </div>
-                  <Textarea
-                    id="emergency"
-                    value={emergencyContacts}
-                    onChange={(e) => setEmergencyContacts(e.target.value)}
-                    placeholder="Police: 17&#10;Pompiers: 18&#10;SAMU: 15"
-                    rows={4}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="gallery">
-            <Card className="glass border-0 shadow-md">
-              <CardHeader>
-                <CardTitle>Galerie photos</CardTitle>
-                <CardDescription>
-                  À venir : Upload et gestion des photos
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <ImageIcon className="w-16 h-16 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">
-                    La galerie photos sera disponible prochainement
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+          {/* Contenu de la section active */}
+          <div key={section}>
+            <SectionView {...sectionProps[section]} />
+          </div>
+        </div>
       </main>
     </div>
   );
