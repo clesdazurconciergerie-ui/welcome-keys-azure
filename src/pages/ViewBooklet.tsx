@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Home, MapPin, Wifi, Clock, Eye, Loader2, Package, Trash2, MapPinIcon, Phone, HelpCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import ChatWidget from "@/components/ChatWidget";
 
 interface Equipment {
   id: string;
@@ -565,29 +566,6 @@ export default function ViewBooklet() {
           ) : null;
         })()}
 
-        {/* FAQ */}
-        {booklet.faq && booklet.faq.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <HelpCircle className="h-5 w-5" />
-                Questions fréquentes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                {booklet.faq.map((item, index) => (
-                  <AccordionItem key={item.id} value={`faq-${index}`}>
-                    <AccordionTrigger>{item.question}</AccordionTrigger>
-                    <AccordionContent>
-                      <p className="whitespace-pre-wrap">{item.answer}</p>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Legal & Safety */}
         {(booklet.airbnb_license || booklet.safety_instructions || booklet.gdpr_notice || booklet.disclaimer) && (
@@ -653,6 +631,9 @@ export default function ViewBooklet() {
           </Button>
         </div>
       </div>
+
+      {/* Chatbot Widget */}
+      <ChatWidget pin={code || ''} locale={booklet.language || 'fr'} />
     </div>
   );
 }

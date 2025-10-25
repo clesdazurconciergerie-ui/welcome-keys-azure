@@ -15,5 +15,8 @@ verify_jwt = false
 [functions.regenerate-pin]
 verify_jwt = true
 
+[functions.chat-ask]
+verify_jwt = false
+
 [functions.get-wifi-by-pin]
 verify_jwt = false
