@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      activities: {
+        Row: {
+          age_restrictions: string | null
+          booking_url: string | null
+          booklet_id: string
+          category: string | null
+          created_at: string | null
+          duration: string | null
+          id: string
+          is_owner_pick: boolean | null
+          name: string
+          order_index: number | null
+          price: string | null
+          tags: string[] | null
+          updated_at: string | null
+          when_available: string[] | null
+        }
+        Insert: {
+          age_restrictions?: string | null
+          booking_url?: string | null
+          booklet_id: string
+          category?: string | null
+          created_at?: string | null
+          duration?: string | null
+          id?: string
+          is_owner_pick?: boolean | null
+          name: string
+          order_index?: number | null
+          price?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          when_available?: string[] | null
+        }
+        Update: {
+          age_restrictions?: string | null
+          booking_url?: string | null
+          booklet_id?: string
+          category?: string | null
+          created_at?: string | null
+          duration?: string | null
+          id?: string
+          is_owner_pick?: boolean | null
+          name?: string
+          order_index?: number | null
+          price?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          when_available?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_booklet_id_fkey"
+            columns: ["booklet_id"]
+            isOneToOne: false
+            referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booklet_contacts: {
         Row: {
           booklet_id: string
@@ -60,14 +119,17 @@ export type Database = {
           check_out_time: string | null
           checkin_procedure: string | null
           checkout_procedure: string | null
+          city: string | null
           cleaning_rules: string | null
           cleaning_tips: string | null
+          country: string | null
           cover_image_url: string | null
           created_at: string
           disclaimer: string | null
           emergency_contacts: string | null
           gallery: Json | null
           gdpr_notice: string | null
+          geo: Json | null
           google_maps_link: string | null
           house_rules: string | null
           id: string
@@ -76,6 +138,7 @@ export type Database = {
           manual_pdf_url: string | null
           nearby: Json | null
           parking_info: string | null
+          postcode: string | null
           property_address: string
           property_name: string
           property_type: string | null
@@ -85,6 +148,7 @@ export type Database = {
           sorting_instructions: string | null
           status: string
           tagline: string | null
+          timezone: string | null
           updated_at: string
           user_id: string
           waste_location: string | null
@@ -101,14 +165,17 @@ export type Database = {
           check_out_time?: string | null
           checkin_procedure?: string | null
           checkout_procedure?: string | null
+          city?: string | null
           cleaning_rules?: string | null
           cleaning_tips?: string | null
+          country?: string | null
           cover_image_url?: string | null
           created_at?: string
           disclaimer?: string | null
           emergency_contacts?: string | null
           gallery?: Json | null
           gdpr_notice?: string | null
+          geo?: Json | null
           google_maps_link?: string | null
           house_rules?: string | null
           id?: string
@@ -117,6 +184,7 @@ export type Database = {
           manual_pdf_url?: string | null
           nearby?: Json | null
           parking_info?: string | null
+          postcode?: string | null
           property_address: string
           property_name: string
           property_type?: string | null
@@ -126,6 +194,7 @@ export type Database = {
           sorting_instructions?: string | null
           status?: string
           tagline?: string | null
+          timezone?: string | null
           updated_at?: string
           user_id: string
           waste_location?: string | null
@@ -142,14 +211,17 @@ export type Database = {
           check_out_time?: string | null
           checkin_procedure?: string | null
           checkout_procedure?: string | null
+          city?: string | null
           cleaning_rules?: string | null
           cleaning_tips?: string | null
+          country?: string | null
           cover_image_url?: string | null
           created_at?: string
           disclaimer?: string | null
           emergency_contacts?: string | null
           gallery?: Json | null
           gdpr_notice?: string | null
+          geo?: Json | null
           google_maps_link?: string | null
           house_rules?: string | null
           id?: string
@@ -158,6 +230,7 @@ export type Database = {
           manual_pdf_url?: string | null
           nearby?: Json | null
           parking_info?: string | null
+          postcode?: string | null
           property_address?: string
           property_name?: string
           property_type?: string | null
@@ -167,6 +240,7 @@ export type Database = {
           sorting_instructions?: string | null
           status?: string
           tagline?: string | null
+          timezone?: string | null
           updated_at?: string
           user_id?: string
           waste_location?: string | null
@@ -221,6 +295,59 @@ export type Database = {
           },
         ]
       }
+      essentials: {
+        Row: {
+          address: string | null
+          booklet_id: string
+          created_at: string | null
+          distance: string | null
+          hours: string | null
+          id: string
+          name: string
+          notes: string | null
+          order_index: number | null
+          phone: string | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          booklet_id: string
+          created_at?: string | null
+          distance?: string | null
+          hours?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          order_index?: number | null
+          phone?: string | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          booklet_id?: string
+          created_at?: string | null
+          distance?: string | null
+          hours?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          order_index?: number | null
+          phone?: string | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "essentials_booklet_id_fkey"
+            columns: ["booklet_id"]
+            isOneToOne: false
+            referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       faq: {
         Row: {
           answer: string
@@ -249,6 +376,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "faq_booklet_id_fkey"
+            columns: ["booklet_id"]
+            isOneToOne: false
+            referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      highlights: {
+        Row: {
+          booklet_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          order_index: number | null
+          price_range: string | null
+          rating: number | null
+          tags: string[] | null
+          title: string
+          type: string
+          updated_at: string | null
+          url: string | null
+        }
+        Insert: {
+          booklet_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          order_index?: number | null
+          price_range?: string | null
+          rating?: number | null
+          tags?: string[] | null
+          title: string
+          type: string
+          updated_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          booklet_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          order_index?: number | null
+          price_range?: string | null
+          rating?: number | null
+          tags?: string[] | null
+          title?: string
+          type?: string
+          updated_at?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "highlights_booklet_id_fkey"
             columns: ["booklet_id"]
             isOneToOne: false
             referencedRelation: "booklets"
@@ -322,6 +502,118 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pins_booklet_id_fkey"
+            columns: ["booklet_id"]
+            isOneToOne: false
+            referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurants: {
+        Row: {
+          address: string | null
+          booklet_id: string
+          created_at: string | null
+          cuisine: string | null
+          id: string
+          is_owner_pick: boolean | null
+          name: string
+          order_index: number | null
+          phone: string | null
+          price_range: string | null
+          rating: number | null
+          tags: string[] | null
+          updated_at: string | null
+          url: string | null
+        }
+        Insert: {
+          address?: string | null
+          booklet_id: string
+          created_at?: string | null
+          cuisine?: string | null
+          id?: string
+          is_owner_pick?: boolean | null
+          name: string
+          order_index?: number | null
+          phone?: string | null
+          price_range?: string | null
+          rating?: number | null
+          tags?: string[] | null
+          updated_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          address?: string | null
+          booklet_id?: string
+          created_at?: string | null
+          cuisine?: string | null
+          id?: string
+          is_owner_pick?: boolean | null
+          name?: string
+          order_index?: number | null
+          phone?: string | null
+          price_range?: string | null
+          rating?: number | null
+          tags?: string[] | null
+          updated_at?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurants_booklet_id_fkey"
+            columns: ["booklet_id"]
+            isOneToOne: false
+            referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transport: {
+        Row: {
+          address: string | null
+          booklet_id: string
+          created_at: string | null
+          distance: string | null
+          id: string
+          instructions: string | null
+          name: string
+          order_index: number | null
+          price: string | null
+          type: string
+          updated_at: string | null
+          url: string | null
+        }
+        Insert: {
+          address?: string | null
+          booklet_id: string
+          created_at?: string | null
+          distance?: string | null
+          id?: string
+          instructions?: string | null
+          name: string
+          order_index?: number | null
+          price?: string | null
+          type: string
+          updated_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          address?: string | null
+          booklet_id?: string
+          created_at?: string | null
+          distance?: string | null
+          id?: string
+          instructions?: string | null
+          name?: string
+          order_index?: number | null
+          price?: string | null
+          type?: string
+          updated_at?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_booklet_id_fkey"
             columns: ["booklet_id"]
             isOneToOne: false
             referencedRelation: "booklets"
