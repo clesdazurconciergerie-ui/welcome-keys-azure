@@ -5,30 +5,79 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Home, MapPin, Wifi, Phone, Mail, Clock, ArrowLeft } from "lucide-react";
+import { Home, MapPin, Wifi, Phone, Mail, Clock, ArrowLeft, Package, Trash2, MapPinIcon, HelpCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
+interface Equipment {
+  id: string;
+  name: string;
+  category: string;
+  instructions?: string;
+  manual_url?: string;
+}
+
+interface NearbyPlace {
+  id: string;
+  name: string;
+  type: string;
+  distance?: string;
+  maps_link?: string;
+  description?: string;
+}
+
+interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+  order_index?: number;
+}
+
+interface WifiCredentials {
+  id: string;
+  ssid: string;
+  password: string;
+}
+
+interface Contacts {
+  contact_phone?: string;
+  contact_email?: string;
+}
 
 interface Booklet {
   id: string;
   property_name: string;
+  tagline?: string;
   property_address: string;
-  property_type?: string;
   welcome_message?: string;
   cover_image_url?: string;
-  wifi_name?: string;
-  wifi_password?: string;
+  language?: string;
+  google_maps_link?: string;
+  access_code?: string;
   check_in_time?: string;
   check_out_time?: string;
+  checkin_procedure?: string;
+  checkout_procedure?: string;
+  parking_info?: string;
   house_rules?: string;
-  emergency_contacts?: string;
-  contact_phone?: string;
-  contact_email?: string;
-  amenities?: any[];
-  nearby?: any[];
+  manual_pdf_url?: string;
+  safety_tips?: string;
+  wifi_credentials?: WifiCredentials | null;
+  equipment: Equipment[];
+  waste_location?: string;
+  sorting_instructions?: string;
+  cleaning_rules?: string;
+  cleaning_tips?: string;
+  nearby_places: NearbyPlace[];
+  contacts?: Contacts | null;
+  faq: FAQ[];
+  airbnb_license?: string;
+  safety_instructions?: string;
+  gdpr_notice?: string;
+  disclaimer?: string;
   gallery?: any[];
-  chatbot_enabled?: boolean;
-  chatbot_config?: any;
   status?: string;
+  show_logo?: boolean;
 }
 
 export default function PreviewBooklet() {
@@ -115,9 +164,9 @@ export default function PreviewBooklet() {
           Retour
         </Button>
         <Badge variant="secondary" className="bg-white text-amber-700">
-          Aperçu créateur - Non public
+          Aperçu créateur - Peut contenir des infos privées
         </Badge>
-        <div className="w-24" /> {/* Spacer for centering */}
+        <div className="w-24" />
       </div>
 
       {/* Hero Section */}
@@ -132,7 +181,10 @@ export default function PreviewBooklet() {
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 text-center text-white px-4">
           <h1 className="text-4xl md:text-5xl font-bold mb-2">{booklet.property_name}</h1>
-          <p className="text-lg md:text-xl flex items-center justify-center gap-2">
+          {booklet.tagline && (
+            <p className="text-lg md:text-xl mb-2">{booklet.tagline}</p>
+          )}
+          <p className="text-lg flex items-center justify-center gap-2">
             <MapPin className="h-5 w-5" />
             {booklet.property_address}
           </p>
@@ -162,30 +214,176 @@ export default function PreviewBooklet() {
         {/* Practical Info */}
         <Card>
           <CardHeader>
-            <CardTitle>Informations pratiques</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Informations pratiques
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {(booklet.check_in_time || booklet.check_out_time) && (
-              <div className="flex items-start gap-3">
-                <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  {booklet.check_in_time && <p><strong>Arrivée :</strong> {booklet.check_in_time}</p>}
-                  {booklet.check_out_time && <p><strong>Départ :</strong> {booklet.check_out_time}</p>}
-                </div>
+            {booklet.google_maps_link && (
+              <div>
+                <strong>Localisation :</strong>{' '}
+                <a href={booklet.google_maps_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  Voir sur Google Maps
+                </a>
               </div>
             )}
             
-            {(booklet.wifi_name || booklet.wifi_password) && (
-              <div className="flex items-start gap-3">
-                <Wifi className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  {booklet.wifi_name && <p><strong>WiFi :</strong> {booklet.wifi_name}</p>}
-                  {booklet.wifi_password && <p><strong>Mot de passe :</strong> {booklet.wifi_password}</p>}
-                </div>
+            {booklet.access_code && (
+              <div>
+                <strong>Code d'accès :</strong>
+                <p className="whitespace-pre-wrap mt-1">{booklet.access_code}</p>
+              </div>
+            )}
+
+            {(booklet.check_in_time || booklet.check_out_time) && (
+              <div className="grid grid-cols-2 gap-4">
+                {booklet.check_in_time && (
+                  <div>
+                    <strong>Arrivée :</strong>
+                    <p>{booklet.check_in_time}</p>
+                  </div>
+                )}
+                {booklet.check_out_time && (
+                  <div>
+                    <strong>Départ :</strong>
+                    <p>{booklet.check_out_time}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {booklet.checkin_procedure && (
+              <div>
+                <strong>Procédure d'arrivée :</strong>
+                <p className="whitespace-pre-wrap mt-1">{booklet.checkin_procedure}</p>
+              </div>
+            )}
+
+            {booklet.checkout_procedure && (
+              <div>
+                <strong>Procédure de départ :</strong>
+                <p className="whitespace-pre-wrap mt-1">{booklet.checkout_procedure}</p>
+              </div>
+            )}
+
+            {booklet.parking_info && (
+              <div>
+                <strong>Stationnement :</strong>
+                <p className="whitespace-pre-wrap mt-1">{booklet.parking_info}</p>
+              </div>
+            )}
+
+            {booklet.manual_pdf_url && (
+              <div>
+                <a href={booklet.manual_pdf_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  📄 Télécharger le manuel complet
+                </a>
+              </div>
+            )}
+
+            {booklet.safety_tips && (
+              <div>
+                <strong>Conseils de sécurité :</strong>
+                <p className="whitespace-pre-wrap mt-1">{booklet.safety_tips}</p>
               </div>
             )}
           </CardContent>
         </Card>
+
+        {/* WiFi (with password for creator) */}
+        {booklet.wifi_credentials && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wifi className="h-5 w-5" />
+                WiFi
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div>
+                <strong>Réseau :</strong> {booklet.wifi_credentials.ssid}
+              </div>
+              <div>
+                <strong>Mot de passe :</strong> <span className="font-mono">{booklet.wifi_credentials.password}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Equipment */}
+        {booklet.equipment && booklet.equipment.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Équipements & Modes d'emploi
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Accordion type="single" collapsible className="w-full">
+                {booklet.equipment.map((item, index) => (
+                  <AccordionItem key={item.id} value={`item-${index}`}>
+                    <AccordionTrigger>
+                      <div className="flex items-center gap-2">
+                        <strong>{item.name}</strong>
+                        <span className="text-sm text-muted-foreground">({item.category})</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {item.instructions && (
+                        <p className="whitespace-pre-wrap mb-2">{item.instructions}</p>
+                      )}
+                      {item.manual_url && (
+                        <a href={item.manual_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          📄 Voir le manuel
+                        </a>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Cleaning & Waste */}
+        {(booklet.waste_location || booklet.sorting_instructions || booklet.cleaning_rules || booklet.cleaning_tips) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5" />
+                Ménage & Tri
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {booklet.waste_location && (
+                <div>
+                  <strong>Emplacement des poubelles :</strong>
+                  <p className="whitespace-pre-wrap mt-1">{booklet.waste_location}</p>
+                </div>
+              )}
+              {booklet.sorting_instructions && (
+                <div>
+                  <strong>Instructions de tri :</strong>
+                  <p className="whitespace-pre-wrap mt-1">{booklet.sorting_instructions}</p>
+                </div>
+              )}
+              {booklet.cleaning_rules && (
+                <div>
+                  <strong>Règles de nettoyage :</strong>
+                  <p className="whitespace-pre-wrap mt-1">{booklet.cleaning_rules}</p>
+                </div>
+              )}
+              {booklet.cleaning_tips && (
+                <div>
+                  <strong>Conseils d'entretien :</strong>
+                  <p className="whitespace-pre-wrap mt-1">{booklet.cleaning_tips}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* House Rules */}
         {booklet.house_rules && (
@@ -199,75 +397,119 @@ export default function PreviewBooklet() {
           </Card>
         )}
 
-        {/* Amenities */}
-        {booklet.amenities && booklet.amenities.length > 0 && (
+        {/* Nearby Places */}
+        {booklet.nearby_places && booklet.nearby_places.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Équipements</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <MapPinIcon className="h-5 w-5" />
+                À proximité
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="grid grid-cols-2 gap-2">
-                {booklet.amenities.map((amenity: any, index: number) => (
-                  <li key={index} className="flex items-center gap-2">
-                    <span className="text-brand-blue">•</span>
-                    {amenity.name || amenity}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Nearby */}
-        {booklet.nearby && booklet.nearby.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>À proximité</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {booklet.nearby.map((place: any, index: number) => (
-                  <li key={index}>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-brand-blue" />
-                      {place.name || place}
+              <div className="space-y-3">
+                {booklet.nearby_places.map((place) => (
+                  <div key={place.id} className="border-b pb-3 last:border-0">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <strong>{place.name}</strong>
+                        <span className="text-sm text-muted-foreground ml-2">({place.type})</span>
+                        {place.distance && <p className="text-sm text-muted-foreground">{place.distance}</p>}
+                        {place.description && <p className="mt-1">{place.description}</p>}
+                      </div>
+                      {place.maps_link && (
+                        <a href={place.maps_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm whitespace-nowrap ml-2">
+                          Voir sur Maps
+                        </a>
+                      )}
                     </div>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Contacts */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Contact</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {booklet.contact_phone && (
-              <div className="flex items-center gap-3">
-                <Phone className="h-5 w-5 text-muted-foreground" />
-                <span>{booklet.contact_phone}</span>
-              </div>
-            )}
-            {booklet.contact_email && (
-              <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-muted-foreground" />
-                <span>{booklet.contact_email}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Contacts (visible to creator) */}
+        {booklet.contacts && (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Badge variant="outline">Privé - Créateur uniquement</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {booklet.contacts.contact_phone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <span>{booklet.contacts.contact_phone}</span>
+                </div>
+              )}
+              {booklet.contacts.contact_email && (
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
+                  <span>{booklet.contacts.contact_email}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Emergency Contacts */}
-        {booklet.emergency_contacts && (
+        {/* FAQ */}
+        {booklet.faq && booklet.faq.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Contacts d'urgence</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <HelpCircle className="h-5 w-5" />
+                Questions fréquentes
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="whitespace-pre-wrap">{booklet.emergency_contacts}</p>
+              <Accordion type="single" collapsible className="w-full">
+                {booklet.faq.map((item, index) => (
+                  <AccordionItem key={item.id} value={`faq-${index}`}>
+                    <AccordionTrigger>{item.question}</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="whitespace-pre-wrap">{item.answer}</p>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Legal & Safety */}
+        {(booklet.airbnb_license || booklet.safety_instructions || booklet.gdpr_notice || booklet.disclaimer) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Informations légales & Sécurité</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              {booklet.airbnb_license && (
+                <div>
+                  <strong>Numéro de licence :</strong>
+                  <p>{booklet.airbnb_license}</p>
+                </div>
+              )}
+              {booklet.safety_instructions && (
+                <div>
+                  <strong>Consignes de sécurité :</strong>
+                  <p className="whitespace-pre-wrap mt-1">{booklet.safety_instructions}</p>
+                </div>
+              )}
+              {booklet.gdpr_notice && (
+                <div>
+                  <strong>RGPD :</strong>
+                  <p className="whitespace-pre-wrap mt-1">{booklet.gdpr_notice}</p>
+                </div>
+              )}
+              {booklet.disclaimer && (
+                <div>
+                  <strong>Clause de non-responsabilité :</strong>
+                  <p className="whitespace-pre-wrap mt-1">{booklet.disclaimer}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
