@@ -110,9 +110,11 @@ export type Database = {
       }
       booklets: {
         Row: {
+          accent_color: string | null
           access_code: string | null
           airbnb_license: string | null
           amenities: Json | null
+          background_color: string | null
           chatbot_config: Json | null
           chatbot_enabled: boolean | null
           check_in_time: string | null
@@ -122,6 +124,7 @@ export type Database = {
           city: string | null
           cleaning_rules: string | null
           cleaning_tips: string | null
+          concierge_name: string | null
           country: string | null
           cover_image_url: string | null
           created_at: string
@@ -135,6 +138,7 @@ export type Database = {
           id: string
           is_complete: boolean | null
           language: string | null
+          logo_url: string | null
           manual_pdf_url: string | null
           nearby: Json | null
           parking_info: string | null
@@ -148,6 +152,7 @@ export type Database = {
           sorting_instructions: string | null
           status: string
           tagline: string | null
+          text_color: string | null
           timezone: string | null
           updated_at: string
           user_id: string
@@ -156,9 +161,11 @@ export type Database = {
           wizard_step: number | null
         }
         Insert: {
+          accent_color?: string | null
           access_code?: string | null
           airbnb_license?: string | null
           amenities?: Json | null
+          background_color?: string | null
           chatbot_config?: Json | null
           chatbot_enabled?: boolean | null
           check_in_time?: string | null
@@ -168,6 +175,7 @@ export type Database = {
           city?: string | null
           cleaning_rules?: string | null
           cleaning_tips?: string | null
+          concierge_name?: string | null
           country?: string | null
           cover_image_url?: string | null
           created_at?: string
@@ -181,6 +189,7 @@ export type Database = {
           id?: string
           is_complete?: boolean | null
           language?: string | null
+          logo_url?: string | null
           manual_pdf_url?: string | null
           nearby?: Json | null
           parking_info?: string | null
@@ -194,6 +203,7 @@ export type Database = {
           sorting_instructions?: string | null
           status?: string
           tagline?: string | null
+          text_color?: string | null
           timezone?: string | null
           updated_at?: string
           user_id: string
@@ -202,9 +212,11 @@ export type Database = {
           wizard_step?: number | null
         }
         Update: {
+          accent_color?: string | null
           access_code?: string | null
           airbnb_license?: string | null
           amenities?: Json | null
+          background_color?: string | null
           chatbot_config?: Json | null
           chatbot_enabled?: boolean | null
           check_in_time?: string | null
@@ -214,6 +226,7 @@ export type Database = {
           city?: string | null
           cleaning_rules?: string | null
           cleaning_tips?: string | null
+          concierge_name?: string | null
           country?: string | null
           cover_image_url?: string | null
           created_at?: string
@@ -227,6 +240,7 @@ export type Database = {
           id?: string
           is_complete?: boolean | null
           language?: string | null
+          logo_url?: string | null
           manual_pdf_url?: string | null
           nearby?: Json | null
           parking_info?: string | null
@@ -240,6 +254,7 @@ export type Database = {
           sorting_instructions?: string | null
           status?: string
           tagline?: string | null
+          text_color?: string | null
           timezone?: string | null
           updated_at?: string
           user_id?: string
@@ -266,6 +281,7 @@ export type Database = {
           instructions: string | null
           manual_url: string | null
           name: string
+          photos: Json | null
         }
         Insert: {
           booklet_id: string
@@ -275,6 +291,7 @@ export type Database = {
           instructions?: string | null
           manual_url?: string | null
           name: string
+          photos?: Json | null
         }
         Update: {
           booklet_id?: string
@@ -284,6 +301,7 @@ export type Database = {
           instructions?: string | null
           manual_url?: string | null
           name?: string
+          photos?: Json | null
         }
         Relationships: [
           {

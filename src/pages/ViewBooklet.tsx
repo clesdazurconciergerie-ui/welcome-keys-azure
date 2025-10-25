@@ -9,12 +9,18 @@ import { toast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import ChatWidget from "@/components/ChatWidget";
 
+interface Photo {
+  url: string;
+  alt?: string;
+}
+
 interface Equipment {
   id: string;
   name: string;
   category: string;
   instructions?: string;
   manual_url?: string;
+  photos?: Photo[];
 }
 
 interface NearbyPlace {
@@ -67,6 +73,11 @@ interface Booklet {
   gallery?: any[];
   show_logo?: boolean;
   updated_at?: string;
+  concierge_name?: string;
+  logo_url?: string;
+  background_color?: string;
+  accent_color?: string;
+  text_color?: string;
 }
 
 interface WifiCredentials {
@@ -84,6 +95,7 @@ export default function ViewBooklet() {
   const [showWifiPassword, setShowWifiPassword] = useState(false);
   const [loadingWifi, setLoadingWifi] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; alt: string } | null>(null);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -243,7 +255,7 @@ export default function ViewBooklet() {
   const menuItems = [
     { id: 'welcome', label: 'Bienvenue', icon: DoorOpen },
     { id: 'practical', label: 'Infos pratiques', icon: Clock },
-    { id: 'wifi', label: 'WiFi', icon: Wifi },
+    ...(booklet?.wifi_ssid ? [{ id: 'wifi', label: 'WiFi', icon: Wifi }] : []),
     { id: 'equipment', label: 'Équipements', icon: Package },
     { id: 'cleaning', label: 'Ménage & Tri', icon: Trash2 },
     { id: 'nearby', label: 'À proximité', icon: MapPinIcon },
@@ -251,8 +263,19 @@ export default function ViewBooklet() {
     { id: 'legal', label: 'Informations légales', icon: Shield },
   ];
 
+  const bgColor = booklet?.background_color || '#ffffff';
+  const accentColor = booklet?.accent_color || '#18c0df';
+  const textColor = booklet?.text_color || '#1a1a1a';
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-secondary/30 to-background">
+    <div 
+      className="min-h-screen bg-gradient-to-b from-secondary/30 to-background"
+      style={{
+        '--booklet-bg': bgColor,
+        '--booklet-accent': accentColor,
+        '--booklet-text': textColor,
+      } as React.CSSProperties}
+    >
       {/* Floating Navigation Menu */}
       <div className="fixed top-4 right-4 z-50">
         <Button
@@ -292,10 +315,28 @@ export default function ViewBooklet() {
           backgroundPosition: 'center'
         } : {}}
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
         <div className="relative z-10 w-full px-4 md:px-8 pb-8 text-white">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl md:text-5xl font-display font-bold mb-2">{booklet.property_name}</h1>
+            <div className="flex items-start gap-4 mb-3">
+              {booklet.logo_url && (
+                <div className="h-12 w-12 md:h-16 md:w-16 rounded-xl overflow-hidden bg-white/90 p-2 flex-shrink-0">
+                  <img 
+                    src={booklet.logo_url} 
+                    alt={booklet.concierge_name || 'Logo'} 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              )}
+              <div className="flex-1">
+                <h1 className="text-3xl md:text-5xl font-display font-bold mb-2">{booklet.property_name}</h1>
+                {booklet.concierge_name && (
+                  <p className="text-xs md:text-sm text-white/70 mb-2">
+                    by {booklet.concierge_name}
+                  </p>
+                )}
+              </div>
+            </div>
             {booklet.tagline && (
               <p className="text-lg md:text-xl mb-3 text-white/90">{booklet.tagline}</p>
             )}
@@ -546,10 +587,30 @@ export default function ViewBooklet() {
                         <Badge variant="secondary" className="text-xs">{item.category}</Badge>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="px-4 pt-3 pb-4">
+                    <AccordionContent className="px-4 pt-3 pb-4 space-y-4">
                       {item.instructions && (
-                        <p className="whitespace-pre-wrap mb-3 text-muted-foreground">{item.instructions}</p>
+                        <p className="whitespace-pre-wrap text-muted-foreground">{item.instructions}</p>
                       )}
+                      
+                      {item.photos && item.photos.length > 0 && (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                          {item.photos.map((photo, photoIndex) => (
+                            <button
+                              key={photoIndex}
+                              onClick={() => setLightboxImage({ url: photo.url, alt: photo.alt || item.name })}
+                              className="group relative rounded-lg overflow-hidden aspect-square hover:ring-2 hover:ring-primary transition-all"
+                            >
+                              <img
+                                src={photo.url}
+                                alt={photo.alt || `${item.name} ${photoIndex + 1}`}
+                                className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                                loading="lazy"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      
                       {item.manual_url && (
                         <a 
                           href={item.manual_url} 
@@ -827,21 +888,56 @@ export default function ViewBooklet() {
         )}
 
         {/* Footer */}
-        <div className="text-center py-10">
-          <Button 
-            onClick={() => navigate('/')} 
-            variant="outline" 
-            size="lg"
-            className="shadow-md hover:shadow-lg transition-shadow"
-          >
-            <Home className="mr-2 h-5 w-5" />
-            Retour à l'accueil
-          </Button>
+        <div className="py-10 space-y-6">
+          {booklet.concierge_name && (
+            <div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
+              {booklet.logo_url && (
+                <img 
+                  src={booklet.logo_url} 
+                  alt={booklet.concierge_name} 
+                  className="h-6 w-6 object-contain"
+                />
+              )}
+              <span>Conciergerie {booklet.concierge_name}</span>
+            </div>
+          )}
+          <div className="text-center">
+            <Button 
+              onClick={() => navigate('/')} 
+              variant="outline" 
+              size="lg"
+              className="shadow-md hover:shadow-lg transition-shadow"
+            >
+              <Home className="mr-2 h-5 w-5" />
+              Retour à l'accueil
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Chatbot Widget */}
       <ChatWidget pin={code || ''} locale={booklet.language || 'fr'} />
+
+      {/* Lightbox for Equipment Photos */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            onClick={() => setLightboxImage(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+          >
+            <X className="h-8 w-8" />
+          </button>
+          <img
+            src={lightboxImage.url}
+            alt={lightboxImage.alt}
+            className="max-h-[90vh] max-w-[95vw] object-contain rounded-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
