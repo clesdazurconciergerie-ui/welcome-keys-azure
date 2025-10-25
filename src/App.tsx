@@ -17,6 +17,7 @@ import ExampleProprietaires from "./pages/ExampleProprietaires";
 import ExampleConciergeries from "./pages/ExampleConciergeries";
 import ExampleMaisonsDHotes from "./pages/ExampleMaisonsDHotes";
 import ExampleHotelsResidences from "./pages/ExampleHotelsResidences";
+import Pricing from "./pages/Pricing";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/tarifs" element={<Pricing />} />
           <Route path="/acces-livret" element={<AccessBooklet />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />

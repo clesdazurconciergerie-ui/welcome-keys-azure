@@ -26,12 +26,21 @@ const Navigation = () => {
     }
   };
 
+  const handleNavigation = (item: { id: string; isRoute?: boolean }) => {
+    if (item.isRoute) {
+      navigate(`/${item.id}`);
+      setIsMobileMenuOpen(false);
+    } else {
+      scrollToSection(item.id);
+    }
+  };
+
   const navLinks = [
     { label: "Fonctionnalités", id: "features" },
     { label: "Comment ça marche", id: "process" },
     { label: "Sécurité", id: "security" },
     { label: "Exemples", id: "examples" },
-    { label: "Tarifs", id: "pricing" },
+    { label: "Tarifs", id: "tarifs", isRoute: true },
     { label: "FAQ", id: "faq" },
   ];
 
@@ -62,7 +71,7 @@ const Navigation = () => {
             {navLinks.map((link) => (
               <button
                 key={link.id}
-                onClick={() => scrollToSection(link.id)}
+                onClick={() => handleNavigation(link)}
                 className="text-sm text-muted-foreground hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-2 py-1"
               >
                 {link.label}
@@ -111,7 +120,7 @@ const Navigation = () => {
               {navLinks.map((link) => (
                 <button
                   key={link.id}
-                  onClick={() => scrollToSection(link.id)}
+                  onClick={() => handleNavigation(link)}
                   className="block w-full text-left py-2 text-sm text-muted-foreground hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-2"
                 >
                   {link.label}
