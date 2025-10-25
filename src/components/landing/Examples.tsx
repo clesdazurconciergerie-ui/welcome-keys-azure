@@ -13,7 +13,7 @@ const Examples = () => {
       title: "T2 centre-ville",
       description: "Appartement moderne avec toutes commodités",
       image: "🏙️",
-      color: "from-blue-50 to-blue-100",
+      color: "from-cyan-50 to-cyan-100",
     },
     {
       title: "Villa avec piscine",
@@ -25,7 +25,7 @@ const Examples = () => {
       title: "Studio vue mer",
       description: "Cosy studio avec vue panoramique",
       image: "🌊",
-      color: "from-sky-50 to-sky-100",
+      color: "from-cyan-50 to-cyan-100",
     },
   ];
 

@@ -59,14 +59,14 @@ const THEME_PRESETS: Record<string, AppearanceConfig['colors']> = {
   marine: {
     background: '#f0f4f8',
     surface: '#ffffff',
-    accent: '#2563eb',
+    accent: '#18c0df',
     text: '#0f172a',
     muted: '#64748b'
   },
   nuit: {
     background: '#0f172a',
     surface: '#1e293b',
-    accent: '#38bdf8',
+    accent: '#18c0df',
     text: '#f1f5f9',
     muted: '#94a3b8'
   },
