@@ -13,6 +13,10 @@ import PreviewBooklet from "./pages/PreviewBooklet";
 import AccessBooklet from "./pages/AccessBooklet";
 import BookletWizardPage from "./pages/BookletWizardPage";
 import NotFound from "./pages/NotFound";
+import ExampleProprietaires from "./pages/ExampleProprietaires";
+import ExampleConciergeries from "./pages/ExampleConciergeries";
+import ExampleMaisonsDHotes from "./pages/ExampleMaisonsDHotes";
+import ExampleHotelsResidences from "./pages/ExampleHotelsResidences";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +36,10 @@ const App = () => (
           <Route path="/booklets/:id/wizard" element={<BookletWizardPage />} />
           <Route path="/view/:code" element={<ViewBooklet />} />
           <Route path="/preview/:id" element={<PreviewBooklet />} />
+          <Route path="/exemples/proprietaires" element={<ExampleProprietaires />} />
+          <Route path="/exemples/conciergeries" element={<ExampleConciergeries />} />
+          <Route path="/exemples/maisons-d-hotes" element={<ExampleMaisonsDHotes />} />
+          <Route path="/exemples/hotels-residences" element={<ExampleHotelsResidences />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

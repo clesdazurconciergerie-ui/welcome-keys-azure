@@ -8,6 +8,7 @@ import Customization from "@/components/landing/Customization";
 import Process from "@/components/landing/Process";
 import ConcreteResults from "@/components/landing/ConcreteResults";
 import ForEveryone from "@/components/landing/ForEveryone";
+import Personas from "@/components/landing/Personas";
 import Testimonials from "@/components/landing/Testimonials";
 import Regions from "@/components/landing/Regions";
 import FAQ from "@/components/landing/FAQ";
@@ -22,9 +23,10 @@ const Landing = () => {
       <SaveTime />
       <Metrics />
       <Customization />
-      
+      <Process />
       <ConcreteResults />
       <ForEveryone />
+      <Personas />
       <Testimonials />
       <Regions />
       <FAQ />
