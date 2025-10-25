@@ -172,13 +172,23 @@ const Pricing = () => {
             <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
               Aucun frais caché. Chaque plan inclut un livret digital professionnel et le chatbot intégré.
             </p>
-            <Button
-              onClick={() => navigate("/auth")}
-              size="lg"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-8 shadow-lg hover:shadow-xl transition-all"
-            >
-              Essayer gratuitement
-            </Button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button
+                onClick={() => navigate("/auth")}
+                size="lg"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-8 shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+              >
+                Essayer gratuitement
+              </Button>
+              <Button
+                onClick={() => window.open('/view/ED3Q7EZR', '_blank')}
+                size="lg"
+                variant="outline"
+                className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground rounded-xl px-8 shadow-md hover:shadow-lg transition-all w-full sm:w-auto font-semibold"
+              >
+                🎬 Essayer la démo
+              </Button>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -416,15 +426,25 @@ const Pricing = () => {
               Prêt à créer votre premier livret ?
             </h2>
             <p className="text-lg text-muted-foreground mb-8">
-              Testez Welkom gratuitement
+              Testez Welkom gratuitement ou découvrez notre livret de démonstration
             </p>
-            <Button
-              onClick={() => navigate("/auth")}
-              size="lg"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-8 shadow-lg hover:shadow-xl transition-all"
-            >
-              Essayer gratuitement
-            </Button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button
+                onClick={() => navigate("/auth")}
+                size="lg"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-8 shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+              >
+                Essayer gratuitement
+              </Button>
+              <Button
+                onClick={() => window.open('/view/ED3Q7EZR', '_blank')}
+                size="lg"
+                variant="outline"
+                className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground rounded-xl px-8 shadow-md hover:shadow-lg transition-all w-full sm:w-auto font-semibold"
+              >
+                🎬 Voir la démo
+              </Button>
+            </div>
           </motion.div>
         </div>
       </section>
