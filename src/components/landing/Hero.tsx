@@ -45,19 +45,12 @@ const Hero = () => {
       />
 
       {/* Watermark logo */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 0.08, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="relative flex justify-center pt-6"
-      >
-        <img 
-          src="/brand/logo-wlekom-icon.png" 
-          alt="" 
-          aria-hidden="true"
-          className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24"
-        />
-      </motion.div>
+      <img
+        src="/brand/logo-wlekom-icon.png"
+        alt=""
+        aria-hidden="true"
+        className="absolute left-1/2 top-[26%] z-0 -translate-x-1/2 transform opacity-[0.06] h-[110px] w-[110px] md:top-[30%] md:h-[140px] md:w-[140px]"
+      />
 
       <motion.div 
         className="relative mx-auto max-w-screen-lg px-6 py-16 sm:py-20 md:py-24 text-center"
