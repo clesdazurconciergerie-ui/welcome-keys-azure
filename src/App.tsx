@@ -18,6 +18,7 @@ import ExampleConciergeries from "./pages/ExampleConciergeries";
 import ExampleMaisonsDHotes from "./pages/ExampleMaisonsDHotes";
 import ExampleHotelsResidences from "./pages/ExampleHotelsResidences";
 import Pricing from "./pages/Pricing";
+import BillingSuccess from "./pages/BillingSuccess";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/tarifs" element={<Pricing />} />
+          <Route path="/billing/success" element={<BillingSuccess />} />
           <Route path="/acces-livret" element={<AccessBooklet />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />

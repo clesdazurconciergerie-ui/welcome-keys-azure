@@ -648,8 +648,11 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          latest_checkout_session_id: string | null
           plan: string
           role: string
+          stripe_customer_id: string | null
+          subscription_status: string | null
           updated_at: string
         }
         Insert: {
@@ -657,8 +660,11 @@ export type Database = {
           created_at?: string
           email: string
           id: string
+          latest_checkout_session_id?: string | null
           plan?: string
           role?: string
+          stripe_customer_id?: string | null
+          subscription_status?: string | null
           updated_at?: string
         }
         Update: {
@@ -666,8 +672,11 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          latest_checkout_session_id?: string | null
           plan?: string
           role?: string
+          stripe_customer_id?: string | null
+          subscription_status?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -712,6 +721,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_create_booklet: { Args: { uid: string }; Returns: boolean }
       check_booklet_quota: { Args: { p_user_id: string }; Returns: boolean }
       generate_pin_code: { Args: never; Returns: string }
       generate_unique_pin: { Args: never; Returns: string }

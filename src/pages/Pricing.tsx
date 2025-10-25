@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Check, Shield, Zap, MessageSquare } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import Navigation from "@/components/landing/Navigation";
 import Footer from "@/components/landing/Footer";
 import {
@@ -15,6 +17,28 @@ import {
 const Pricing = () => {
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState('pro');
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+    });
+  }, []);
+
+  const handleStarterSubscribe = async () => {
+    if (!user) {
+      navigate("/auth?next=/tarifs");
+      return;
+    }
+
+    const baseUrl = "https://buy.stripe.com/cN5kDeMB6Cd8htgEQ";
+    const email = encodeURIComponent(user.email || "");
+    const clientRef = encodeURIComponent(user.id);
+    const stripeUrl = `${baseUrl}?prefilled_email=${email}&client_reference_id=${clientRef}`;
+    
+    window.open(stripeUrl, "_blank");
+    toast.success("Redirection vers Stripe...");
+  };
 
   const plans = [
     {
@@ -192,7 +216,11 @@ const Pricing = () => {
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate("/auth");
+                          if (plan.id === 'starter') {
+                            handleStarterSubscribe();
+                          } else {
+                            navigate("/auth");
+                          }
                         }}
                         className={`w-full rounded-xl transition-all ${
                           isActive
@@ -256,7 +284,11 @@ const Pricing = () => {
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate("/auth");
+                        if (plan.id === 'starter') {
+                          handleStarterSubscribe();
+                        } else {
+                          navigate("/auth");
+                        }
                       }}
                       className={`w-full rounded-xl transition-all ${
                         isActive
