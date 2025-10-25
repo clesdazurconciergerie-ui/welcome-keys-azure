@@ -13,7 +13,6 @@ import {
   Copy, 
   Trash2,
   FileText,
-  Waves,
   Loader2,
   QrCode,
   ExternalLink
@@ -241,11 +240,9 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Waves className="w-6 h-6 text-primary" />
-              </div>
+              <img src="/favicon.png" alt="Wlekom" className="w-10 h-10" />
               <div>
-                <h1 className="font-display text-lg font-semibold text-primary">Clés d'Azur</h1>
+                <h1 className="font-display text-lg font-semibold text-primary">Wlekom by Clés d'Azur</h1>
                 <p className="text-xs text-[#707070]">{userEmail}</p>
               </div>
             </div>

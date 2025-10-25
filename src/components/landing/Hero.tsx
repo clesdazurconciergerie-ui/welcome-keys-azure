@@ -40,12 +40,17 @@ const Hero = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <h1 className="font-display font-bold text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-primary tracking-tight mb-4">
-            Clés d'Azur
+          <img 
+            src="/favicon.png" 
+            alt="Wlekom" 
+            className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-6 animate-float" 
+          />
+          <h1 className="font-display font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-primary tracking-tight mb-4">
+            Wlekom by Clés d'Azur
           </h1>
           <div className="w-24 h-px bg-primary/20 mx-auto mb-6" />
-          <p className="font-display text-xl sm:text-2xl md:text-3xl text-[#6C6C6C] font-medium tracking-wide">
-            Votre bien, notre expertise.
+          <p className="font-display text-lg sm:text-xl md:text-2xl text-[#6C6C6C] font-medium tracking-wide mb-2">
+            L'accueil réinventé pour les hôtes et voyageurs modernes.
           </p>
         </motion.div>
 
@@ -79,7 +84,7 @@ const Hero = () => {
             onClick={scrollToFeatures}
             className="gap-2 h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg font-medium border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
-            Découvrir Clés d'Azur
+            Découvrir Wlekom
           </Button>
         </motion.div>
 

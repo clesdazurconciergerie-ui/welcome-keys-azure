@@ -259,7 +259,7 @@ export default function Step1Identity({ data, onUpdate }: Step1IdentityProps) {
 
         <div className="flex items-center justify-between space-x-2">
           <div className="space-y-0.5">
-            <Label htmlFor="showLogo">Afficher le logo Clés d'Azur</Label>
+            <Label htmlFor="showLogo">Afficher le logo Wlekom</Label>
             <p className="text-sm text-muted-foreground">
               Affichez votre marque de conciergerie
             </p>

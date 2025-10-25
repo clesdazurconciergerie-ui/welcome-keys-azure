@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Waves, ArrowLeft, KeyRound } from "lucide-react";
+import { ArrowLeft, KeyRound } from "lucide-react";
 import { z } from "zod";
 
 const codeSchema = z.string()
@@ -44,12 +44,14 @@ export default function AccessBooklet() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
-            <Waves className="w-10 h-10 text-primary" />
-          </div>
-          <h1 className="text-4xl font-bold gradient-text mb-3">Clés d'Azur</h1>
+          <img 
+            src="/favicon.png" 
+            alt="Wlekom" 
+            className="w-20 h-20 mb-6" 
+          />
+          <h1 className="text-4xl font-bold gradient-text mb-3">Wlekom by Clés d'Azur</h1>
           <p className="text-muted-foreground text-lg">
-            Votre bien, notre expertise.
+            L'accueil réinventé pour les hôtes et voyageurs modernes.
           </p>
         </div>
 

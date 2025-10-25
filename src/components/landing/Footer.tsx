@@ -1,5 +1,3 @@
-import { Waves } from "lucide-react";
-
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
@@ -24,8 +22,8 @@ const Footer = () => {
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <Waves className="w-6 h-6 text-primary" />
-            <span className="font-display font-semibold text-lg text-primary">Clés d'Azur</span>
+            <img src="/favicon.png" alt="Wlekom" className="w-6 h-6" />
+            <span className="font-display font-semibold text-lg text-primary">Wlekom by Clés d'Azur</span>
           </div>
 
           {/* Links */}
@@ -42,7 +40,7 @@ const Footer = () => {
           </div>
 
           {/* Copyright */}
-          <p className="text-sm text-[#6C6C6C]">© {currentYear} Clés d'Azur</p>
+          <p className="text-sm text-[#6C6C6C]">© {currentYear} Wlekom by Clés d'Azur</p>
         </div>
       </div>
     </footer>

@@ -54,7 +54,7 @@ const FAQ = () => {
             Questions fréquentes
           </h2>
           <p className="text-lg md:text-xl text-[#6C6C6C] max-w-2xl mx-auto">
-            Tout ce que vous devez savoir sur Clés d'Azur
+            Tout ce que vous devez savoir sur Wlekom
           </p>
         </motion.div>
 

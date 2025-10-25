@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Waves } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -87,11 +87,13 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-            <Waves className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-3xl font-bold gradient-text mb-2">Clés d'Azur</h1>
-          <p className="text-muted-foreground">Livrets d'accueil numériques</p>
+          <img 
+            src="/favicon.png" 
+            alt="Wlekom" 
+            className="w-16 h-16 mb-4" 
+          />
+          <h1 className="text-3xl font-bold gradient-text mb-2">Wlekom by Clés d'Azur</h1>
+          <p className="text-muted-foreground">L'accueil réinventé pour les hôtes et voyageurs modernes</p>
         </div>
 
         <Card className="glass shadow-premium border-0">

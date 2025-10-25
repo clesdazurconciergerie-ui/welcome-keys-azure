@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Waves, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Navigation = () => {
@@ -33,6 +33,10 @@ const Navigation = () => {
     { label: "FAQ", id: "faq" },
   ];
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -45,11 +49,11 @@ const Navigation = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <button
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            onClick={scrollToTop}
             className="flex items-center gap-2 font-display font-semibold text-lg text-primary hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
           >
-            <Waves className="w-6 h-6" />
-            Clés d'Azur
+            <img src="/favicon.png" alt="Wlekom" className="w-8 h-8" />
+            <span className="hidden sm:inline">Wlekom</span>
           </button>
 
           {/* Desktop Navigation */}
