@@ -54,16 +54,18 @@ const Hero = () => {
         }} 
       />
 
-      {/* Large watermark logo - positioned lower and bigger */}
-      <motion.img
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 0.06, scale: 1 }}
-        transition={{ duration: 0.6 }}
-        src="/brand/logo-wlekom-icon.png"
-        alt=""
-        aria-hidden="true"
-        className="absolute left-1/2 top-[32%] -translate-x-1/2 h-[160px] w-[160px] md:top-[34%] md:h-[200px] md:w-[200px] z-0 pointer-events-none"
-      />
+      {/* Watermark logo - centered and positioned behind title */}
+      <div className="pointer-events-none absolute inset-0 z-0 flex justify-center">
+        <motion.img
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 0.06, scale: 1 }}
+          transition={{ duration: 0.6 }}
+          src="/brand/logo-wlekom-icon.png"
+          alt=""
+          aria-hidden="true"
+          className="mt-16 md:mt-20 h-[180px] w-[180px] md:h-[240px] md:w-[240px]"
+        />
+      </div>
 
       {/* Main content */}
       <motion.div 
@@ -160,7 +162,7 @@ const Hero = () => {
 
       {/* Bottom wave SVG */}
       <svg 
-        className="pointer-events-none absolute bottom-[-1px] left-1/2 z-0 h-[100px] sm:h-[120px] w-[1600px] -translate-x-1/2 opacity-[0.10]"
+        className="pointer-events-none absolute bottom-[-1px] left-1/2 z-[1] h-[100px] sm:h-[120px] w-[1600px] -translate-x-1/2 opacity-[0.10]"
         viewBox="0 0 1440 320" 
         preserveAspectRatio="none" 
         aria-hidden="true"
