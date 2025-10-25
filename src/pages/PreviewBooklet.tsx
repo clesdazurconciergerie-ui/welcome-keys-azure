@@ -44,6 +44,25 @@ interface Contacts {
   contact_email?: string;
 }
 
+interface AppearanceConfig {
+  colors: {
+    background: string;
+    surface: string;
+    accent: string;
+    text: string;
+    muted: string;
+  };
+  typography?: {
+    font_family: string;
+    base_size: number;
+  };
+  header?: {
+    hero_overlay: number;
+    title_align: string;
+    show_location: boolean;
+  };
+}
+
 interface Booklet {
   id: string;
   property_name: string;
@@ -79,6 +98,7 @@ interface Booklet {
   gallery?: any[];
   status?: string;
   show_logo?: boolean;
+  appearance?: AppearanceConfig;
 }
 
 export default function PreviewBooklet() {
@@ -134,6 +154,31 @@ export default function PreviewBooklet() {
 
     checkAuthAndFetch();
   }, [id, navigate]);
+
+  // Inject CSS variables dynamically when booklet appearance changes
+  useEffect(() => {
+    if (!booklet?.appearance) return;
+
+    const root = document.documentElement;
+    const colors = booklet.appearance.colors;
+    const typography = booklet.appearance.typography;
+
+    // Apply CSS variables to document root
+    if (colors) {
+      root.style.setProperty('--booklet-bg', colors.background || '#ffffff');
+      root.style.setProperty('--booklet-surface', colors.surface || '#ffffff');
+      root.style.setProperty('--booklet-accent', colors.accent || '#18c0df');
+      root.style.setProperty('--booklet-text', colors.text || '#1a1a1a');
+      root.style.setProperty('--booklet-muted', colors.muted || '#6b7280');
+    }
+
+    if (typography) {
+      root.style.setProperty('--booklet-font', typography.font_family === 'System' 
+        ? 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif'
+        : typography.font_family || 'Inter');
+      root.style.setProperty('--booklet-size', `${typography.base_size || 16}px`);
+    }
+  }, [booklet]);
 
   if (loading) {
     return (

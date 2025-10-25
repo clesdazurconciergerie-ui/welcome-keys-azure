@@ -206,6 +206,11 @@ All colors MUST be HSL.
     line-height: 1.5;
   }
 
+  /* Smooth transitions for theme changes */
+  * {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+
   /* Animation chatbot */
   @keyframes chatbot-slide-up {
     from {

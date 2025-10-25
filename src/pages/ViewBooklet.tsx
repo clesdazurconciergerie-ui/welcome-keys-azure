@@ -186,6 +186,40 @@ export default function ViewBooklet() {
     fetchBooklet();
   }, [code]);
 
+  // Inject CSS variables dynamically when booklet appearance changes
+  useEffect(() => {
+    if (!booklet) return;
+
+    const appearance: AppearanceConfig = booklet?.appearance || {
+      colors: {
+        background: booklet?.background_color || '#ffffff',
+        surface: '#ffffff',
+        accent: booklet?.accent_color || '#18c0df',
+        text: booklet?.text_color || '#1a1a1a',
+        muted: '#6b7280'
+      },
+      typography: {
+        font_family: 'Inter',
+        base_size: 16
+      }
+    };
+
+    const root = document.documentElement;
+    const colors = appearance.colors;
+    const typography = appearance.typography;
+
+    // Apply CSS variables to document root
+    root.style.setProperty('--booklet-bg', colors.background);
+    root.style.setProperty('--booklet-surface', colors.surface);
+    root.style.setProperty('--booklet-accent', colors.accent);
+    root.style.setProperty('--booklet-text', colors.text);
+    root.style.setProperty('--booklet-muted', colors.muted);
+    root.style.setProperty('--booklet-font', typography?.font_family === 'System' 
+      ? 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif'
+      : typography?.font_family || 'Inter');
+    root.style.setProperty('--booklet-size', `${typography?.base_size || 16}px`);
+  }, [booklet]);
+
   const handleShowWifiPassword = async () => {
     if (!code || loadingWifi || wifiCredentials) return;
 
