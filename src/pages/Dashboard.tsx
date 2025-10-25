@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import { motion } from "framer-motion";
 
 interface Pin {
   pin_code: string;
@@ -32,6 +33,7 @@ const Dashboard = () => {
   const [pins, setPins] = useState<Record<string, Pin>>({});
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
     checkAuth();
@@ -44,7 +46,11 @@ const Dashboard = () => {
       navigate("/auth");
       return;
     }
-    setUserEmail(session.user.email || "");
+    const email = session.user.email || "";
+    setUserEmail(email);
+    // Extract first name from email
+    const name = email.split('@')[0].split('.')[0];
+    setUserName(name.charAt(0).toUpperCase() + name.slice(1));
   };
 
   const fetchBooklets = async () => {
@@ -152,10 +158,8 @@ const Dashboard = () => {
   const handleGenerateQR = async (code: string, propertyName: string) => {
     try {
       const link = `${window.location.origin}/view/${code}`;
-      // Using QR Server API for QR code generation
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(link)}`;
       
-      // Download the QR code
       const response = await fetch(qrUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -202,7 +206,7 @@ const Dashboard = () => {
 
       const data = await response.json();
       toast.success(`Nouveau code généré : ${data.pin_code}`);
-      fetchBooklets(); // Refresh the list
+      fetchBooklets();
     } catch (error) {
       console.error("Error regenerating PIN:", error);
       toast.error(error instanceof Error ? error.message : "Erreur lors de la régénération du code");
@@ -211,136 +215,241 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-[#F7F9FC]">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Waves className="w-5 h-5 text-primary" />
+    <div 
+      className="min-h-screen"
+      style={{
+        background: 'linear-gradient(180deg, #FFFFFF 0%, #F7F9FC 100%)'
+      }}
+    >
+      {/* Header */}
+      <motion.header 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="bg-white border-b border-[#EDEFF3] sticky top-0 z-50"
+        style={{
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+        }}
+      >
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Waves className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="font-display text-lg font-semibold text-primary">Clés d'Azur</h1>
+                <p className="text-xs text-[#707070]">{userEmail}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold gradient-text">Clés d'Azur</h1>
-              <p className="text-xs text-muted-foreground">{userEmail}</p>
-            </div>
+            <Button 
+              onClick={handleSignOut}
+              className="bg-primary hover:bg-[#122372] text-white rounded-lg transition-all duration-300 focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Déconnexion
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleSignOut}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Déconnexion
-          </Button>
         </div>
-      </header>
+      </motion.header>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+      <main className="container mx-auto px-4 py-8 md:py-12">
+        {/* Welcome Message */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-8"
+        >
+          <p className="text-[#6C6C6C] text-lg font-light italic">
+            Bonjour {userName} 👋 — Gérez vos livrets d'accueil avec élégance.
+          </p>
+        </motion.div>
+
+        {/* Page Title & CTA */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-12"
+        >
           <div>
-            <h2 className="text-3xl font-bold mb-2">Mes livrets d'accueil</h2>
-            <p className="text-muted-foreground">
+            <h2 className="font-display text-4xl md:text-5xl font-semibold text-primary mb-3">
+              Mes livrets d'accueil
+            </h2>
+            <p className="text-lg text-[#6C6C6C]">
               Créez et gérez vos livrets numériques
             </p>
           </div>
-          <Button onClick={() => navigate("/booklets/new")} size="lg" className="gap-2">
-            <Plus className="w-5 h-5" />
+          <Button 
+            onClick={() => navigate("/booklets/new")} 
+            size="lg"
+            className="bg-primary hover:bg-[#122372] text-white rounded-xl px-6 py-3 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          >
+            <Plus className="w-5 h-5 mr-2" />
             Nouveau livret
           </Button>
-        </div>
+        </motion.div>
 
+        {/* Booklets Grid or Empty State */}
         {booklets.length === 0 ? (
-          <Card className="glass shadow-premium border-0 text-center py-12">
-            <CardContent className="pt-6">
-              <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-xl font-semibold mb-2">Aucun livret pour le moment</h3>
-              <p className="text-muted-foreground mb-6">
-                Créez votre premier livret d'accueil pour commencer
-              </p>
-              <Button onClick={() => navigate("/booklets/new")}>
-                <Plus className="w-4 h-4 mr-2" />
-                Créer mon premier livret
-              </Button>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <Card 
+              className="text-center py-16 border border-[#EEF0F5] bg-white"
+              style={{
+                borderRadius: '12px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
+              }}
+            >
+              <CardContent className="pt-6">
+                <FileText className="w-20 h-20 mx-auto mb-6 text-[#6C6C6C] opacity-40" />
+                <h3 className="font-display text-2xl font-semibold text-primary mb-3">
+                  Aucun livret pour le moment
+                </h3>
+                <p className="text-[#707070] mb-8 text-lg">
+                  Créez votre premier livret d'accueil pour commencer
+                </p>
+                <Button 
+                  onClick={() => navigate("/booklets/new")}
+                  size="lg"
+                  className="bg-primary hover:bg-[#122372] text-white rounded-xl px-8"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Créer mon premier livret
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {booklets.map((booklet) => {
+          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+            {booklets.map((booklet, index) => {
               const pin = pins[booklet.id];
               
               return (
-                <Card key={booklet.id} className="glass shadow-md border-0 transition-smooth hover:shadow-premium">
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg mb-1 truncate">
-                          {booklet.title || booklet.property_name || "Sans titre"}
-                        </CardTitle>
-                        {(booklet.subtitle || booklet.welcome_message) && (
-                          <CardDescription className="text-sm line-clamp-2">
-                            {booklet.subtitle || booklet.welcome_message}
-                          </CardDescription>
-                        )}
+                <motion.div
+                  key={booklet.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                >
+                  <Card 
+                    className="h-full border border-[#EEF0F5] bg-white transition-all duration-300 hover:-translate-y-1"
+                    style={{
+                      borderRadius: '12px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(7,21,82,0.12)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+                    }}
+                  >
+                    <CardHeader className="pb-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="font-display text-xl font-semibold text-primary mb-2 truncate">
+                            {booklet.title || booklet.property_name || "Sans titre"}
+                          </CardTitle>
+                          {(booklet.subtitle || booklet.welcome_message) && (
+                            <CardDescription className="text-sm text-[#707070] line-clamp-2 leading-relaxed">
+                              {booklet.subtitle || booklet.welcome_message}
+                            </CardDescription>
+                          )}
+                        </div>
+                        <Badge 
+                          className={`flex-shrink-0 rounded-xl px-3 py-1 font-medium ${
+                            booklet.status === 'published' 
+                              ? 'bg-primary text-white' 
+                              : 'bg-[#F7F9FC] text-[#6C6C6C] border border-[#ECEEF3]'
+                          }`}
+                        >
+                          {booklet.status === 'published' ? 'Publié' : 'Brouillon'}
+                        </Badge>
                       </div>
-                      <Badge variant={booklet.status === 'published' ? 'default' : 'secondary'} className="flex-shrink-0">
-                        {booklet.status === 'published' ? 'Publié' : 'Brouillon'}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {/* PIN Display for published booklets */}
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-4">
+                      {/* PIN Block */}
                       {booklet.status === 'published' && pin && (
-                        <div className="p-3 bg-primary/5 rounded-lg space-y-2">
+                        <div 
+                          className="p-4 rounded-lg space-y-3"
+                          style={{
+                            background: '#F9FAFB',
+                            border: '1px solid #EEF0F5'
+                          }}
+                        >
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-muted-foreground">Code PIN</span>
-                            <code className="text-sm font-bold text-primary">{pin.pin_code}</code>
+                            <span className="text-xs font-medium text-primary uppercase tracking-wide">
+                              Code PIN
+                            </span>
+                            <code 
+                              className="text-lg font-bold text-primary px-3 py-1 rounded-lg"
+                              style={{
+                                background: '#FFFFFF',
+                                fontFamily: 'Monaco, Consolas, monospace',
+                                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)'
+                              }}
+                            >
+                              {pin.pin_code}
+                            </code>
                           </div>
-                          <div className="flex gap-1 flex-wrap">
+                          
+                          <div className="flex gap-2">
                             <Button
                               variant="outline"
                               size="sm"
-                              className="flex-1 text-xs min-w-[70px]"
+                              className="flex-1 text-xs border-[#E1E5EC] hover:bg-[#F2F4F9] transition-colors"
                               onClick={() => handleCopyCode(pin.pin_code)}
                             >
-                              <Copy className="w-3 h-3 mr-1" />
+                              <Copy className="w-3 h-3 mr-1.5" />
                               Code
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
-                              className="flex-1 text-xs min-w-[70px]"
+                              className="flex-1 text-xs border-[#E1E5EC] hover:bg-[#F2F4F9] transition-colors"
                               onClick={() => handleCopyLink(pin.pin_code)}
                             >
-                              <ExternalLink className="w-3 h-3 mr-1" />
+                              <ExternalLink className="w-3 h-3 mr-1.5" />
                               Lien
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
-                              className="flex-1 text-xs min-w-[60px]"
+                              className="flex-1 text-xs border-[#E1E5EC] hover:bg-[#F2F4F9] transition-colors"
                               onClick={() => handleGenerateQR(pin.pin_code, booklet.property_name || 'livret')}
                             >
-                              <QrCode className="w-3 h-3 mr-1" />
+                              <QrCode className="w-3 h-3 mr-1.5" />
                               QR
                             </Button>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full text-xs text-muted-foreground hover:text-destructive"
+                          
+                          <button
+                            className="w-full text-xs text-primary hover:underline transition-all py-1 focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
                             onClick={() => handleRegeneratePin(booklet.id)}
                           >
                             Régénérer le code PIN
-                          </Button>
+                          </button>
                         </div>
                       )}
                       
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>Vues: {booklet.views_count || 0}</span>
-                        <span className="truncate ml-2">
+                      {/* Stats Line */}
+                      <div className="flex items-center text-sm text-[#6C6C6C] gap-2">
+                        <span>Vues : {booklet.views_count || 0}</span>
+                        <span>·</span>
+                        <span className="truncate">
                           {formatDistanceToNow(new Date(booklet.updated_at), { 
                             addSuffix: true, 
                             locale: fr 
@@ -348,44 +457,50 @@ const Dashboard = () => {
                         </span>
                       </div>
                       
-                      <div className="flex gap-2 flex-wrap">
+                      {/* Actions */}
+                      <div className="flex gap-2 pt-2">
                         <Button
-                          variant="outline"
                           size="sm"
-                          className="flex-1 min-w-[100px]"
+                          className="flex-1 bg-primary hover:bg-[#122372] text-white rounded-lg transition-all duration-200"
                           onClick={() => navigate(`/booklets/${booklet.id}/wizard`)}
                         >
-                          <Edit className="w-4 h-4 mr-1" />
+                          <Edit className="w-4 h-4 mr-2" />
                           Modifier
                         </Button>
+                        
                         <Button
                           variant="outline"
                           size="sm"
+                          className="rounded-lg border-[#E1E5EC] hover:bg-[#F2F4F9] transition-colors"
                           onClick={() => handlePreview(booklet.id)}
-                          title="Prévisualiser (créateur)"
+                          title="Prévisualiser"
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
+                        
                         <Button
                           variant="outline"
                           size="sm"
+                          className="rounded-lg border-[#E1E5EC] hover:bg-[#F2F4F9] transition-colors"
                           onClick={() => handleDuplicate(booklet)}
                           title="Dupliquer"
                         >
                           <Copy className="w-4 h-4" />
                         </Button>
+                        
                         <Button
                           variant="outline"
                           size="sm"
+                          className="rounded-lg border-[#E1E5EC] hover:bg-red-50 hover:text-red-600 transition-colors"
                           onClick={() => handleDelete(booklet.id)}
                           title="Supprimer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               );
             })}
           </div>
