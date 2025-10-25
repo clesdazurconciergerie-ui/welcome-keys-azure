@@ -646,7 +646,10 @@ export type Database = {
         Row: {
           booklet_quota: number
           created_at: string
+          demo_token_expires_at: string | null
+          demo_token_issued_at: string | null
           email: string
+          has_used_demo: boolean | null
           id: string
           latest_checkout_session_id: string | null
           plan: string
@@ -659,7 +662,10 @@ export type Database = {
         Insert: {
           booklet_quota?: number
           created_at?: string
+          demo_token_expires_at?: string | null
+          demo_token_issued_at?: string | null
           email: string
+          has_used_demo?: boolean | null
           id: string
           latest_checkout_session_id?: string | null
           plan?: string
@@ -672,7 +678,10 @@ export type Database = {
         Update: {
           booklet_quota?: number
           created_at?: string
+          demo_token_expires_at?: string | null
+          demo_token_issued_at?: string | null
           email?: string
+          has_used_demo?: boolean | null
           id?: string
           latest_checkout_session_id?: string | null
           plan?: string
@@ -726,6 +735,7 @@ export type Database = {
     Functions: {
       can_create_booklet: { Args: { uid: string }; Returns: boolean }
       check_booklet_quota: { Args: { p_user_id: string }; Returns: boolean }
+      cleanup_demo_users: { Args: never; Returns: undefined }
       generate_pin_code: { Args: never; Returns: string }
       generate_unique_pin: { Args: never; Returns: string }
     }

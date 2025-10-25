@@ -15,6 +15,11 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  
+  // Check if demo mode is requested
+  const searchParams = new URLSearchParams(window.location.search);
+  const isDemoMode = searchParams.get('mode') === 'demo';
+  const [defaultTab, setDefaultTab] = useState(isDemoMode ? 'signup' : 'signin');
 
   useEffect(() => {
     // Check if user is already logged in
@@ -41,7 +46,7 @@ const Auth = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -50,6 +55,30 @@ const Auth = () => {
       });
 
       if (error) throw error;
+      
+      // If demo mode, activate demo after signup
+      if (isDemoMode && data.session) {
+        try {
+          const response = await supabase.functions.invoke('activate-demo', {
+            headers: {
+              Authorization: `Bearer ${data.session.access_token}`,
+            },
+          });
+
+          if (response.error) {
+            console.error('Error activating demo:', response.error);
+            toast.warning("Compte créé mais la démo n'a pas pu être activée");
+          } else {
+            toast.success("Compte démo créé avec succès ! Vous avez 7 jours pour tester.");
+            navigate("/dashboard");
+            return;
+          }
+        } catch (demoError) {
+          console.error('Demo activation error:', demoError);
+          toast.warning("Compte créé mais la démo n'a pas pu être activée");
+        }
+      }
+      
       toast.success("Inscription réussie ! Vérifiez votre email pour confirmer votre compte.");
     } catch (error: any) {
       console.error("Signup error:", error);
@@ -120,16 +149,19 @@ const Auth = () => {
 
         <Card className="glass shadow-premium border-0">
           <CardHeader>
-            <CardTitle>Accès</CardTitle>
+            <CardTitle>{isDemoMode ? "Créer un compte démo" : "Accès"}</CardTitle>
             <CardDescription>
-              Connectez-vous ou créez un compte pour gérer vos livrets
+              {isDemoMode 
+                ? "Créez votre compte et testez Welkom gratuitement pendant 7 jours"
+                : "Connectez-vous ou créez un compte pour gérer vos livrets"
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
+            <Tabs defaultValue={defaultTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="signin">Connexion</TabsTrigger>
-                <TabsTrigger value="signup">Inscription</TabsTrigger>
+                <TabsTrigger value="signup">{isDemoMode ? "Démo gratuite" : "Inscription"}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="signin">
@@ -204,12 +236,17 @@ const Auth = () => {
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Inscription...
+                        {isDemoMode ? "Création..." : "Inscription..."}
                       </>
                     ) : (
-                      "Créer un compte"
+                      isDemoMode ? "🎬 Créer ma démo gratuite" : "Créer un compte"
                     )}
                   </Button>
+                  {isDemoMode && (
+                    <p className="text-xs text-center text-muted-foreground mt-3">
+                      7 jours d'essai gratuit • 1 livret • Aucune carte requise
+                    </p>
+                  )}
                 </form>
               </TabsContent>
             </Tabs>

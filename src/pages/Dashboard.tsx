@@ -39,6 +39,7 @@ const Dashboard = () => {
   const [canCreateBooklet, setCanCreateBooklet] = useState(true);
   const [quotaMessage, setQuotaMessage] = useState("");
   const [trialExpiresAt, setTrialExpiresAt] = useState<string | null>(null);
+  const [demoExpiresAt, setDemoExpiresAt] = useState<string | null>(null);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
 
   useEffect(() => {
@@ -70,7 +71,7 @@ const Dashboard = () => {
     // Fetch user subscription status
     const { data: userData } = await supabase
       .from('users')
-      .select('role, subscription_status, trial_expires_at')
+      .select('role, subscription_status, trial_expires_at, demo_token_expires_at')
       .eq('id', session.user.id)
       .single();
 
@@ -78,11 +79,21 @@ const Dashboard = () => {
       setUserRole(userData.role || 'free_trial');
       setSubscriptionStatus(userData.subscription_status || 'none');
       setTrialExpiresAt(userData.trial_expires_at);
+      setDemoExpiresAt(userData.demo_token_expires_at);
       
       // Calculer les jours restants pour l'essai gratuit
       if (userData.role === 'free_trial' && userData.trial_expires_at) {
         const now = new Date();
         const expiresAt = new Date(userData.trial_expires_at);
+        const diffTime = expiresAt.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        setDaysRemaining(diffDays > 0 ? diffDays : 0);
+      }
+      
+      // Calculer les jours restants pour la démo
+      if (userData.role === 'demo_user' && userData.demo_token_expires_at) {
+        const now = new Date();
+        const expiresAt = new Date(userData.demo_token_expires_at);
         const diffTime = expiresAt.getTime() - now.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         setDaysRemaining(diffDays > 0 ? diffDays : 0);
@@ -120,6 +131,20 @@ const Dashboard = () => {
           } else if (bookletCount >= 1) {
             canCreate = false;
             message = "Vous avez créé votre livret d'essai. Souscrivez un abonnement pour créer plus de livrets.";
+          }
+        }
+      } else if (role === 'demo_user') {
+        // Vérifier si la démo est expirée
+        if (demoExpiresAt) {
+          const now = new Date();
+          const expiresAt = new Date(demoExpiresAt);
+          
+          if (now >= expiresAt) {
+            canCreate = false;
+            message = "Votre essai gratuit est terminé. Vos données ont été supprimées. Souscrivez un abonnement pour continuer.";
+          } else if (bookletCount >= 1) {
+            canCreate = false;
+            message = "Vous avez créé votre livret de démo. Souscrivez un abonnement pour créer plus de livrets.";
           }
         }
       } else if (status !== 'active' || role === 'free') {
@@ -291,17 +316,9 @@ const Dashboard = () => {
 
   const handleCreateBooklet = () => {
     if (!canCreateBooklet) {
-      // Si l'essai est expiré ou si pas d'abonnement, rediriger vers Stripe
-      if (userRole === 'free_trial' || !userRole || subscriptionStatus !== 'active') {
-        supabase.auth.getSession().then(({ data }) => {
-          if (data?.session?.user) {
-            const baseUrl = "https://buy.stripe.com/cNi5kDeMB6Cd8htgEQ5kk00";
-            const url = new URL(baseUrl);
-            url.searchParams.set('prefilled_email', data.session.user.email || '');
-            url.searchParams.set('client_reference_id', data.session.user.id);
-            window.location.href = url.toString();
-          }
-        });
+      // Si l'essai est expiré ou si pas d'abonnement, rediriger vers /tarifs
+      if (userRole === 'free_trial' || userRole === 'demo_user' || !userRole || subscriptionStatus !== 'active') {
+        navigate('/tarifs');
         return;
       }
       
@@ -391,6 +408,39 @@ const Dashboard = () => {
                       className="border-primary text-primary hover:bg-primary/10"
                     >
                       Découvrir les plans
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Demo User Banner */}
+        {userRole === 'demo_user' && daysRemaining !== null && daysRemaining > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-6"
+          >
+            <Card className="bg-gradient-to-r from-amber-500/10 to-amber-500/5 border-amber-500/20">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-foreground mb-1">
+                      🎬 Démo active
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Il vous reste <span className="font-semibold text-foreground">{daysRemaining} jour{daysRemaining > 1 ? 's' : ''}</span> avant la suppression automatique de votre livret de démonstration.
+                    </p>
+                    <Button
+                      size="sm"
+                      onClick={() => navigate('/tarifs')}
+                      variant="outline"
+                      className="border-amber-500 text-amber-700 hover:bg-amber-500/10"
+                    >
+                      Sauvegarder mes données
                     </Button>
                   </div>
                 </div>

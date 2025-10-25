@@ -181,12 +181,12 @@ const Pricing = () => {
                 Essayer gratuitement
               </Button>
               <Button
-                onClick={() => window.open('/view/ED3Q7EZR', '_blank')}
+                onClick={() => navigate('/auth?mode=demo')}
                 size="lg"
                 variant="outline"
                 className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground rounded-xl px-8 shadow-md hover:shadow-lg transition-all w-full sm:w-auto font-semibold"
               >
-                🎬 Essayer la démo
+                🎬 Créer un compte démo
               </Button>
             </div>
           </motion.div>
@@ -440,9 +440,9 @@ const Pricing = () => {
                 onClick={() => window.open('/view/ED3Q7EZR', '_blank')}
                 size="lg"
                 variant="outline"
-                className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground rounded-xl px-8 shadow-md hover:shadow-lg transition-all w-full sm:w-auto font-semibold"
+                className="border-2 border-amber-500 text-amber-700 hover:bg-amber-500 hover:text-white rounded-xl px-8 shadow-md hover:shadow-lg transition-all w-full sm:w-auto font-semibold"
               >
-                🎬 Voir la démo
+                👀 Voir un exemple
               </Button>
             </div>
           </motion.div>

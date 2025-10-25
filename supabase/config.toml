@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.activate-demo]
+verify_jwt = true
+
+[functions.confirm-session]
+verify_jwt = true
