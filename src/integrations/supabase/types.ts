@@ -114,6 +114,7 @@ export type Database = {
           access_code: string | null
           airbnb_license: string | null
           amenities: Json | null
+          appearance: Json | null
           background_color: string | null
           chatbot_config: Json | null
           chatbot_enabled: boolean | null
@@ -165,6 +166,7 @@ export type Database = {
           access_code?: string | null
           airbnb_license?: string | null
           amenities?: Json | null
+          appearance?: Json | null
           background_color?: string | null
           chatbot_config?: Json | null
           chatbot_enabled?: boolean | null
@@ -216,6 +218,7 @@ export type Database = {
           access_code?: string | null
           airbnb_license?: string | null
           amenities?: Json | null
+          appearance?: Json | null
           background_color?: string | null
           chatbot_config?: Json | null
           chatbot_enabled?: boolean | null

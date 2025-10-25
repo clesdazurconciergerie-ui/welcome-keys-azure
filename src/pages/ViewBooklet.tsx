@@ -39,6 +39,25 @@ interface FAQ {
   order_index?: number;
 }
 
+interface AppearanceConfig {
+  colors: {
+    background: string;
+    surface: string;
+    accent: string;
+    text: string;
+    muted: string;
+  };
+  typography?: {
+    font_family: string;
+    base_size: number;
+  };
+  header?: {
+    hero_overlay: number;
+    title_align: string;
+    show_location: boolean;
+  };
+}
+
 interface Booklet {
   id: string;
   property_name: string;
@@ -78,6 +97,7 @@ interface Booklet {
   background_color?: string;
   accent_color?: string;
   text_color?: string;
+  appearance?: AppearanceConfig;
 }
 
 interface WifiCredentials {
@@ -263,17 +283,48 @@ export default function ViewBooklet() {
     { id: 'legal', label: 'Informations légales', icon: Shield },
   ];
 
-  const bgColor = booklet?.background_color || '#ffffff';
-  const accentColor = booklet?.accent_color || '#18c0df';
-  const textColor = booklet?.text_color || '#1a1a1a';
+  // Get appearance config or fallback to legacy colors
+  const appearance: AppearanceConfig = booklet?.appearance || {
+    colors: {
+      background: booklet?.background_color || '#ffffff',
+      surface: '#ffffff',
+      accent: booklet?.accent_color || '#18c0df',
+      text: booklet?.text_color || '#1a1a1a',
+      muted: '#6b7280'
+    },
+    typography: {
+      font_family: 'Inter',
+      base_size: 16
+    },
+    header: {
+      hero_overlay: 0.65,
+      title_align: 'left',
+      show_location: true
+    }
+  };
+
+  const bgColor = appearance.colors.background;
+  const accentColor = appearance.colors.accent;
+  const textColor = appearance.colors.text;
+  const mutedColor = appearance.colors.muted;
+  const surfaceColor = appearance.colors.surface;
+  const fontFamily = appearance.typography?.font_family === 'System' 
+    ? 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif'
+    : appearance.typography?.font_family || 'Inter';
+  const fontSize = appearance.typography?.base_size || 16;
+  const heroOverlay = appearance.header?.hero_overlay || 0.65;
 
   return (
     <div 
       className="min-h-screen bg-gradient-to-b from-secondary/30 to-background"
       style={{
         '--booklet-bg': bgColor,
+        '--booklet-surface': surfaceColor,
         '--booklet-accent': accentColor,
         '--booklet-text': textColor,
+        '--booklet-muted': mutedColor,
+        '--booklet-font': fontFamily,
+        '--booklet-size': `${fontSize}px`,
       } as React.CSSProperties}
     >
       {/* Floating Navigation Menu */}
@@ -315,7 +366,10 @@ export default function ViewBooklet() {
           backgroundPosition: 'center'
         } : {}}
       >
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+        <div 
+          className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" 
+          style={{ opacity: heroOverlay }}
+        />
         <div className="relative z-10 w-full px-4 md:px-8 pb-8 text-white">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-start gap-4 mb-3">

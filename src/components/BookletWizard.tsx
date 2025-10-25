@@ -11,8 +11,9 @@ import { toast } from "sonner";
 import { 
   Home, ArrowLeft, ArrowRight, Save, Eye, Send,
   Wifi, MapPin, FileText, Wrench, Trash2, Store,
-  MessageSquare, Shield, Gift, CheckCircle2, Copy, QrCode, ExternalLink
+  MessageSquare, Shield, Gift, CheckCircle2, Copy, QrCode, ExternalLink, Palette
 } from "lucide-react";
+import Step0Appearance from "./wizard-steps/Step0Appearance";
 import Step1Identity from "./wizard-steps/Step1Identity";
 import Step2Practical from "./wizard-steps/Step2Practical";
 import Step3Wifi from "./wizard-steps/Step3Wifi";
@@ -29,6 +30,7 @@ interface BookletWizardProps {
 }
 
 const STEPS = [
+  { number: 0, title: "Apparence", icon: Palette, component: Step0Appearance },
   { number: 1, title: "Identité", icon: Home, component: Step1Identity },
   { number: 2, title: "Infos pratiques", icon: MapPin, component: Step2Practical },
   { number: 3, title: "Wi-Fi", icon: Wifi, component: Step3Wifi },
@@ -43,7 +45,7 @@ const STEPS = [
 
 export default function BookletWizard({ bookletId }: BookletWizardProps) {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0);
   const [bookletData, setBookletData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -69,7 +71,7 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
 
       if (error) throw error;
       setBookletData(data);
-      setCurrentStep(data.wizard_step || 1);
+      setCurrentStep(data.wizard_step !== null && data.wizard_step !== undefined ? data.wizard_step : 0);
     } catch (error) {
       console.error("Error fetching booklet:", error);
       toast.error("Erreur lors du chargement");
@@ -89,7 +91,7 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
           user_id: user.id,
           property_name: "Nouveau livret",
           property_address: "",
-          wizard_step: 1,
+          wizard_step: 0,
           status: "draft",
         })
         .select()
@@ -388,15 +390,17 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
           <div className="col-span-9">
             <Card className="p-6">
               <StepComponent
+                bookletId={bookletData?.id}
                 data={bookletData}
                 onUpdate={autoSave}
+                onNext={handleNext}
               />
 
               <div className="flex items-center justify-between mt-8 pt-6 border-t">
                 <Button
                   variant="outline"
                   onClick={handlePrevious}
-                  disabled={currentStep === 1}
+                  disabled={currentStep === 0}
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Précédent
