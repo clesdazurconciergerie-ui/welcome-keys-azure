@@ -15,7 +15,8 @@ function cleanGeneratedText(input: string): string {
   return input
     .replace(/[*#_\-•>]+/g, ' ')           // supprime tous symboles markdown ou listes
     .replace(/\s{2,}/g, ' ')               // retire espaces multiples
-    .replace(/(\r?\n){3,}/g, '\n\n')       // limite les sauts de ligne à 2 max
+    .replace(/\.(\s+)/g, '.\n')            // retour à la ligne après chaque point
+    .replace(/\n{2,}/g, '\n')              // limite à une ligne vide max
     .replace(/(^\s+|\s+$)/gm, '')          // trim chaque ligne
     .replace(/([a-z0-9])([A-Z])/g, '$1. $2') // ajoute point entre phrases collées
     .trim();
@@ -41,13 +42,17 @@ serve(async (req) => {
         systemPrompt = 'Tu es un assistant qui rédige des messages de bienvenue chaleureux pour des locations de vacances de luxe. Le ton doit être professionnel, accueillant et personnalisé.';
         userPrompt = `Rédige un message de bienvenue pour le bien "${propertyName}" situé à ${propertyAddress}. 
 
-RÈGLES D'ÉCRITURE :
+RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide et professionnel, SANS caractères Markdown ni listes à puces
-- Phrases courtes et bien ponctuées
-- Chaque idée séparée par un saut de ligne simple
+- Chaque phrase doit se terminer par un point suivi d'un retour à la ligne
 - AUCUN symbole spécial (*, -, #, _, etc.)
 - Ton clair, accueillant et concis
 - 3-4 phrases maximum
+
+Format attendu :
+Bienvenue dans notre logement.
+Nous sommes ravis de vous accueillir.
+Profitez de votre séjour.
 
 Rédige maintenant le message de bienvenue.`;
         break;
@@ -56,10 +61,9 @@ Rédige maintenant le message de bienvenue.`;
         systemPrompt = 'Tu es un assistant qui rédige des procédures de check-in claires pour des locations de vacances.';
         userPrompt = `Rédige une procédure de check-in détaillée pour le bien "${propertyName}" situé à ${propertyAddress}. 
 
-RÈGLES D'ÉCRITURE :
+RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide SANS Markdown ni listes à puces
-- Phrases courtes et claires
-- Chaque étape séparée par un saut de ligne
+- Chaque phrase doit se terminer par un point suivi d'un retour à la ligne
 - AUCUN symbole (*, -, #, _)
 - Ton précis et accueillant
 
@@ -70,9 +74,9 @@ Inclus : récupération des clés, parking temporaire, accès au logement.`;
         systemPrompt = 'Tu es un assistant qui rédige des procédures de check-out claires pour des locations de vacances.';
         userPrompt = `Rédige une procédure de check-out pour le bien "${propertyName}". 
 
-RÈGLES D'ÉCRITURE :
+RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide SANS Markdown ni listes
-- Phrases courtes et bien ponctuées
+- Chaque phrase doit se terminer par un point suivi d'un retour à la ligne
 - AUCUN symbole spécial (*, -, #, _)
 - Ton amical mais clair
 
@@ -83,9 +87,9 @@ Inclus : heure limite, restitution des clés, état des lieux, poubelles, élect
         systemPrompt = 'Tu es un assistant qui rédige des informations de stationnement pour des locations de vacances.';
         userPrompt = `Rédige les informations de stationnement pour le bien "${propertyName}" situé à ${propertyAddress}. 
 
-RÈGLES D'ÉCRITURE :
+RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide SANS Markdown
-- Phrases courtes
+- Chaque phrase doit se terminer par un point suivi d'un retour à la ligne
 - AUCUN symbole (*, -, #, _)
 - Ton clair et pratique
 
@@ -99,7 +103,7 @@ Mentionne : parking privé ou public, gratuit/payant, places à proximité, rest
 RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide en phrases complètes, PAS de listes à puces
 - AUCUN symbole Markdown (*, -, #, _, etc.)
-- Chaque règle sur sa propre ligne
+- Chaque phrase doit se terminer par un point suivi d'un retour à la ligne
 - Phrases courtes et polies
 - Ton accueillant et pas trop strict
 
@@ -116,9 +120,9 @@ Nombre maximum d'occupants`;
         systemPrompt = 'Tu es un assistant qui rédige des instructions pour la gestion des déchets dans des locations de vacances.';
         userPrompt = `Rédige les informations sur l'emplacement des poubelles pour le bien "${propertyName}". 
 
-RÈGLES D'ÉCRITURE :
+RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide SANS Markdown
-- Phrases complètes et claires
+- Chaque phrase doit se terminer par un point suivi d'un retour à la ligne
 - AUCUN symbole (*, -, #, _)
 - Ton pratique
 
@@ -129,9 +133,9 @@ Indique : emplacement des containers, jours de collecte, accès.`;
         systemPrompt = 'Tu es un assistant qui rédige des instructions de tri sélectif claires et pédagogiques.';
         userPrompt = `Rédige les instructions de tri sélectif pour le bien "${propertyName}". 
 
-RÈGLES D'ÉCRITURE :
+RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide SANS listes à puces ni Markdown
-- Phrases complètes et pédagogiques
+- Chaque phrase doit se terminer par un point suivi d'un retour à la ligne
 - AUCUN symbole (*, -, #, _)
 - Ton clair et pratique
 
@@ -142,9 +146,9 @@ Explique : verre, recyclage, ordures ménagères, compost si applicable.`;
         systemPrompt = 'Tu es un assistant qui rédige des règles de nettoyage pour des locations de vacances.';
         userPrompt = `Rédige les règles de nettoyage avant le départ pour le bien "${propertyName}". 
 
-RÈGLES D'ÉCRITURE :
+RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide SANS Markdown
-- Phrases courtes et complètes
+- Chaque phrase doit se terminer par un point suivi d'un retour à la ligne
 - AUCUN symbole (*, -, #, _)
 - Ton courtois mais précis
 
@@ -155,10 +159,10 @@ Inclus : vaisselle, poubelles, état général attendu.`;
         systemPrompt = 'Tu es un assistant qui rédige des consignes de sécurité pour des locations de vacances.';
         userPrompt = `Rédige les consignes de sécurité essentielles pour le bien "${propertyName}". 
 
-RÈGLES D'ÉCRITURE :
+RÈGLES D'ÉCRITURE STRICTES :
 - Texte fluide en phrases complètes, PAS de listes
 - AUCUN symbole Markdown (*, -, #, _)
-- Chaque point sur sa ligne
+- Chaque phrase doit se terminer par un point suivi d'un retour à la ligne
 - Ton rassurant mais complet
 
 Inclus : détecteurs de fumée, extincteur, coupures d'urgence (eau, électricité, gaz), évacuation, numéros d'urgence.`;
