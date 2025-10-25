@@ -9,31 +9,28 @@ const TrustLogos = () => {
   ];
 
   return (
-    <section className="py-12 bg-secondary/30">
+    <section className="py-8 border-y border-border bg-secondary/30">
       <div className="container mx-auto px-4">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-center"
+          className="flex flex-wrap items-center justify-center gap-8 md:gap-12"
         >
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-            {platforms.map((platform, index) => (
-              <motion.div
-                key={platform.name}
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                whileHover={{ scale: 1.05 }}
-                className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors cursor-default"
-              >
-                <span className="text-2xl">{platform.icon}</span>
-                <span className="text-sm font-medium">{platform.name}</span>
-              </motion.div>
-            ))}
-          </div>
+          {platforms.map((platform, index) => (
+            <motion.div
+              key={platform.name}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+              className="flex items-center gap-2 text-muted-foreground"
+            >
+              <span className="text-xl">{platform.icon}</span>
+              <span className="text-sm font-medium">{platform.name}</span>
+            </motion.div>
+          ))}
         </motion.div>
       </div>
     </section>

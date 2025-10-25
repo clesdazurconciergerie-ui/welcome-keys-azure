@@ -11,45 +11,45 @@ const FAQ = () => {
     {
       question: "Mes données sont-elles protégées ?",
       answer:
-        "Oui, absolument. Toutes les données sont chiffrées et hébergées sur des serveurs sécurisés conformes RGPD. Nous utilisons Supabase avec Row Level Security (RLS) pour garantir que seul vous avez accès à vos livrets.",
+        "Oui. Nous utilisons un chiffrement de bout en bout et une architecture RLS avec Supabase. Vos données sont protégées selon les normes RGPD.",
     },
     {
       question: "Le livret fonctionne-t-il hors connexion ?",
       answer:
-        "Le livret nécessite une connexion internet pour être consulté. Cependant, vos invités peuvent prendre des captures d'écran des informations importantes pour y accéder hors ligne.",
+        "Le livret nécessite une connexion internet pour être consulté. Cependant, le chatbot et toutes les informations sont disponibles 24/7.",
     },
     {
       question: "Puis-je ajouter mon logo et mes couleurs ?",
       answer:
-        "Oui, avec les offres Pro et Business, vous pouvez personnaliser entièrement l'apparence de votre livret : logo, couleurs, typographie et mise en page.",
+        "Absolument. Vous pouvez personnaliser entièrement l'apparence de votre livret : couleurs HEX, logo, photos, et mise en page.",
     },
     {
-      question: "Le chatbot répond-il automatiquement ?",
+      question: "Comment partager un livret ?",
       answer:
-        "Oui, le chatbot utilise l'IA pour répondre 24/7 aux questions de vos voyageurs en se basant sur les informations de votre livret. Il apprend et s'améliore avec le temps.",
+        "Vous pouvez partager le code PIN par message ou email, générer un QR code à imprimer, ou envoyer un lien direct à vos invités.",
     },
     {
-      question: "Puis-je essayer gratuitement ?",
+      question: "Le chatbot fonctionne-t-il sans API ?",
       answer:
-        "Oui, l'offre Starter est 100% gratuite et ne nécessite aucune carte bancaire. Vous pouvez créer votre premier livret et le tester sans engagement.",
+        "Le chatbot est pré-configuré et alimenté par le contenu de votre livret. Aucune configuration API n'est nécessaire.",
     },
   ];
 
   return (
-    <section id="faq" className="py-20 md:py-24 bg-secondary/30 scroll-mt-20">
+    <section id="faq" className="py-20 md:py-28 bg-white">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16 max-w-3xl mx-auto"
+          className="text-center mb-12"
         >
           <h2 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl text-foreground mb-4">
             Questions fréquentes
           </h2>
-          <p className="text-lg text-muted-foreground">
-            Tout ce que vous devez savoir sur Wlekom
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Tout ce que vous devez savoir sur Welkom
           </p>
         </motion.div>
 
@@ -65,10 +65,10 @@ const FAQ = () => {
               <AccordionItem
                 key={index}
                 value={`item-${index}`}
-                className="border border-border rounded-2xl px-6 bg-white hover:border-primary/50 hover:shadow-lg transition-all"
+                className="border border-border rounded-[18px] px-6 bg-white hover:shadow-md transition-shadow"
               >
-                <AccordionTrigger className="text-left font-medium text-foreground hover:no-underline py-5">
-                  {faq.question}
+                <AccordionTrigger className="text-left text-foreground hover:text-primary py-5 hover:no-underline">
+                  <span className="font-semibold">{faq.question}</span>
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground pb-5 leading-relaxed">
                   {faq.answer}

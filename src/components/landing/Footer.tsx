@@ -5,7 +5,6 @@ const Footer = () => {
 
   const links = [
     { label: "Sécurité", href: "#security" },
-    { label: "Tarifs", href: "#pricing" },
     { label: "Mentions légales", href: "#" },
     { label: "Contact", href: "#" },
   ];
@@ -41,7 +40,7 @@ const Footer = () => {
 
           {/* Copyright */}
           <p className="text-sm text-muted-foreground">
-            © {currentYear} Wlekom by Clés d'Azur — Tous droits réservés
+            © {currentYear} Welkom by Clés d'Azur — Tous droits réservés
           </p>
         </div>
       </div>

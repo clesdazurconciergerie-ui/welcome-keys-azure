@@ -8,47 +8,46 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Wlekom Premium Design System - SaaS Modern */
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;  /* #0F172A */
+    /* Welkom Premium Design System - Unique Brand Color */
+    --background: 0 0% 100%;  /* #ffffff */
+    --foreground: 222 47% 11%;  /* #0F172A - ink */
 
-    /* Brand - Wlekom Blue #18c0df */
+    /* Brand - Welkom Blue #18c0df - UNIQUE ACCENT */
     --brand-cyan: 189 77% 48%;
-    --brand-cyan-light: 189 77% 58%;
-    --brand-cyan-dark: 189 77% 38%;
+    --brand-cyan-hover: 193 77% 44%;  /* #1199c7 */
     
-    /* Card with glassmorphism effect */
+    /* Card */
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Primary = Wlekom Cyan */
-    --primary: 189 77% 48%;
+    /* Primary = Welkom Cyan */
+    --primary: 189 77% 48%;  /* #18c0df */
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Soft gray #F8FAFC */
-    --secondary: 210 20% 98%;
+    /* Secondary - Section background #F7FAFC */
+    --secondary: 210 40% 98%;
     --secondary-foreground: 222 47% 11%;
 
-    /* Muted - Light backgrounds */
-    --muted: 210 20% 98%;
-    --muted-foreground: 215 16% 47%;
+    /* Muted - Text secondaire #64748B */
+    --muted: 210 40% 98%;
+    --muted-foreground: 215 20% 45%;
 
-    /* Accent - Wlekom Blue */
+    /* Accent - Welkom Blue */
     --accent: 189 77% 48%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders - Very light */
-    --border: 214 31% 91%;
-    --input: 214 31% 91%;
+    /* Borders - #E6EDF2 */
+    --border: 210 25% 92%;
+    --input: 210 25% 92%;
     --ring: 189 77% 48%;
 
-    --radius: 0.75rem;
+    --radius: 1.125rem;  /* 18px */
 
     /* Premium shadows with cyan tint */
     --shadow-sm: 0 1px 2px 0 rgba(24, 192, 223, 0.05);

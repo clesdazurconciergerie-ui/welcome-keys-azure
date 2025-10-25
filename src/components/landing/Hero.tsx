@@ -41,75 +41,93 @@ const Hero = () => {
       <div 
         className="pointer-events-none absolute inset-0 opacity-40" 
         style={{
-          background: 'radial-gradient(ellipse at top, rgba(24, 192, 223, 0.1), transparent 60%)'
+          background: 'radial-gradient(ellipse at top, rgba(24, 192, 223, 0.08), transparent 60%)'
         }}
       />
 
-      <motion.div 
-        className="relative z-10 mx-auto max-w-6xl px-4 text-center"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {/* Main Title */}
-        <motion.h1 
-          variants={itemVariants}
-          className="font-display font-bold text-foreground text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-tight tracking-tight"
-        >
-          Le livret d'accueil digital qui{" "}
-          <span className="text-primary">impressionne</span> vos voyageurs.
-        </motion.h1>
-
-        {/* Subtitle */}
-        <motion.p 
-          variants={itemVariants}
-          className="mx-auto mt-6 max-w-3xl text-lg sm:text-xl text-muted-foreground leading-relaxed"
-        >
-          Créez, publiez et partagez un livret professionnel en quelques minutes, 
-          avec accès par code PIN et chatbot intégré.
-        </motion.p>
-
-        {/* CTAs */}
-        <motion.div 
-          variants={itemVariants}
-          className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
-        >
-          <Button
-            size="lg"
-            onClick={() => navigate("/auth")}
-            className="group h-14 px-8 text-lg bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
+      <div className="container mx-auto px-4">
+        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+          {/* Content */}
+          <motion.div 
+            className="relative z-10 text-center lg:text-left"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
           >
-            <Sparkles className="w-5 h-5 mr-2" />
-            Essayer gratuitement
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={() => navigate("/acces-livret")}
-            className="h-14 px-8 text-lg border-2 hover:bg-secondary rounded-2xl transition-all"
-          >
-            <Play className="w-5 h-5 mr-2" />
-            Voir une démo
-          </Button>
-        </motion.div>
+            {/* Main Title */}
+            <motion.h1 
+              variants={itemVariants}
+              className="font-display font-bold text-foreground text-4xl sm:text-5xl md:text-6xl leading-tight"
+            >
+              Améliorez l'expérience de vos voyageurs.
+            </motion.h1>
 
-        {/* Social Proof */}
-        <motion.div 
-          variants={itemVariants}
-          className="mt-12 flex flex-col items-center gap-6"
-        >
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <span className="text-primary text-xl">✓</span>
-              <span>Déjà 3 000+ livrets créés</span>
+            {/* Subtitle */}
+            <motion.p 
+              variants={itemVariants}
+              className="mt-6 text-lg text-muted-foreground leading-relaxed"
+            >
+              Créez, publiez et partagez un livret d'accueil digital professionnel en quelques minutes.
+              Accès par code PIN, QR code et chatbot intégré.
+            </motion.p>
+
+            {/* CTAs */}
+            <motion.div 
+              variants={itemVariants}
+              className="mt-8 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-4"
+            >
+              <Button
+                size="lg"
+                onClick={() => navigate("/auth")}
+                className="h-12 px-8 bg-primary hover:bg-[hsl(var(--brand-cyan-hover))] text-white rounded-[18px] shadow-lg hover:shadow-xl transition-all"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                Essayer gratuitement
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => navigate("/acces-livret")}
+                className="h-12 px-8 border-2 rounded-[18px] transition-all"
+              >
+                <Play className="w-5 h-5 mr-2" />
+                Voir une démo
+              </Button>
+            </motion.div>
+
+            {/* Social Proof */}
+            <motion.div 
+              variants={itemVariants}
+              className="mt-8 flex items-center justify-center lg:justify-start gap-6 text-sm text-muted-foreground"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-primary">✓</span>
+                <span>Déjà 3 000+ livrets créés</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-primary">★</span>
+                <span>Note moyenne 4,8/5</span>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Mockup */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="relative hidden lg:block"
+          >
+            <div className="relative">
+              <img 
+                src="https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600&q=80" 
+                alt="Welkom app mockup"
+                className="w-full max-w-md mx-auto rounded-[24px] shadow-2xl border border-border"
+              />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-primary text-xl">★</span>
-              <span>Note moyenne 4,8/5</span>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
+          </motion.div>
+        </div>
+      </div>
     </section>
   );
 };
