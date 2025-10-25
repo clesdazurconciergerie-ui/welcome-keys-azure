@@ -59,6 +59,8 @@ const Auth = () => {
       // If demo mode, activate demo after signup
       if (isDemoMode && data.session) {
         try {
+          toast.loading("Activation de votre démo gratuite...");
+          
           const response = await supabase.functions.invoke('activate-demo', {
             headers: {
               Authorization: `Bearer ${data.session.access_token}`,
@@ -67,15 +69,26 @@ const Auth = () => {
 
           if (response.error) {
             console.error('Error activating demo:', response.error);
+            toast.dismiss();
             toast.warning("Compte créé mais la démo n'a pas pu être activée");
-          } else {
-            toast.success("Compte démo créé avec succès ! Vous avez 7 jours pour tester.");
             navigate("/dashboard");
+            return;
+          } else {
+            toast.dismiss();
+            toast.success("Démo activée ! Créez votre premier livret...", { duration: 2000 });
+            
+            // Redirection vers la création de livret après un court délai
+            setTimeout(() => {
+              navigate("/booklets/new");
+            }, 1500);
             return;
           }
         } catch (demoError) {
           console.error('Demo activation error:', demoError);
+          toast.dismiss();
           toast.warning("Compte créé mais la démo n'a pas pu être activée");
+          navigate("/dashboard");
+          return;
         }
       }
       

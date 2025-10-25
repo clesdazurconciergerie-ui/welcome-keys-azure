@@ -60,6 +60,46 @@ const Pricing = () => {
     window.location.href = url.toString();
   };
 
+  const handleDemoClick = async () => {
+    // Vérifier si l'utilisateur est connecté
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      // Pas connecté → redirection vers inscription mode démo
+      navigate('/auth?mode=demo');
+      return;
+    }
+
+    // Déjà connecté → activer la démo directement
+    try {
+      toast.loading("Activation de la démo...");
+      
+      const response = await supabase.functions.invoke('activate-demo', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.error) {
+        toast.dismiss();
+        toast.error("Impossible d'activer la démo. Vous l'avez peut-être déjà utilisée.");
+        return;
+      }
+
+      toast.dismiss();
+      toast.success("Démo activée ! Redirection...");
+      
+      // Redirection vers la création de livret
+      setTimeout(() => {
+        navigate('/booklets/new');
+      }, 1000);
+    } catch (error) {
+      toast.dismiss();
+      console.error('Error activating demo:', error);
+      toast.error("Une erreur est survenue lors de l'activation de la démo");
+    }
+  };
+
   const plans = [
     {
       id: "starter",
@@ -181,12 +221,12 @@ const Pricing = () => {
                 Essayer gratuitement
               </Button>
               <Button
-                onClick={() => navigate('/auth?mode=demo')}
+                onClick={handleDemoClick}
                 size="lg"
                 variant="outline"
                 className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground rounded-xl px-8 shadow-md hover:shadow-lg transition-all w-full sm:w-auto font-semibold"
               >
-                🎬 Créer un compte démo
+                🎬 Essayer la démo gratuitement
               </Button>
             </div>
           </motion.div>
