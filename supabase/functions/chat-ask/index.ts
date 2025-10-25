@@ -6,6 +6,44 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Normalisation du texte
+function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // supprimer accents
+    .replace(/[^\w\s]/g, " ") // ponctuation → espace
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Détection d'intent avec synonymes
+const INTENT_PATTERNS = {
+  WIFI_PASSWORD: /(?:mdp|mot de passe|password|code)\s+(?:wifi|wi-fi)/,
+  WIFI_SSID: /(?:nom|ssid|reseau|network)\s+(?:wifi|wi-fi)/,
+  CHECKIN: /(?:arrivee|check.?in|entree|cle|coffre|acces|arriver)/,
+  CHECKOUT: /(?:depart|check.?out|sortie|partir|quitter)/,
+  PARKING: /(?:parking|stationner|garer|voiture|place)/,
+  TRI: /(?:tri|trier|recycl|dechet|poubelle|benne|verre|carton)/,
+  EQUIPEMENTS: /(?:machine|appareil|equipement|cafetiere|lave|frigo|four|tv|chauffage)/,
+  A_PROXIMITE: /(?:proche|proximite|restaurant|bar|plage|commerce|pharmacie|boulangerie|supermarche)/,
+  URGENCES: /(?:urgence|hopital|medecin|pompier|police|pharmacie de garde)/,
+  TRANSPORTS: /(?:bus|tram|metro|train|transport|navette)/,
+  MAISON: /(?:regle|reglement|interdit|autorise|fumer|bruit|animaux)/,
+};
+
+function detectIntent(message: string): string {
+  const normalized = normalize(message);
+  
+  for (const [intent, pattern] of Object.entries(INTENT_PATTERNS)) {
+    if (pattern.test(normalized)) {
+      return intent;
+    }
+  }
+  
+  return 'AUTRE';
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -35,6 +73,27 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const normalizedPin = pinCode.replace(/\s+/g, '').toUpperCase();
+
+    // Détecter l'intent de la question
+    const intent = detectIntent(message);
+    console.log('Intent détecté:', intent, 'pour:', message);
+
+    // Bloquer les demandes sensibles explicites
+    const normalized = normalize(message);
+    const isSensitiveRequest = 
+      /(?:adresse exacte|code porte|digicode|numero de porte|email|telephone|tel|proprietaire|owner)/.test(normalized);
+
+    if (isSensitiveRequest) {
+      return new Response(
+        JSON.stringify({ 
+          answer: "Je ne peux pas partager d'informations sensibles comme des codes d'accès, adresses précises ou contacts privés. Pour toute question urgente, contactez la conciergerie via les coordonnées fournies dans le livret." 
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } 
+        }
+      );
+    }
 
     // Récupérer le livret via le PIN
     const { data: pinData, error: pinError } = await supabase
@@ -88,109 +147,136 @@ serve(async (req) => {
       .eq('booklet_id', booklet.id)
       .order('order_index');
 
-    // Classification d'intent
-    const messageLower = message.toLowerCase();
-    const isWifiPasswordRequest = messageLower.includes('wifi') && 
-      (messageLower.includes('mot de passe') || messageLower.includes('password') || messageLower.includes('mdp'));
-    
-    const isSensitiveRequest = 
-      messageLower.includes('adresse exacte') ||
-      messageLower.includes('code') ||
-      messageLower.includes('digicode') ||
-      messageLower.includes('numéro de porte') ||
-      messageLower.includes('email') ||
-      messageLower.includes('téléphone') ||
-      messageLower.includes('propriétaire') ||
-      messageLower.includes('tel ') ||
-      messageLower.includes('tél');
+    // Construire les facts selon l'intent
+    let facts: any = {};
+    let needsWifiPassword = false;
 
-    const isSearchableQuery = 
-      messageLower.includes('météo') ||
-      messageLower.includes('évènement') ||
-      messageLower.includes('événement') ||
-      messageLower.includes('transport') ||
-      messageLower.includes('bus') ||
-      messageLower.includes('pharmacie de garde') ||
-      messageLower.includes('sortie') ||
-      messageLower.includes('activité');
-
-    // Bloquer les demandes sensibles
-    if (isSensitiveRequest) {
-      return new Response(
-        JSON.stringify({ 
-          answer: "Je ne peux pas partager d'informations sensibles comme des codes d'accès, adresses précises ou contacts privés. Pour toute question urgente, contactez la conciergerie via les coordonnées fournies dans le livret." 
-        }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } 
+    switch (intent) {
+      case 'WIFI_PASSWORD':
+        facts.wifi_ssid = wifiData?.ssid || 'Non configuré';
+        needsWifiPassword = true;
+        break;
+      
+      case 'WIFI_SSID':
+        facts.wifi_ssid = wifiData?.ssid || 'Non configuré';
+        break;
+      
+      case 'CHECKIN':
+        facts.check_in_time = booklet.check_in_time;
+        facts.checkin_procedure = booklet.checkin_procedure;
+        facts.access_code = booklet.access_code ? '(code fourni)' : null;
+        facts.google_maps_link = booklet.google_maps_link;
+        break;
+      
+      case 'CHECKOUT':
+        facts.check_out_time = booklet.check_out_time;
+        facts.checkout_procedure = booklet.checkout_procedure;
+        facts.cleaning_rules = booklet.cleaning_rules;
+        break;
+      
+      case 'PARKING':
+        facts.parking_info = booklet.parking_info;
+        facts.property_address = booklet.property_address;
+        break;
+      
+      case 'TRI':
+        facts.waste_location = booklet.waste_location;
+        facts.sorting_instructions = booklet.sorting_instructions;
+        facts.cleaning_tips = booklet.cleaning_tips;
+        break;
+      
+      case 'EQUIPEMENTS':
+        facts.equipment = equipment?.map((e: any) => ({
+          name: e.name,
+          category: e.category,
+          instructions: e.instructions
+        })) || [];
+        break;
+      
+      case 'A_PROXIMITE':
+        const nearby = Array.isArray(booklet.nearby) ? booklet.nearby : 
+                      (typeof booklet.nearby === 'string' ? JSON.parse(booklet.nearby) : []);
+        facts.nearby = nearby
+          .filter((p: any) => p.name && p.category)
+          .slice(0, 5)
+          .map((p: any) => ({
+            name: p.name,
+            category: p.category,
+            distance: p.distance,
+            mapsUrl: p.mapsUrl
+          }));
+        break;
+      
+      case 'URGENCES':
+        facts.emergency_contacts = booklet.emergency_contacts;
+        facts.safety_tips = booklet.safety_tips;
+        break;
+      
+      case 'TRANSPORTS':
+        const nearbyAll = Array.isArray(booklet.nearby) ? booklet.nearby : 
+                         (typeof booklet.nearby === 'string' ? JSON.parse(booklet.nearby) : []);
+        facts.transports = nearbyAll
+          .filter((p: any) => p.category === 'Transport')
+          .map((p: any) => ({ name: p.name, distance: p.distance, mapsUrl: p.mapsUrl }));
+        break;
+      
+      case 'MAISON':
+        facts.house_rules = booklet.house_rules;
+        facts.safety_tips = booklet.safety_tips;
+        break;
+      
+      default:
+        // Pour AUTRE, chercher dans la FAQ
+        if (faq && faq.length > 0) {
+          facts.faq = faq.map((f: any) => ({
+            question: f.question,
+            answer: f.answer
+          }));
         }
-      );
     }
 
-    // Construire le contexte pour le chatbot
-    const nearby = Array.isArray(booklet.nearby) ? booklet.nearby : 
-                   (typeof booklet.nearby === 'string' ? JSON.parse(booklet.nearby) : []);
+    // Récupérer le mot de passe Wi-Fi si nécessaire via l'endpoint sécurisé
+    if (needsWifiPassword && wifiData?.ssid) {
+      try {
+        const wifiResponse = await fetch(
+          `${supabaseUrl}/functions/v1/get-wifi-by-pin?pin=${normalizedPin}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+          }
+        );
+        
+        if (wifiResponse.ok) {
+          const wifiResult = await wifiResponse.json();
+          facts.wifi_password = wifiResult.password;
+        }
+      } catch (error) {
+        console.error('Erreur récupération Wi-Fi:', error);
+      }
+    }
 
-    const context = `
-Tu es l'assistant virtuel du livret d'accueil "${booklet.property_name}". 
+    // Construire le prompt de composition avec les facts
+    const systemPrompt = `Tu es l'assistant du livret d'accueil "${booklet.property_name}".
 
 RÈGLES STRICTES :
-- Réponds UNIQUEMENT avec les informations ci-dessous
-- Ne partage JAMAIS : codes d'accès, mots de passe (sauf Wi-Fi via bouton dédié), emails/téléphones privés, adresses exactes, numéros de porte
-- Si l'info n'est pas dans le contexte : "Je n'ai pas cette information dans le livret. Contactez la conciergerie."
-- Pour le mot de passe Wi-Fi : "Cliquez sur le bouton 'Afficher le mot de passe Wi-Fi' dans la section Wi-Fi du livret."
+- Compose une réponse claire, concise et actionnable à partir des FACTS fournis
+- Ne partage JAMAIS : codes précis (sauf si fourni dans facts.access_code avec mention "code fourni"), emails/téléphones privés, adresses exactes complètes
+- Si une info manque dans les FACTS : propose une alternative utile ou indique poliment que l'info n'est pas disponible
+- Sois naturel et sympathique
+- Fournis des liens Maps quand disponibles
+- Format : français si locale=fr, anglais si locale=en
 
-IDENTITÉ:
-- Nom: ${booklet.property_name}
-- Slogan: ${booklet.tagline || 'Non renseigné'}
-- Message de bienvenue: ${booklet.welcome_message || 'Non renseigné'}
+INTENT DÉTECTÉ : ${intent}
 
-INFORMATIONS PRATIQUES:
-- Adresse: ${booklet.property_address}
-- Lien Google Maps: ${booklet.google_maps_link || 'Non renseigné'}
-- Heure d'arrivée: ${booklet.check_in_time || 'Non renseignée'}
-- Heure de départ: ${booklet.check_out_time || 'Non renseignée'}
-- Procédure d'arrivée: ${booklet.checkin_procedure || 'Non renseignée'}
-- Procédure de départ: ${booklet.checkout_procedure || 'Non renseignée'}
-- Code d'accès: ${booklet.access_code || 'Non renseigné'}
-- Stationnement: ${booklet.parking_info || 'Non renseigné'}
-- Règlement intérieur: ${booklet.house_rules || 'Non renseigné'}
-- Conseils de sécurité: ${booklet.safety_tips || 'Non renseigné'}
+FACTS DISPONIBLES :
+${JSON.stringify(facts, null, 2)}
 
-WI-FI:
-- Réseau Wi-Fi: ${wifiData?.ssid || 'Non configuré'}
-- Pour obtenir le mot de passe Wi-Fi, dis à l'utilisateur : "Cliquez sur le bouton 'Afficher le mot de passe Wi-Fi' dans la section Wi-Fi du livret."
+Question de l'utilisateur : "${message}"
 
-MÉNAGE & TRI:
-- Emplacement poubelles: ${booklet.waste_location || 'Non renseigné'}
-- Instructions de tri: ${booklet.sorting_instructions || 'Non renseignées'}
-- Règles de nettoyage: ${booklet.cleaning_rules || 'Non renseignées'}
-- Conseils d'entretien: ${booklet.cleaning_tips || 'Non renseignés'}
+Compose une réponse utile en utilisant les FACTS. Si les FACTS sont vides ou insuffisants, dis-le poliment et propose de contacter la conciergerie.`;
 
-ÉQUIPEMENTS:
-${equipment?.map((e: any) => `- ${e.name} (${e.category}): ${e.instructions || 'Pas d\'instructions'}`).join('\n') || 'Aucun équipement listé'}
-
-À PROXIMITÉ:
-${nearby.filter((p: any) => p.name && p.category).map((p: any) => 
-  `- ${p.name} (${p.category})${p.distance ? ' - ' + p.distance : ''}${p.mapsUrl ? ' - Lien: ' + p.mapsUrl : ''}`
-).join('\n') || 'Aucun lieu enregistré'}
-
-FAQ (réponds directement aux questions similaires):
-${faq?.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
-  .map((f: any) => `Q: ${f.question}\nR: ${f.answer}`).join('\n\n') || 'Aucune FAQ'}
-
-LÉGAL:
-- Licence: ${booklet.airbnb_license || 'Non renseignée'}
-- Consignes de sécurité: ${booklet.safety_instructions || 'Non renseignées'}
-- RGPD: ${booklet.gdpr_notice || 'Non renseigné'}
-- Clause de non-responsabilité: ${booklet.disclaimer || 'Non renseignée'}
-
-Réponds de manière concise, polie et factuelle en ${locale === 'en' ? 'anglais' : 'français'}. Propose des liens Maps si pertinent.
-    `.trim();
-
-    let finalAnswer = '';
-
-    // Appeler Lovable AI avec le contexte du livret
+    // Appeler Lovable AI pour composer la réponse
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -200,11 +286,11 @@ Réponds de manière concise, polie et factuelle en ${locale === 'en' ? 'anglais
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: context },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: message }
         ],
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 400,
       }),
     });
 
@@ -218,20 +304,10 @@ Réponds de manière concise, polie et factuelle en ${locale === 'en' ? 'anglais
     }
 
     const aiData = await aiResponse.json();
-    finalAnswer = aiData.choices?.[0]?.message?.content || '';
-
-    // Si la réponse indique que l'info n'est pas dans le livret ET que c'est une question "searchable"
-    const noInfoInBooklet = finalAnswer.toLowerCase().includes("n'ai pas cette information") || 
-                           finalAnswer.toLowerCase().includes("contactez la conciergerie");
-    
-    if (noInfoInBooklet && isSearchableQuery) {
-      // Réponse générale pour les questions searchables non trouvées dans le livret
-      const cityName = booklet.property_address?.split(',').pop()?.trim() || 'la région';
-      finalAnswer = `Je n'ai pas cette information spécifique dans le livret. Pour des informations générales sur ${cityName} (météo, transports, événements), vous pouvez consulter les sites officiels locaux ou l'office du tourisme. Pour toute question urgente, contactez la conciergerie via les coordonnées fournies dans le livret.`;
-    }
+    const answer = aiData.choices?.[0]?.message?.content || 'Désolé, je n\'ai pas pu générer une réponse.';
 
     return new Response(
-      JSON.stringify({ answer: finalAnswer || 'Désolé, je n\'ai pas pu générer une réponse.' }),
+      JSON.stringify({ answer }),
       { 
         status: 200, 
         headers: { 
