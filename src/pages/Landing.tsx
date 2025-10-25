@@ -13,10 +13,8 @@ import Regions from "@/components/landing/Regions";
 import FAQ from "@/components/landing/FAQ";
 import FinalCTA from "@/components/landing/FinalCTA";
 import Footer from "@/components/landing/Footer";
-
 const Landing = () => {
-  return (
-    <div className="min-h-screen bg-white">
+  return <div className="min-h-screen bg-white">
       <Navigation />
       <Hero />
       <TrustLogos />
@@ -24,7 +22,7 @@ const Landing = () => {
       <SaveTime />
       <Metrics />
       <Customization />
-      <Process />
+      
       <ConcreteResults />
       <ForEveryone />
       <Testimonials />
@@ -32,8 +30,6 @@ const Landing = () => {
       <FAQ />
       <FinalCTA />
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Landing;
