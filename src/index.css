@@ -189,4 +189,20 @@ All colors MUST be HSL.
   .animate-pulse-subtle {
     animation: pulse-subtle 2s ease-in-out infinite;
   }
+
+  /* Styles pour textes générés par IA */
+  .ai-description {
+    white-space: pre-line;
+    line-height: 1.6;
+  }
+
+  .ai-description p {
+    margin-bottom: 1.2em;
+  }
+
+  /* Textarea pour affichage propre */
+  textarea.ai-generated {
+    white-space: pre-line;
+    line-height: 1.5;
+  }
 }

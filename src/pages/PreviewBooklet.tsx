@@ -207,7 +207,7 @@ export default function PreviewBooklet() {
               <CardTitle>Bienvenue</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="whitespace-pre-wrap">{booklet.welcome_message}</p>
+              <p className="whitespace-pre-wrap ai-description">{booklet.welcome_message}</p>
             </CardContent>
           </Card>
         )}
@@ -257,14 +257,14 @@ export default function PreviewBooklet() {
             {booklet.checkin_procedure && (
               <div>
                 <strong>Procédure d'arrivée :</strong>
-                <p className="whitespace-pre-wrap mt-1">{booklet.checkin_procedure}</p>
+                <p className="whitespace-pre-wrap mt-1 ai-description">{booklet.checkin_procedure}</p>
               </div>
             )}
 
             {booklet.checkout_procedure && (
               <div>
                 <strong>Procédure de départ :</strong>
-                <p className="whitespace-pre-wrap mt-1">{booklet.checkout_procedure}</p>
+                <p className="whitespace-pre-wrap mt-1 ai-description">{booklet.checkout_procedure}</p>
               </div>
             )}
 
@@ -361,25 +361,25 @@ export default function PreviewBooklet() {
               {booklet.waste_location && (
                 <div>
                   <strong>Emplacement des poubelles :</strong>
-                  <p className="whitespace-pre-wrap mt-1">{booklet.waste_location}</p>
+                  <p className="whitespace-pre-wrap mt-1 ai-description">{booklet.waste_location}</p>
                 </div>
               )}
               {booklet.sorting_instructions && (
                 <div>
                   <strong>Instructions de tri :</strong>
-                  <p className="whitespace-pre-wrap mt-1">{booklet.sorting_instructions}</p>
+                  <p className="whitespace-pre-wrap mt-1 ai-description">{booklet.sorting_instructions}</p>
                 </div>
               )}
               {booklet.cleaning_rules && (
                 <div>
                   <strong>Règles de nettoyage :</strong>
-                  <p className="whitespace-pre-wrap mt-1">{booklet.cleaning_rules}</p>
+                  <p className="whitespace-pre-wrap mt-1 ai-description">{booklet.cleaning_rules}</p>
                 </div>
               )}
               {booklet.cleaning_tips && (
                 <div>
                   <strong>Conseils d'entretien :</strong>
-                  <p className="whitespace-pre-wrap mt-1">{booklet.cleaning_tips}</p>
+                  <p className="whitespace-pre-wrap mt-1 ai-description">{booklet.cleaning_tips}</p>
                 </div>
               )}
             </CardContent>
@@ -393,7 +393,7 @@ export default function PreviewBooklet() {
               <CardTitle>Règlement intérieur</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="whitespace-pre-wrap">{booklet.house_rules}</p>
+              <p className="whitespace-pre-wrap ai-description">{booklet.house_rules}</p>
             </CardContent>
           </Card>
         )}
