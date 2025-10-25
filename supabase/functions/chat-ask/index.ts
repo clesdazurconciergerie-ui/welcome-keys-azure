@@ -17,6 +17,17 @@ function normalize(text: string): string {
     .trim();
 }
 
+// Nettoyage et formatage de la réponse du chatbot
+function formatChatbotResponse(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/[*#_\-•>]+/g, ' ')        // retire les symboles Markdown
+    .replace(/\s{2,}/g, ' ')            // nettoie les espaces multiples
+    .replace(/\.(\s+|$)/g, '.\n')       // retour à la ligne après chaque point
+    .replace(/\n{2,}/g, '\n')           // limite les lignes vides
+    .trim();
+}
+
 // Détection d'intent avec synonymes
 const INTENT_PATTERNS = {
   WIFI_PASSWORD: /(?:mdp|mot de passe|password|code)\s+(?:wifi|wi-fi)/,
@@ -259,13 +270,22 @@ serve(async (req) => {
     // Construire le prompt de composition avec les facts
     const systemPrompt = `Tu es l'assistant du livret d'accueil "${booklet.property_name}".
 
-RÈGLES STRICTES :
+RÈGLES STRICTES DE FORMAT :
+- Formate ta réponse de manière claire et professionnelle
+- Ne mets AUCUN caractère Markdown (*, #, -, _, >)
+- Fais un retour à la ligne après chaque phrase complète (après chaque point)
+- Le ton doit être naturel, accueillant et fluide
+- N'utilise ni emojis ni symboles spéciaux
 - Compose une réponse claire, concise et actionnable à partir des FACTS fournis
 - Ne partage JAMAIS : codes précis (sauf si fourni dans facts.access_code avec mention "code fourni"), emails/téléphones privés, adresses exactes complètes
 - Si une info manque dans les FACTS : propose une alternative utile ou indique poliment que l'info n'est pas disponible
-- Sois naturel et sympathique
 - Fournis des liens Maps quand disponibles
 - Format : français si locale=fr, anglais si locale=en
+
+EXEMPLE DE FORMAT ATTENDU :
+Le check-in se fait à partir de 16h.
+Les clés sont dans le coffre à côté de la porte d'entrée.
+Merci de prévenir la conciergerie en cas d'arrivée tardive.
 
 INTENT DÉTECTÉ : ${intent}
 
@@ -304,7 +324,8 @@ Compose une réponse utile en utilisant les FACTS. Si les FACTS sont vides ou in
     }
 
     const aiData = await aiResponse.json();
-    const answer = aiData.choices?.[0]?.message?.content || 'Désolé, je n\'ai pas pu générer une réponse.';
+    const rawAnswer = aiData.choices?.[0]?.message?.content || 'Désolé, je n\'ai pas pu générer une réponse.';
+    const answer = formatChatbotResponse(rawAnswer);
 
     return new Response(
       JSON.stringify({ answer }),

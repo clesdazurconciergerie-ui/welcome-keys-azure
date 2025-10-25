@@ -153,13 +153,14 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                      className={`max-w-[80%] rounded-lg px-3.5 py-2.5 ${
                         msg.role === 'user'
                           ? 'bg-[#18C0DF] text-white'
-                          : 'bg-muted text-foreground'
+                          : 'bg-[#F8F8F8] text-[#1A1A1A]'
                       }`}
+                      style={{ wordWrap: 'break-word' }}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
                     </div>
                   </div>
                 ))}
