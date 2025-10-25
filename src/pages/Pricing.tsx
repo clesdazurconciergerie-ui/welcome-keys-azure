@@ -162,8 +162,8 @@ const Pricing = () => {
                       data-plan={plan.id}
                       className={`h-full rounded-2xl p-6 border-2 transition-all cursor-pointer ${
                         isActive
-                          ? "border-[#18c0df] bg-[#F7FAFC] shadow-[0_6px_20px_rgba(24,192,223,0.25)]"
-                          : "border-[#E6EDF2] bg-white hover:border-[#18c0df]/50"
+                          ? "border-primary bg-secondary shadow-[0_6px_20px_rgba(7,21,82,0.25)]"
+                          : "border-border bg-white hover:border-primary/50"
                       }`}
                     >
                       {plan.badge && (
@@ -176,7 +176,7 @@ const Pricing = () => {
                       </h3>
                       <p className="text-sm text-muted-foreground mb-4">{plan.livrets}</p>
                       <div className="mb-6">
-                        <span className="font-display font-bold text-4xl text-[#18c0df]">
+                        <span className="font-display font-bold text-4xl text-primary">
                           {plan.price}€
                         </span>
                         <span className="text-muted-foreground">/mois</span>
@@ -184,7 +184,7 @@ const Pricing = () => {
                       <ul className="space-y-3 mb-6">
                         {plan.features.map((feature, i) => (
                           <li key={i} className="flex items-start gap-3">
-                            <Check className="w-5 h-5 text-[#18c0df] shrink-0 mt-0.5" />
+                            <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                             <span className="text-sm text-muted-foreground">{feature}</span>
                           </li>
                         ))}
@@ -196,8 +196,8 @@ const Pricing = () => {
                         }}
                         className={`w-full rounded-xl transition-all ${
                           isActive
-                            ? "bg-[#18c0df] hover:bg-[#1199c7] text-white shadow-lg"
-                            : "bg-white border border-[#E6EDF2] text-[#0F172A] hover:border-[#18c0df]"
+                            ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+                            : "bg-white border border-border text-foreground hover:border-primary"
                         }`}
                       >
                         {plan.cta}
@@ -226,8 +226,8 @@ const Pricing = () => {
                     data-plan={plan.id}
                     className={`h-full rounded-2xl p-6 border-2 transition-all cursor-pointer ${
                       isActive
-                        ? "border-[#18c0df] bg-[#F7FAFC] shadow-[0_6px_20px_rgba(24,192,223,0.25)]"
-                        : "border-[#E6EDF2] bg-white hover:border-[#18c0df]/50"
+                        ? "border-primary bg-secondary shadow-[0_6px_20px_rgba(7,21,82,0.25)]"
+                        : "border-border bg-white hover:border-primary/50"
                     }`}
                   >
                     {plan.badge && (
@@ -240,7 +240,7 @@ const Pricing = () => {
                     </h3>
                     <p className="text-sm text-muted-foreground mb-4">{plan.livrets}</p>
                     <div className="mb-6">
-                      <span className="font-display font-bold text-4xl text-[#18c0df]">
+                      <span className="font-display font-bold text-4xl text-primary">
                         {plan.price}€
                       </span>
                       <span className="text-muted-foreground">/mois</span>
@@ -248,7 +248,7 @@ const Pricing = () => {
                     <ul className="space-y-3 mb-6">
                       {plan.features.map((feature, i) => (
                         <li key={i} className="flex items-start gap-3">
-                          <Check className="w-5 h-5 text-[#18c0df] shrink-0 mt-0.5" />
+                          <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                           <span className="text-sm text-muted-foreground">{feature}</span>
                         </li>
                       ))}
@@ -260,8 +260,8 @@ const Pricing = () => {
                       }}
                       className={`w-full rounded-xl transition-all ${
                         isActive
-                          ? "bg-[#18c0df] hover:bg-[#1199c7] text-white shadow-lg"
-                          : "bg-white border border-[#E6EDF2] text-[#0F172A] hover:border-[#18c0df]"
+                          ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+                          : "bg-white border border-border text-foreground hover:border-primary"
                       }`}
                     >
                       {plan.cta}
