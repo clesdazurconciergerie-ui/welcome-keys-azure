@@ -132,6 +132,29 @@ All colors MUST be HSL.
   html {
     scroll-behavior: smooth;
   }
+
+  /* Fluid typography - mobile-first responsive */
+  h1, .text-4xl, .text-5xl, .text-6xl, .text-7xl {
+    font-size: clamp(1.75rem, 4.2vw, 2.75rem);
+  }
+
+  h2, .text-3xl {
+    font-size: clamp(1.375rem, 3vw, 2rem);
+  }
+
+  h3, .text-2xl {
+    font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+  }
+
+  p, .text-base, .text-lg {
+    font-size: clamp(0.9375rem, 1.6vw, 1.125rem);
+    line-height: 1.6;
+  }
+
+  /* Minimum touch target */
+  button, a {
+    min-height: 44px;
+  }
 }
 
 @layer utilities {
@@ -208,6 +231,26 @@ All colors MUST be HSL.
   /* Smooth transitions for theme changes */
   * {
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+
+  /* Carousel utilities for mobile scroll-snap */
+  .carousel-container {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .carousel-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Respect motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   /* Animation chatbot */

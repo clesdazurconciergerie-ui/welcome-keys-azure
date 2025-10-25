@@ -1,13 +1,27 @@
-import { Palette, Upload, Smartphone } from "lucide-react";
+import { Palette, Upload, Smartphone, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { useRef } from "react";
 
 const Customization = () => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   const mockups = [
     "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&q=80",
     "https://images.unsplash.com/photo-1523217582562-09d0def993a6?w=400&q=80",
     "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&q=80",
     "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80",
   ];
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = scrollRef.current.offsetWidth * 0.75;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   return (
     <section className="py-20 md:py-28 bg-white">
@@ -19,10 +33,10 @@ const Customization = () => {
           transition={{ duration: 0.6 }}
           className="max-w-6xl mx-auto text-center"
         >
-          <h2 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl text-foreground mb-6">
+          <h2 className="font-display font-bold text-foreground mb-6">
             Un livret à votre image
           </h2>
-          <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">
+          <p className="text-muted-foreground mb-12 max-w-2xl mx-auto">
             Personnalisez vos livrets avec vos couleurs HEX, votre logo et vos photos.
           </p>
 
@@ -42,9 +56,34 @@ const Customization = () => {
             ))}
           </div>
 
-          {/* Mockup gallery */}
+          {/* Mobile controls */}
+          <div className="flex md:hidden items-center justify-center gap-2 mb-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => scroll('left')}
+              aria-label="Exemple précédent"
+              className="rounded-full"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => scroll('right')}
+              aria-label="Exemple suivant"
+              className="rounded-full"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Mockup gallery - carousel */}
           <div className="relative">
-            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
+            <div
+              ref={scrollRef}
+              className="flex gap-4 overflow-x-auto md:overflow-visible pb-4 snap-x snap-mandatory scroll-px-4 -mx-4 px-4 md:mx-0 md:px-0 carousel-container md:justify-center"
+            >
               {mockups.map((img, i) => (
                 <motion.div
                   key={i}
@@ -58,6 +97,7 @@ const Customization = () => {
                     <img 
                       src={img} 
                       alt={`Exemple ${i + 1}`}
+                      loading="lazy"
                       className="w-full h-full object-cover"
                     />
                   </div>
