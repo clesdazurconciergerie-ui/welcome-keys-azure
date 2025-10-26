@@ -6,8 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ArrowLeft, Save, Eye, Loader2, Sparkles, Download } from "lucide-react";
 import AirbnbImportModal from "@/components/booklet-editor/AirbnbImportModal";
-import AirbnbImportPreview from "@/components/booklet-editor/AirbnbImportPreview";
-import { useState as useImportState } from "react";
 import { useSectionRouter } from "@/hooks/useSectionRouter";
 import { SectionKey } from "@/types/sections";
 import SectionTabs from "@/components/booklet-editor/SectionTabs";
@@ -46,8 +44,6 @@ const EditBooklet = () => {
   
   // Import Airbnb states
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [importPreviewOpen, setImportPreviewOpen] = useState(false);
-  const [importedData, setImportedData] = useState<any>(null);
 
   // Form states - General
   const [generalData, setGeneralData] = useState({
@@ -347,33 +343,33 @@ const EditBooklet = () => {
     }
   };
 
-  const handleImportSuccess = (data: any) => {
-    setImportedData(data);
-    setImportPreviewOpen(true);
-  };
-
-  const handleApplyImport = async (selectedSections: string[]) => {
+  const handleImportSuccess = async (importedData: any) => {
     if (!importedData) return;
 
     try {
-      // Appliquer les sections sélectionnées
-      if (selectedSections.includes('general')) {
+      // Appliquer directement les données importées
+      if (importedData.title) {
+        setGeneralData(prev => ({ ...prev, propertyName: importedData.title }));
+      }
+
+      if (importedData.addressApprox) {
         setGeneralData(prev => ({
           ...prev,
-          propertyName: importedData.title || prev.propertyName,
-          propertyAddress: importedData.addressApprox 
-            ? `${importedData.addressApprox}, ${importedData.city || ''}`.trim() 
-            : prev.propertyAddress,
-          welcomeMessage: importedData.description || prev.welcomeMessage,
+          propertyAddress: `${importedData.addressApprox}, ${importedData.city || ''}`.trim()
         }));
       }
 
-      if (selectedSections.includes('rules') && importedData.houseRules) {
-        setGeneralData(prev => ({
-          ...prev,
-          checkInTime: importedData.houseRules?.checkInFrom || prev.checkInTime,
-          checkOutTime: importedData.houseRules?.checkOutBefore || prev.checkOutTime,
-        }));
+      if (importedData.description) {
+        setGeneralData(prev => ({ ...prev, welcomeMessage: importedData.description }));
+      }
+
+      if (importedData.houseRules) {
+        if (importedData.houseRules.checkInFrom) {
+          setGeneralData(prev => ({ ...prev, checkInTime: importedData.houseRules.checkInFrom }));
+        }
+        if (importedData.houseRules.checkOutBefore) {
+          setGeneralData(prev => ({ ...prev, checkOutTime: importedData.houseRules.checkOutBefore }));
+        }
         
         const rulesText = [
           importedData.houseRules.quietHours ? `Heures calmes: ${importedData.houseRules.quietHours}` : '',
@@ -382,28 +378,12 @@ const EditBooklet = () => {
           importedData.houseRules.parties !== undefined ? (importedData.houseRules.parties ? 'Fêtes autorisées' : 'Pas de fêtes') : '',
         ].filter(Boolean).join('\n');
         
-        setRulesData(prev => ({
-          ...prev,
-          houseRules: rulesText || prev.houseRules,
-        }));
+        if (rulesText) {
+          setRulesData(prev => ({ ...prev, houseRules: rulesText }));
+        }
       }
 
-      if (selectedSections.includes('capacity')) {
-        const capacityText = [
-          importedData.maxGuests ? `Capacité: ${importedData.maxGuests} voyageurs` : '',
-          importedData.beds ? `Couchages: ${importedData.beds} lit(s)` : '',
-          importedData.bathrooms ? `Salles de bain: ${importedData.bathrooms}` : '',
-          importedData.spaces ? importedData.spaces.join(', ') : '',
-        ].filter(Boolean).join('\n');
-        
-        setGeneralData(prev => ({
-          ...prev,
-          emergencyContacts: prev.emergencyContacts + '\n\n' + capacityText,
-        }));
-      }
-
-      if (selectedSections.includes('amenities') && importedData.amenities && id) {
-        // Importer les équipements
+      if (importedData.amenities && id) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           for (const category of importedData.amenities) {
@@ -420,10 +400,7 @@ const EditBooklet = () => {
         }
       }
 
-      // Photos: à implémenter selon votre système de galerie
-      // Nearby: peut être ajouté à une section dédiée
-
-      toast.success("Import appliqué avec succès !");
+      toast.success("Données importées et appliquées avec succès !");
       await fetchBooklet(); // Recharger pour afficher les équipements importés
     } catch (error) {
       console.error('Apply import error:', error);
@@ -562,13 +539,6 @@ const EditBooklet = () => {
         onClose={() => setImportModalOpen(false)}
         onImportSuccess={handleImportSuccess}
         bookletId={id}
-      />
-
-      <AirbnbImportPreview
-        open={importPreviewOpen}
-        onClose={() => setImportPreviewOpen(false)}
-        data={importedData || {}}
-        onApply={handleApplyImport}
       />
     </div>
   );

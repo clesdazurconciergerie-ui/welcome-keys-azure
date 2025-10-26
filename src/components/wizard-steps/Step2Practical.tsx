@@ -8,7 +8,6 @@ import { Sparkles, Loader2, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AirbnbImportModal from "@/components/booklet-editor/AirbnbImportModal";
-import AirbnbImportPreview from "@/components/booklet-editor/AirbnbImportPreview";
 
 interface Step2PracticalProps {
   data: any;
@@ -32,8 +31,6 @@ export default function Step2Practical({ data, onUpdate, bookletId }: Step2Pract
   
   // Import Airbnb states
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [importPreviewOpen, setImportPreviewOpen] = useState(false);
-  const [importedData, setImportedData] = useState<any>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -80,23 +77,16 @@ export default function Step2Practical({ data, onUpdate, bookletId }: Step2Pract
     }
   };
 
-  const handleImportSuccess = (data: any) => {
-    setImportedData(data);
-    setImportPreviewOpen(true);
-  };
-
-  const handleApplyImport = async (selectedSections: string[]) => {
+  const handleImportSuccess = async (importedData: any) => {
     if (!importedData) return;
 
     try {
-      // Appliquer les données importées
-      if (selectedSections.includes('general')) {
-        if (importedData.addressApprox) {
-          setAddress(`${importedData.addressApprox}, ${importedData.city || ''}`.trim());
-        }
+      // Appliquer directement les données importées
+      if (importedData.addressApprox) {
+        setAddress(`${importedData.addressApprox}, ${importedData.city || ''}`.trim());
       }
 
-      if (selectedSections.includes('rules') && importedData.houseRules) {
+      if (importedData.houseRules) {
         if (importedData.houseRules.checkInFrom) {
           setCheckInTime(importedData.houseRules.checkInFrom);
         }
@@ -116,7 +106,7 @@ export default function Step2Practical({ data, onUpdate, bookletId }: Step2Pract
         }
       }
 
-      toast.success("Import appliqué avec succès !");
+      toast.success("Données importées et appliquées avec succès !");
     } catch (error) {
       console.error('Apply import error:', error);
       toast.error("Erreur lors de l'application de l'import");
@@ -343,13 +333,6 @@ export default function Step2Practical({ data, onUpdate, bookletId }: Step2Pract
         onClose={() => setImportModalOpen(false)}
         onImportSuccess={handleImportSuccess}
         bookletId={bookletId}
-      />
-
-      <AirbnbImportPreview
-        open={importPreviewOpen}
-        onClose={() => setImportPreviewOpen(false)}
-        data={importedData || {}}
-        onApply={handleApplyImport}
       />
     </div>
   );

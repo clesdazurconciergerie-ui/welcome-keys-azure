@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2, Sparkles, Download } from "lucide-react";
 import { toast } from "sonner";
 import AirbnbImportModal from "@/components/booklet-editor/AirbnbImportModal";
-import AirbnbImportPreview from "@/components/booklet-editor/AirbnbImportPreview";
 
 interface Step1IdentityProps {
   data: any;
@@ -30,8 +29,6 @@ export default function Step1Identity({ data, onUpdate, bookletId }: Step1Identi
   
   // Import Airbnb states
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [importPreviewOpen, setImportPreviewOpen] = useState(false);
-  const [importedData, setImportedData] = useState<any>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -122,27 +119,20 @@ export default function Step1Identity({ data, onUpdate, bookletId }: Step1Identi
     }
   };
 
-  const handleImportSuccess = (data: any) => {
-    setImportedData(data);
-    setImportPreviewOpen(true);
-  };
-
-  const handleApplyImport = async (selectedSections: string[]) => {
+  const handleImportSuccess = async (importedData: any) => {
     if (!importedData) return;
 
     try {
-      // Appliquer les données importées
-      if (selectedSections.includes('general')) {
-        if (importedData.title) {
-          setPropertyName(importedData.title);
-        }
+      // Appliquer directement les données importées
+      if (importedData.title) {
+        setPropertyName(importedData.title);
       }
 
-      if (selectedSections.includes('description') && importedData.description) {
+      if (importedData.description) {
         setWelcomeMessage(importedData.description);
       }
 
-      if (selectedSections.includes('photos') && importedData.photos && importedData.photos.length > 0) {
+      if (importedData.photos && importedData.photos.length > 0) {
         // Utiliser la première photo comme image de couverture
         setCoverImage(importedData.photos[0]);
       }
@@ -150,11 +140,11 @@ export default function Step1Identity({ data, onUpdate, bookletId }: Step1Identi
       // Appliquer les autres données via onUpdate
       const updates: any = {};
       
-      if (selectedSections.includes('general') && importedData.addressApprox) {
+      if (importedData.addressApprox) {
         updates.property_address = `${importedData.addressApprox}, ${importedData.city || ''}`.trim();
       }
 
-      if (selectedSections.includes('rules') && importedData.houseRules) {
+      if (importedData.houseRules) {
         if (importedData.houseRules.checkInFrom) {
           updates.check_in_time = importedData.houseRules.checkInFrom;
         }
@@ -174,7 +164,7 @@ export default function Step1Identity({ data, onUpdate, bookletId }: Step1Identi
         }
       }
 
-      if (selectedSections.includes('amenities') && importedData.amenities && bookletId) {
+      if (importedData.amenities && bookletId) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           for (const category of importedData.amenities) {
@@ -195,7 +185,7 @@ export default function Step1Identity({ data, onUpdate, bookletId }: Step1Identi
         onUpdate(updates);
       }
 
-      toast.success("Import appliqué avec succès !");
+      toast.success("Données importées et appliquées avec succès !");
     } catch (error) {
       console.error('Apply import error:', error);
       toast.error("Erreur lors de l'application de l'import");
@@ -375,13 +365,6 @@ export default function Step1Identity({ data, onUpdate, bookletId }: Step1Identi
         onClose={() => setImportModalOpen(false)}
         onImportSuccess={handleImportSuccess}
         bookletId={bookletId}
-      />
-
-      <AirbnbImportPreview
-        open={importPreviewOpen}
-        onClose={() => setImportPreviewOpen(false)}
-        data={importedData || {}}
-        onApply={handleApplyImport}
       />
     </div>
   );
