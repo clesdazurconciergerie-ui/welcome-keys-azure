@@ -367,9 +367,9 @@ export default function ViewBooklet() {
         <Button
           onClick={() => setShowMenu(!showMenu)}
           size="icon"
-          className="h-12 w-12 rounded-full shadow-lg"
+          className="h-12 w-12 rounded-full shadow-lg border-0"
           style={{ 
-            backgroundColor: primaryColor,
+            backgroundColor: 'var(--theme-primary)',
             color: '#ffffff'
           }}
         >
@@ -377,19 +377,31 @@ export default function ViewBooklet() {
         </Button>
         
         {showMenu && (
-          <div className="absolute top-16 right-0 w-64 bg-card border border-border rounded-2xl shadow-xl p-3 space-y-1 animate-in slide-in-from-top-5">
+          <div 
+            className="absolute top-16 right-0 w-64 rounded-2xl shadow-xl p-3 space-y-1 animate-in slide-in-from-top-5"
+            style={{
+              backgroundColor: 'var(--theme-bg)',
+              border: '1px solid color-mix(in srgb, var(--theme-text) 20%, transparent)'
+            }}
+          >
             {menuItems.map((item) => {
               const Icon = item.icon;
               return (
                 <button
                   key={item.id}
                   onClick={() => scrollToSection(item.id)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-secondary transition-all text-left group"
+                  className="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left group"
                   style={{ 
                     color: 'var(--theme-text)'
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--theme-primary) 10%, transparent)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
-                  <Icon className="h-4 w-4" style={{ color: primaryColor }} />
+                  <Icon className="h-4 w-4" style={{ color: 'var(--theme-primary)' }} />
                   <span className="flex-1 text-sm font-medium">{item.label}</span>
                   <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
@@ -399,19 +411,24 @@ export default function ViewBooklet() {
         )}
       </div>
 
-      {/* Hero Section with Enhanced Gradient */}
+      {/* Hero Section with Theme-based Gradient */}
       <div 
         className="relative h-72 md:h-80 flex items-end"
         style={{
           backgroundImage: booklet.cover_image_url ? `url(${booklet.cover_image_url})` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          backgroundColor: booklet.cover_image_url ? undefined : primaryColor
+          background: booklet.cover_image_url 
+            ? `url(${booklet.cover_image_url}) center/cover`
+            : `linear-gradient(135deg, var(--theme-primary) 0%, color-mix(in srgb, var(--theme-primary) 70%, black) 100%)`
         }}
       >
         <div 
-          className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" 
-          style={{ opacity: 0.65 }}
+          className="absolute inset-0" 
+          style={{ 
+            background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.75) 100%)',
+            opacity: booklet.cover_image_url ? 1 : 0.5
+          }}
         />
         <div className="relative z-10 w-full px-4 md:px-8 pb-8 text-white">
           <div className="max-w-4xl mx-auto">
@@ -448,27 +465,43 @@ export default function ViewBooklet() {
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-10 space-y-8">
         {/* Welcome Message */}
         {booklet.welcome_message && (
-          <Card id="welcome" className="shadow-lg border-0 bg-gradient-to-br from-card to-secondary/20">
+          <Card 
+            id="welcome" 
+            className="shadow-lg border-0"
+            style={{
+              background: `linear-gradient(135deg, var(--theme-bg) 0%, color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg)) 100%)`,
+              borderColor: 'color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+            }}
+          >
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-2xl">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <DoorOpen className="h-6 w-6 text-primary" />
+              <CardTitle className="flex items-center gap-3 text-2xl" style={{ color: 'var(--theme-text)' }}>
+                <div className="p-2 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 15%, transparent)' }}>
+                  <DoorOpen className="h-6 w-6" style={{ color: 'var(--theme-primary)' }} />
                 </div>
                 <span>Bienvenue</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="whitespace-pre-wrap ai-description text-base leading-relaxed">{booklet.welcome_message}</p>
+              <p className="whitespace-pre-wrap ai-description text-base leading-relaxed" style={{ color: 'var(--theme-text)' }}>
+                {booklet.welcome_message}
+              </p>
             </CardContent>
           </Card>
         )}
 
         {/* Practical Info - Enhanced Grid Layout */}
-        <Card id="practical" className="shadow-lg border-0">
-          <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
-            <CardTitle className="flex items-center gap-3 text-2xl">
-              <div className="p-2 rounded-xl bg-primary/10">
-                <Clock className="h-6 w-6 text-primary" />
+        <Card 
+          id="practical" 
+          className="shadow-lg border-0"
+          style={{
+            backgroundColor: 'var(--theme-bg)',
+            borderColor: 'color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+          }}
+        >
+          <CardHeader style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--theme-primary) 8%, transparent) 0%, transparent 100%)' }}>
+            <CardTitle className="flex items-center gap-3 text-2xl" style={{ color: 'var(--theme-text)' }}>
+              <div className="p-2 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 15%, transparent)' }}>
+                <Clock className="h-6 w-6" style={{ color: 'var(--theme-primary)' }} />
               </div>
               <span>Informations pratiques</span>
             </CardTitle>
@@ -479,21 +512,33 @@ export default function ViewBooklet() {
               {(booklet.check_in_time || booklet.check_out_time) && (
                 <>
                   {booklet.check_in_time && (
-                    <div className="bg-secondary/50 p-5 rounded-xl border border-border/50 hover:shadow-md transition-shadow">
+                    <div 
+                      className="p-5 rounded-xl transition-shadow hover:shadow-md"
+                      style={{
+                        backgroundColor: 'color-mix(in srgb, var(--theme-primary) 8%, var(--theme-bg))',
+                        border: '1px solid color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+                      }}
+                    >
                       <div className="flex items-center gap-3 mb-2">
-                        <LogIn className="h-5 w-5 text-primary" />
-                        <h3 className="text-lg font-semibold">Arrivée</h3>
+                        <LogIn className="h-5 w-5" style={{ color: 'var(--theme-primary)' }} />
+                        <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>Arrivée</h3>
                       </div>
-                      <p className="text-2xl font-bold text-primary">{booklet.check_in_time}</p>
+                      <p className="text-2xl font-bold" style={{ color: 'var(--theme-primary)' }}>{booklet.check_in_time}</p>
                     </div>
                   )}
                   {booklet.check_out_time && (
-                    <div className="bg-secondary/50 p-5 rounded-xl border border-border/50 hover:shadow-md transition-shadow">
+                    <div 
+                      className="p-5 rounded-xl transition-shadow hover:shadow-md"
+                      style={{
+                        backgroundColor: 'color-mix(in srgb, var(--theme-primary) 8%, var(--theme-bg))',
+                        border: '1px solid color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+                      }}
+                    >
                       <div className="flex items-center gap-3 mb-2">
-                        <LogOut className="h-5 w-5 text-primary" />
-                        <h3 className="text-lg font-semibold">Départ</h3>
+                        <LogOut className="h-5 w-5" style={{ color: 'var(--theme-primary)' }} />
+                        <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>Départ</h3>
                       </div>
-                      <p className="text-2xl font-bold text-primary">{booklet.check_out_time}</p>
+                      <p className="text-2xl font-bold" style={{ color: 'var(--theme-primary)' }}>{booklet.check_out_time}</p>
                     </div>
                   )}
                 </>
@@ -501,12 +546,18 @@ export default function ViewBooklet() {
               
               {/* Access code */}
               {booklet.access_code && (
-                <div className="bg-secondary/50 p-5 rounded-xl border border-border/50 hover:shadow-md transition-shadow md:col-span-2">
+                <div 
+                  className="p-5 rounded-xl transition-shadow hover:shadow-md md:col-span-2"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--theme-primary) 8%, var(--theme-bg))',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+                  }}
+                >
                   <div className="flex items-center gap-3 mb-2">
-                    <Shield className="h-5 w-5 text-primary" />
-                    <h3 className="text-lg font-semibold">Code d'accès</h3>
+                    <Shield className="h-5 w-5" style={{ color: 'var(--theme-primary)' }} />
+                    <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>Code d'accès</h3>
                   </div>
-                  <p className="whitespace-pre-wrap mt-1 font-mono text-lg">{booklet.access_code}</p>
+                  <p className="whitespace-pre-wrap mt-1 font-mono text-lg" style={{ color: 'var(--theme-text)' }}>{booklet.access_code}</p>
                 </div>
               )}
             </div>
@@ -514,16 +565,23 @@ export default function ViewBooklet() {
             {/* Full-width sections */}
             <div className="space-y-5 mt-6">
               {booklet.google_maps_link && (
-                <div className="bg-secondary/30 p-5 rounded-xl border border-border/50">
+                <div 
+                  className="p-5 rounded-xl"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 15%, transparent)'
+                  }}
+                >
                   <div className="flex items-center gap-3 mb-2">
-                    <MapPin className="h-5 w-5 text-primary" />
-                    <strong className="text-base">Localisation</strong>
+                    <MapPin className="h-5 w-5" style={{ color: 'var(--theme-primary)' }} />
+                    <strong className="text-base" style={{ color: 'var(--theme-text)' }}>Localisation</strong>
                   </div>
                   <a 
                     href={booklet.google_maps_link} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="text-primary hover:underline font-medium inline-flex items-center gap-2"
+                    className="hover:underline font-medium inline-flex items-center gap-2"
+                    style={{ color: 'var(--theme-primary)' }}
                   >
                     Voir sur Google Maps
                     <ChevronRight className="h-4 w-4" />
@@ -532,42 +590,67 @@ export default function ViewBooklet() {
               )}
 
               {booklet.checkin_procedure && (
-                <div className="bg-secondary/30 p-5 rounded-xl border border-border/50">
+                <div 
+                  className="p-5 rounded-xl"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 15%, transparent)'
+                  }}
+                >
                   <div className="flex items-center gap-3 mb-3">
-                    <LogIn className="h-5 w-5 text-primary" />
-                    <strong className="text-base">Procédure d'arrivée</strong>
+                    <LogIn className="h-5 w-5" style={{ color: 'var(--theme-primary)' }} />
+                    <strong className="text-base" style={{ color: 'var(--theme-text)' }}>Procédure d'arrivée</strong>
                   </div>
-                  <p className="whitespace-pre-wrap ai-description">{booklet.checkin_procedure}</p>
+                  <p className="whitespace-pre-wrap ai-description" style={{ color: 'var(--theme-text)' }}>{booklet.checkin_procedure}</p>
                 </div>
               )}
 
               {booklet.checkout_procedure && (
-                <div className="bg-secondary/30 p-5 rounded-xl border border-border/50">
+                <div 
+                  className="p-5 rounded-xl"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 15%, transparent)'
+                  }}
+                >
                   <div className="flex items-center gap-3 mb-3">
-                    <LogOut className="h-5 w-5 text-primary" />
-                    <strong className="text-base">Procédure de départ</strong>
+                    <LogOut className="h-5 w-5" style={{ color: 'var(--theme-primary)' }} />
+                    <strong className="text-base" style={{ color: 'var(--theme-text)' }}>Procédure de départ</strong>
                   </div>
-                  <p className="whitespace-pre-wrap ai-description">{booklet.checkout_procedure}</p>
+                  <p className="whitespace-pre-wrap ai-description" style={{ color: 'var(--theme-text)' }}>{booklet.checkout_procedure}</p>
                 </div>
               )}
 
               {booklet.parking_info && (
-                <div className="bg-secondary/30 p-5 rounded-xl border border-border/50">
+                <div 
+                  className="p-5 rounded-xl"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 15%, transparent)'
+                  }}
+                >
                   <div className="flex items-center gap-3 mb-3">
-                    <Car className="h-5 w-5 text-primary" />
-                    <strong className="text-base">Stationnement</strong>
+                    <Car className="h-5 w-5" style={{ color: 'var(--theme-primary)' }} />
+                    <strong className="text-base" style={{ color: 'var(--theme-text)' }}>Stationnement</strong>
                   </div>
-                  <p className="whitespace-pre-wrap">{booklet.parking_info}</p>
+                  <p className="whitespace-pre-wrap" style={{ color: 'var(--theme-text)' }}>{booklet.parking_info}</p>
                 </div>
               )}
 
               {booklet.manual_pdf_url && (
-                <div className="bg-secondary/30 p-5 rounded-xl border border-border/50">
+                <div 
+                  className="p-5 rounded-xl"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 15%, transparent)'
+                  }}
+                >
                   <a 
                     href={booklet.manual_pdf_url} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="text-primary hover:underline font-medium inline-flex items-center gap-2"
+                    className="hover:underline font-medium inline-flex items-center gap-2"
+                    style={{ color: 'var(--theme-primary)' }}
                   >
                     <FileText className="h-5 w-5" />
                     Télécharger le manuel complet
@@ -577,12 +660,18 @@ export default function ViewBooklet() {
               )}
 
               {booklet.safety_tips && (
-                <div className="bg-secondary/30 p-5 rounded-xl border border-border/50">
+                <div 
+                  className="p-5 rounded-xl"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 15%, transparent)'
+                  }}
+                >
                   <div className="flex items-center gap-3 mb-3">
-                    <Shield className="h-5 w-5 text-primary" />
-                    <strong className="text-base">Conseils de sécurité</strong>
+                    <Shield className="h-5 w-5" style={{ color: 'var(--theme-primary)' }} />
+                    <strong className="text-base" style={{ color: 'var(--theme-text)' }}>Conseils de sécurité</strong>
                   </div>
-                  <p className="whitespace-pre-wrap">{booklet.safety_tips}</p>
+                  <p className="whitespace-pre-wrap" style={{ color: 'var(--theme-text)' }}>{booklet.safety_tips}</p>
                 </div>
               )}
             </div>
@@ -591,11 +680,18 @@ export default function ViewBooklet() {
 
         {/* WiFi Section */}
         {booklet.wifi_ssid && (
-          <Card id="wifi" className="shadow-lg border-0 bg-gradient-to-br from-card to-blue-50/30 dark:to-blue-950/20">
+          <Card 
+            id="wifi" 
+            className="shadow-lg border-0"
+            style={{
+              background: `linear-gradient(135deg, var(--theme-bg) 0%, color-mix(in srgb, var(--theme-accent, var(--theme-primary)) 8%, var(--theme-bg)) 100%)`,
+              borderColor: 'color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+            }}
+          >
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-2xl">
-                <div className="p-2 rounded-xl bg-blue-500/10">
-                  <Wifi className="h-6 w-6 text-blue-600" />
+              <CardTitle className="flex items-center gap-3 text-2xl" style={{ color: 'var(--theme-text)' }}>
+                <div className="p-2 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-accent, var(--theme-primary)) 15%, transparent)' }}>
+                  <Wifi className="h-6 w-6" style={{ color: 'var(--theme-accent, var(--theme-primary))' }} />
                 </div>
                 <span>WiFi</span>
               </CardTitle>
@@ -603,13 +699,25 @@ export default function ViewBooklet() {
             <CardContent>
               {wifiCredentials ? (
                 <div className="space-y-4">
-                  <div className="bg-background p-4 rounded-xl border border-blue-200/50">
-                    <strong className="text-sm text-muted-foreground">Réseau</strong>
-                    <p className="text-lg font-semibold mt-1">{wifiCredentials.ssid}</p>
+                  <div 
+                    className="p-4 rounded-xl"
+                    style={{
+                      backgroundColor: 'var(--theme-bg)',
+                      border: '1px solid color-mix(in srgb, var(--theme-accent, var(--theme-primary)) 25%, transparent)'
+                    }}
+                  >
+                    <strong className="text-sm" style={{ color: 'var(--theme-muted)' }}>Réseau</strong>
+                    <p className="text-lg font-semibold mt-1" style={{ color: 'var(--theme-text)' }}>{wifiCredentials.ssid}</p>
                   </div>
-                  <div className="bg-background p-4 rounded-xl border border-blue-200/50">
+                  <div 
+                    className="p-4 rounded-xl"
+                    style={{
+                      backgroundColor: 'var(--theme-bg)',
+                      border: '1px solid color-mix(in srgb, var(--theme-accent, var(--theme-primary)) 25%, transparent)'
+                    }}
+                  >
                     <div className="flex items-center justify-between mb-2">
-                      <strong className="text-sm text-muted-foreground">Mot de passe</strong>
+                      <strong className="text-sm" style={{ color: 'var(--theme-muted)' }}>Mot de passe</strong>
                       <div className="flex gap-2">
                         <Button
                           variant="ghost"
@@ -629,21 +737,33 @@ export default function ViewBooklet() {
                         )}
                       </div>
                     </div>
-                    <p className="text-lg font-mono font-semibold">{showWifiPassword ? wifiCredentials.password : '••••••••'}</p>
+                    <p className="text-lg font-mono font-semibold" style={{ color: 'var(--theme-text)' }}>
+                      {showWifiPassword ? wifiCredentials.password : '••••••••'}
+                    </p>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="bg-background p-4 rounded-xl border border-blue-200/50">
-                    <strong className="text-sm text-muted-foreground">Réseau</strong>
-                    <p className="text-lg font-semibold mt-1">{booklet.wifi_ssid}</p>
+                  <div 
+                    className="p-4 rounded-xl"
+                    style={{
+                      backgroundColor: 'var(--theme-bg)',
+                      border: '1px solid color-mix(in srgb, var(--theme-accent, var(--theme-primary)) 25%, transparent)'
+                    }}
+                  >
+                    <strong className="text-sm" style={{ color: 'var(--theme-muted)' }}>Réseau</strong>
+                    <p className="text-lg font-semibold mt-1" style={{ color: 'var(--theme-text)' }}>{booklet.wifi_ssid}</p>
                   </div>
                   <Button
                     variant="default"
                     size="lg"
                     onClick={handleShowWifiPassword}
                     disabled={loadingWifi}
-                    className="w-full"
+                    className="w-full border-0"
+                    style={{
+                      backgroundColor: 'var(--theme-primary)',
+                      color: '#ffffff'
+                    }}
                   >
                     {loadingWifi ? (
                       <>
@@ -665,11 +785,18 @@ export default function ViewBooklet() {
 
         {/* Equipment */}
         {booklet.equipment && booklet.equipment.length > 0 && (
-          <Card id="equipment" className="shadow-lg border-0">
-            <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
-              <CardTitle className="flex items-center gap-3 text-2xl">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Package className="h-6 w-6 text-primary" />
+          <Card 
+            id="equipment" 
+            className="shadow-lg border-0"
+            style={{
+              backgroundColor: 'var(--theme-bg)',
+              borderColor: 'color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+            }}
+          >
+            <CardHeader style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--theme-primary) 8%, transparent) 0%, transparent 100%)' }}>
+              <CardTitle className="flex items-center gap-3 text-2xl" style={{ color: 'var(--theme-text)' }}>
+                <div className="p-2 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 15%, transparent)' }}>
+                  <Package className="h-6 w-6" style={{ color: 'var(--theme-primary)' }} />
                 </div>
                 <span>Équipements & Modes d'emploi</span>
               </CardTitle>
@@ -677,20 +804,42 @@ export default function ViewBooklet() {
             <CardContent className="pt-4">
               <Accordion type="single" collapsible className="w-full">
                 {booklet.equipment.map((item, index) => (
-                  <AccordionItem key={item.id} value={`item-${index}`} className="border-b border-border/50">
-                    <AccordionTrigger className="hover:no-underline hover:bg-secondary/50 px-4 rounded-lg transition-colors">
+                  <AccordionItem 
+                    key={item.id} 
+                    value={`item-${index}`}
+                    style={{ borderBottom: '1px solid color-mix(in srgb, var(--theme-text) 15%, transparent)' }}
+                  >
+                    <AccordionTrigger 
+                      className="hover:no-underline px-4 rounded-lg transition-colors"
+                      style={{ color: 'var(--theme-text)' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--theme-primary) 8%, transparent)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
                       <div className="flex items-center gap-3">
                         <strong className="text-base">{item.name}</strong>
-                        <Badge variant="secondary" className="text-xs">{item.category}</Badge>
+                        <Badge 
+                          variant="secondary" 
+                          className="text-xs"
+                          style={{
+                            backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, transparent)',
+                            color: 'var(--theme-text)'
+                          }}
+                        >
+                          {item.category}
+                        </Badge>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="px-4 pt-3 pb-4 space-y-4">
                       {item.steps && item.steps.length > 0 && (
                         <div className="space-y-2">
-                          <p className="text-sm font-semibold text-foreground">Mode d'emploi :</p>
+                          <p className="text-sm font-semibold" style={{ color: 'var(--theme-text)' }}>Mode d'emploi :</p>
                           <ol className="list-decimal pl-5 space-y-1.5">
                             {item.steps.map((step) => (
-                              <li key={step.id} className="text-muted-foreground leading-relaxed">
+                              <li key={step.id} className="leading-relaxed" style={{ color: 'var(--theme-muted)' }}>
                                 {step.text}
                               </li>
                             ))}
@@ -704,7 +853,16 @@ export default function ViewBooklet() {
                             <button
                               key={photoIndex}
                               onClick={() => setLightboxImage({ url: photo.url, alt: photo.alt || item.name })}
-                              className="group relative rounded-lg overflow-hidden aspect-square hover:ring-2 hover:ring-primary transition-all"
+                              className="group relative rounded-lg overflow-hidden aspect-square transition-all"
+                              style={{
+                                border: '2px solid transparent'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = 'var(--theme-primary)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = 'transparent';
+                              }}
                             >
                               <img
                                 src={photo.url}
@@ -722,7 +880,8 @@ export default function ViewBooklet() {
                           href={item.manual_url} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className="text-primary hover:underline inline-flex items-center gap-2 font-medium"
+                          className="hover:underline inline-flex items-center gap-2 font-medium"
+                          style={{ color: 'var(--theme-primary)' }}
                         >
                           <FileText className="h-4 w-4" />
                           Voir le manuel
@@ -739,29 +898,42 @@ export default function ViewBooklet() {
 
         {/* Cleaning & Waste */}
         {(booklet.waste_location || booklet.sorting_instructions || booklet.cleaning_rules || booklet.cleaning_tips) && (
-          <Card id="cleaning" className="shadow-lg border-0 bg-gradient-to-br from-card to-green-50/30 dark:to-green-950/20">
+          <Card 
+            id="cleaning" 
+            className="shadow-lg border-0"
+            style={{
+              background: `linear-gradient(135deg, var(--theme-bg) 0%, color-mix(in srgb, var(--theme-accent, var(--theme-primary)) 6%, var(--theme-bg)) 100%)`,
+              borderColor: 'color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+            }}
+          >
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-2xl">
-                <div className="p-2 rounded-xl bg-green-500/10">
-                  <Recycle className="h-6 w-6 text-green-600" />
+              <CardTitle className="flex items-center gap-3 text-2xl" style={{ color: 'var(--theme-text)' }}>
+                <div className="p-2 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-accent, var(--theme-primary)) 15%, transparent)' }}>
+                  <Recycle className="h-6 w-6" style={{ color: 'var(--theme-accent, var(--theme-primary))' }} />
                 </div>
                 <span>Ménage & Tri des déchets</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
               {booklet.sorting_instructions && (
-                <div className="bg-gradient-to-r from-green-50 to-transparent dark:from-green-950/30 p-5 rounded-xl border border-green-200/50 dark:border-green-800/50">
+                <div 
+                  className="p-5 rounded-xl"
+                  style={{
+                    background: `linear-gradient(90deg, color-mix(in srgb, var(--theme-accent, var(--theme-primary)) 10%, transparent) 0%, transparent 100%)`,
+                    border: '1px solid color-mix(in srgb, var(--theme-accent, var(--theme-primary)) 25%, transparent)'
+                  }}
+                >
                   <div className="flex items-center gap-3 mb-3">
-                    <Calendar className="h-5 w-5 text-green-600" />
-                    <strong className="text-base">Collecte des déchets</strong>
+                    <Calendar className="h-5 w-5" style={{ color: 'var(--theme-accent, var(--theme-primary))' }} />
+                    <strong className="text-base" style={{ color: 'var(--theme-text)' }}>Collecte des déchets</strong>
                   </div>
                   <div className="whitespace-pre-wrap ai-description space-y-2">
                     {booklet.sorting_instructions.split('\n').map((line, i) => {
                       if (line.trim()) {
                         return (
                           <p key={i} className="flex items-start gap-2">
-                            <span className="text-green-600 font-bold mt-1">•</span>
-                            <span>{line}</span>
+                            <span className="font-bold mt-1" style={{ color: 'var(--theme-accent, var(--theme-primary))' }}>•</span>
+                            <span style={{ color: 'var(--theme-text)' }}>{line}</span>
                           </p>
                         );
                       }
@@ -771,30 +943,48 @@ export default function ViewBooklet() {
                 </div>
               )}
               {booklet.waste_location && (
-                <div className="bg-background p-5 rounded-xl border border-border/50">
+                <div 
+                  className="p-5 rounded-xl"
+                  style={{
+                    backgroundColor: 'var(--theme-bg)',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+                  }}
+                >
                   <div className="flex items-center gap-3 mb-3">
-                    <MapPin className="h-5 w-5 text-primary" />
-                    <strong className="text-base">Accès aux containers</strong>
+                    <MapPin className="h-5 w-5" style={{ color: 'var(--theme-primary)' }} />
+                    <strong className="text-base" style={{ color: 'var(--theme-text)' }}>Accès aux containers</strong>
                   </div>
-                  <p className="whitespace-pre-wrap ai-description">{booklet.waste_location}</p>
+                  <p className="whitespace-pre-wrap ai-description" style={{ color: 'var(--theme-text)' }}>{booklet.waste_location}</p>
                 </div>
               )}
               {booklet.cleaning_rules && (
-                <div className="bg-background p-5 rounded-xl border border-border/50">
+                <div 
+                  className="p-5 rounded-xl"
+                  style={{
+                    backgroundColor: 'var(--theme-bg)',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+                  }}
+                >
                   <div className="flex items-center gap-3 mb-3">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                    <strong className="text-base">Règles de nettoyage</strong>
+                    <Sparkles className="h-5 w-5" style={{ color: 'var(--theme-primary)' }} />
+                    <strong className="text-base" style={{ color: 'var(--theme-text)' }}>Règles de nettoyage</strong>
                   </div>
-                  <p className="whitespace-pre-wrap ai-description">{booklet.cleaning_rules}</p>
+                  <p className="whitespace-pre-wrap ai-description" style={{ color: 'var(--theme-text)' }}>{booklet.cleaning_rules}</p>
                 </div>
               )}
               {booklet.cleaning_tips && (
-                <div className="bg-background p-5 rounded-xl border border-border/50">
+                <div 
+                  className="p-5 rounded-xl"
+                  style={{
+                    backgroundColor: 'var(--theme-bg)',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+                  }}
+                >
                   <div className="flex items-center gap-3 mb-3">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                    <strong className="text-base">Conseils d'entretien</strong>
+                    <Sparkles className="h-5 w-5" style={{ color: 'var(--theme-primary)' }} />
+                    <strong className="text-base" style={{ color: 'var(--theme-text)' }}>Conseils d'entretien</strong>
                   </div>
-                  <p className="whitespace-pre-wrap ai-description">{booklet.cleaning_tips}</p>
+                  <p className="whitespace-pre-wrap ai-description" style={{ color: 'var(--theme-text)' }}>{booklet.cleaning_tips}</p>
                 </div>
               )}
             </CardContent>
@@ -803,17 +993,25 @@ export default function ViewBooklet() {
 
         {/* House Rules */}
         {booklet.house_rules && (
-          <Card className="shadow-lg border-0">
-            <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
-              <CardTitle className="flex items-center gap-3 text-2xl">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Shield className="h-6 w-6 text-primary" />
+          <Card 
+            className="shadow-lg border-0"
+            style={{
+              backgroundColor: 'var(--theme-bg)',
+              borderColor: 'color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+            }}
+          >
+            <CardHeader style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--theme-primary) 8%, transparent) 0%, transparent 100%)' }}>
+              <CardTitle className="flex items-center gap-3 text-2xl" style={{ color: 'var(--theme-text)' }}>
+                <div className="p-2 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 15%, transparent)' }}>
+                  <Shield className="h-6 w-6" style={{ color: 'var(--theme-primary)' }} />
                 </div>
                 <span>Règlement intérieur</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <p className="whitespace-pre-wrap ai-description leading-relaxed">{booklet.house_rules}</p>
+              <p className="whitespace-pre-wrap ai-description leading-relaxed" style={{ color: 'var(--theme-text)' }}>
+                {booklet.house_rules}
+              </p>
             </CardContent>
           </Card>
         )}
@@ -844,11 +1042,18 @@ export default function ViewBooklet() {
           });
 
           return sortedPlaces.length > 0 ? (
-            <Card id="nearby" className="shadow-lg border-0">
-              <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
-                <CardTitle className="flex items-center gap-3 text-2xl">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <MapPinIcon className="h-6 w-6 text-primary" />
+            <Card 
+              id="nearby" 
+              className="shadow-lg border-0"
+              style={{
+                backgroundColor: 'var(--theme-bg)',
+                borderColor: 'color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+              }}
+            >
+              <CardHeader style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--theme-primary) 8%, transparent) 0%, transparent 100%)' }}>
+                <CardTitle className="flex items-center gap-3 text-2xl" style={{ color: 'var(--theme-text)' }}>
+                  <div className="p-2 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 15%, transparent)' }}>
+                    <MapPinIcon className="h-6 w-6" style={{ color: 'var(--theme-primary)' }} />
                   </div>
                   <span>À proximité</span>
                 </CardTitle>
@@ -858,32 +1063,52 @@ export default function ViewBooklet() {
                   {sortedPlaces.map((place: any) => (
                     <div 
                       key={place.id} 
-                      className="bg-secondary/30 p-5 rounded-xl border border-border/50 hover:shadow-lg hover:border-primary/20 transition-all"
+                      className="p-5 rounded-xl transition-all hover:shadow-lg"
+                      style={{
+                        backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
+                        border: '1px solid color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--theme-primary) 40%, transparent)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--theme-primary) 20%, transparent)';
+                      }}
                     >
                       <div className="flex items-start gap-3 mb-3">
-                        <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                        <MapPin className="h-5 w-5 mt-0.5 flex-shrink-0" style={{ color: 'var(--theme-primary)' }} />
                         <div className="flex-1">
-                          <h3 className="font-semibold text-lg mb-1">{place.name}</h3>
-                          <Badge variant="secondary" className="text-xs">
+                          <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--theme-text)' }}>{place.name}</h3>
+                          <Badge 
+                            variant="secondary" 
+                            className="text-xs"
+                            style={{
+                              backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, transparent)',
+                              color: 'var(--theme-text)'
+                            }}
+                          >
                             {place.category}
                           </Badge>
                         </div>
                       </div>
                       {place.distance && (
-                        <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                        <p className="text-sm mb-2 flex items-center gap-2" style={{ color: 'var(--theme-muted)' }}>
                           <Clock className="h-4 w-4" />
                           {place.distance}
                         </p>
                       )}
                       {place.note && (
-                        <p className="text-sm mb-3 text-foreground/80">{place.note}</p>
+                        <p className="text-sm mb-3" style={{ color: 'color-mix(in srgb, var(--theme-text) 80%, transparent)' }}>
+                          {place.note}
+                        </p>
                       )}
                       {place.mapsUrl && (
                         <a
                           href={place.mapsUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-primary hover:underline inline-flex items-center gap-2 font-medium"
+                          className="text-sm hover:underline inline-flex items-center gap-2 font-medium"
+                          style={{ color: 'var(--theme-primary)' }}
                         >
                           Voir l'itinéraire
                           <ChevronRight className="h-4 w-4" />
@@ -900,11 +1125,18 @@ export default function ViewBooklet() {
 
         {/* FAQ */}
         {booklet.faq && booklet.faq.length > 0 && (
-          <Card id="faq" className="shadow-lg border-0">
-            <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
-              <CardTitle className="flex items-center gap-3 text-2xl">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <HelpCircle className="h-6 w-6 text-primary" />
+          <Card 
+            id="faq" 
+            className="shadow-lg border-0"
+            style={{
+              backgroundColor: 'var(--theme-bg)',
+              borderColor: 'color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+            }}
+          >
+            <CardHeader style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--theme-primary) 8%, transparent) 0%, transparent 100%)' }}>
+              <CardTitle className="flex items-center gap-3 text-2xl" style={{ color: 'var(--theme-text)' }}>
+                <div className="p-2 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 15%, transparent)' }}>
+                  <HelpCircle className="h-6 w-6" style={{ color: 'var(--theme-primary)' }} />
                 </div>
                 <span>Questions fréquentes</span>
               </CardTitle>
@@ -912,11 +1144,24 @@ export default function ViewBooklet() {
             <CardContent className="pt-4">
               <Accordion type="single" collapsible className="w-full">
                 {booklet.faq.map((item, index) => (
-                  <AccordionItem key={item.id} value={`faq-${index}`} className="border-b border-border/50">
-                    <AccordionTrigger className="hover:no-underline hover:bg-secondary/50 px-4 rounded-lg transition-colors text-left">
+                  <AccordionItem 
+                    key={item.id} 
+                    value={`faq-${index}`}
+                    style={{ borderBottom: '1px solid color-mix(in srgb, var(--theme-text) 15%, transparent)' }}
+                  >
+                    <AccordionTrigger 
+                      className="hover:no-underline px-4 rounded-lg transition-colors text-left"
+                      style={{ color: 'var(--theme-text)' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--theme-primary) 8%, transparent)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
                       <span className="font-semibold">{item.question}</span>
                     </AccordionTrigger>
-                    <AccordionContent className="px-4 pt-3 pb-4 text-muted-foreground">
+                    <AccordionContent className="px-4 pt-3 pb-4" style={{ color: 'var(--theme-muted)' }}>
                       {item.answer}
                     </AccordionContent>
                   </AccordionItem>
@@ -928,38 +1173,69 @@ export default function ViewBooklet() {
 
         {/* Legal & Safety */}
         {(booklet.airbnb_license || booklet.safety_instructions || booklet.gdpr_notice || booklet.disclaimer) && (
-          <Card id="legal" className="shadow-lg border-0">
-            <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
-              <CardTitle className="flex items-center gap-3 text-2xl">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Shield className="h-6 w-6 text-primary" />
+          <Card 
+            id="legal" 
+            className="shadow-lg border-0"
+            style={{
+              backgroundColor: 'var(--theme-bg)',
+              borderColor: 'color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+            }}
+          >
+            <CardHeader style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--theme-primary) 8%, transparent) 0%, transparent 100%)' }}>
+              <CardTitle className="flex items-center gap-3 text-2xl" style={{ color: 'var(--theme-text)' }}>
+                <div className="p-2 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 15%, transparent)' }}>
+                  <Shield className="h-6 w-6" style={{ color: 'var(--theme-primary)' }} />
                 </div>
                 <span>Informations légales & Sécurité</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm pt-6">
               {booklet.airbnb_license && (
-                <div className="bg-secondary/30 p-4 rounded-xl">
-                  <strong className="text-base">Numéro de licence</strong>
-                  <p className="mt-1">{booklet.airbnb_license}</p>
+                <div 
+                  className="p-4 rounded-xl"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 15%, transparent)'
+                  }}
+                >
+                  <strong className="text-base" style={{ color: 'var(--theme-text)' }}>Numéro de licence</strong>
+                  <p className="mt-1" style={{ color: 'var(--theme-text)' }}>{booklet.airbnb_license}</p>
                 </div>
               )}
               {booklet.safety_instructions && (
-                <div className="bg-secondary/30 p-4 rounded-xl">
-                  <strong className="text-base">Consignes de sécurité</strong>
-                  <p className="whitespace-pre-wrap mt-2">{booklet.safety_instructions}</p>
+                <div 
+                  className="p-4 rounded-xl"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 15%, transparent)'
+                  }}
+                >
+                  <strong className="text-base" style={{ color: 'var(--theme-text)' }}>Consignes de sécurité</strong>
+                  <p className="whitespace-pre-wrap mt-2" style={{ color: 'var(--theme-text)' }}>{booklet.safety_instructions}</p>
                 </div>
               )}
               {booklet.gdpr_notice && (
-                <div className="bg-secondary/30 p-4 rounded-xl">
-                  <strong className="text-base">RGPD</strong>
-                  <p className="whitespace-pre-wrap mt-2">{booklet.gdpr_notice}</p>
+                <div 
+                  className="p-4 rounded-xl"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 15%, transparent)'
+                  }}
+                >
+                  <strong className="text-base" style={{ color: 'var(--theme-text)' }}>RGPD</strong>
+                  <p className="whitespace-pre-wrap mt-2" style={{ color: 'var(--theme-text)' }}>{booklet.gdpr_notice}</p>
                 </div>
               )}
               {booklet.disclaimer && (
-                <div className="bg-secondary/30 p-4 rounded-xl">
-                  <strong className="text-base">Clause de non-responsabilité</strong>
-                  <p className="whitespace-pre-wrap mt-2">{booklet.disclaimer}</p>
+                <div 
+                  className="p-4 rounded-xl"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 15%, transparent)'
+                  }}
+                >
+                  <strong className="text-base" style={{ color: 'var(--theme-text)' }}>Clause de non-responsabilité</strong>
+                  <p className="whitespace-pre-wrap mt-2" style={{ color: 'var(--theme-text)' }}>{booklet.disclaimer}</p>
                 </div>
               )}
             </CardContent>
@@ -968,11 +1244,17 @@ export default function ViewBooklet() {
 
         {/* Gallery */}
         {booklet.gallery && booklet.gallery.length > 0 && (
-          <Card className="shadow-lg border-0">
-            <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
-              <CardTitle className="flex items-center gap-3 text-2xl">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Sparkles className="h-6 w-6 text-primary" />
+          <Card 
+            className="shadow-lg border-0"
+            style={{
+              backgroundColor: 'var(--theme-bg)',
+              borderColor: 'color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+            }}
+          >
+            <CardHeader style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--theme-primary) 8%, transparent) 0%, transparent 100%)' }}>
+              <CardTitle className="flex items-center gap-3 text-2xl" style={{ color: 'var(--theme-text)' }}>
+                <div className="p-2 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 15%, transparent)' }}>
+                  <Sparkles className="h-6 w-6" style={{ color: 'var(--theme-primary)' }} />
                 </div>
                 <span>Galerie</span>
               </CardTitle>
