@@ -3,11 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
-import { CreditCard, Calendar, CheckCircle, AlertCircle, ExternalLink, Clock } from "lucide-react";
+import { CreditCard, Calendar, CheckCircle, AlertCircle, ExternalLink, Clock, RefreshCw } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useState } from "react";
 
 const PAYMENT_LINKS = {
   pack_starter: 'https://buy.stripe.com/test/cNi5kDeMB6Cd8htgEQ',
@@ -27,8 +30,10 @@ const SubscriptionSection = () => {
     subscriptionStatus,
     trialExpiresAt,
     demoExpiresAt,
+    refresh,
   } = useSubscription();
   const navigate = useNavigate();
+  const [isSyncing, setIsSyncing] = useState(false);
 
   if (isLoading) {
     return (
@@ -89,6 +94,37 @@ const SubscriptionSection = () => {
       window.location.href = `${link}?client_reference_id=${userEmail}&success_url=${encodeURIComponent(returnUrl)}`;
     } else {
       navigate('/tarifs');
+    }
+  };
+
+  const handleSyncStripe = async () => {
+    setIsSyncing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Non authentifié');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('sync-stripe-subscription', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success('✅ Abonnement synchronisé avec Stripe');
+        await refresh();
+      } else {
+        toast.error(data.message || 'Erreur lors de la synchronisation');
+      }
+    } catch (error: any) {
+      console.error('Sync error:', error);
+      toast.error('Échec de la synchronisation');
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -294,6 +330,15 @@ const SubscriptionSection = () => {
                   >
                     <CreditCard className="w-4 h-4 mr-2" />
                     Gérer mon abonnement
+                  </Button>
+                  <Button
+                    onClick={handleSyncStripe}
+                    variant="outline"
+                    className="flex-1"
+                    disabled={isSyncing}
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                    Synchroniser Stripe
                   </Button>
                   <Button
                     onClick={() => navigate('/tarifs')}

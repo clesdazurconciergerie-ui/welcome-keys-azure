@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.import-airbnb]
 verify_jwt = true
+
+[functions.sync-stripe-subscription]
+verify_jwt = true
