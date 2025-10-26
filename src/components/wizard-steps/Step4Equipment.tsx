@@ -6,17 +6,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 // Génération d'ID stable
 const uid = () => crypto.randomUUID?.() || Math.random().toString(36).slice(2);
 
+interface Step {
+  id: string;
+  text: string;
+}
+
 interface Equipment {
   id: string;
   name: string;
   category: string;
-  instructions: string;
+  steps: Step[];
   manual_url?: string;
 }
 
@@ -33,12 +38,10 @@ const CATEGORIES = [
 export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [draft, setDraft] = useState<Partial<Equipment>>({
-    name: "",
-    category: "Cuisine",
-    instructions: "",
-    manual_url: "",
-  });
+  const [draftName, setDraftName] = useState("");
+  const [draftCategory, setDraftCategory] = useState("Cuisine");
+  const [draftSteps, setDraftSteps] = useState("");
+  const [draftManualUrl, setDraftManualUrl] = useState("");
   const [isComposing, setIsComposing] = useState(false);
   const bookletId = data?.id;
 
@@ -58,8 +61,46 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
         .eq("booklet_id", bookletId);
 
       if (error) throw error;
-      // Assurer que chaque équipement a un ID stable
-      setEquipment((data || []).map(e => ({ ...e, id: e.id || uid() })));
+      
+      // Convertir les données DB en format interne avec steps
+      const equipmentList = (data || []).map(e => {
+        let steps: Step[] = [];
+        
+        // Parser les instructions : soit JSON, soit texte brut
+        if (e.instructions) {
+          try {
+            const parsed = JSON.parse(e.instructions);
+            if (Array.isArray(parsed)) {
+              steps = parsed.map((s: any) => ({
+                id: s.id || uid(),
+                text: s.text || String(s)
+              }));
+            } else {
+              // Si c'est pas un array, traiter comme texte
+              steps = e.instructions.split('\n').filter(Boolean).map(text => ({
+                id: uid(),
+                text: text.trim()
+              }));
+            }
+          } catch {
+            // Si JSON.parse échoue, traiter comme texte simple
+            steps = e.instructions.split('\n').filter(Boolean).map(text => ({
+              id: uid(),
+              text: text.trim()
+            }));
+          }
+        }
+
+        return {
+          id: e.id || uid(),
+          name: e.name,
+          category: e.category,
+          steps,
+          manual_url: e.manual_url
+        };
+      });
+
+      setEquipment(equipmentList);
     } catch (error) {
       console.error("Error fetching equipment:", error);
     } finally {
@@ -68,34 +109,54 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
   };
 
   const addEquipment = async () => {
-    const name = (draft.name || "").trim();
-    const category = draft.category || "Cuisine";
-    const instructions = (draft.instructions || "").trim();
-    const manual_url = (draft.manual_url || "").trim();
+    const name = draftName.trim();
+    const category = draftCategory.trim();
+    const manual_url = draftManualUrl.trim();
     
     if (!name) {
       toast.error("Le nom de l'équipement est requis");
       return;
     }
 
+    // Anti-doublon : vérifier titre + catégorie
+    const exists = equipment.some(
+      e => e.name.trim().toLowerCase() === name.toLowerCase() &&
+           (e.category || "").toLowerCase() === category.toLowerCase()
+    );
+    
+    if (exists) {
+      toast.error("Cet équipement existe déjà");
+      return;
+    }
+
+    // Parser les steps depuis le textarea (séparation par \n uniquement)
+    const steps: Step[] = draftSteps
+      .split('\n')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(text => ({ id: uid(), text }));
+
     const newEquipment: Equipment = {
       id: uid(),
       name,
-      category,
-      instructions,
+      category: category || "Général",
+      steps,
       manual_url,
     };
 
     setEquipment(prev => [...prev, newEquipment]);
     
-    // Sauvegarder en base
+    // Sauvegarder en base (stocker steps comme JSON)
     try {
       await supabase
         .from("equipment")
         .insert({
           id: newEquipment.id,
           booklet_id: bookletId,
-          ...newEquipment,
+          name: newEquipment.name,
+          category: newEquipment.category,
+          instructions: JSON.stringify(newEquipment.steps),
+          manual_url: newEquipment.manual_url,
         });
       toast.success("Équipement ajouté");
     } catch (error) {
@@ -104,18 +165,13 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
     }
 
     // Réinitialiser le draft
-    setDraft({
-      name: "",
-      category: "Cuisine",
-      instructions: "",
-      manual_url: "",
-    });
+    setDraftName("");
+    setDraftCategory("Cuisine");
+    setDraftSteps("");
+    setDraftManualUrl("");
   };
 
   const removeEquipment = async (id: string) => {
-    const item = equipment.find(e => e.id === id);
-    if (!item) return;
-
     try {
       await supabase
         .from("equipment")
@@ -130,32 +186,92 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
     }
   };
 
-  const updateEquipment = async (id: string, field: keyof Equipment, value: string) => {
+  const updateEquipment = (id: string, patch: Partial<Equipment>) => {
     setEquipment(prev =>
-      prev.map(item => (item.id === id ? { ...item, [field]: value } : item))
+      prev.map(item => (item.id === id ? { ...item, ...patch } : item))
     );
 
     // Auto-save avec debounce
-    const timeoutId = setTimeout(async () => {
+    setTimeout(async () => {
       try {
         const item = equipment.find(e => e.id === id);
         if (item) {
           await supabase
             .from("equipment")
-            .update({ [field]: value })
+            .update({
+              name: item.name,
+              category: item.category,
+              instructions: JSON.stringify(item.steps),
+              manual_url: item.manual_url,
+            })
             .eq("id", id);
         }
       } catch (error) {
         console.error("Error updating:", error);
       }
     }, 1000);
-
-    return () => clearTimeout(timeoutId);
   };
 
-  const handleDraftKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const updateStep = (equipId: string, stepId: string, text: string) => {
+    setEquipment(prev =>
+      prev.map(e =>
+        e.id !== equipId
+          ? e
+          : { ...e, steps: e.steps.map(s => (s.id === stepId ? { ...s, text } : s)) }
+      )
+    );
+
+    // Auto-save
+    setTimeout(async () => {
+      const item = equipment.find(e => e.id === equipId);
+      if (item) {
+        try {
+          await supabase
+            .from("equipment")
+            .update({ instructions: JSON.stringify(item.steps) })
+            .eq("id", equipId);
+        } catch (error) {
+          console.error("Error updating step:", error);
+        }
+      }
+    }, 1000);
+  };
+
+  const addStep = (equipId: string) => {
+    setEquipment(prev =>
+      prev.map(e =>
+        e.id !== equipId ? e : { ...e, steps: [...e.steps, { id: uid(), text: "" }] }
+      )
+    );
+  };
+
+  const removeStep = (equipId: string, stepId: string) => {
+    setEquipment(prev =>
+      prev.map(e =>
+        e.id !== equipId ? e : { ...e, steps: e.steps.filter(s => s.id !== stepId) }
+      )
+    );
+
+    // Auto-save
+    setTimeout(async () => {
+      const item = equipment.find(e => e.id === equipId);
+      if (item) {
+        try {
+          await supabase
+            .from("equipment")
+            .update({ instructions: JSON.stringify(item.steps) })
+            .eq("id", equipId);
+        } catch (error) {
+          console.error("Error removing step:", error);
+        }
+      }
+    }, 500);
+  };
+
+  const handleDraftKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (isComposing) return;
-    if (e.key === "Enter") {
+    // Ctrl/Cmd + Enter pour ajouter
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       addEquipment();
     }
@@ -170,72 +286,107 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
       <div>
         <h2 className="text-2xl font-bold mb-4">Équipements et modes d'emploi</h2>
         <p className="text-muted-foreground mb-6">
-          Listez tous les équipements avec leurs instructions
+          Listez tous les équipements avec leurs instructions (une étape par ligne)
         </p>
       </div>
 
       {/* Liste des équipements existants */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {equipment.map((item) => (
-          <Card key={item.id} className="p-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold">{item.name || "Nouvel équipement"}</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeEquipment(item.id)}
-                >
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nom</Label>
+          <details key={item.id} className="rounded-xl border border-[#E6EDF2] p-4 bg-white group">
+            <summary className="cursor-pointer flex items-center justify-between list-none">
+              <div className="flex items-center gap-3 flex-1">
+                <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                <div className="flex-1 flex items-center gap-3">
                   <Input
                     value={item.name}
-                    onChange={(e) => updateEquipment(item.id, "name", e.target.value)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      updateEquipment(item.id, { name: e.target.value });
+                    }}
+                    onClick={(e) => e.stopPropagation()}
                     onCompositionStart={() => setIsComposing(true)}
                     onCompositionEnd={() => setIsComposing(false)}
-                    placeholder="Ex: Four"
+                    className="font-semibold max-w-[200px]"
+                    placeholder="Nom"
                   />
+                  <span className="text-sm text-muted-foreground">
+                    ({item.category || "Général"})
+                  </span>
                 </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeEquipment(item.id);
+                }}
+              >
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </Button>
+            </summary>
+
+            <div className="mt-4 space-y-4 pl-7">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Catégorie</Label>
+                <Select
+                  value={item.category}
+                  onValueChange={(value) => updateEquipment(item.id, { category: value })}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Étapes du mode d'emploi</Label>
                 <div className="space-y-2">
-                  <Label>Catégorie</Label>
-                  <Select
-                    value={item.category}
-                    onValueChange={(value) => updateEquipment(item.id, "category", value)}
+                  {item.steps.map((step, idx) => (
+                    <div key={step.id} className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground min-w-[20px]">
+                        {idx + 1}.
+                      </span>
+                      <Input
+                        value={step.text}
+                        onChange={(e) => updateStep(item.id, step.id, e.target.value)}
+                        onCompositionStart={() => setIsComposing(true)}
+                        onCompositionEnd={() => setIsComposing(false)}
+                        placeholder="Étape..."
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeStep(item.id, step.id)}
+                      >
+                        <Trash2 className="w-3 h-3 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addStep(item.id)}
+                    className="w-full"
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Plus className="w-3 h-3 mr-2" />
+                    Ajouter une étape
+                  </Button>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Instructions</Label>
-                <Textarea
-                  value={item.instructions}
-                  onChange={(e) => updateEquipment(item.id, "instructions", e.target.value)}
-                  onCompositionStart={() => setIsComposing(true)}
-                  onCompositionEnd={() => setIsComposing(false)}
-                  placeholder="Mode d'emploi..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Notice PDF (URL)</Label>
+                <Label className="text-sm font-medium">Notice PDF (URL)</Label>
                 <Input
                   value={item.manual_url || ""}
-                  onChange={(e) => updateEquipment(item.id, "manual_url", e.target.value)}
+                  onChange={(e) => updateEquipment(item.id, { manual_url: e.target.value })}
                   onCompositionStart={() => setIsComposing(true)}
                   onCompositionEnd={() => setIsComposing(false)}
                   placeholder="https://..."
@@ -243,24 +394,24 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
                 />
               </div>
             </div>
-          </Card>
+          </details>
         ))}
       </div>
 
       {/* Formulaire d'ajout d'un nouvel équipement */}
-      <Card className="p-4 border-2 border-dashed">
+      <Card className="p-6 border-2 border-dashed bg-muted/20">
         <div className="space-y-4">
           <h3 className="font-semibold flex items-center gap-2">
             <Plus className="w-4 h-4" />
             Ajouter un équipement
           </h3>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Nom</Label>
+              <Label>Nom de l'équipement</Label>
               <Input
-                value={draft.name || ""}
-                onChange={(e) => setDraft(d => ({ ...d, name: e.target.value }))}
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
                 onKeyDown={handleDraftKeyDown}
                 onCompositionStart={() => setIsComposing(true)}
                 onCompositionEnd={() => setIsComposing(false)}
@@ -270,8 +421,8 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
             <div className="space-y-2">
               <Label>Catégorie</Label>
               <Select
-                value={draft.category || "Cuisine"}
-                onValueChange={(value) => setDraft(d => ({ ...d, category: value }))}
+                value={draftCategory}
+                onValueChange={setDraftCategory}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -286,28 +437,29 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
           </div>
 
           <div className="space-y-2">
-            <Label>Instructions</Label>
+            <Label>
+              Étapes du mode d'emploi <span className="text-xs text-muted-foreground">(une par ligne)</span>
+            </Label>
             <Textarea
-              value={draft.instructions || ""}
-              onChange={(e) => setDraft(d => ({ ...d, instructions: e.target.value }))}
-              onKeyDown={(e) => {
-                if (!isComposing && e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  addEquipment();
-                }
-              }}
+              value={draftSteps}
+              onChange={(e) => setDraftSteps(e.target.value)}
+              onKeyDown={handleDraftKeyDown}
               onCompositionStart={() => setIsComposing(true)}
               onCompositionEnd={() => setIsComposing(false)}
-              placeholder="Mode d'emploi..."
-              rows={3}
+              placeholder="Ex:&#10;Allumer le four&#10;Régler le thermostat sur 180°C&#10;Préchauffer 10 minutes&#10;Éteindre après utilisation"
+              rows={5}
+              className="font-mono text-sm"
             />
+            <p className="text-xs text-muted-foreground">
+              Pressez Ctrl+Entrée ou Cmd+Entrée pour ajouter l'équipement
+            </p>
           </div>
 
           <div className="space-y-2">
             <Label>Notice PDF (URL)</Label>
             <Input
-              value={draft.manual_url || ""}
-              onChange={(e) => setDraft(d => ({ ...d, manual_url: e.target.value }))}
+              value={draftManualUrl}
+              onChange={(e) => setDraftManualUrl(e.target.value)}
               onKeyDown={handleDraftKeyDown}
               onCompositionStart={() => setIsComposing(true)}
               onCompositionEnd={() => setIsComposing(false)}
@@ -316,7 +468,7 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
             />
           </div>
 
-          <Button onClick={addEquipment} className="w-full">
+          <Button onClick={addEquipment} className="w-full" size="lg">
             <Plus className="w-4 h-4 mr-2" />
             Ajouter cet équipement
           </Button>
