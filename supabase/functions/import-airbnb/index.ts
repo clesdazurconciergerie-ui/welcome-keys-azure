@@ -79,14 +79,14 @@ serve(async (req) => {
     const htmlContent = await fetchAirbnbPage(url);
     
     if (!htmlContent) {
-      console.log('Failed to fetch page, returning fallback instruction');
+    console.log('Failed to fetch page, returning fallback instruction');
       return new Response(
         JSON.stringify({ 
           success: false, 
           error: 'blocked',
-          message: 'Airbnb bloque l\'accès automatique. Veuillez utiliser le mode fallback (coller le texte de l\'annonce).'
+          message: 'Airbnb bloque l\'accès automatique. Utilisez le mode "Texte" pour coller le contenu de l\'annonce.'
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
 
@@ -141,47 +141,55 @@ async function fetchAirbnbPage(url: string): Promise<string | null> {
 }
 
 async function extractFromHTML(html: string, apiKey: string): Promise<any> {
-  const prompt = `Tu es un expert en extraction de données d'annonces Airbnb. 
-Analyse ce HTML et extrais les informations suivantes au format JSON strictement structuré:
+  const prompt = `Tu es un expert en extraction de données d'annonces Airbnb depuis du HTML.
+Analyse ce HTML et extrais TOUTES les informations visibles au format JSON strictement structuré.
 
+IMPORTANT: Airbnb charge le contenu dynamiquement. Cherche dans le HTML:
+- Les balises <script> contenant des données JSON (notamment celles avec "bootstrapData" ou "spaPrefetchCacheData")
+- Les attributs data-* 
+- Le contenu textuel visible
+- Les métadonnées dans <head>
+
+Format de sortie OBLIGATOIRE (retourne null si non trouvé, JAMAIS de texte générique):
 {
-  "title": "titre du logement",
-  "description": "description résumée en 2-3 paragraphes",
-  "addressApprox": "ville/quartier approximatif (PAS d'adresse exacte)",
-  "city": "ville",
-  "photos": ["url1", "url2", ...] (6-12 photos principales),
+  "title": "titre exact du logement trouvé dans le HTML",
+  "description": "description complète trouvée",
+  "addressApprox": "ville/quartier trouvé",
+  "city": "ville extraite",
+  "photos": ["url1", "url2"],
   "amenities": [
-    { "category": "Cuisine", "items": ["Four", "Micro-ondes", ...] },
-    { "category": "Salle de bain", "items": ["Sèche-cheveux", ...] },
-    { "category": "Sécurité", "items": ["Détecteur de fumée", ...] }
+    { "category": "Cuisine", "items": ["Four", "Micro-ondes"] },
+    { "category": "Chambre", "items": ["Lit double"] }
   ],
   "houseRules": {
     "checkInFrom": "15:00",
     "checkOutBefore": "11:00",
     "quietHours": "22:00-08:00",
-    "pets": false,
+    "pets": true,
     "smoking": false,
     "parties": false
   },
   "maxGuests": 4,
   "beds": 2,
   "bathrooms": 1,
-  "spaces": ["2 chambres", "terrasse", ...],
-  "host": { "name": "nom", "superhost": true },
-  "neighborhood": "description du quartier en 2-3 phrases",
-  "wifi": { "note": "informations wifi si mentionnées" }
+  "spaces": ["2 chambres", "terrasse"],
+  "host": { "name": "nom trouvé", "superhost": true },
+  "neighborhood": "description du quartier",
+  "wifi": { "note": "info wifi si mentionnée" }
 }
 
-Règles strictes:
-- Si un champ est absent, retourne null ou tableau vide
-- Résume la description (max 300 mots)
-- Normalise les équipements en français
-- Les heures en format HH:MM
-- Sois précis et factuel
+RÈGLES STRICTES:
+- Si une info n'est PAS présente dans le HTML, mets null ou [] (pas de valeur inventée)
+- Extrais les URL des photos depuis les <img> ou <picture>
+- Les équipements sont souvent dans des listes <ul> ou des divs avec "amenities" ou "features"
+- Les règles sont dans des sections "House rules" ou "Règlement"
+- NE GÉNÈRE PAS de valeurs par défaut comme "titre du logement" si tu ne trouves pas le vrai titre
 
-HTML à analyser (tronqué si trop long):
-${html.slice(0, 50000)}`;
+HTML à analyser (premiers 100000 caractères):
+${html.slice(0, 100000)}`;
 
+  console.log('Calling AI for HTML extraction...');
+  
   try {
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -192,30 +200,52 @@ ${html.slice(0, 50000)}`;
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'Tu es un assistant qui extrait des données structurées. Réponds UNIQUEMENT en JSON valide, sans texte avant ou après.' },
+          { role: 'system', content: 'Tu es un assistant qui extrait des données structurées depuis du HTML. Réponds UNIQUEMENT en JSON valide, sans texte avant ou après. Si tu ne trouves pas une information, utilise null ou tableau vide.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.3,
+        temperature: 0.1,
       }),
     });
 
     if (!response.ok) {
+      console.error(`AI API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('AI API error details:', errorText);
       throw new Error(`AI API error: ${response.status}`);
     }
 
     const aiData = await response.json();
     const content = aiData.choices?.[0]?.message?.content || '{}';
     
-    // Extraire le JSON du contenu (parfois enveloppé dans ```json```)
+    console.log('AI response content (first 500 chars):', content.slice(0, 500));
+    
+    // Extraire le JSON du contenu
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
     
     const extracted = JSON.parse(jsonStr);
-    console.log('Data extracted successfully');
+    console.log('Successfully extracted data:', JSON.stringify(extracted, null, 2).slice(0, 1000));
     return extracted;
   } catch (error) {
     console.error('AI extraction error:', error);
-    return {};
+    return {
+      title: null,
+      description: null,
+      addressApprox: null,
+      city: null,
+      photos: [],
+      amenities: [],
+      houseRules: {
+        checkInFrom: null,
+        checkOutBefore: null,
+        pets: false,
+        smoking: false,
+        parties: false
+      },
+      maxGuests: null,
+      beds: null,
+      bathrooms: null
+    };
   }
 }
 

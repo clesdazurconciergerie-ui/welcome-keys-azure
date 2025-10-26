@@ -47,11 +47,11 @@ export default function AirbnbImportModal({ open, onClose, onImportSuccess, book
       if (error) throw error;
 
       if (!data.success) {
-        if (data.error === 'blocked') {
-          toast.error(data.message || "Airbnb bloque l'accès automatique");
-          setMode('text');
-          return;
-        }
+      if (data.error === 'blocked') {
+        toast.error("L'URL Airbnb est bloquée. Utilisez l'onglet 'Texte' pour coller le contenu de l'annonce.");
+        setMode('text');
+        return;
+      }
         throw new Error(data.error || 'Import failed');
       }
 
@@ -96,7 +96,7 @@ export default function AirbnbImportModal({ open, onClose, onImportSuccess, book
                 onChange={(e) => setUrl(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Collez l'URL complète de votre annonce Airbnb
+                Collez l'URL complète de votre annonce Airbnb. Si l'extraction échoue, basculez sur l'onglet "Texte".
               </p>
             </div>
 
@@ -129,8 +129,8 @@ export default function AirbnbImportModal({ open, onClose, onImportSuccess, book
 
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
               <p className="text-xs text-amber-800">
-                💡 <strong>Astuce :</strong> Pour copier le texte, ouvrez votre annonce Airbnb, 
-                sélectionnez tout le contenu (Ctrl+A ou Cmd+A) et collez-le ici.
+                💡 <strong>Astuce :</strong> Si l'import par URL ne fonctionne pas, copiez tout le contenu visible de votre annonce Airbnb 
+                (titre, description, équipements, règles) et collez-le ici. L'IA extraira les informations automatiquement.
               </p>
             </div>
           </TabsContent>
