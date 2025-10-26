@@ -264,4 +264,27 @@ All colors MUST be HSL.
       opacity: 1;
     }
   }
+
+  /* Theme scope for booklet theming */
+  .theme-scope {
+    color: var(--theme-text, var(--foreground));
+    background-color: var(--theme-bg, var(--background));
+    font-family: var(--theme-font-family, var(--font-sans));
+    font-size: var(--theme-font-size, 16px);
+  }
+
+  .theme-scope .btn-primary,
+  .theme-scope button[data-theme="primary"] {
+    background-color: var(--theme-primary) !important;
+    color: #ffffff !important;
+  }
+
+  .theme-scope .text-accent,
+  .theme-scope [data-theme="accent"] {
+    color: var(--theme-accent) !important;
+  }
+
+  .theme-scope .bg-accent {
+    background-color: var(--theme-accent) !important;
+  }
 }

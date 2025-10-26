@@ -10,7 +10,9 @@ import { SectionKey } from "@/types/sections";
 import SectionTabs from "@/components/booklet-editor/SectionTabs";
 import GeneralSection from "@/components/booklet-editor/GeneralSection";
 import IdentitySection from "@/components/booklet-editor/IdentitySection";
-import AppearanceSection from "@/components/booklet-editor/AppearanceSection";
+import AppearanceSectionV2 from "@/components/booklet-editor/AppearanceSectionV2";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { loadThemeFromDatabase, saveThemeToDatabase } from "@/lib/theme-db";
 import WifiSection from "@/components/booklet-editor/WifiSection";
 import RulesSection from "@/components/booklet-editor/RulesSection";
 import EquipmentsSection from "@/components/booklet-editor/EquipmentsSection";
@@ -21,7 +23,7 @@ import ChatbotSection from "@/components/booklet-editor/ChatbotSection";
 const SECTION_VIEWS: Record<SectionKey, React.FC<any>> = {
   general: GeneralSection,
   identity: IdentitySection,
-  appearance: AppearanceSection,
+  appearance: AppearanceSectionV2,
   wifi: WifiSection,
   equipments: EquipmentsSection,
   nearby: NearbySection,

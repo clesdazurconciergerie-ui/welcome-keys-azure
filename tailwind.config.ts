@@ -4,6 +4,18 @@ export default {
   darkMode: ["class"],
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
+  safelist: [
+    // Font families for dynamic theme application
+    'font-inter',
+    'font-poppins',
+    'font-montserrat',
+    'font-sans',
+    // Font sizes for dynamic theme application
+    'text-[14px]',
+    'text-[16px]',
+    'text-[18px]',
+    'text-[20px]',
+  ],
   theme: {
     container: {
       center: true,
@@ -14,9 +26,13 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
-        display: ["Poppins", "sans-serif"],
-        body: ["Montserrat", "sans-serif"],
+        sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
+        display: ["Poppins", "ui-sans-serif", "system-ui", "sans-serif"],
+        body: ["Montserrat", "ui-sans-serif", "system-ui", "sans-serif"],
+        // Theme-specific font classes (used in safelist)
+        inter: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        poppins: ["Poppins", "ui-sans-serif", "system-ui", "sans-serif"],
+        montserrat: ["Montserrat", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

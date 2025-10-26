@@ -7,7 +7,7 @@ import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NewBooklet from "./pages/NewBooklet";
-import EditBooklet from "./pages/EditBooklet";
+import EditBookletWrapper from "./pages/EditBookletWrapper";
 import ViewBooklet from "./pages/ViewBooklet";
 import PreviewBooklet from "./pages/PreviewBooklet";
 import AccessBooklet from "./pages/AccessBooklet";
@@ -36,7 +36,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/booklets/new" element={<NewBooklet />} />
-          <Route path="/booklets/:id/edit" element={<EditBooklet />} />
+          <Route path="/booklets/:id/edit" element={<EditBookletWrapper />} />
           <Route path="/booklets/:id/wizard" element={<BookletWizardPage />} />
           <Route path="/view/:code" element={<ViewBooklet />} />
           <Route path="/preview/:id" element={<PreviewBooklet />} />
