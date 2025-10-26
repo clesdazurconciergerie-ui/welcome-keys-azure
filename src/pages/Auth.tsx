@@ -30,6 +30,17 @@ const Auth = () => {
       }
     };
     checkUser();
+
+    // Check if user just verified their email
+    const verified = searchParams.get('verified');
+    if (verified === 'true') {
+      toast.success(
+        "✅ Ton email est confirmé ! Tu peux maintenant te connecter depuis n'importe quel appareil.",
+        { duration: 5000 }
+      );
+      // Remove the verified parameter from URL
+      window.history.replaceState({}, '', '/auth');
+    }
   }, [navigate]);
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -50,7 +61,7 @@ const Auth = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `${window.location.origin}/auth?verified=true`,
         },
       });
 
@@ -101,6 +112,31 @@ const Auth = () => {
     }
   };
 
+  const handleResendVerification = async () => {
+    if (!email) {
+      toast.error("Veuillez saisir votre email");
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth?verified=true`,
+        },
+      });
+      
+      if (error) throw error;
+      toast.success("Email de vérification renvoyé ! Vérifiez votre boîte mail.");
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de l'envoi de l'email");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
@@ -115,7 +151,18 @@ const Auth = () => {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check if error is due to unverified email
+        if (error.message.includes('Email not confirmed') || error.message.includes('not confirmed')) {
+          toast.error(
+            "Votre email n'est pas encore vérifié. Vérifiez votre boîte mail ou cliquez ci-dessous pour renvoyer l'email.",
+            { duration: 5000 }
+          );
+          setLoading(false);
+          return;
+        }
+        throw error;
+      }
       
       // Check subscription status
       const { data: userData } = await supabase
@@ -213,6 +260,17 @@ const Auth = () => {
                       "Se connecter"
                     )}
                   </Button>
+                  
+                  <div className="text-center mt-4">
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                      disabled={loading}
+                    >
+                      Email non reçu ? Renvoyer l'email de vérification
+                    </button>
+                  </div>
                 </form>
               </TabsContent>
 
