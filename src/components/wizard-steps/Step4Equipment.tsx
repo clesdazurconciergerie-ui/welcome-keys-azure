@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,41 @@ import { toast } from "sonner";
 
 // Génération d'ID stable
 const uid = () => crypto.randomUUID?.() || Math.random().toString(36).slice(2);
+
+// Normalisation des steps depuis DB (idempotente)
+const normalizeSteps = (raw: unknown): Step[] => {
+  if (Array.isArray(raw)) {
+    return raw
+      .map((s: any) => ({ 
+        id: s.id || uid(), 
+        text: String(s.text || '').trim() 
+      }))
+      .filter(s => s.text);
+  }
+  
+  const str = String(raw ?? '');
+  if (!str) return [];
+  
+  try {
+    const parsed = JSON.parse(str);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((s: any) => ({ 
+          id: s.id || uid(), 
+          text: String(s.text || s || '').trim() 
+        }))
+        .filter(s => s.text);
+    }
+  } catch {
+    // Si pas du JSON, traiter comme texte
+  }
+  
+  return str
+    .split('\n')
+    .map(s => s.trim())
+    .filter(Boolean)
+    .map(text => ({ id: uid(), text }));
+};
 
 interface Step {
   id: string;
@@ -45,68 +80,46 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
   const [isComposing, setIsComposing] = useState(false);
   const bookletId = data?.id;
 
+  // ✅ Hydratation idempotente : charge une seule fois, conserve les IDs
   useEffect(() => {
-    if (bookletId) {
-      fetchEquipment();
-    } else {
-      setLoading(false);
-    }
-  }, [bookletId]);
+    let mounted = true;
+    
+    const fetchEquipment = async () => {
+      if (!bookletId) {
+        setLoading(false);
+        return;
+      }
 
-  const fetchEquipment = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("equipment")
-        .select("*")
-        .eq("booklet_id", bookletId);
+      try {
+        const { data, error } = await supabase
+          .from("equipment")
+          .select("*")
+          .eq("booklet_id", bookletId);
 
-      if (error) throw error;
-      
-      // Convertir les données DB en format interne avec steps
-      const equipmentList = (data || []).map(e => {
-        let steps: Step[] = [];
+        if (error) throw error;
         
-        // Parser les instructions : soit JSON, soit texte brut
-        if (e.instructions) {
-          try {
-            const parsed = JSON.parse(e.instructions);
-            if (Array.isArray(parsed)) {
-              steps = parsed.map((s: any) => ({
-                id: s.id || uid(),
-                text: s.text || String(s)
-              }));
-            } else {
-              // Si c'est pas un array, traiter comme texte
-              steps = e.instructions.split('\n').filter(Boolean).map(text => ({
-                id: uid(),
-                text: text.trim()
-              }));
-            }
-          } catch {
-            // Si JSON.parse échoue, traiter comme texte simple
-            steps = e.instructions.split('\n').filter(Boolean).map(text => ({
-              id: uid(),
-              text: text.trim()
-            }));
-          }
-        }
+        if (!mounted) return;
 
-        return {
+        // Normaliser sans créer de nouveaux items
+        const equipmentList = (data || []).map(e => ({
           id: e.id || uid(),
-          name: e.name,
-          category: e.category,
-          steps,
-          manual_url: e.manual_url
-        };
-      });
+          name: e.name || '',
+          category: e.category || 'Général',
+          steps: normalizeSteps(e.instructions),
+          manual_url: e.manual_url || ''
+        }));
 
-      setEquipment(equipmentList);
-    } catch (error) {
-      console.error("Error fetching equipment:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        setEquipment(equipmentList);
+      } catch (error) {
+        console.error("Error fetching equipment:", error);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchEquipment();
+    return () => { mounted = false; };
+  }, [bookletId]);
 
   const addEquipment = async () => {
     const name = draftName.trim();
@@ -186,30 +199,11 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
     }
   };
 
+  // ✅ Édition : mise à jour in-place uniquement
   const updateEquipment = (id: string, patch: Partial<Equipment>) => {
     setEquipment(prev =>
       prev.map(item => (item.id === id ? { ...item, ...patch } : item))
     );
-
-    // Auto-save avec debounce
-    setTimeout(async () => {
-      try {
-        const item = equipment.find(e => e.id === id);
-        if (item) {
-          await supabase
-            .from("equipment")
-            .update({
-              name: item.name,
-              category: item.category,
-              instructions: JSON.stringify(item.steps),
-              manual_url: item.manual_url,
-            })
-            .eq("id", id);
-        }
-      } catch (error) {
-        console.error("Error updating:", error);
-      }
-    }, 1000);
   };
 
   const updateStep = (equipId: string, stepId: string, text: string) => {
@@ -220,21 +214,6 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
           : { ...e, steps: e.steps.map(s => (s.id === stepId ? { ...s, text } : s)) }
       )
     );
-
-    // Auto-save
-    setTimeout(async () => {
-      const item = equipment.find(e => e.id === equipId);
-      if (item) {
-        try {
-          await supabase
-            .from("equipment")
-            .update({ instructions: JSON.stringify(item.steps) })
-            .eq("id", equipId);
-        } catch (error) {
-          console.error("Error updating step:", error);
-        }
-      }
-    }, 1000);
   };
 
   const addStep = (equipId: string) => {
@@ -251,22 +230,40 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
         e.id !== equipId ? e : { ...e, steps: e.steps.filter(s => s.id !== stepId) }
       )
     );
-
-    // Auto-save
-    setTimeout(async () => {
-      const item = equipment.find(e => e.id === equipId);
-      if (item) {
-        try {
-          await supabase
-            .from("equipment")
-            .update({ instructions: JSON.stringify(item.steps) })
-            .eq("id", equipId);
-        } catch (error) {
-          console.error("Error removing step:", error);
-        }
-      }
-    }, 500);
   };
+
+  // ✅ Autosave PATCH debouncé (upsert par ID uniquement)
+  const debouncedSave = useMemo(() => {
+    let timeoutId: NodeJS.Timeout;
+    return (items: Equipment[]) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(async () => {
+        for (const item of items) {
+          try {
+            await supabase
+              .from("equipment")
+              .upsert({
+                id: item.id,
+                booklet_id: bookletId,
+                name: item.name,
+                category: item.category,
+                instructions: JSON.stringify(item.steps),
+                manual_url: item.manual_url,
+              }, { onConflict: 'id' });
+          } catch (error) {
+            console.error("Error auto-saving equipment:", error);
+          }
+        }
+      }, 800);
+    };
+  }, [bookletId]);
+
+  // Déclencher l'autosave quand equipment change
+  useEffect(() => {
+    if (equipment.length > 0) {
+      debouncedSave(equipment);
+    }
+  }, [equipment, debouncedSave]);
 
   const handleDraftKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (isComposing) return;
