@@ -551,6 +551,48 @@ export type Database = {
           },
         ]
       }
+      plans: {
+        Row: {
+          created_at: string
+          features: Json
+          id: string
+          interval: Database["public"]["Enums"]["billing_interval"]
+          is_active: boolean
+          name: string
+          price_cents: number
+          slug: string
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          features?: Json
+          id?: string
+          interval?: Database["public"]["Enums"]["billing_interval"]
+          is_active?: boolean
+          name: string
+          price_cents: number
+          slug: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          features?: Json
+          id?: string
+          interval?: Database["public"]["Enums"]["billing_interval"]
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+          slug?: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       restaurants: {
         Row: {
           address: string | null
@@ -606,6 +648,56 @@ export type Database = {
             columns: ["booklet_id"]
             isOneToOne: false
             referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_id: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
             referencedColumns: ["id"]
           },
         ]
@@ -802,6 +894,15 @@ export type Database = {
         | "pack_business"
         | "pack_premium"
         | "super_admin"
+      billing_interval: "month" | "year"
+      subscription_status:
+        | "trialing"
+        | "active"
+        | "past_due"
+        | "canceled"
+        | "incomplete"
+        | "incomplete_expired"
+        | "unpaid"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -938,6 +1039,16 @@ export const Constants = {
         "pack_business",
         "pack_premium",
         "super_admin",
+      ],
+      billing_interval: ["month", "year"],
+      subscription_status: [
+        "trialing",
+        "active",
+        "past_due",
+        "canceled",
+        "incomplete",
+        "incomplete_expired",
+        "unpaid",
       ],
     },
   },
