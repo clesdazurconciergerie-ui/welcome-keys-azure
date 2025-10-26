@@ -12,6 +12,14 @@ const Hero = () => {
       });
     }
   };
+  const scrollToDemo = () => {
+    const element = document.getElementById("demo");
+    if (element) {
+      element.scrollIntoView({
+        behavior: "smooth"
+      });
+    }
+  };
   const containerVariants = {
     hidden: {
       opacity: 0
@@ -60,7 +68,7 @@ const Hero = () => {
 
             {/* CTAs */}
             <motion.div variants={itemVariants} className="mt-6 lg:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button size="lg" onClick={() => navigate("/auth")} className="w-full sm:w-auto h-12 px-6 bg-primary hover:bg-[hsl(var(--brand-cyan-hover))] text-white rounded-[18px] shadow-lg hover:shadow-xl transition-all">
+              <Button size="lg" onClick={scrollToDemo} className="w-full sm:w-auto h-12 px-6 bg-primary hover:bg-[hsl(var(--brand-cyan-hover))] text-white rounded-[18px] shadow-lg hover:shadow-xl transition-all">
                 <Sparkles className="w-5 h-5 mr-2" />
                 Demander une démo
               </Button>

@@ -6,6 +6,15 @@ import { motion } from "framer-motion";
 const FinalCTA = () => {
   const navigate = useNavigate();
 
+  const scrollToDemo = () => {
+    const element = document.getElementById("demo");
+    if (element) {
+      element.scrollIntoView({
+        behavior: "smooth"
+      });
+    }
+  };
+
   return (
     <section className="py-20 md:py-28 bg-gradient-to-br from-primary/5 via-white to-primary/5">
       <div className="container mx-auto px-4">
@@ -25,7 +34,7 @@ const FinalCTA = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
             <Button
               size="lg"
-              onClick={() => navigate("/auth")}
+              onClick={scrollToDemo}
               className="h-12 px-8 bg-primary hover:bg-[hsl(var(--brand-cyan-hover))] text-white rounded-[18px] shadow-lg"
             >
               <Sparkles className="w-5 h-5 mr-2" />
