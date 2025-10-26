@@ -99,15 +99,27 @@ Deno.serve(async (req) => {
         }
       }
       
-      // Fallback to success URL
-      if (!role || role === 'pack_starter') {
-        if (session.success_url) {
-          for (const [key, value] of Object.entries(successUrlToRole)) {
-            if (session.success_url.includes(key)) {
-              role = value;
-              console.log('✅ Role matched from success URL:', { key, role });
-              break;
-            }
+      // Fallback to success URL if no role matched from payment link
+      let roleMatchedFromPaymentLink = false;
+      if (session.payment_link) {
+        const paymentLinkUrl = typeof session.payment_link === 'string' 
+          ? session.payment_link 
+          : (session.payment_link.url || session.payment_link.id);
+        
+        for (const [linkCode, roleValue] of Object.entries(paymentLinkToRole)) {
+          if (paymentLinkUrl.includes(linkCode)) {
+            roleMatchedFromPaymentLink = true;
+            break;
+          }
+        }
+      }
+      
+      if (!roleMatchedFromPaymentLink && session.success_url) {
+        for (const [key, value] of Object.entries(successUrlToRole)) {
+          if (session.success_url.includes(key)) {
+            role = value;
+            console.log('✅ Role matched from success URL:', { key, role });
+            break;
           }
         }
       }
@@ -117,7 +129,7 @@ Deno.serve(async (req) => {
       // Get current user state
       const { data: currentUser } = await supabase
         .from('users')
-        .select('role, demo_active, subscription_status')
+        .select('role, subscription_status, has_used_demo')
         .eq('id', userId)
         .single();
 
@@ -145,7 +157,7 @@ Deno.serve(async (req) => {
         userId,
         previousRole: currentUser?.role,
         newRole: role,
-        wasInDemo: currentUser?.demo_active,
+        hasUsedDemo: currentUser?.has_used_demo,
         subscriptionStatus: 'active'
       });
 
