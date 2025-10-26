@@ -299,30 +299,30 @@ export type Database = {
           category: string
           created_at: string
           id: string
-          instructions: string | null
           manual_url: string | null
           name: string
           photos: Json | null
+          steps: Json | null
         }
         Insert: {
           booklet_id: string
           category: string
           created_at?: string
           id?: string
-          instructions?: string | null
           manual_url?: string | null
           name: string
           photos?: Json | null
+          steps?: Json | null
         }
         Update: {
           booklet_id?: string
           category?: string
           created_at?: string
           id?: string
-          instructions?: string | null
           manual_url?: string | null
           name?: string
           photos?: Json | null
+          steps?: Json | null
         }
         Relationships: [
           {
@@ -787,6 +787,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      try_cast_jsonb: { Args: { txt: string }; Returns: Json }
     }
     Enums: {
       app_role:

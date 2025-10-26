@@ -12,39 +12,41 @@ import { toast } from "sonner";
 // Génération d'ID stable
 const uid = () => crypto.randomUUID?.() || Math.random().toString(36).slice(2);
 
-// Normalisation des steps depuis DB (idempotente)
+// Normalisation robuste des steps depuis DB (idempotente)
 const normalizeSteps = (raw: unknown): Step[] => {
+  // Cas 1: Déjà un tableau d'objets {id, text}
   if (Array.isArray(raw)) {
     return raw
       .map((s: any) => ({ 
-        id: s.id || uid(), 
-        text: String(s.text || '').trim() 
+        id: s?.id || uid(), 
+        text: String(s?.text || '').trim() 
       }))
       .filter(s => s.text);
   }
   
-  const str = String(raw ?? '');
-  if (!str) return [];
-  
-  try {
-    const parsed = JSON.parse(str);
-    if (Array.isArray(parsed)) {
-      return parsed
-        .map((s: any) => ({ 
-          id: s.id || uid(), 
-          text: String(s.text || s || '').trim() 
-        }))
-        .filter(s => s.text);
+  // Cas 2: String JSON à parser
+  if (typeof raw === 'string') {
+    const str = raw.trim();
+    if (!str) return [];
+    
+    try {
+      const parsed = JSON.parse(str);
+      if (Array.isArray(parsed)) {
+        return normalizeSteps(parsed); // Récursion pour normaliser
+      }
+    } catch {
+      // Pas du JSON valide, traiter comme texte multi-lignes
     }
-  } catch {
-    // Si pas du JSON, traiter comme texte
+    
+    // Cas 3: Texte multi-lignes (fallback)
+    return str
+      .split(/\r?\n+/)
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(text => ({ id: uid(), text }));
   }
   
-  return str
-    .split('\n')
-    .map(s => s.trim())
-    .filter(Boolean)
-    .map(text => ({ id: uid(), text }));
+  return [];
 };
 
 interface Step {
@@ -105,7 +107,7 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
           id: e.id || uid(),
           name: e.name || '',
           category: e.category || 'Général',
-          steps: normalizeSteps(e.instructions),
+          steps: normalizeSteps(e.steps), // ✅ Colonne renommée: instructions → steps
           manual_url: e.manual_url || ''
         }));
 
@@ -159,18 +161,20 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
 
     setEquipment(prev => [...prev, newEquipment]);
     
-    // Sauvegarder en base (stocker steps comme JSON)
+    // Sauvegarder en base (steps JSONB natif, pas de stringify)
     try {
-      await supabase
+      const { error } = await supabase
         .from("equipment")
         .insert({
           id: newEquipment.id,
           booklet_id: bookletId,
           name: newEquipment.name,
           category: newEquipment.category,
-          instructions: JSON.stringify(newEquipment.steps),
+          steps: newEquipment.steps as any, // ✅ JSONB: Supabase convertit automatiquement
           manual_url: newEquipment.manual_url,
         });
+      
+      if (error) throw error;
       toast.success("Équipement ajouté");
     } catch (error) {
       console.error("Error saving:", error);
@@ -232,7 +236,7 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
     );
   };
 
-  // ✅ Autosave PATCH debouncé (upsert par ID uniquement)
+  // ✅ Autosave PATCH debouncé (upsert par ID uniquement, JSONB natif)
   const debouncedSave = useMemo(() => {
     let timeoutId: NodeJS.Timeout;
     return (items: Equipment[]) => {
@@ -240,16 +244,20 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
       timeoutId = setTimeout(async () => {
         for (const item of items) {
           try {
-            await supabase
+            const { error } = await supabase
               .from("equipment")
               .upsert({
                 id: item.id,
                 booklet_id: bookletId,
                 name: item.name,
                 category: item.category,
-                instructions: JSON.stringify(item.steps),
+                steps: item.steps as any, // ✅ JSONB: Supabase convertit automatiquement
                 manual_url: item.manual_url,
               }, { onConflict: 'id' });
+            
+            if (error) {
+              console.error("Error auto-saving equipment:", error);
+            }
           } catch (error) {
             console.error("Error auto-saving equipment:", error);
           }
@@ -344,39 +352,40 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
 
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Étapes du mode d'emploi</Label>
-                <div className="space-y-2">
-                  {item.steps.map((step, idx) => (
-                    <div key={step.id} className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground min-w-[20px]">
-                        {idx + 1}.
-                      </span>
-                      <Input
-                        value={step.text}
-                        onChange={(e) => updateStep(item.id, step.id, e.target.value)}
-                        onCompositionStart={() => setIsComposing(true)}
-                        onCompositionEnd={() => setIsComposing(false)}
-                        placeholder="Étape..."
-                        className="flex-1"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeStep(item.id, step.id)}
-                      >
-                        <Trash2 className="w-3 h-3 text-destructive" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addStep(item.id)}
-                    className="w-full"
-                  >
-                    <Plus className="w-3 h-3 mr-2" />
-                    Ajouter une étape
-                  </Button>
-                </div>
+                {item.steps.length > 0 ? (
+                  <ul className="list-disc pl-5 space-y-2">
+                    {item.steps.map((step) => (
+                      <li key={step.id} className="flex items-start gap-2">
+                        <Input
+                          value={step.text}
+                          onChange={(e) => updateStep(item.id, step.id, e.target.value)}
+                          onCompositionStart={() => setIsComposing(true)}
+                          onCompositionEnd={() => setIsComposing(false)}
+                          placeholder="Étape..."
+                          className="flex-1"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeStep(item.id, step.id)}
+                        >
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Aucune étape ajoutée</p>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addStep(item.id)}
+                  className="w-full mt-2"
+                >
+                  <Plus className="w-3 h-3 mr-2" />
+                  Ajouter une étape
+                </Button>
               </div>
 
               <div className="space-y-2">
