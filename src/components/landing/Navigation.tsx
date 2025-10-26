@@ -78,8 +78,8 @@ const Navigation = () => {
                     to={link.href}
                     className={`text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-3 py-2 border-b-2 ${
                       isActive(link.href)
-                        ? "text-[#18c0df] border-[#18c0df]"
-                        : "text-[#0F172A] border-transparent hover:text-[#18c0df]"
+                        ? "text-primary border-primary"
+                        : "text-foreground border-transparent hover:text-primary"
                     }`}
                   >
                     {link.label}
@@ -90,7 +90,7 @@ const Navigation = () => {
                 <button
                   key={link.id}
                   onClick={() => scrollToSection(link.id!)}
-                  className="text-sm font-medium text-[#0F172A] hover:text-[#18c0df] transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-3 py-2"
+                  className="text-sm font-medium text-foreground hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-3 py-2"
                 >
                   {link.label}
                 </button>
@@ -103,13 +103,13 @@ const Navigation = () => {
             <Link to="/auth">
               <Button
                 variant="outline"
-                className="border-2 border-[#E6EDF2] text-[#0F172A] hover:border-[#18c0df] hover:text-[#18c0df] rounded-xl px-6 transition-all"
+                className="border-2 hover:bg-primary hover:text-primary-foreground rounded-xl px-6 transition-all"
               >
                 Connexion
               </Button>
             </Link>
             <Link to="/auth?mode=demo">
-              <Button className="bg-[#18c0df] hover:bg-[#1199c7] text-white rounded-xl px-6 shadow-md hover:shadow-lg transition-all">
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-6 shadow-md hover:shadow-lg transition-all">
                 Essayer gratuitement
               </Button>
             </Link>
@@ -146,8 +146,8 @@ const Navigation = () => {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={`block w-full text-left py-3 px-3 text-sm font-medium transition-colors rounded-md ${
                         isActive(link.href)
-                          ? "text-[#18c0df] bg-[#F7FAFC] border-l-2 border-[#18c0df]"
-                          : "text-[#0F172A] hover:bg-[#F7FAFC] hover:text-[#18c0df]"
+                          ? "text-primary bg-secondary border-l-2 border-primary"
+                          : "text-foreground hover:bg-secondary hover:text-primary"
                       }`}
                     >
                       {link.label}
@@ -158,13 +158,13 @@ const Navigation = () => {
                   <button
                     key={link.id}
                     onClick={() => scrollToSection(link.id!)}
-                    className="block w-full text-left py-3 px-3 text-sm font-medium text-[#0F172A] hover:bg-[#F7FAFC] hover:text-[#18c0df] transition-colors rounded-md"
+                    className="block w-full text-left py-3 px-3 text-sm font-medium text-foreground hover:bg-secondary hover:text-primary transition-colors rounded-md"
                   >
                     {link.label}
                   </button>
                 );
               })}
-              <div className="h-px bg-[#E6EDF2] my-2" />
+              <div className="h-px bg-border my-2" />
               <Link
                 to="/auth"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -172,7 +172,7 @@ const Navigation = () => {
               >
                 <Button
                   variant="outline"
-                  className="w-full border-2 border-[#E6EDF2] text-[#0F172A] hover:border-[#18c0df] rounded-xl justify-center"
+                  className="w-full border-2 hover:bg-primary hover:text-primary-foreground rounded-xl justify-center"
                 >
                   Connexion
                 </Button>
@@ -182,7 +182,7 @@ const Navigation = () => {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block w-full"
               >
-                <Button className="w-full bg-[#18c0df] hover:bg-[#1199c7] text-white rounded-xl justify-center">
+                <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl justify-center">
                   Essayer gratuitement
                 </Button>
               </Link>
