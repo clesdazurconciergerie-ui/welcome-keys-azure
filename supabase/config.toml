@@ -32,3 +32,6 @@ verify_jwt = true
 
 [functions.assign-role]
 verify_jwt = false
+
+[functions.import-airbnb]
+verify_jwt = true

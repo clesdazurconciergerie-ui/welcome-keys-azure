@@ -4,7 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Eye, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, Save, Eye, Loader2, Sparkles, Download } from "lucide-react";
+import AirbnbImportModal from "@/components/booklet-editor/AirbnbImportModal";
+import AirbnbImportPreview from "@/components/booklet-editor/AirbnbImportPreview";
+import { useState as useImportState } from "react";
 import { useSectionRouter } from "@/hooks/useSectionRouter";
 import { SectionKey } from "@/types/sections";
 import SectionTabs from "@/components/booklet-editor/SectionTabs";
@@ -40,6 +43,11 @@ const EditBooklet = () => {
   const [saving, setSaving] = useState(false);
   const [booklet, setBooklet] = useState<any>(null);
   const [generating, setGenerating] = useState<Record<string, boolean>>({});
+  
+  // Import Airbnb states
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importPreviewOpen, setImportPreviewOpen] = useState(false);
+  const [importedData, setImportedData] = useState<any>(null);
 
   // Form states - General
   const [generalData, setGeneralData] = useState({
@@ -339,6 +347,90 @@ const EditBooklet = () => {
     }
   };
 
+  const handleImportSuccess = (data: any) => {
+    setImportedData(data);
+    setImportPreviewOpen(true);
+  };
+
+  const handleApplyImport = async (selectedSections: string[]) => {
+    if (!importedData) return;
+
+    try {
+      // Appliquer les sections sélectionnées
+      if (selectedSections.includes('general')) {
+        setGeneralData(prev => ({
+          ...prev,
+          propertyName: importedData.title || prev.propertyName,
+          propertyAddress: importedData.addressApprox 
+            ? `${importedData.addressApprox}, ${importedData.city || ''}`.trim() 
+            : prev.propertyAddress,
+          welcomeMessage: importedData.description || prev.welcomeMessage,
+        }));
+      }
+
+      if (selectedSections.includes('rules') && importedData.houseRules) {
+        setGeneralData(prev => ({
+          ...prev,
+          checkInTime: importedData.houseRules?.checkInFrom || prev.checkInTime,
+          checkOutTime: importedData.houseRules?.checkOutBefore || prev.checkOutTime,
+        }));
+        
+        const rulesText = [
+          importedData.houseRules.quietHours ? `Heures calmes: ${importedData.houseRules.quietHours}` : '',
+          importedData.houseRules.pets !== undefined ? (importedData.houseRules.pets ? 'Animaux acceptés' : 'Animaux non acceptés') : '',
+          importedData.houseRules.smoking !== undefined ? (importedData.houseRules.smoking ? 'Fumeur autorisé' : 'Non-fumeur') : '',
+          importedData.houseRules.parties !== undefined ? (importedData.houseRules.parties ? 'Fêtes autorisées' : 'Pas de fêtes') : '',
+        ].filter(Boolean).join('\n');
+        
+        setRulesData(prev => ({
+          ...prev,
+          houseRules: rulesText || prev.houseRules,
+        }));
+      }
+
+      if (selectedSections.includes('capacity')) {
+        const capacityText = [
+          importedData.maxGuests ? `Capacité: ${importedData.maxGuests} voyageurs` : '',
+          importedData.beds ? `Couchages: ${importedData.beds} lit(s)` : '',
+          importedData.bathrooms ? `Salles de bain: ${importedData.bathrooms}` : '',
+          importedData.spaces ? importedData.spaces.join(', ') : '',
+        ].filter(Boolean).join('\n');
+        
+        setGeneralData(prev => ({
+          ...prev,
+          emergencyContacts: prev.emergencyContacts + '\n\n' + capacityText,
+        }));
+      }
+
+      if (selectedSections.includes('amenities') && importedData.amenities && id) {
+        // Importer les équipements
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          for (const category of importedData.amenities) {
+            if (category.items && category.items.length > 0) {
+              await supabase.from('equipment').insert({
+                booklet_id: id,
+                owner_id: user.id,
+                name: category.category,
+                category: category.category,
+                steps: category.items.map((item: string) => ({ id: crypto.randomUUID(), text: item })),
+              });
+            }
+          }
+        }
+      }
+
+      // Photos: à implémenter selon votre système de galerie
+      // Nearby: peut être ajouté à une section dédiée
+
+      toast.success("Import appliqué avec succès !");
+      await fetchBooklet(); // Recharger pour afficher les équipements importés
+    } catch (error) {
+      console.error('Apply import error:', error);
+      toast.error("Erreur lors de l'application de l'import");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -419,6 +511,13 @@ const EditBooklet = () => {
           <div className="flex gap-2">
             <Button 
               variant="outline" 
+              onClick={() => setImportModalOpen(true)}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Importer Airbnb
+            </Button>
+            <Button 
+              variant="outline" 
               onClick={handleSave}
               disabled={saving}
             >
@@ -457,6 +556,19 @@ const EditBooklet = () => {
           </div>
         </div>
       </main>
+
+      <AirbnbImportModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImportSuccess={handleImportSuccess}
+      />
+
+      <AirbnbImportPreview
+        open={importPreviewOpen}
+        onClose={() => setImportPreviewOpen(false)}
+        data={importedData || {}}
+        onApply={handleApplyImport}
+      />
     </div>
   );
 };
