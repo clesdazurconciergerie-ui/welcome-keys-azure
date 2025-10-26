@@ -59,17 +59,8 @@ const EditBooklet = () => {
     logoUrl: "",
   });
 
-  // Form states - Appearance
-  const [appearanceData, setAppearanceData] = useState({
-    colors: {
-      background: '#ffffff',
-      accent: '#071552',
-      text: '#0F172A',
-      muted: '#64748B'
-    },
-    font: 'Inter',
-    layout: 'comfortable'
-  });
+  // Note: Appearance is now managed by ThemeProvider in EditBookletWrapper
+  // No local state needed here as it's handled by the context
 
   // Form states - WiFi
   const [wifiData, setWifiData] = useState({
@@ -132,18 +123,7 @@ const EditBooklet = () => {
         logoUrl: data.logo_url || "",
       });
 
-      // Charger les données d'apparence
-      const appearance = data.appearance || {};
-      if (appearance && typeof appearance === 'object') {
-        const app = appearance as any;
-        if (app.colors || app.font || app.layout) {
-          setAppearanceData({
-            colors: app.colors || appearanceData.colors,
-            font: app.font || 'Inter',
-            layout: app.layout || 'comfortable'
-          });
-        }
-      }
+      // Note: Appearance/Theme is loaded separately by EditBookletWrapper via ThemeProvider
 
       // Charger les données de règles
       setRulesData({
@@ -197,6 +177,7 @@ const EditBooklet = () => {
     setSaving(true);
     try {
       // Sauvegarder les données principales
+      // Note: appearance/theme is saved separately via ThemeProvider in EditBookletWrapper
       const { error: bookletError } = await supabase
         .from("booklets")
         .update({
@@ -208,7 +189,6 @@ const EditBooklet = () => {
           emergency_contacts: generalData.emergencyContacts,
           concierge_name: identityData.conciergeName,
           logo_url: identityData.logoUrl,
-          appearance: appearanceData,
           house_rules: rulesData.houseRules,
           checkin_procedure: rulesData.checkInProcedure,
           checkout_procedure: rulesData.checkOutProcedure,
@@ -387,9 +367,8 @@ const EditBooklet = () => {
       onLogoRemove: handleLogoRemove,
     },
     appearance: {
-      data: appearanceData,
-      onChange: (updates: Partial<typeof appearanceData>) => 
-        setAppearanceData(prev => ({ ...prev, ...updates })),
+      // AppearanceSectionV2 uses ThemeContext directly, no props needed
+      showSaveButton: true,
     },
     wifi: {
       data: wifiData,

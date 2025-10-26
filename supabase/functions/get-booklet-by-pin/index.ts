@@ -104,7 +104,10 @@ serve(async (req) => {
         chatbot_enabled,
         chatbot_config,
         updated_at,
-        show_logo
+        show_logo,
+        concierge_name,
+        logo_url,
+        appearance
       `)
       .eq('id', pin.booklet_id)
       .eq('status', 'published')
