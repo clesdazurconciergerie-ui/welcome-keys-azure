@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -63,19 +63,21 @@ const FinalCTA = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
             <Button
               size="lg"
-              onClick={handleDemoClick}
-              className="h-12 px-8 bg-primary hover:bg-[hsl(var(--brand-cyan-hover))] text-white rounded-[18px] shadow-lg"
+              onClick={() => navigate("/acces-livret")}
+              className="h-12 px-8 bg-primary hover:bg-[hsl(var(--brand-cyan-hover))] text-white rounded-[18px] shadow-lg hover:shadow-xl transition-all"
+              aria-label="Voir un livret d'accueil via code PIN"
             >
-              <Sparkles className="w-5 h-5 mr-2" />
-              Demander une démo
+              <BookOpen className="w-5 h-5 mr-2" />
+              Voir un livret
             </Button>
             <Button
               size="lg"
               variant="outline"
-              onClick={() => navigate("/acces-livret")}
-              className="h-12 px-8 border-2 rounded-[18px]"
+              onClick={handleDemoClick}
+              className="h-12 px-8 border-2 rounded-[18px] transition-all"
+              aria-label="Demander une démo gratuite"
             >
-              Accéder à un livret
+              Demander une démo
             </Button>
           </div>
         </motion.div>

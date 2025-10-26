@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Play } from "lucide-react";
+import { BookOpen, Play } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -98,13 +98,24 @@ const Hero = () => {
 
             {/* CTAs */}
             <motion.div variants={itemVariants} className="mt-6 lg:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button size="lg" onClick={handleDemoClick} className="w-full sm:w-auto h-12 px-6 bg-primary hover:bg-[hsl(var(--brand-cyan-hover))] text-white rounded-[18px] shadow-lg hover:shadow-xl transition-all">
-                <Sparkles className="w-5 h-5 mr-2" />
-                Demander une démo
+              <Button 
+                size="lg" 
+                onClick={() => navigate("/acces-livret")} 
+                className="w-full sm:w-auto h-12 px-6 bg-primary hover:bg-[hsl(var(--brand-cyan-hover))] text-white rounded-[18px] shadow-lg hover:shadow-xl transition-all"
+                aria-label="Voir un livret d'accueil via code PIN"
+              >
+                <BookOpen className="w-5 h-5 mr-2" />
+                Voir un livret
               </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate("/acces-livret")} className="w-full sm:w-auto h-12 px-6 border-2 rounded-[18px] transition-all">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                onClick={handleDemoClick} 
+                className="w-full sm:w-auto h-12 px-6 border-2 rounded-[18px] transition-all"
+                aria-label="Demander une démo gratuite"
+              >
                 <Play className="w-5 h-5 mr-2" />
-                Voir une démo
+                Demander une démo
               </Button>
             </motion.div>
 
