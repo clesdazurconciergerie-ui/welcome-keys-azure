@@ -9,8 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+// Génération d'ID stable
+const uid = () => crypto.randomUUID?.() || Math.random().toString(36).slice(2);
+
 interface Equipment {
-  id?: string;
+  id: string;
   name: string;
   category: string;
   instructions: string;
@@ -30,6 +33,13 @@ const CATEGORIES = [
 export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [draft, setDraft] = useState<Partial<Equipment>>({
+    name: "",
+    category: "Cuisine",
+    instructions: "",
+    manual_url: "",
+  });
+  const [isComposing, setIsComposing] = useState(false);
   const bookletId = data?.id;
 
   useEffect(() => {
@@ -48,7 +58,8 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
         .eq("booklet_id", bookletId);
 
       if (error) throw error;
-      setEquipment(data || []);
+      // Assurer que chaque équipement a un ID stable
+      setEquipment((data || []).map(e => ({ ...e, id: e.id || uid() })));
     } catch (error) {
       console.error("Error fetching equipment:", error);
     } finally {
@@ -56,51 +67,98 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
     }
   };
 
-  const addEquipment = () => {
-    setEquipment([...equipment, {
+  const addEquipment = async () => {
+    const name = (draft.name || "").trim();
+    const category = draft.category || "Cuisine";
+    const instructions = (draft.instructions || "").trim();
+    const manual_url = (draft.manual_url || "").trim();
+    
+    if (!name) {
+      toast.error("Le nom de l'équipement est requis");
+      return;
+    }
+
+    const newEquipment: Equipment = {
+      id: uid(),
+      name,
+      category,
+      instructions,
+      manual_url,
+    };
+
+    setEquipment(prev => [...prev, newEquipment]);
+    
+    // Sauvegarder en base
+    try {
+      await supabase
+        .from("equipment")
+        .insert({
+          id: newEquipment.id,
+          booklet_id: bookletId,
+          ...newEquipment,
+        });
+      toast.success("Équipement ajouté");
+    } catch (error) {
+      console.error("Error saving:", error);
+      toast.error("Erreur lors de l'ajout");
+    }
+
+    // Réinitialiser le draft
+    setDraft({
       name: "",
       category: "Cuisine",
       instructions: "",
-    }]);
+      manual_url: "",
+    });
   };
 
-  const removeEquipment = async (index: number) => {
-    const item = equipment[index];
-    if (item.id) {
-      try {
-        await supabase
-          .from("equipment")
-          .delete()
-          .eq("id", item.id);
-      } catch (error) {
-        console.error("Error deleting:", error);
-      }
+  const removeEquipment = async (id: string) => {
+    const item = equipment.find(e => e.id === id);
+    if (!item) return;
+
+    try {
+      await supabase
+        .from("equipment")
+        .delete()
+        .eq("id", id);
+      
+      setEquipment(prev => prev.filter(e => e.id !== id));
+      toast.success("Équipement supprimé");
+    } catch (error) {
+      console.error("Error deleting:", error);
+      toast.error("Erreur lors de la suppression");
     }
-    setEquipment(equipment.filter((_, i) => i !== index));
   };
 
-  const updateEquipment = (index: number, updates: Partial<Equipment>) => {
-    const newEquipment = [...equipment];
-    newEquipment[index] = { ...newEquipment[index], ...updates };
-    setEquipment(newEquipment);
-    
-    // Auto-save
-    setTimeout(async () => {
+  const updateEquipment = async (id: string, field: keyof Equipment, value: string) => {
+    setEquipment(prev =>
+      prev.map(item => (item.id === id ? { ...item, [field]: value } : item))
+    );
+
+    // Auto-save avec debounce
+    const timeoutId = setTimeout(async () => {
       try {
-        const item = newEquipment[index];
-        if (item.name && item.category) {
+        const item = equipment.find(e => e.id === id);
+        if (item) {
           await supabase
             .from("equipment")
-            .upsert({
-              id: item.id,
-              booklet_id: bookletId,
-              ...item,
-            });
+            .update({ [field]: value })
+            .eq("id", id);
         }
       } catch (error) {
-        console.error("Error saving:", error);
+        console.error("Error updating:", error);
       }
     }, 1000);
+
+    return () => clearTimeout(timeoutId);
+  };
+
+  const handleDraftKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (isComposing) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addEquipment();
+    }
   };
 
   if (loading) {
@@ -109,92 +167,161 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
 
   return (
     <div className="space-y-8 md:space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold mb-4">Équipements et modes d'emploi</h2>
-          <p className="text-muted-foreground">
-            Listez tous les équipements avec leurs instructions
-          </p>
-        </div>
-        <Button onClick={addEquipment}>
-          <Plus className="w-4 h-4 mr-2" />
-          Ajouter
-        </Button>
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Équipements et modes d'emploi</h2>
+        <p className="text-muted-foreground mb-6">
+          Listez tous les équipements avec leurs instructions
+        </p>
       </div>
 
+      {/* Liste des équipements existants */}
       <div className="space-y-4">
-        {equipment.length === 0 ? (
-          <Card className="p-8 text-center">
-            <p className="text-muted-foreground">
-              Aucun équipement ajouté. Cliquez sur "Ajouter" pour commencer.
-            </p>
-          </Card>
-        ) : (
-          equipment.map((item, index) => (
-            <Card key={index} className="p-4">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">Équipement #{index + 1}</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeEquipment(index)}
-                  >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
-                </div>
+        {equipment.map((item) => (
+          <Card key={item.id} className="p-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">{item.name || "Nouvel équipement"}</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeEquipment(item.id)}
+                >
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Nom</Label>
-                    <Input
-                      value={item.name}
-                      onChange={(e) => updateEquipment(index, { name: e.target.value })}
-                      placeholder="Ex: Four"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Catégorie</Label>
-                    <Select
-                      value={item.category}
-                      onValueChange={(value) => updateEquipment(index, { category: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CATEGORIES.map(cat => (
-                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Instructions</Label>
-                  <Textarea
-                    value={item.instructions}
-                    onChange={(e) => updateEquipment(index, { instructions: e.target.value })}
-                    placeholder="Mode d'emploi..."
-                    rows={3}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Notice PDF (URL)</Label>
+                  <Label>Nom</Label>
                   <Input
-                    value={item.manual_url || ""}
-                    onChange={(e) => updateEquipment(index, { manual_url: e.target.value })}
-                    placeholder="https://..."
-                    type="url"
+                    value={item.name}
+                    onChange={(e) => updateEquipment(item.id, "name", e.target.value)}
+                    onCompositionStart={() => setIsComposing(true)}
+                    onCompositionEnd={() => setIsComposing(false)}
+                    placeholder="Ex: Four"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Catégorie</Label>
+                  <Select
+                    value={item.category}
+                    onValueChange={(value) => updateEquipment(item.id, "category", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            </Card>
-          ))
-        )}
+
+              <div className="space-y-2">
+                <Label>Instructions</Label>
+                <Textarea
+                  value={item.instructions}
+                  onChange={(e) => updateEquipment(item.id, "instructions", e.target.value)}
+                  onCompositionStart={() => setIsComposing(true)}
+                  onCompositionEnd={() => setIsComposing(false)}
+                  placeholder="Mode d'emploi..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Notice PDF (URL)</Label>
+                <Input
+                  value={item.manual_url || ""}
+                  onChange={(e) => updateEquipment(item.id, "manual_url", e.target.value)}
+                  onCompositionStart={() => setIsComposing(true)}
+                  onCompositionEnd={() => setIsComposing(false)}
+                  placeholder="https://..."
+                  type="url"
+                />
+              </div>
+            </div>
+          </Card>
+        ))}
       </div>
+
+      {/* Formulaire d'ajout d'un nouvel équipement */}
+      <Card className="p-4 border-2 border-dashed">
+        <div className="space-y-4">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Ajouter un équipement
+          </h3>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Nom</Label>
+              <Input
+                value={draft.name || ""}
+                onChange={(e) => setDraft(d => ({ ...d, name: e.target.value }))}
+                onKeyDown={handleDraftKeyDown}
+                onCompositionStart={() => setIsComposing(true)}
+                onCompositionEnd={() => setIsComposing(false)}
+                placeholder="Ex: Four"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Catégorie</Label>
+              <Select
+                value={draft.category || "Cuisine"}
+                onValueChange={(value) => setDraft(d => ({ ...d, category: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Instructions</Label>
+            <Textarea
+              value={draft.instructions || ""}
+              onChange={(e) => setDraft(d => ({ ...d, instructions: e.target.value }))}
+              onKeyDown={(e) => {
+                if (!isComposing && e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  addEquipment();
+                }
+              }}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => setIsComposing(false)}
+              placeholder="Mode d'emploi..."
+              rows={3}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Notice PDF (URL)</Label>
+            <Input
+              value={draft.manual_url || ""}
+              onChange={(e) => setDraft(d => ({ ...d, manual_url: e.target.value }))}
+              onKeyDown={handleDraftKeyDown}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => setIsComposing(false)}
+              placeholder="https://..."
+              type="url"
+            />
+          </div>
+
+          <Button onClick={addEquipment} className="w-full">
+            <Plus className="w-4 h-4 mr-2" />
+            Ajouter cet équipement
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }
