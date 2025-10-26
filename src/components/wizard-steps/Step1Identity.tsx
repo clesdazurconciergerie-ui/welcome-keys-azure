@@ -7,9 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Loader2, Sparkles, Download } from "lucide-react";
+import { Upload, X, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import AirbnbImportModal from "@/components/booklet-editor/AirbnbImportModal";
 
 interface Step1IdentityProps {
   data: any;
@@ -26,9 +25,6 @@ export default function Step1Identity({ data, onUpdate, bookletId }: Step1Identi
   const [showLogo, setShowLogo] = useState(data?.show_logo ?? true);
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
-  
-  // Import Airbnb states
-  const [importModalOpen, setImportModalOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -119,96 +115,14 @@ export default function Step1Identity({ data, onUpdate, bookletId }: Step1Identi
     }
   };
 
-  const handleImportSuccess = async (importedData: any) => {
-    if (!importedData) return;
-
-    try {
-      // Appliquer directement les données importées
-      if (importedData.title) {
-        setPropertyName(importedData.title);
-      }
-
-      if (importedData.description) {
-        setWelcomeMessage(importedData.description);
-      }
-
-      if (importedData.photos && importedData.photos.length > 0) {
-        // Utiliser la première photo comme image de couverture
-        setCoverImage(importedData.photos[0]);
-      }
-
-      // Appliquer les autres données via onUpdate
-      const updates: any = {};
-      
-      if (importedData.addressApprox) {
-        updates.property_address = `${importedData.addressApprox}, ${importedData.city || ''}`.trim();
-      }
-
-      if (importedData.houseRules) {
-        if (importedData.houseRules.checkInFrom) {
-          updates.check_in_time = importedData.houseRules.checkInFrom;
-        }
-        if (importedData.houseRules.checkOutBefore) {
-          updates.check_out_time = importedData.houseRules.checkOutBefore;
-        }
-        
-        const rulesText = [
-          importedData.houseRules.quietHours ? `Heures calmes: ${importedData.houseRules.quietHours}` : '',
-          importedData.houseRules.pets !== undefined ? (importedData.houseRules.pets ? 'Animaux acceptés' : 'Animaux non acceptés') : '',
-          importedData.houseRules.smoking !== undefined ? (importedData.houseRules.smoking ? 'Fumeur autorisé' : 'Non-fumeur') : '',
-          importedData.houseRules.parties !== undefined ? (importedData.houseRules.parties ? 'Fêtes autorisées' : 'Pas de fêtes') : '',
-        ].filter(Boolean).join('\n');
-        
-        if (rulesText) {
-          updates.house_rules = rulesText;
-        }
-      }
-
-      if (importedData.amenities && bookletId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          for (const category of importedData.amenities) {
-            if (category.items && category.items.length > 0) {
-              await supabase.from('equipment').insert({
-                booklet_id: bookletId,
-                owner_id: user.id,
-                name: category.category,
-                category: category.category,
-                steps: category.items.map((item: string) => ({ id: crypto.randomUUID(), text: item })),
-              });
-            }
-          }
-        }
-      }
-
-      if (Object.keys(updates).length > 0) {
-        onUpdate(updates);
-      }
-
-      toast.success("Données importées et appliquées avec succès !");
-    } catch (error) {
-      console.error('Apply import error:', error);
-      toast.error("Erreur lors de l'application de l'import");
-    }
-  };
 
   return (
     <div className="space-y-8 md:space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold mb-2">Identité du logement</h2>
-          <p className="text-muted-foreground">
-            Commencez par les informations de base de votre propriété
-          </p>
-        </div>
-        <Button 
-          variant="outline" 
-          onClick={() => setImportModalOpen(true)}
-          className="flex items-center gap-2"
-        >
-          <Download className="w-4 h-4" />
-          Importer Airbnb
-        </Button>
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Identité du logement</h2>
+        <p className="text-muted-foreground">
+          Commencez par les informations de base de votre propriété
+        </p>
       </div>
 
       <div className="space-y-4">
@@ -359,13 +273,6 @@ export default function Step1Identity({ data, onUpdate, bookletId }: Step1Identi
           />
         </div>
       </div>
-
-      <AirbnbImportModal
-        open={importModalOpen}
-        onClose={() => setImportModalOpen(false)}
-        onImportSuccess={handleImportSuccess}
-        bookletId={bookletId}
-      />
     </div>
   );
 }
