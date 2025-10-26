@@ -29,7 +29,7 @@ const FinalCTA = () => {
               className="h-12 px-8 bg-primary hover:bg-[hsl(var(--brand-cyan-hover))] text-white rounded-[18px] shadow-lg"
             >
               <Sparkles className="w-5 h-5 mr-2" />
-              Essayer gratuitement
+              Demander une démo
             </Button>
             <Button
               size="lg"
