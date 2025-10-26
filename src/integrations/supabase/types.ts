@@ -301,6 +301,7 @@ export type Database = {
           id: string
           manual_url: string | null
           name: string
+          owner_id: string
           photos: Json | null
           steps: Json | null
         }
@@ -311,6 +312,7 @@ export type Database = {
           id?: string
           manual_url?: string | null
           name: string
+          owner_id: string
           photos?: Json | null
           steps?: Json | null
         }
@@ -321,6 +323,7 @@ export type Database = {
           id?: string
           manual_url?: string | null
           name?: string
+          owner_id?: string
           photos?: Json | null
           steps?: Json | null
         }

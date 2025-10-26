@@ -9,12 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
-// Génération d'ID stable
 const uid = () => crypto.randomUUID?.() || Math.random().toString(36).slice(2);
 
-// Normalisation robuste des steps depuis DB (idempotente)
 const normalizeSteps = (raw: unknown): Step[] => {
-  // Cas 1: Déjà un tableau d'objets {id, text}
   if (Array.isArray(raw)) {
     return raw
       .map((s: any) => ({ 
@@ -24,7 +21,6 @@ const normalizeSteps = (raw: unknown): Step[] => {
       .filter(s => s.text);
   }
   
-  // Cas 2: String JSON à parser
   if (typeof raw === 'string') {
     const str = raw.trim();
     if (!str) return [];
@@ -32,13 +28,12 @@ const normalizeSteps = (raw: unknown): Step[] => {
     try {
       const parsed = JSON.parse(str);
       if (Array.isArray(parsed)) {
-        return normalizeSteps(parsed); // Récursion pour normaliser
+        return normalizeSteps(parsed);
       }
     } catch {
-      // Pas du JSON valide, traiter comme texte multi-lignes
+      // Not valid JSON, treat as multi-line text
     }
     
-    // Cas 3: Texte multi-lignes (fallback)
     return str
       .split(/\r?\n+/)
       .map(s => s.trim())
@@ -82,7 +77,7 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
   const [isComposing, setIsComposing] = useState(false);
   const bookletId = data?.id;
 
-  // ✅ Hydratation idempotente : charge une seule fois, conserve les IDs
+  // Hydratation idempotente : charge une seule fois, conserve les IDs
   useEffect(() => {
     let mounted = true;
     
@@ -93,21 +88,27 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
       }
 
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          setLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase
           .from("equipment")
           .select("*")
-          .eq("booklet_id", bookletId);
+          .eq("booklet_id", bookletId)
+          .order("created_at", { ascending: true });
 
         if (error) throw error;
         
         if (!mounted) return;
 
-        // Normaliser sans créer de nouveaux items
         const equipmentList = (data || []).map(e => ({
-          id: e.id || uid(),
+          id: e.id,
           name: e.name || '',
           category: e.category || 'Général',
-          steps: normalizeSteps(e.steps), // ✅ Colonne renommée: instructions → steps
+          steps: normalizeSteps(e.steps),
           manual_url: e.manual_url || ''
         }));
 
@@ -151,41 +152,48 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
       .filter(Boolean)
       .map(text => ({ id: uid(), text }));
 
-    const newEquipment: Equipment = {
-      id: uid(),
-      name,
-      category: category || "Général",
-      steps,
-      manual_url,
-    };
-
-    setEquipment(prev => [...prev, newEquipment]);
-    
-    // Sauvegarder en base (steps JSONB natif, pas de stringify)
     try {
-      const { error } = await supabase
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast.error("Vous devez être connecté");
+        return;
+      }
+
+      const { data, error } = await supabase
         .from("equipment")
         .insert({
-          id: newEquipment.id,
           booklet_id: bookletId,
-          name: newEquipment.name,
-          category: newEquipment.category,
-          steps: newEquipment.steps as any, // ✅ JSONB: Supabase convertit automatiquement
-          manual_url: newEquipment.manual_url,
-        });
+          owner_id: sessionData.session.user.id,
+          name,
+          category: category || "Général",
+          steps: steps as any,
+          manual_url: manual_url || null,
+        })
+        .select()
+        .single();
       
       if (error) throw error;
+
+      const newEquipment: Equipment = {
+        id: data.id,
+        name: data.name,
+        category: data.category,
+        steps: normalizeSteps(data.steps),
+        manual_url: data.manual_url || undefined,
+      };
+
+      setEquipment(prev => [...prev, newEquipment]);
       toast.success("Équipement ajouté");
+
+      // Réinitialiser le draft
+      setDraftName("");
+      setDraftCategory("Cuisine");
+      setDraftSteps("");
+      setDraftManualUrl("");
     } catch (error) {
       console.error("Error saving:", error);
       toast.error("Erreur lors de l'ajout");
     }
-
-    // Réinitialiser le draft
-    setDraftName("");
-    setDraftCategory("Cuisine");
-    setDraftSteps("");
-    setDraftManualUrl("");
   };
 
   const removeEquipment = async (id: string) => {
@@ -236,24 +244,27 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
     );
   };
 
-  // ✅ Autosave PATCH debouncé (upsert par ID uniquement, JSONB natif)
+  // Autosave PATCH debouncé (upsert par ID uniquement, JSONB natif)
   const debouncedSave = useMemo(() => {
     let timeoutId: NodeJS.Timeout;
     return (items: Equipment[]) => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(async () => {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) return;
+
         for (const item of items) {
           try {
             const { error } = await supabase
               .from("equipment")
-              .upsert({
-                id: item.id,
-                booklet_id: bookletId,
+              .update({
                 name: item.name,
                 category: item.category,
-                steps: item.steps as any, // ✅ JSONB: Supabase convertit automatiquement
-                manual_url: item.manual_url,
-              }, { onConflict: 'id' });
+                steps: item.steps as any,
+                manual_url: item.manual_url || null,
+              })
+              .eq('id', item.id)
+              .eq('owner_id', sessionData.session.user.id);
             
             if (error) {
               console.error("Error auto-saving equipment:", error);
@@ -262,7 +273,7 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
             console.error("Error auto-saving equipment:", error);
           }
         }
-      }, 800);
+      }, 500);
     };
   }, [bookletId]);
 
@@ -355,22 +366,24 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
                 {item.steps.length > 0 ? (
                   <ul className="list-disc pl-5 space-y-2">
                     {item.steps.map((step) => (
-                      <li key={step.id} className="flex items-start gap-2">
-                        <Input
-                          value={step.text}
-                          onChange={(e) => updateStep(item.id, step.id, e.target.value)}
-                          onCompositionStart={() => setIsComposing(true)}
-                          onCompositionEnd={() => setIsComposing(false)}
-                          placeholder="Étape..."
-                          className="flex-1"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeStep(item.id, step.id)}
-                        >
-                          <Trash2 className="w-3 h-3 text-destructive" />
-                        </Button>
+                      <li key={step.id}>
+                        <div className="flex items-start gap-2">
+                          <Input
+                            value={step.text}
+                            onChange={(e) => updateStep(item.id, step.id, e.target.value)}
+                            onCompositionStart={() => setIsComposing(true)}
+                            onCompositionEnd={() => setIsComposing(false)}
+                            placeholder="Étape..."
+                            className="flex-1"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeStep(item.id, step.id)}
+                          >
+                            <Trash2 className="w-3 h-3 text-destructive" />
+                          </Button>
+                        </div>
                       </li>
                     ))}
                   </ul>
