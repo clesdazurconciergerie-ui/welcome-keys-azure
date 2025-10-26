@@ -2,6 +2,9 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -42,19 +45,25 @@ serve(async (req) => {
   }
 
   try {
-    const { url, fallbackText, mode } = await req.json();
+    const { url, fallbackText, mode, bookletId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log('Import Airbnb request:', { url, mode, hasFallbackText: !!fallbackText });
+    console.log('Import Airbnb request:', { url, mode, hasFallbackText: !!fallbackText, bookletId });
 
     // Mode fallback: l'utilisateur a collé le texte de l'annonce
     if (mode === 'fallback' && fallbackText) {
       console.log('Using fallback text mode');
       const aiResult = await extractFromText(fallbackText, LOVABLE_API_KEY);
+      
+      // Télécharger et stocker les photos si un bookletId est fourni
+      if (bookletId && aiResult.photos?.length > 0) {
+        aiResult.photos = await downloadAndStorePhotos(aiResult.photos, bookletId);
+      }
+      
       return new Response(
         JSON.stringify({ success: true, data: aiResult, method: 'fallback' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -83,6 +92,11 @@ serve(async (req) => {
 
     console.log('Page fetched successfully, extracting data with AI');
     const extractedData = await extractFromHTML(htmlContent, LOVABLE_API_KEY);
+
+    // Télécharger et stocker les photos si un bookletId est fourni
+    if (bookletId && extractedData.photos?.length > 0) {
+      extractedData.photos = await downloadAndStorePhotos(extractedData.photos, bookletId);
+    }
 
     return new Response(
       JSON.stringify({ success: true, data: extractedData, method: 'scrape' }),
@@ -272,4 +286,72 @@ ${text.slice(0, 30000)}`;
     console.error('Text extraction error:', error);
     return {};
   }
+}
+
+async function downloadAndStorePhotos(photoUrls: string[], bookletId: string): Promise<string[]> {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const storedUrls: string[] = [];
+  
+  console.log(`Starting to download ${photoUrls.length} photos for booklet ${bookletId}`);
+  
+  // Limiter à 12 photos max
+  const photosToDownload = photoUrls.slice(0, 12);
+  
+  for (let i = 0; i < photosToDownload.length; i++) {
+    try {
+      const photoUrl = photosToDownload[i];
+      console.log(`Downloading photo ${i + 1}/${photosToDownload.length}: ${photoUrl}`);
+      
+      // Télécharger l'image
+      const imageResponse = await fetch(photoUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        },
+        signal: AbortSignal.timeout(15000),
+      });
+      
+      if (!imageResponse.ok) {
+        console.error(`Failed to download photo ${i + 1}: ${imageResponse.status}`);
+        continue;
+      }
+      
+      const imageBlob = await imageResponse.blob();
+      const arrayBuffer = await imageBlob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // Détecter l'extension
+      const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
+      
+      // Nom de fichier unique
+      const fileName = `${bookletId}/airbnb-import-${Date.now()}-${i}.${ext}`;
+      
+      // Upload vers Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('booklet-images')
+        .upload(fileName, uint8Array, {
+          contentType,
+          upsert: false,
+        });
+      
+      if (uploadError) {
+        console.error(`Upload error for photo ${i + 1}:`, uploadError);
+        continue;
+      }
+      
+      // Obtenir l'URL publique
+      const { data: publicUrlData } = supabase.storage
+        .from('booklet-images')
+        .getPublicUrl(fileName);
+      
+      storedUrls.push(publicUrlData.publicUrl);
+      console.log(`Photo ${i + 1} uploaded successfully: ${publicUrlData.publicUrl}`);
+      
+    } catch (error) {
+      console.error(`Error processing photo ${i + 1}:`, error);
+    }
+  }
+  
+  console.log(`Successfully stored ${storedUrls.length}/${photosToDownload.length} photos`);
+  return storedUrls;
 }

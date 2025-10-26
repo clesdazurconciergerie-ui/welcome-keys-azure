@@ -12,9 +12,10 @@ interface AirbnbImportModalProps {
   open: boolean;
   onClose: () => void;
   onImportSuccess: (data: any) => void;
+  bookletId?: string;
 }
 
-export default function AirbnbImportModal({ open, onClose, onImportSuccess }: AirbnbImportModalProps) {
+export default function AirbnbImportModal({ open, onClose, onImportSuccess, bookletId }: AirbnbImportModalProps) {
   const [url, setUrl] = useState("");
   const [fallbackText, setFallbackText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,7 +39,8 @@ export default function AirbnbImportModal({ open, onClose, onImportSuccess }: Ai
         body: { 
           url: mode === 'url' ? url : null,
           fallbackText: mode === 'text' ? fallbackText : null,
-          mode: mode === 'text' ? 'fallback' : 'scrape'
+          mode: mode === 'text' ? 'fallback' : 'scrape',
+          bookletId: bookletId
         }
       });
 

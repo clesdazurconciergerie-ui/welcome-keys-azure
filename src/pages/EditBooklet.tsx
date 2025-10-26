@@ -561,6 +561,7 @@ const EditBooklet = () => {
         open={importModalOpen}
         onClose={() => setImportModalOpen(false)}
         onImportSuccess={handleImportSuccess}
+        bookletId={id}
       />
 
       <AirbnbImportPreview

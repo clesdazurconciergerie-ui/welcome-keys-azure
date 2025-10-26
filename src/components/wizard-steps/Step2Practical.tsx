@@ -4,16 +4,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import AirbnbImportModal from "@/components/booklet-editor/AirbnbImportModal";
+import AirbnbImportPreview from "@/components/booklet-editor/AirbnbImportPreview";
 
 interface Step2PracticalProps {
   data: any;
   onUpdate: (updates: any) => void;
+  bookletId?: string;
 }
 
-export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) {
+export default function Step2Practical({ data, onUpdate, bookletId }: Step2PracticalProps) {
   const [address, setAddress] = useState(data?.property_address || "");
   const [mapsLink, setMapsLink] = useState(data?.google_maps_link || "");
   const [accessCode, setAccessCode] = useState(data?.access_code || "");
@@ -26,6 +29,11 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
   const [manualPdf, setManualPdf] = useState(data?.manual_pdf_url || "");
   const [safetyTips, setSafetyTips] = useState(data?.safety_tips || "");
   const [generating, setGenerating] = useState<string | null>(null);
+  
+  // Import Airbnb states
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importPreviewOpen, setImportPreviewOpen] = useState(false);
+  const [importedData, setImportedData] = useState<any>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -72,13 +80,66 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
     }
   };
 
+  const handleImportSuccess = (data: any) => {
+    setImportedData(data);
+    setImportPreviewOpen(true);
+  };
+
+  const handleApplyImport = async (selectedSections: string[]) => {
+    if (!importedData) return;
+
+    try {
+      // Appliquer les données importées
+      if (selectedSections.includes('general')) {
+        if (importedData.addressApprox) {
+          setAddress(`${importedData.addressApprox}, ${importedData.city || ''}`.trim());
+        }
+      }
+
+      if (selectedSections.includes('rules') && importedData.houseRules) {
+        if (importedData.houseRules.checkInFrom) {
+          setCheckInTime(importedData.houseRules.checkInFrom);
+        }
+        if (importedData.houseRules.checkOutBefore) {
+          setCheckOutTime(importedData.houseRules.checkOutBefore);
+        }
+        
+        const rulesText = [
+          importedData.houseRules.quietHours ? `Heures calmes: ${importedData.houseRules.quietHours}` : '',
+          importedData.houseRules.pets !== undefined ? (importedData.houseRules.pets ? 'Animaux acceptés' : 'Animaux non acceptés') : '',
+          importedData.houseRules.smoking !== undefined ? (importedData.houseRules.smoking ? 'Fumeur autorisé' : 'Non-fumeur') : '',
+          importedData.houseRules.parties !== undefined ? (importedData.houseRules.parties ? 'Fêtes autorisées' : 'Pas de fêtes') : '',
+        ].filter(Boolean).join('\n');
+        
+        if (rulesText) {
+          setHouseRules(rulesText);
+        }
+      }
+
+      toast.success("Import appliqué avec succès !");
+    } catch (error) {
+      console.error('Apply import error:', error);
+      toast.error("Erreur lors de l'application de l'import");
+    }
+  };
+
   return (
     <div className="space-y-8 md:space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Informations pratiques</h2>
-        <p className="text-muted-foreground">
-          Toutes les informations essentielles pour l'arrivée et le séjour
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Informations pratiques</h2>
+          <p className="text-muted-foreground">
+            Toutes les informations essentielles pour l'arrivée et le séjour
+          </p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={() => setImportModalOpen(true)}
+          className="flex items-center gap-2"
+        >
+          <Download className="w-4 h-4" />
+          Importer Airbnb
+        </Button>
       </div>
 
       <div className="space-y-4">
@@ -276,6 +337,20 @@ export default function Step2Practical({ data, onUpdate }: Step2PracticalProps) 
           />
         </div>
       </div>
+
+      <AirbnbImportModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImportSuccess={handleImportSuccess}
+        bookletId={bookletId}
+      />
+
+      <AirbnbImportPreview
+        open={importPreviewOpen}
+        onClose={() => setImportPreviewOpen(false)}
+        data={importedData || {}}
+        onApply={handleApplyImport}
+      />
     </div>
   );
 }
