@@ -101,7 +101,15 @@ const Hero = () => {
               <Button 
                 size="lg" 
                 onClick={() => navigate("/acces-livret")} 
-                className="w-full sm:w-auto h-12 px-6 bg-primary hover:bg-[hsl(var(--brand-cyan-hover))] text-white rounded-[18px] shadow-lg hover:shadow-xl transition-all"
+                className="w-full sm:w-auto h-12 px-6 bg-[#071552] text-white rounded-[18px] 
+                  shadow-[0_6px_18px_rgba(7,21,82,0.18)] transition-all duration-200 ease-out
+                  hover:bg-[#0b1b6a] hover:shadow-[0_10px_24px_rgba(7,21,82,0.28)] 
+                  hover:-translate-y-[1px] hover:scale-[1.015]
+                  active:bg-[#061142] active:shadow-[0_4px_12px_rgba(7,21,82,0.24)] active:translate-y-0 active:scale-100
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#3b82f6]
+                  disabled:bg-[#aab0c5] disabled:text-[#f4f5f9] disabled:shadow-none disabled:cursor-not-allowed
+                  disabled:transform-none
+                  motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100"
                 aria-label="Voir un livret d'accueil via code PIN"
               >
                 <BookOpen className="w-5 h-5 mr-2" />
@@ -111,7 +119,11 @@ const Hero = () => {
                 size="lg" 
                 variant="outline" 
                 onClick={handleDemoClick} 
-                className="w-full sm:w-auto h-12 px-6 border-2 rounded-[18px] transition-all"
+                className="w-full sm:w-auto h-12 px-6 border-2 border-[#071552] text-[#071552] bg-white rounded-[18px] 
+                  transition-all duration-200 ease-out
+                  hover:bg-[#071552] hover:text-white hover:shadow-md
+                  active:bg-[#061142]
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#3b82f6]"
                 aria-label="Demander une démo gratuite"
               >
                 <Play className="w-5 h-5 mr-2" />
