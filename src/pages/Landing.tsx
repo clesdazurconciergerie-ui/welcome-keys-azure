@@ -3,6 +3,7 @@ import Hero from "@/components/landing/Hero";
 import TrustLogos from "@/components/landing/TrustLogos";
 import SatisfiedGuests from "@/components/landing/SatisfiedGuests";
 import SaveTime from "@/components/landing/SaveTime";
+import Features from "@/components/landing/Features";
 import Metrics from "@/components/landing/Metrics";
 import Customization from "@/components/landing/Customization";
 import Process from "@/components/landing/Process";
@@ -21,6 +22,7 @@ const Landing = () => {
       <TrustLogos />
       <SatisfiedGuests />
       <SaveTime />
+      <Features />
       <Metrics />
       <Customization />
       <Process />
