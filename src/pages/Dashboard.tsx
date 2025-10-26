@@ -22,6 +22,7 @@ import { fr } from "date-fns/locale";
 import { motion } from "framer-motion";
 import BrandMark from "@/components/BrandMark";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import SubscriptionSection from "@/components/dashboard/SubscriptionSection";
 
 interface Pin {
   pin_code: string;
@@ -385,6 +386,9 @@ const Dashboard = () => {
             Bonjour {userName} 👋 — Gérez vos livrets d'accueil avec élégance.
           </p>
         </motion.div>
+
+        {/* Subscription Section */}
+        <SubscriptionSection />
 
         {/* Free Trial Banner */}
         {userRole === 'free_trial' && daysRemaining !== null && daysRemaining > 0 && (
