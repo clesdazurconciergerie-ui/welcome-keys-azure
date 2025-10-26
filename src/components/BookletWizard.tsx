@@ -30,17 +30,17 @@ interface BookletWizardProps {
 }
 
 const STEPS = [
-  { number: 0, title: "Apparence", icon: Palette, component: Step0Appearance },
   { number: 1, title: "Identité", icon: Home, component: Step1Identity },
-  { number: 2, title: "Infos pratiques", icon: MapPin, component: Step2Practical },
-  { number: 3, title: "Wi-Fi", icon: Wifi, component: Step3Wifi },
-  { number: 4, title: "Équipements", icon: Wrench, component: Step4Equipment },
-  { number: 5, title: "Ménage & tri", icon: Trash2, component: Step5Cleaning },
-  { number: 6, title: "À proximité", icon: Store, component: Step6Nearby },
-  { number: 7, title: "Contacts", icon: FileText, component: Step7Contacts },
-  { number: 8, title: "FAQ & Chatbot", icon: MessageSquare, component: Step8FAQ },
-  { number: 9, title: "Légal", icon: Shield, component: Step9Legal },
-  { number: 10, title: "Bonus", icon: Gift, component: Step10Bonus },
+  { number: 2, title: "Apparence", icon: Palette, component: Step0Appearance },
+  { number: 3, title: "Infos pratiques", icon: MapPin, component: Step2Practical },
+  { number: 4, title: "Wi-Fi", icon: Wifi, component: Step3Wifi },
+  { number: 5, title: "Équipements", icon: Wrench, component: Step4Equipment },
+  { number: 6, title: "Ménage & tri", icon: Trash2, component: Step5Cleaning },
+  { number: 7, title: "À proximité", icon: Store, component: Step6Nearby },
+  { number: 8, title: "Contacts", icon: FileText, component: Step7Contacts },
+  { number: 9, title: "FAQ & Chatbot", icon: MessageSquare, component: Step8FAQ },
+  { number: 10, title: "Légal", icon: Shield, component: Step9Legal },
+  { number: 11, title: "Bonus", icon: Gift, component: Step10Bonus },
 ];
 
 export default function BookletWizard({ bookletId }: BookletWizardProps) {
@@ -71,7 +71,7 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
 
       if (error) throw error;
       setBookletData(data);
-      setCurrentStep(data.wizard_step !== null && data.wizard_step !== undefined ? data.wizard_step : 0);
+      setCurrentStep(data.wizard_step !== null && data.wizard_step !== undefined ? data.wizard_step : 1);
     } catch (error) {
       console.error("Error fetching booklet:", error);
       toast.error("Erreur lors du chargement");
@@ -91,7 +91,7 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
           user_id: user.id,
           property_name: "Nouveau livret",
           property_address: "",
-          wizard_step: 0,
+          wizard_step: 1,
           status: "draft",
         })
         .select()
@@ -400,7 +400,7 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
                 <Button
                   variant="outline"
                   onClick={handlePrevious}
-                  disabled={currentStep === 0}
+                  disabled={currentStep === 1}
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Précédent
