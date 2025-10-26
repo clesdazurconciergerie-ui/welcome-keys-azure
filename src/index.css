@@ -287,4 +287,43 @@ All colors MUST be HSL.
   .theme-scope .bg-accent {
     background-color: var(--theme-accent) !important;
   }
+
+  .theme-scope .text-primary {
+    color: var(--theme-primary) !important;
+  }
+
+  .theme-scope .bg-primary {
+    background-color: var(--theme-primary) !important;
+  }
+
+  .theme-scope .border-primary {
+    border-color: var(--theme-primary) !important;
+  }
+
+  /* Hero gradient with theme primary */
+  .theme-scope .hero-bg-primary {
+    background: linear-gradient(135deg, var(--theme-primary) 0%, color-mix(in srgb, var(--theme-primary) 80%, black) 100%);
+  }
+
+  /* Card accents with theme colors */
+  .theme-scope .card-accent-border {
+    border-left: 3px solid var(--theme-accent);
+  }
+
+  .theme-scope .icon-primary {
+    color: var(--theme-primary);
+  }
+
+  /* Interactive elements */
+  .theme-scope button.primary-btn:hover {
+    background-color: color-mix(in srgb, var(--theme-primary) 90%, black);
+  }
+
+  .theme-scope a.primary-link {
+    color: var(--theme-primary);
+  }
+
+  .theme-scope a.primary-link:hover {
+    color: color-mix(in srgb, var(--theme-primary) 80%, black);
+  }
 }

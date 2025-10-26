@@ -11,7 +11,8 @@ import ChatWidget from "@/components/ChatWidget";
 import FreeTrialWatermark from "@/components/FreeTrialWatermark";
 import { supabase } from "@/integrations/supabase/client";
 import { extractThemeFromBooklet } from "@/lib/theme-db";
-import { applyThemeToRoot } from "@/lib/theme-utils";
+import ThemeScope from "@/components/ThemeScope";
+import { Theme } from "@/types/theme";
 
 interface Photo {
   url: string;
@@ -127,6 +128,7 @@ export default function ViewBooklet() {
   const [showMenu, setShowMenu] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<{ url: string; alt: string } | null>(null);
   const [ownerRole, setOwnerRole] = useState<string | null>(null);
+  const [theme, setTheme] = useState<Theme | null>(null);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -210,11 +212,42 @@ export default function ViewBooklet() {
     fetchBooklet();
   }, [code]);
 
-  // Apply theme on booklet load
+  // Apply theme on booklet load - inject CSS variables immediately
   useEffect(() => {
     if (!booklet) return;
-    const theme = extractThemeFromBooklet(booklet);
-    applyThemeToRoot(theme);
+    
+    const extractedTheme = extractThemeFromBooklet(booklet);
+    setTheme(extractedTheme);
+    
+    // Inject theme CSS variables immediately into document root to prevent flash
+    const root = document.documentElement;
+    root.style.setProperty('--theme-primary', extractedTheme.primaryHex);
+    root.style.setProperty('--theme-accent', extractedTheme.accentHex || extractedTheme.primaryHex);
+    root.style.setProperty('--theme-bg', extractedTheme.bgHex || '#ffffff');
+    root.style.setProperty('--theme-text', extractedTheme.textHex || '#0F172A');
+    root.style.setProperty('--theme-muted', extractedTheme.mutedHex || '#64748B');
+    
+    const fontFamilyMap: Record<string, string> = {
+      'Inter': "'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif",
+      'Poppins': "'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif",
+      'Montserrat': "'Montserrat', ui-sans-serif, system-ui, -apple-system, sans-serif",
+      'System': "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif"
+    };
+    
+    const fontSizeMap: Record<string, string> = {
+      'sm': '14px',
+      'md': '16px',
+      'lg': '18px',
+      'xl': '20px'
+    };
+    
+    root.style.setProperty('--theme-font-family', fontFamilyMap[extractedTheme.fontFamily] || fontFamilyMap.Inter);
+    root.style.setProperty('--theme-font-size', fontSizeMap[extractedTheme.baseFontSize] || '16px');
+    
+    // Also set legacy booklet variables for backward compatibility
+    root.style.setProperty('--booklet-bg', extractedTheme.bgHex || '#ffffff');
+    root.style.setProperty('--booklet-accent', extractedTheme.primaryHex);
+    root.style.setProperty('--booklet-text', extractedTheme.textHex || '#0F172A');
   }, [booklet]);
 
   const handleShowWifiPassword = async () => {
@@ -314,56 +347,31 @@ export default function ViewBooklet() {
     { id: 'legal', label: 'Informations légales', icon: Shield },
   ];
 
-  // Get appearance config or fallback to legacy colors
-  const appearance: AppearanceConfig = booklet?.appearance || {
-    colors: {
-      background: booklet?.background_color || '#ffffff',
-      surface: '#ffffff',
-      accent: booklet?.accent_color || '#18c0df',
-      text: booklet?.text_color || '#1a1a1a',
-      muted: '#6b7280'
-    },
-    typography: {
-      font_family: 'Inter',
-      base_size: 16
-    },
-    header: {
-      hero_overlay: 0.65,
-      title_align: 'left',
-      show_location: true
-    }
-  };
+  // Use theme for primary color in UI
+  const primaryColor = theme?.primaryHex || '#071552';
+  const accentColor = theme?.accentHex || theme?.primaryHex || '#18c0df';
 
-  const bgColor = appearance.colors.background;
-  const accentColor = appearance.colors.accent;
-  const textColor = appearance.colors.text;
-  const mutedColor = appearance.colors.muted;
-  const surfaceColor = appearance.colors.surface;
-  const fontFamily = appearance.typography?.font_family === 'System' 
-    ? 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif'
-    : appearance.typography?.font_family || 'Inter';
-  const fontSize = appearance.typography?.base_size || 16;
-  const heroOverlay = appearance.header?.hero_overlay || 0.65;
+  // If no theme loaded yet, show loading
+  if (!theme) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Skeleton className="h-48 w-full max-w-4xl" />
+      </div>
+    );
+  }
 
   return (
-    <div 
-      className="min-h-screen bg-gradient-to-b from-secondary/30 to-background"
-      style={{
-        '--booklet-bg': bgColor,
-        '--booklet-surface': surfaceColor,
-        '--booklet-accent': accentColor,
-        '--booklet-text': textColor,
-        '--booklet-muted': mutedColor,
-        '--booklet-font': fontFamily,
-        '--booklet-size': `${fontSize}px`,
-      } as React.CSSProperties}
-    >
+    <ThemeScope theme={theme} className="min-h-screen">
       {/* Floating Navigation Menu */}
       <div className="fixed top-4 right-4 z-50">
         <Button
           onClick={() => setShowMenu(!showMenu)}
           size="icon"
-          className="h-12 w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90"
+          className="h-12 w-12 rounded-full shadow-lg"
+          style={{ 
+            backgroundColor: primaryColor,
+            color: '#ffffff'
+          }}
         >
           {showMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
@@ -377,8 +385,11 @@ export default function ViewBooklet() {
                   key={item.id}
                   onClick={() => scrollToSection(item.id)}
                   className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-secondary transition-all text-left group"
+                  style={{ 
+                    color: 'var(--theme-text)'
+                  }}
                 >
-                  <Icon className="h-4 w-4 text-primary" />
+                  <Icon className="h-4 w-4" style={{ color: primaryColor }} />
                   <span className="flex-1 text-sm font-medium">{item.label}</span>
                   <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
@@ -390,16 +401,17 @@ export default function ViewBooklet() {
 
       {/* Hero Section with Enhanced Gradient */}
       <div 
-        className="relative h-72 md:h-80 bg-gradient-to-br from-primary to-primary/80 flex items-end"
-        style={booklet.cover_image_url ? {
-          backgroundImage: `url(${booklet.cover_image_url})`,
+        className="relative h-72 md:h-80 flex items-end"
+        style={{
+          backgroundImage: booklet.cover_image_url ? `url(${booklet.cover_image_url})` : undefined,
           backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        } : {}}
+          backgroundPosition: 'center',
+          backgroundColor: booklet.cover_image_url ? undefined : primaryColor
+        }}
       >
         <div 
           className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" 
-          style={{ opacity: heroOverlay }}
+          style={{ opacity: 0.65 }}
         />
         <div className="relative z-10 w-full px-4 md:px-8 pb-8 text-white">
           <div className="max-w-4xl mx-auto">
@@ -1035,6 +1047,6 @@ export default function ViewBooklet() {
           />
         </div>
       )}
-    </div>
+    </ThemeScope>
   );
 }
