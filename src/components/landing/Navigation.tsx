@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BrandMark from "@/components/BrandMark";
+import { supabase } from "@/integrations/supabase/client";
 
 const Navigation = () => {
   const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -16,6 +18,23 @@ const Navigation = () => {
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    // Check authentication status
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+    
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const scrollToSection = (id: string) => {
@@ -100,19 +119,31 @@ const Navigation = () => {
 
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/auth">
-              <Button
-                variant="outline"
-                className="border-2 hover:bg-primary hover:text-primary-foreground rounded-xl px-6 transition-all"
-              >
-                Connexion
-              </Button>
-            </Link>
-            <Link to="/auth?mode=demo">
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-6 shadow-md hover:shadow-lg transition-all">
-                Essayer gratuitement
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <Link to="/dashboard">
+                <Button
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-6 shadow-md hover:shadow-lg transition-all"
+                >
+                  Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/auth">
+                  <Button
+                    variant="outline"
+                    className="border-2 hover:bg-primary hover:text-primary-foreground rounded-xl px-6 transition-all"
+                  >
+                    Connexion
+                  </Button>
+                </Link>
+                <Link to="/auth?mode=demo">
+                  <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-6 shadow-md hover:shadow-lg transition-all">
+                    Essayer gratuitement
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -165,27 +196,41 @@ const Navigation = () => {
                 );
               })}
               <div className="h-px bg-border my-2" />
-              <Link
-                to="/auth"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block w-full"
-              >
-                <Button
-                  variant="outline"
-                  className="w-full border-2 hover:bg-primary hover:text-primary-foreground rounded-xl justify-center"
+              {isAuthenticated ? (
+                <Link
+                  to="/dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block w-full"
                 >
-                  Connexion
-                </Button>
-              </Link>
-              <Link
-                to="/auth?mode=demo"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block w-full"
-              >
-                <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl justify-center">
-                  Essayer gratuitement
-                </Button>
-              </Link>
+                  <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl justify-center">
+                    Dashboard
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/auth"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block w-full"
+                  >
+                    <Button
+                      variant="outline"
+                      className="w-full border-2 hover:bg-primary hover:text-primary-foreground rounded-xl justify-center"
+                    >
+                      Connexion
+                    </Button>
+                  </Link>
+                  <Link
+                    to="/auth?mode=demo"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block w-full"
+                  >
+                    <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl justify-center">
+                      Essayer gratuitement
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </motion.div>
         )}
