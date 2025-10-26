@@ -177,25 +177,26 @@ const Navigation = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <>
-                <Link to="/auth">
-                  <Button
-                    variant="outline"
-                    className="border-2 hover:bg-primary hover:text-primary-foreground rounded-xl px-6 transition-all"
-                    aria-label="Se connecter"
-                  >
-                    Connexion
-                  </Button>
-                </Link>
-                <Link to="/auth?mode=demo">
-                  <Button 
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-6 shadow-md hover:shadow-lg transition-all"
-                    aria-label="Essayer gratuitement"
-                  >
-                    Essayer gratuitement
-                  </Button>
-                </Link>
-              </>
+            <>
+              <Link to="/auth">
+                <Button
+                  variant="outline"
+                  className="border-2 hover:bg-primary hover:text-primary-foreground rounded-xl px-6 gap-2 transition-all"
+                  aria-label="Se connecter"
+                >
+                  <User className="h-4 w-4" />
+                  Connexion
+                </Button>
+              </Link>
+              <Link to="/auth?mode=demo">
+                <Button 
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-6 shadow-md hover:shadow-lg transition-all"
+                  aria-label="Essayer gratuitement"
+                >
+                  Essayer gratuitement
+                </Button>
+              </Link>
+            </>
             )}
           </div>
 
@@ -283,33 +284,34 @@ const Navigation = () => {
                   </Button>
                 </>
               ) : (
-                <>
-                  <Link
-                    to="/auth"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block w-full"
+              <>
+                <Link
+                  to="/auth"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block w-full"
+                >
+                  <Button
+                    variant="outline"
+                    className="w-full border-2 hover:bg-primary hover:text-primary-foreground rounded-xl justify-center gap-2"
+                    aria-label="Se connecter"
                   >
-                    <Button
-                      variant="outline"
-                      className="w-full border-2 hover:bg-primary hover:text-primary-foreground rounded-xl justify-center"
-                      aria-label="Se connecter"
-                    >
-                      Connexion
-                    </Button>
-                  </Link>
-                  <Link
-                    to="/auth?mode=demo"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block w-full"
+                    <User className="h-4 w-4" />
+                    Connexion
+                  </Button>
+                </Link>
+                <Link
+                  to="/auth?mode=demo"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block w-full"
+                >
+                  <Button 
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl justify-center"
+                    aria-label="Essayer gratuitement"
                   >
-                    <Button 
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl justify-center"
-                      aria-label="Essayer gratuitement"
-                    >
-                      Essayer gratuitement
-                    </Button>
-                  </Link>
-                </>
+                    Essayer gratuitement
+                  </Button>
+                </Link>
+              </>
               )}
             </div>
           </motion.div>
