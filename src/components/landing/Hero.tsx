@@ -2,6 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Play } from "lucide-react";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 const Hero = () => {
   const navigate = useNavigate();
   const scrollToFeatures = () => {
@@ -12,12 +14,40 @@ const Hero = () => {
       });
     }
   };
-  const scrollToDemo = () => {
-    const element = document.getElementById("demo");
-    if (element) {
-      element.scrollIntoView({
-        behavior: "smooth"
+  
+  const handleDemoClick = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      navigate('/auth?mode=demo');
+      return;
+    }
+
+    try {
+      toast.loading("Activation de la démo...");
+      
+      const response = await supabase.functions.invoke('activate-demo', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
+
+      if (response.error) {
+        toast.dismiss();
+        toast.error("Impossible d'activer la démo. Vous l'avez peut-être déjà utilisée.");
+        return;
+      }
+
+      toast.dismiss();
+      toast.success("Démo activée ! Redirection...");
+      
+      setTimeout(() => {
+        navigate('/booklets/new');
+      }, 1000);
+    } catch (error) {
+      toast.dismiss();
+      console.error('Error activating demo:', error);
+      toast.error("Une erreur est survenue lors de l'activation de la démo");
     }
   };
   const containerVariants = {
@@ -68,7 +98,7 @@ const Hero = () => {
 
             {/* CTAs */}
             <motion.div variants={itemVariants} className="mt-6 lg:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button size="lg" onClick={scrollToDemo} className="w-full sm:w-auto h-12 px-6 bg-primary hover:bg-[hsl(var(--brand-cyan-hover))] text-white rounded-[18px] shadow-lg hover:shadow-xl transition-all">
+              <Button size="lg" onClick={handleDemoClick} className="w-full sm:w-auto h-12 px-6 bg-primary hover:bg-[hsl(var(--brand-cyan-hover))] text-white rounded-[18px] shadow-lg hover:shadow-xl transition-all">
                 <Sparkles className="w-5 h-5 mr-2" />
                 Demander une démo
               </Button>

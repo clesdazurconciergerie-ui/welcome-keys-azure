@@ -2,16 +2,45 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const FinalCTA = () => {
   const navigate = useNavigate();
 
-  const scrollToDemo = () => {
-    const element = document.getElementById("demo");
-    if (element) {
-      element.scrollIntoView({
-        behavior: "smooth"
+  const handleDemoClick = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      navigate('/auth?mode=demo');
+      return;
+    }
+
+    try {
+      toast.loading("Activation de la démo...");
+      
+      const response = await supabase.functions.invoke('activate-demo', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
+
+      if (response.error) {
+        toast.dismiss();
+        toast.error("Impossible d'activer la démo. Vous l'avez peut-être déjà utilisée.");
+        return;
+      }
+
+      toast.dismiss();
+      toast.success("Démo activée ! Redirection...");
+      
+      setTimeout(() => {
+        navigate('/booklets/new');
+      }, 1000);
+    } catch (error) {
+      toast.dismiss();
+      console.error('Error activating demo:', error);
+      toast.error("Une erreur est survenue lors de l'activation de la démo");
     }
   };
 
@@ -34,7 +63,7 @@ const FinalCTA = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
             <Button
               size="lg"
-              onClick={scrollToDemo}
+              onClick={handleDemoClick}
               className="h-12 px-8 bg-primary hover:bg-[hsl(var(--brand-cyan-hover))] text-white rounded-[18px] shadow-lg"
             >
               <Sparkles className="w-5 h-5 mr-2" />
