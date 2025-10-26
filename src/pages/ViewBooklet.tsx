@@ -16,11 +16,16 @@ interface Photo {
   alt?: string;
 }
 
+interface Step {
+  id: string;
+  text: string;
+}
+
 interface Equipment {
   id: string;
   name: string;
   category: string;
-  instructions?: string;
+  steps?: Step[];
   manual_url?: string;
   photos?: Photo[];
 }
@@ -693,8 +698,17 @@ export default function ViewBooklet() {
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="px-4 pt-3 pb-4 space-y-4">
-                      {item.instructions && (
-                        <p className="whitespace-pre-wrap text-muted-foreground">{item.instructions}</p>
+                      {item.steps && item.steps.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-sm font-semibold text-foreground">Mode d'emploi :</p>
+                          <ol className="list-decimal pl-5 space-y-1.5">
+                            {item.steps.map((step) => (
+                              <li key={step.id} className="text-muted-foreground leading-relaxed">
+                                {step.text}
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
                       )}
                       
                       {item.photos && item.photos.length > 0 && (

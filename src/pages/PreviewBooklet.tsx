@@ -9,11 +9,16 @@ import { Home, MapPin, Wifi, Phone, Mail, Clock, ArrowLeft, Package, Trash2, Map
 import { toast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
+interface Step {
+  id: string;
+  text: string;
+}
+
 interface Equipment {
   id: string;
   name: string;
   category: string;
-  instructions?: string;
+  steps?: Step[];
   manual_url?: string;
 }
 
@@ -377,8 +382,17 @@ export default function PreviewBooklet() {
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
-                      {item.instructions && (
-                        <p className="whitespace-pre-wrap mb-2">{item.instructions}</p>
+                      {item.steps && item.steps.length > 0 && (
+                        <div className="mb-4">
+                          <p className="text-sm font-semibold mb-2">Mode d'emploi :</p>
+                          <ol className="list-decimal pl-5 space-y-1">
+                            {item.steps.map((step) => (
+                              <li key={step.id} className="text-sm text-muted-foreground">
+                                {step.text}
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
                       )}
                       {item.manual_url && (
                         <a href={item.manual_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
