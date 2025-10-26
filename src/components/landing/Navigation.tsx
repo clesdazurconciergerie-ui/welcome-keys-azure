@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BrandMark from "@/components/BrandMark";
 
 const Navigation = () => {
-  const navigate = useNavigate();
+  const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -19,6 +19,13 @@ const Navigation = () => {
   }, []);
 
   const scrollToSection = (id: string) => {
+    // If not on home page, navigate to home first
+    if (location.pathname !== "/") {
+      window.location.href = `/#${id}`;
+      setIsMobileMenuOpen(false);
+      return;
+    }
+    
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
@@ -26,22 +33,16 @@ const Navigation = () => {
     }
   };
 
-  const handleNavigation = (item: { id: string; isRoute?: boolean }) => {
-    if (item.isRoute) {
-      navigate(`/${item.id}`);
-      setIsMobileMenuOpen(false);
-    } else {
-      scrollToSection(item.id);
-    }
+  const isActive = (path: string) => {
+    if (path === "/") return location.pathname === "/";
+    return location.pathname.startsWith(path);
   };
 
   const navLinks = [
+    { label: "Accueil", href: "/", isRoute: true },
     { label: "Fonctionnalités", id: "features" },
-    { label: "Comment ça marche", id: "process" },
-    { label: "Sécurité", id: "security" },
-    { label: "Exemples", id: "examples" },
-    { label: "Tarifs", id: "tarifs", isRoute: true },
-    { label: "FAQ", id: "faq" },
+    { label: "Tarifs", href: "/tarifs", isRoute: true },
+    { label: "Accéder à un livret", href: "/acces-livret", isRoute: true },
   ];
 
   const scrollToTop = () => {
@@ -59,41 +60,59 @@ const Navigation = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <button
+          <Link
+            to="/"
             onClick={scrollToTop}
             className="hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
           >
             <BrandMark variant="compact" />
-          </button>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            {navLinks.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => handleNavigation(link)}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-2 py-1"
-              >
-                {link.label}
-              </button>
-            ))}
+            {navLinks.map((link) => {
+              if (link.isRoute && link.href) {
+                return (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    className={`text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-3 py-2 border-b-2 ${
+                      isActive(link.href)
+                        ? "text-[#18c0df] border-[#18c0df]"
+                        : "text-[#0F172A] border-transparent hover:text-[#18c0df]"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              }
+              return (
+                <button
+                  key={link.id}
+                  onClick={() => scrollToSection(link.id!)}
+                  className="text-sm font-medium text-[#0F172A] hover:text-[#18c0df] transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-3 py-2"
+                >
+                  {link.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Desktop CTAs */}
-          <div className="hidden md:flex items-center gap-4">
-            <Button
-              variant="outline"
-              onClick={() => navigate("/acces-livret")}
-              className="border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-xl px-6 transition-all"
-            >
-              Accéder à un livret
-            </Button>
-            <Button
-              onClick={() => navigate("/auth")}
-              className="bg-primary hover:bg-primary/90 text-white rounded-xl px-6 shadow-md hover:shadow-lg transition-all"
-            >
-              Essayer gratuitement
-            </Button>
+          <div className="hidden md:flex items-center gap-3">
+            <Link to="/auth">
+              <Button
+                variant="outline"
+                className="border-2 border-[#E6EDF2] text-[#0F172A] hover:border-[#18c0df] hover:text-[#18c0df] rounded-xl px-6 transition-all"
+              >
+                Connexion
+              </Button>
+            </Link>
+            <Link to="/auth?mode=demo">
+              <Button className="bg-[#18c0df] hover:bg-[#1199c7] text-white rounded-xl px-6 shadow-md hover:shadow-lg transition-all">
+                Essayer gratuitement
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -101,6 +120,7 @@ const Navigation = () => {
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden p-2 text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
             aria-label="Toggle menu"
+            aria-expanded={isMobileMenuOpen}
           >
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -116,36 +136,56 @@ const Navigation = () => {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden bg-white border-b border-[#ECEEF3] overflow-hidden"
           >
-            <div className="container mx-auto px-4 py-4 space-y-3">
-              {navLinks.map((link) => (
-                <button
-                  key={link.id}
-                  onClick={() => handleNavigation(link)}
-                  className="block w-full text-left py-2 text-sm text-muted-foreground hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-2"
-                >
-                  {link.label}
-                </button>
-              ))}
-              <div className="pt-3 space-y-2">
+            <div className="container mx-auto px-4 py-4 space-y-2">
+              {navLinks.map((link) => {
+                if (link.isRoute && link.href) {
+                  return (
+                    <Link
+                      key={link.href}
+                      to={link.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`block w-full text-left py-3 px-3 text-sm font-medium transition-colors rounded-md ${
+                        isActive(link.href)
+                          ? "text-[#18c0df] bg-[#F7FAFC] border-l-2 border-[#18c0df]"
+                          : "text-[#0F172A] hover:bg-[#F7FAFC] hover:text-[#18c0df]"
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  );
+                }
+                return (
+                  <button
+                    key={link.id}
+                    onClick={() => scrollToSection(link.id!)}
+                    className="block w-full text-left py-3 px-3 text-sm font-medium text-[#0F172A] hover:bg-[#F7FAFC] hover:text-[#18c0df] transition-colors rounded-md"
+                  >
+                    {link.label}
+                  </button>
+                );
+              })}
+              <div className="h-px bg-[#E6EDF2] my-2" />
+              <Link
+                to="/auth"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block w-full"
+              >
                 <Button
-                  onClick={() => {
-                    navigate("/acces-livret");
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl"
+                  variant="outline"
+                  className="w-full border-2 border-[#E6EDF2] text-[#0F172A] hover:border-[#18c0df] rounded-xl justify-center"
                 >
-                  Accéder à un livret
+                  Connexion
                 </Button>
-                <button
-                  onClick={() => {
-                    navigate("/auth");
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="block w-full text-center py-2 text-sm text-primary hover:underline font-medium"
-                >
-                  Tableau de bord
-                </button>
-              </div>
+              </Link>
+              <Link
+                to="/auth?mode=demo"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block w-full"
+              >
+                <Button className="w-full bg-[#18c0df] hover:bg-[#1199c7] text-white rounded-xl justify-center">
+                  Essayer gratuitement
+                </Button>
+              </Link>
             </div>
           </motion.div>
         )}
