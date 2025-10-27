@@ -68,6 +68,7 @@ const EditBooklet = () => {
 
   // Form states - WiFi
   const [wifiData, setWifiData] = useState({
+    hasWifi: false,
     ssid: "",
     password: "",
     note: "",
@@ -140,12 +141,13 @@ const EditBooklet = () => {
       // Charger WiFi depuis la table séparée
       const { data: wifiDbData } = await supabase
         .from("wifi_credentials")
-        .select("ssid, password")
+        .select("has_wifi, ssid, password")
         .eq("booklet_id", id)
         .maybeSingle();
 
       if (wifiDbData) {
         setWifiData({
+          hasWifi: wifiDbData.has_wifi || false,
           ssid: wifiDbData.ssid || "",
           password: wifiDbData.password || "",
           note: "",
@@ -203,17 +205,16 @@ const EditBooklet = () => {
       if (bookletError) throw bookletError;
 
       // Sauvegarder les données WiFi
-      if (wifiData.ssid || wifiData.password) {
-        const { error: wifiError } = await supabase
-          .from("wifi_credentials")
-          .upsert({
-            booklet_id: id,
-            ssid: wifiData.ssid,
-            password: wifiData.password,
-          });
+      const { error: wifiError } = await supabase
+        .from("wifi_credentials")
+        .upsert({
+          booklet_id: id,
+          has_wifi: wifiData.hasWifi,
+          ssid: wifiData.ssid || "",
+          password: wifiData.password || "",
+        });
 
-        if (wifiError) throw wifiError;
-      }
+      if (wifiError) throw wifiError;
 
       // Sauvegarder les données de contact
       if (generalData.contactPhone || generalData.contactEmail) {

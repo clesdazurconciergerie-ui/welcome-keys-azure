@@ -42,6 +42,7 @@ interface WifiCredentials {
   id: string;
   ssid: string;
   password: string;
+  has_wifi?: boolean;
 }
 
 interface Contacts {
@@ -343,7 +344,7 @@ export default function PreviewBooklet() {
         </Card>
 
         {/* WiFi (with password for creator) */}
-        {booklet.wifi_credentials && (
+        {booklet.wifi_credentials && booklet.wifi_credentials.has_wifi && booklet.wifi_credentials.ssid && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

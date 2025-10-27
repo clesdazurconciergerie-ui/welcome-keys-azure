@@ -834,6 +834,7 @@ export type Database = {
         Row: {
           booklet_id: string
           created_at: string
+          has_wifi: boolean
           id: string
           password: string
           ssid: string
@@ -842,6 +843,7 @@ export type Database = {
         Insert: {
           booklet_id: string
           created_at?: string
+          has_wifi?: boolean
           id?: string
           password: string
           ssid: string
@@ -850,6 +852,7 @@ export type Database = {
         Update: {
           booklet_id?: string
           created_at?: string
+          has_wifi?: boolean
           id?: string
           password?: string
           ssid?: string

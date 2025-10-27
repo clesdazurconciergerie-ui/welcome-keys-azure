@@ -69,7 +69,7 @@ serve(async (req) => {
     // Get WiFi credentials (owner-only in RLS, bypassed with service role)
     const { data: wifi, error: wifiError } = await supabase
       .from('wifi_credentials')
-      .select('ssid, password')
+      .select('has_wifi, ssid, password')
       .eq('booklet_id', booklet.id)
       .maybeSingle();
 
@@ -77,6 +77,24 @@ serve(async (req) => {
       console.log('WiFi credentials not found:', wifiError);
       return new Response(
         JSON.stringify({ error: 'Identifiants WiFi non disponibles' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if WiFi is enabled for this booklet
+    if (!wifi.has_wifi) {
+      console.log('WiFi is disabled for this booklet');
+      return new Response(
+        JSON.stringify({ error: 'WiFi non disponible dans ce logement' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if WiFi credentials are actually filled
+    if (!wifi.ssid || !wifi.password) {
+      console.log('WiFi credentials are incomplete');
+      return new Response(
+        JSON.stringify({ error: 'Identifiants WiFi incomplets' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

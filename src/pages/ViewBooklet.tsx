@@ -114,6 +114,7 @@ interface Booklet {
 interface WifiCredentials {
   ssid: string;
   password: string;
+  has_wifi?: boolean;
 }
 
 export default function ViewBooklet() {

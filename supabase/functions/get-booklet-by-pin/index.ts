@@ -131,12 +131,15 @@ serve(async (req) => {
       );
     }
 
-    // Fetch WiFi credentials (SSID only, password via separate endpoint)
+    // Fetch WiFi credentials (SSID only if has_wifi is true, password via separate endpoint)
     const { data: wifi } = await supabase
       .from('wifi_credentials')
-      .select('id, ssid')
+      .select('id, has_wifi, ssid')
       .eq('booklet_id', booklet.id)
       .maybeSingle();
+
+    // Only expose WiFi SSID if has_wifi is true and ssid is not empty
+    const wifiSsid = (wifi?.has_wifi && wifi?.ssid) ? wifi.ssid : null;
 
     // Fetch equipment
     const { data: equipment } = await supabase
@@ -165,7 +168,7 @@ serve(async (req) => {
     const response = {
       booklet: {
         ...booklet,
-        wifi_ssid: wifi?.ssid || null,
+        wifi_ssid: wifiSsid,
         equipment: equipment || [],
         nearby_places: nearbyPlaces || [],
         faq: faq || []
