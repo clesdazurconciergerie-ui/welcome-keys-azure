@@ -365,182 +365,112 @@ serve(async (req) => {
     // Initialiser le contexte de localisation
     const locationContext = initLocationContext(booklet);
 
-    // Construire les facts selon l'intent
-    let facts: any = { location: locationContext };
-    let needsWifiPassword = false;
-
-    switch (intent) {
-      case 'METEO':
-        facts.meteo_info = "Je n'ai pas accès à la météo en direct.";
-        facts.search_link = generateSearchLinks(locationContext.city, `météo ${locationContext.city} demain`);
-        break;
-      
-      case 'RESTAURANT':
-        const cuisineMatch = message.toLowerCase().match(/(?:italien|pizza|francais|poisson|mediterraneen|chinois|japonais|indien|mexicain|vegetarien|rapide|emporter)/);
-        const wantedCuisine = cuisineMatch ? [cuisineMatch[0]] : [];
-        
-        const restaurantResult = answerWithFallback(
-          'restaurant',
-          wantedCuisine,
-          restaurants || [],
-          locationContext.city
-        );
-        
-        facts.restaurants = restaurantResult.items.map((r: any) => ({
+    // ========== CONSTRUIRE LE CONTEXTE COMPLET DU LIVRET ==========
+    // Le bot a maintenant accès à TOUTES les informations, pas seulement selon l'intent
+    const fullContext: any = {
+      location: locationContext,
+      property: {
+        name: booklet.property_name,
+        type: booklet.property_type,
+        address: booklet.property_address,
+        tagline: booklet.tagline,
+        welcome_message: booklet.welcome_message,
+      },
+      access: {
+        check_in_time: booklet.check_in_time,
+        check_out_time: booklet.check_out_time,
+        checkin_procedure: booklet.checkin_procedure,
+        checkout_procedure: booklet.checkout_procedure,
+        access_code: booklet.access_code ? '(code fourni - ne pas divulguer)' : null,
+        google_maps_link: booklet.google_maps_link,
+        parking_info: booklet.parking_info,
+      },
+      wifi: {
+        ssid: wifiData?.ssid || null,
+        // Le mot de passe sera ajouté uniquement si demandé explicitement
+      },
+      equipment: (equipment || []).map((e: any) => ({
+        name: e.name,
+        category: e.category,
+        instructions: e.instructions,
+        manual_url: e.manual_url,
+      })),
+      cleaning: {
+        waste_location: booklet.waste_location,
+        sorting_instructions: booklet.sorting_instructions,
+        cleaning_tips: booklet.cleaning_tips,
+        cleaning_rules: booklet.cleaning_rules,
+      },
+      rules: {
+        house_rules: booklet.house_rules,
+        safety_tips: booklet.safety_tips,
+        safety_instructions: booklet.safety_instructions,
+        disclaimer: booklet.disclaimer,
+      },
+      nearby: {
+        restaurants: (restaurants || []).map((r: any) => ({
           name: r.name,
           cuisine: r.cuisine,
           price_range: r.price_range,
           address: r.address,
+          phone: r.phone,
+          url: r.url,
           rating: r.rating,
           tags: r.tags,
           is_owner_pick: r.is_owner_pick,
-          url: r.url
-        }));
-        facts.data_source = restaurantResult.source;
-        
-        if (restaurantResult.source === 'none') {
-          facts.no_data_message = "Aucune recommandation n'est encore renseignée pour cette demande. Je complète le catalogue sous peu.";
-        }
-        break;
-      
-      case 'ACTIVITES':
-        const activityMatch = message.toLowerCase().match(/(?:plage|balade|randonnee|musee|culture|pluie|indoor|nautique|enfant|famille|photo|panorama)/);
-        const wantedActivity = activityMatch ? [activityMatch[0]] : [];
-        
-        const activityResult = answerWithFallback(
-          'activity',
-          wantedActivity,
-          activities || [],
-          locationContext.city
-        );
-        
-        facts.activities = activityResult.items.map((a: any) => ({
+        })),
+        activities: (activities || []).map((a: any) => ({
           name: a.name,
           category: a.category,
           duration: a.duration,
           price: a.price,
-          when_available: a.when_available || a.when,
+          when_available: a.when_available,
+          booking_url: a.booking_url,
+          age_restrictions: a.age_restrictions,
           tags: a.tags,
           is_owner_pick: a.is_owner_pick,
-          booking_url: a.booking_url
-        }));
-        facts.data_source = activityResult.source;
-        
-        if (highlights && highlights.length > 0) {
-          facts.highlights = highlights.slice(0, 3).map((h: any) => ({
-            title: h.title,
-            type: h.type,
-            description: h.description
-          }));
-        }
-        
-        if (activityResult.source === 'none') {
-          facts.no_data_message = "Aucune activité n'est encore renseignée pour cette demande. Je complète le catalogue sous peu.";
-        }
-        break;
-      
-      case 'INFOS_PRATIQUES':
-        const placeMatch = message.toLowerCase().match(/(?:pharmacie|supermarche|supérette|parking|courses)/);
-        const wantedPlace = placeMatch ? [placeMatch[0]] : [];
-        
-        const placeResult = answerWithFallback(
-          'place',
-          wantedPlace,
-          essentials || [],
-          locationContext.city
-        );
-        
-        facts.essentials = placeResult.items.map((e: any) => ({
+        })),
+        highlights: (highlights || []).map((h: any) => ({
+          title: h.title,
+          type: h.type,
+          description: h.description,
+          url: h.url,
+          rating: h.rating,
+          price_range: h.price_range,
+          tags: h.tags,
+        })),
+        essentials: (essentials || []).map((e: any) => ({
           name: e.name,
           type: e.type,
           address: e.address,
           distance: e.distance,
           hours: e.hours,
           phone: e.phone,
-          tags: e.tags
-        }));
-        facts.data_source = placeResult.source;
-        
-        if (placeResult.source === 'none') {
-          facts.no_data_message = "Aucune information pratique n'est encore renseignée pour cette demande. Je complète le catalogue sous peu.";
-        }
-        break;
-      case 'WIFI_PASSWORD':
-        facts.wifi_ssid = wifiData?.ssid || 'Non configuré';
-        needsWifiPassword = true;
-        break;
-      
-      case 'WIFI_SSID':
-        facts.wifi_ssid = wifiData?.ssid || 'Non configuré';
-        break;
-      
-      case 'CHECKIN':
-        facts.check_in_time = booklet.check_in_time;
-        facts.checkin_procedure = booklet.checkin_procedure;
-        facts.access_code = booklet.access_code ? '(code fourni)' : null;
-        facts.google_maps_link = booklet.google_maps_link;
-        break;
-      
-      case 'CHECKOUT':
-        facts.check_out_time = booklet.check_out_time;
-        facts.checkout_procedure = booklet.checkout_procedure;
-        facts.cleaning_rules = booklet.cleaning_rules;
-        break;
-      
-      case 'PARKING':
-        facts.parking_info = booklet.parking_info;
-        facts.property_address = booklet.property_address;
-        break;
-      
-      case 'TRI':
-        facts.waste_location = booklet.waste_location;
-        facts.sorting_instructions = booklet.sorting_instructions;
-        facts.cleaning_tips = booklet.cleaning_tips;
-        break;
-      
-      case 'EQUIPEMENTS':
-        facts.equipment = equipment?.map((e: any) => ({
-          name: e.name,
-          category: e.category,
-          instructions: e.instructions
-        })) || [];
-        break;
-      
-      
-      case 'URGENCES':
-        facts.emergency_contacts = booklet.emergency_contacts;
-        facts.safety_tips = booklet.safety_tips;
-        break;
-      
-      case 'TRANSPORTS':
-        facts.transport = (transport || []).map((t: any) => ({
+          notes: e.notes,
+        })),
+        transport: (transport || []).map((t: any) => ({
           name: t.name,
           type: t.type,
           address: t.address,
           distance: t.distance,
           price: t.price,
           instructions: t.instructions,
-          url: t.url
-        }));
-        
-        if (!facts.transport || facts.transport.length === 0) {
-          facts.search_link = generateSearchLinks(locationContext.city, 'transports en commun');
-        }
-        break;
-      
-      case 'MAISON':
-        facts.house_rules = booklet.house_rules;
-        facts.safety_tips = booklet.safety_tips;
-        break;
-      
-      default:
-        // Pour AUTRE, chercher dans la FAQ
-        if (faq && faq.length > 0) {
-          facts.faq = faq.map((f: any) => ({
-            question: f.question,
-            answer: f.answer
-          }));
-        }
+          url: t.url,
+        })),
+      },
+      faq: (faq || []).map((f: any) => ({
+        question: f.question,
+        answer: f.answer,
+      })),
+      emergency: {
+        contacts: booklet.emergency_contacts,
+      },
+    };
+
+    // Déterminer si on doit récupérer le mot de passe Wi-Fi
+    let needsWifiPassword = false;
+    if (intent === 'WIFI_PASSWORD') {
+      needsWifiPassword = true;
     }
 
     // Récupérer le mot de passe Wi-Fi si nécessaire via l'endpoint sécurisé
@@ -557,54 +487,58 @@ serve(async (req) => {
         
         if (wifiResponse.ok) {
           const wifiResult = await wifiResponse.json();
-          facts.wifi_password = wifiResult.password;
+          fullContext.wifi.password = wifiResult.password;
         }
       } catch (error) {
         console.error('Erreur récupération Wi-Fi:', error);
       }
     }
 
-    // Construire le prompt de composition avec les facts
-    const systemPrompt = `Tu es l'assistant du livret d'accueil "${booklet.property_name}" à ${locationContext.city}, ${locationContext.country}.
+    // Construire le prompt système avec le contexte complet
+    const systemPrompt = `Tu es l'assistant intelligent du livret d'accueil "${booklet.property_name}" à ${locationContext.city}, ${locationContext.country}.
 
-CONTEXTE DE LOCALISATION :
-Tu connais automatiquement la ville : ${locationContext.city}. Ne demande JAMAIS à l'utilisateur de préciser la ville sauf si c'est ambigu dans sa question.
+TON RÔLE :
+Tu as accès à TOUTES les informations du livret d'accueil. Tu dois répondre aux questions des voyageurs de manière précise, professionnelle et bienveillante en t'appuyant sur ces données.
 
-RÈGLES STRICTES DE FORMAT :
-- Formate ta réponse de manière claire et professionnelle
-- Ne mets AUCUN caractère Markdown (*, #, -, _, >)
-- Fais un retour à la ligne après chaque phrase complète (après chaque point)
-- Le ton doit être naturel, accueillant et fluide
-- N'utilise ni emojis ni symboles spéciaux
-- Donne 2-3 options maximum, avec les infos clés (prix, distance approximative, réservation)
+RÈGLES DE RÉPONSE :
 
-POLITIQUE DE RÉPONSE GARANTIE :
-1. Tu as 3 sources de données dans l'ordre de priorité :
-   - facts.data_source = "livret" : Recommandations du livret (précise "recommandation du livret")
-   - facts.data_source = "sector" : Catalogue par défaut pour ${locationContext.city} (précise "valeur sûre à ${locationContext.city}")
-   - facts.data_source = "riviera" : Catalogue Côte d'Azur (précise "spot connu sur la Côte d'Azur")
-   - facts.data_source = "none" : Aucune donnée (utilise facts.no_data_message)
+1. PRIORISE LES INFORMATIONS DU LIVRET
+   - Réponds toujours avec les informations présentes dans le contexte fourni
+   - Si une information n'est pas dans le livret, dis-le clairement : "Cette information n'est pas disponible dans le livret. Souhaitez-vous que je contacte l'hôte ?"
+   - Ne JAMAIS inventer ou supposer des informations
 
-2. TOUJOURS donner 1-3 NOMS CONCRETS depuis les facts fournis. Ne JAMAIS proposer de liens Google/Maps sauf si facts.search_link est explicitement fourni.
+2. SÉCURITÉ ET CONFIDENTIALITÉ
+   - Ne JAMAIS divulguer : codes d'accès complets, adresses emails privées, numéros de téléphone personnels
+   - Pour le Wi-Fi : donne le SSID librement, mais le mot de passe uniquement s'il est fourni dans le contexte
+   - Les informations sensibles sont marquées "(ne pas divulguer)" dans le contexte
 
-3. Priorise les éléments marqués "is_owner_pick: true" en premier.
+3. FORMAT DE RÉPONSE
+   - Ton naturel, clair et professionnel
+   - Pas de Markdown (*, #, _, -, >)
+   - Retour à la ligne après chaque phrase complète
+   - Maximum 2-3 suggestions quand tu recommandes quelque chose
+   - Inclus les détails clés : prix, distance, horaires, liens
 
-4. Si facts.no_data_message existe, affiche-le tel quel et propose à l'utilisateur de patienter pendant la mise à jour du catalogue.
+4. INTELLIGENCE CONTEXTUELLE
+   - Si le voyageur demande un restaurant italien, cherche dans nearby.restaurants avec cuisine incluant "italien"
+   - Priorise les éléments avec "is_owner_pick: true" (coups de cœur du propriétaire)
+   - Si plusieurs résultats, propose les 2-3 meilleurs avec critères de tri pertinents
+   - Cite la section du livret d'où vient l'info (ex: "Selon la section Équipements...")
 
-5. Ne partage JAMAIS : codes d'accès précis (sauf mention explicite), emails/téléphones privés, adresses complètes
+5. AIDE PROACTIVE
+   - Si le voyageur pose une question vague, propose de l'aider à préciser
+   - Suggère des liens vers les sections concernées du livret quand pertinent
+   - Pour les questions hors contexte, oriente poliment vers les bonnes ressources
 
-EXEMPLE DE FORMAT ATTENDU :
-À Saint-Raphaël, mes 2 valeurs sûres : Le Basilic (pâtes fraîches, €€) et Pizzeria Da Vinci (pizza four à bois, €).
-Tu veux terrasse calme ou service rapide ?
+LANGUE :
+Réponds dans la langue de la question posée (${locale}).
 
-INTENT DÉTECTÉ : ${intent}
+CONTEXTE COMPLET DU LIVRET :
+${JSON.stringify(fullContext, null, 2)}
 
-FACTS DISPONIBLES :
-${JSON.stringify(facts, null, 2)}
+Question du voyageur : "${sanitizedMessage}"
 
-Question de l'utilisateur : "${message}"
-
-Compose une réponse utile en utilisant les FACTS. Donne TOUJOURS des noms concrets. Indique la source des données (livret, catalogue local, ou catalogue régional). Si facts.no_data_message existe, utilise-le.`;
+Réponds de manière utile en t'appuyant sur le contexte. Sois précis, concis et accueillant.`;
 
     // Appeler Lovable AI pour composer la réponse
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

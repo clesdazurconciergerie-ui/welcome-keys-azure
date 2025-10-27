@@ -172,7 +172,9 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
               {messages.length === 0 ? (
                 <div className="space-y-3">
                   <p className="text-sm text-muted-foreground mb-4">
-                    Je m'appuie sur le livret. Si l'info n'y est pas, je peux donner des indications générales (pas de détails sensibles). Choisissez une question ou posez la vôtre :
+                    Bonjour ! Je peux vous aider à trouver n'importe quelle information sur ce logement : codes d'accès, Wi-Fi, équipements, lieux à proximité, règles de la maison, etc.
+                    <br /><br />
+                    Choisissez une question rapide ou posez la vôtre :
                   </p>
                   <div className="grid gap-2">
                     {quickActions.map((action, idx) => (
