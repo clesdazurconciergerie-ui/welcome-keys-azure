@@ -11,7 +11,7 @@ const Pricing = () => {
     {
       name: "Starter",
       price: "Gratuit",
-      description: "Pour tester Welcom",
+      description: "Pour tester Welkom",
       features: [
         "1 livret d'accueil",
         "Accès par code PIN",

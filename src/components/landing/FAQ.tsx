@@ -49,7 +49,7 @@ const FAQ = () => {
             Questions fréquentes
           </h2>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Tout ce que vous devez savoir sur Welcom
+            Tout ce que vous devez savoir sur Welkom
           </p>
         </motion.div>
 
