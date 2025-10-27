@@ -13,6 +13,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { pricingPlans, paymentLinks } from "@/config/pricing";
 
 const Pricing = () => {
   const navigate = useNavigate();
@@ -23,6 +24,13 @@ const Pricing = () => {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
     });
+
+    // Lire le plan depuis l'URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const planFromUrl = urlParams.get('plan');
+    if (planFromUrl && pricingPlans.some(p => p.id === planFromUrl)) {
+      setSelectedPlan(planFromUrl);
+    }
   }, []);
 
   const handleSubscribe = async (planId: string) => {
@@ -43,14 +51,6 @@ const Pricing = () => {
       navigate('/dashboard');
       return;
     }
-
-    // Map des plans vers leurs Payment Links
-    const paymentLinks: Record<string, string> = {
-      starter: 'https://buy.stripe.com/cNi5kDeMB6Cd8htgEQ5kk00',
-      pro: 'https://buy.stripe.com/7sYfZh9sh4u57dpgEQ5kk01',
-      business: 'https://buy.stripe.com/14A4gzbAp6CdcxJcoA5kk02',
-      premium: 'https://buy.stripe.com/bJe5kD5c1aStdBN2O05kk03',
-    };
 
     const baseUrl = paymentLinks[planId] || paymentLinks.starter;
     const url = new URL(baseUrl);
@@ -100,61 +100,7 @@ const Pricing = () => {
     }
   };
 
-  const plans = [
-    {
-      id: "starter",
-      name: "Starter",
-      price: "9,90",
-      livrets: "1 livret",
-      features: [
-        "Code PIN unique",
-        "QR code à imprimer",
-        "Chatbot inclus",
-        "Support par email",
-      ],
-      cta: "Commencer maintenant",
-    },
-    {
-      id: "pro",
-      name: "Pro",
-      price: "24,90",
-      livrets: "1 à 5 livrets",
-      badge: "⭐ Populaire",
-      features: [
-        "Branding personnalisé",
-        "Couleurs HEX + logo",
-        "Support prioritaire",
-        "Chatbot avancé",
-      ],
-      cta: "Commencer maintenant",
-    },
-    {
-      id: "business",
-      name: "Business",
-      price: "49,90",
-      livrets: "5 à 15 livrets",
-      features: [
-        "Multi-utilisateurs",
-        "Gestion centralisée",
-        "Tableaux de bord analytiques",
-        "Support dédié",
-      ],
-      cta: "Commencer maintenant",
-    },
-    {
-      id: "premium",
-      name: "Premium",
-      price: "99,90",
-      livrets: "Illimité",
-      features: [
-        "Domaine personnalisé",
-        "API et export avancé",
-        "Support prioritaire 24/7",
-        "Accès bêta fonctionnalités",
-      ],
-      cta: "Commencer maintenant",
-    },
-  ];
+  const plans = pricingPlans.sort((a, b) => a.order - b.order);
 
   const benefits = [
     {
