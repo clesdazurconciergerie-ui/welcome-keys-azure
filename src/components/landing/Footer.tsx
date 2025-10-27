@@ -54,7 +54,7 @@ const Footer = () => {
         {/* Copyright */}
         <div className="text-center">
           <p className="text-sm text-slate-500">
-            © {currentYear} Wlekom by Clés d'Azur · Tous droits réservés
+            © {currentYear} Welcom by Clés d'Azur · Tous droits réservés
           </p>
         </div>
       </div>

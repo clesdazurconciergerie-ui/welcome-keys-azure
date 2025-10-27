@@ -19,7 +19,7 @@ const FreeTrialWatermark = ({ userRole }: FreeTrialWatermarkProps) => {
           to="/" 
           className="font-semibold hover:underline inline-flex items-center gap-1"
         >
-          Welkom
+          Welcom
         </Link>
       </p>
     </div>

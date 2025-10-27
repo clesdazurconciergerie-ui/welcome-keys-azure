@@ -261,7 +261,7 @@ export default function Step1Identity({ data, onUpdate, bookletId }: Step1Identi
 
         <div className="flex items-center justify-between space-x-2">
           <div className="space-y-0.5">
-            <Label htmlFor="showLogo">Afficher le logo Wlekom</Label>
+            <Label htmlFor="showLogo">Afficher le logo Welcom</Label>
             <p className="text-sm text-muted-foreground">
               Affichez votre marque de conciergerie
             </p>

@@ -92,7 +92,7 @@ export default function Step7Contacts({ data, onUpdate }: Step7ContactsProps) {
             Nom de la conciergerie
           </Label>
           <Input
-            value="Wlekom by Clés d'Azur"
+            value="Welcom by Clés d'Azur"
             disabled
             className="bg-muted"
           />
