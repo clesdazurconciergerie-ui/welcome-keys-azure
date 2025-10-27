@@ -29,6 +29,8 @@ interface NearbyPlace {
   distance?: string;
   maps_link?: string;
   description?: string;
+  image_url?: string;
+  website_url?: string;
 }
 
 interface FAQ {
@@ -459,45 +461,49 @@ export default function PreviewBooklet() {
         )}
 
         {/* Nearby Places */}
-        {(() => {
-          const nearbyPlaces = (() => {
-            try {
-              if (Array.isArray(booklet.nearby)) return booklet.nearby;
-              if (typeof booklet.nearby === 'string') return JSON.parse(booklet.nearby);
-              return [];
-            } catch {
-              return [];
-            }
-          })();
-
-          const validPlaces = nearbyPlaces.filter((p: any) => 
-            p.name && p.name.trim().length >= 2 && p.category
-          );
-
-          const sortedPlaces = validPlaces.sort((a: any, b: any) => {
-            if (a.distance && b.distance) {
-              const distA = parseInt(a.distance);
-              const distB = parseInt(b.distance);
-              if (!isNaN(distA) && !isNaN(distB)) return distA - distB;
-            }
-            return a.name.localeCompare(b.name);
-          });
-
-          return sortedPlaces.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPinIcon className="h-5 w-5" />
-                  À proximité
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {sortedPlaces.map((place: any) => (
-                    <Card key={place.id} className="p-4">
-                      <div className="flex items-start gap-2 mb-2">
-                        <h3 className="font-semibold flex-1">{place.name}</h3>
-                        <Badge variant="secondary" className="text-xs">
+        {booklet.nearby_places && booklet.nearby_places.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPinIcon className="h-5 w-5" />
+                À proximité
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                {booklet.nearby_places.map((place) => (
+                  <Card key={place.id} className="p-4">
+                    {place.image_url && (
+                      <img src={place.image_url} alt={place.name} className="w-full h-32 object-cover rounded-lg mb-3" />
+                    )}
+                    <div className="flex items-start gap-2 mb-2">
+                      <h3 className="font-semibold flex-1">{place.name}</h3>
+                      <Badge variant="secondary" className="text-xs">{place.type}</Badge>
+                    </div>
+                    {place.description && (
+                      <p className="text-sm text-muted-foreground mb-2">{place.description}</p>
+                    )}
+                    {place.distance && (
+                      <p className="text-sm text-muted-foreground mb-2">📍 {place.distance}</p>
+                    )}
+                    <div className="flex gap-2 flex-wrap">
+                      {place.website_url && (
+                        <a href={place.website_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                          Visiter le site
+                        </a>
+                      )}
+                      {place.maps_link && (
+                        <a href={place.maps_link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                          Itinéraire
+                        </a>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
                           {place.category}
                         </Badge>
                       </div>

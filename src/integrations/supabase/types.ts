@@ -485,9 +485,11 @@ export type Database = {
           description: string | null
           distance: string | null
           id: string
+          image_url: string | null
           maps_link: string | null
           name: string
           type: string
+          website_url: string | null
         }
         Insert: {
           booklet_id: string
@@ -495,9 +497,11 @@ export type Database = {
           description?: string | null
           distance?: string | null
           id?: string
+          image_url?: string | null
           maps_link?: string | null
           name: string
           type: string
+          website_url?: string | null
         }
         Update: {
           booklet_id?: string
@@ -505,9 +509,11 @@ export type Database = {
           description?: string | null
           distance?: string | null
           id?: string
+          image_url?: string | null
           maps_link?: string | null
           name?: string
           type?: string
+          website_url?: string | null
         }
         Relationships: [
           {

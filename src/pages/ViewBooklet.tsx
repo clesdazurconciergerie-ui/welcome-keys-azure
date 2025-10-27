@@ -40,6 +40,8 @@ interface NearbyPlace {
   distance?: string;
   maps_link?: string;
   description?: string;
+  image_url?: string;
+  website_url?: string;
 }
 
 interface FAQ {
@@ -1018,64 +1020,51 @@ export default function ViewBooklet() {
         )}
 
         {/* Nearby Places */}
-        {(() => {
-          const nearbyPlaces = (() => {
-            try {
-              if (Array.isArray(booklet.nearby)) return booklet.nearby;
-              if (typeof booklet.nearby === 'string') return JSON.parse(booklet.nearby);
-              return [];
-            } catch {
-              return [];
-            }
-          })();
-
-          const validPlaces = nearbyPlaces.filter((p: any) => 
-            p.name && p.name.trim().length >= 2 && p.category
-          );
-
-          const sortedPlaces = validPlaces.sort((a: any, b: any) => {
-            if (a.distance && b.distance) {
-              const distA = parseInt(a.distance);
-              const distB = parseInt(b.distance);
-              if (!isNaN(distA) && !isNaN(distB)) return distA - distB;
-            }
-            return a.name.localeCompare(b.name);
-          });
-
-          return sortedPlaces.length > 0 ? (
-            <Card 
-              id="nearby" 
-              className="shadow-lg border-0"
-              style={{
-                backgroundColor: 'var(--theme-bg)',
-                borderColor: 'color-mix(in srgb, var(--theme-primary) 20%, transparent)'
-              }}
-            >
-              <CardHeader style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--theme-primary) 8%, transparent) 0%, transparent 100%)' }}>
-                <CardTitle className="flex items-center gap-3 text-2xl" style={{ color: 'var(--theme-text)' }}>
-                  <div className="p-2 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 15%, transparent)' }}>
-                    <MapPinIcon className="h-6 w-6" style={{ color: 'var(--theme-primary)' }} />
-                  </div>
-                  <span>À proximité</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="grid gap-5 md:grid-cols-2">
-                  {sortedPlaces.map((place: any) => (
-                    <div 
-                      key={place.id} 
-                      className="p-5 rounded-xl transition-all hover:shadow-lg"
-                      style={{
-                        backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
-                        border: '1px solid color-mix(in srgb, var(--theme-primary) 20%, transparent)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--theme-primary) 40%, transparent)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--theme-primary) 20%, transparent)';
-                      }}
-                    >
+        {booklet.nearby_places && booklet.nearby_places.length > 0 && (
+          <Card 
+            id="nearby" 
+            className="shadow-lg border-0"
+            style={{
+              backgroundColor: 'var(--theme-bg)',
+              borderColor: 'color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+            }}
+          >
+            <CardHeader style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--theme-primary) 8%, transparent) 0%, transparent 100%)' }}>
+              <CardTitle className="flex items-center gap-3 text-2xl" style={{ color: 'var(--theme-text)' }}>
+                <div className="p-2 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 15%, transparent)' }}>
+                  <MapPinIcon className="h-6 w-6" style={{ color: 'var(--theme-primary)' }} />
+                </div>
+                <span>À proximité</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid gap-5 md:grid-cols-2">
+                {booklet.nearby_places.map((place) => (
+                  <div 
+                    key={place.id} 
+                    className="rounded-xl transition-all hover:shadow-lg overflow-hidden"
+                    style={{
+                      backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
+                      border: '1px solid color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--theme-primary) 40%, transparent)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--theme-primary) 20%, transparent)';
+                    }}
+                  >
+                    {place.image_url && (
+                      <div className="w-full h-48 overflow-hidden">
+                        <img 
+                          src={place.image_url} 
+                          alt={place.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+                    <div className="p-5">
                       <div className="flex items-start gap-3 mb-3">
                         <MapPin className="h-5 w-5 mt-0.5 flex-shrink-0" style={{ color: 'var(--theme-primary)' }} />
                         <div className="flex-1">
@@ -1088,40 +1077,72 @@ export default function ViewBooklet() {
                               color: 'var(--theme-text)'
                             }}
                           >
-                            {place.category}
+                            {place.type}
                           </Badge>
                         </div>
                       </div>
+                      {place.description && (
+                        <p className="text-sm mb-3" style={{ color: 'var(--theme-muted)' }}>
+                          {place.description}
+                        </p>
+                      )}
                       {place.distance && (
                         <p className="text-sm mb-2 flex items-center gap-2" style={{ color: 'var(--theme-muted)' }}>
                           <Clock className="h-4 w-4" />
                           {place.distance}
                         </p>
                       )}
-                      {place.note && (
-                        <p className="text-sm mb-3" style={{ color: 'color-mix(in srgb, var(--theme-text) 80%, transparent)' }}>
-                          {place.note}
-                        </p>
-                      )}
-                      {place.mapsUrl && (
-                        <a
-                          href={place.mapsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm hover:underline inline-flex items-center gap-2 font-medium"
-                          style={{ color: 'var(--theme-primary)' }}
-                        >
-                          Voir l'itinéraire
-                          <ChevronRight className="h-4 w-4" />
-                        </a>
-                      )}
+                      <div className="flex gap-2 flex-wrap mt-3">
+                        {place.website_url && (
+                          <a
+                            href={place.website_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm hover:underline inline-flex items-center gap-2 font-medium px-3 py-1.5 rounded-lg transition-colors"
+                            style={{ 
+                              color: 'var(--theme-primary)',
+                              backgroundColor: 'color-mix(in srgb, var(--theme-primary) 10%, transparent)'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--theme-primary) 20%, transparent)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--theme-primary) 10%, transparent)';
+                            }}
+                          >
+                            Visiter le site
+                            <ChevronRight className="h-4 w-4" />
+                          </a>
+                        )}
+                        {place.maps_link && (
+                          <a
+                            href={place.maps_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm hover:underline inline-flex items-center gap-2 font-medium px-3 py-1.5 rounded-lg transition-colors"
+                            style={{ 
+                              color: 'var(--theme-primary)',
+                              backgroundColor: 'color-mix(in srgb, var(--theme-primary) 10%, transparent)'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--theme-primary) 20%, transparent)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--theme-primary) 10%, transparent)';
+                            }}
+                          >
+                            Voir l'itinéraire
+                            <ChevronRight className="h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : null;
-        })()}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
 
         {/* FAQ */}
