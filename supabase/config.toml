@@ -16,7 +16,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.chat-ask]
-verify_jwt = true
+verify_jwt = false
 
 [functions.get-wifi-by-pin]
 verify_jwt = false

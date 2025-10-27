@@ -48,13 +48,16 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
     }
   }, [isOpen]);
 
-  const sendMessage = async (messageText: string) => {
+  const sendMessage = async (messageText: string, retryCount = 0) => {
     if (!messageText.trim() || isLoading) return;
 
     const userMessage: Message = { role: 'user', content: messageText };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     try {
       const response = await fetch(
@@ -65,11 +68,18 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ pin, message: messageText, locale }),
+          signal: controller.signal,
         }
       );
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error('Erreur réseau');
+        if ([429, 500, 502, 503, 504].includes(response.status) && retryCount < 2) {
+          await new Promise(resolve => setTimeout(resolve, 800 * (retryCount + 1)));
+          return sendMessage(messageText, retryCount + 1);
+        }
+        throw new Error(`HTTP ${response.status}`);
       }
 
       const data = await response.json();
@@ -84,17 +94,27 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
       };
       setMessages(prev => [...prev, assistantMessage]);
 
-    } catch (error) {
+    } catch (error: any) {
+      clearTimeout(timeoutId);
       console.error('Erreur chatbot:', error);
+      
+      let errorMessage = "Désolé, je rencontre un problème technique. Veuillez réessayer dans quelques instants.";
+      
+      if (error.name === 'AbortError') {
+        errorMessage = "La requête a pris trop de temps. Réessayez dans un instant.";
+      } else if (error.message.includes('NetworkError') || error.message === 'Failed to fetch') {
+        errorMessage = "Vérifiez votre connexion internet.";
+      }
+      
       toast({
         title: "Erreur",
-        description: "Service momentanément indisponible. Réessayez plus tard.",
+        description: errorMessage,
         variant: "destructive",
       });
       
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "Désolé, je rencontre un problème technique. Veuillez réessayer dans quelques instants."
+        content: errorMessage
       }]);
     } finally {
       setIsLoading(false);
