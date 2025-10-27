@@ -36,8 +36,8 @@ const FAQ = () => {
   ];
 
   return (
-    <section id="faq" className="py-20 md:py-28 bg-white">
-      <div className="container mx-auto px-4">
+    <section id="faq" className="py-20 lg:py-24 bg-white scroll-mt-20">
+      <div className="mx-auto max-w-[1280px] px-6 lg:px-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -45,11 +45,11 @@ const FAQ = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl text-foreground mb-4">
+          <h2 className="font-extrabold text-[clamp(32px,5vw,48px)] text-slate-900 leading-tight mb-4">
             Questions fréquentes
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Tout ce que vous devez savoir sur Welkom
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+            Tout ce que vous devez savoir sur Wlekom
           </p>
         </motion.div>
 
@@ -65,12 +65,17 @@ const FAQ = () => {
               <AccordionItem
                 key={index}
                 value={`item-${index}`}
-                className="border border-border rounded-[18px] px-6 bg-white hover:shadow-md transition-shadow"
+                className="border border-slate-200 rounded-2xl px-6 bg-white hover:shadow-md transition-shadow"
               >
-                <AccordionTrigger className="text-left text-foreground hover:text-primary py-5 hover:no-underline">
+                <AccordionTrigger 
+                  className="text-left text-slate-900 py-5 hover:no-underline"
+                  style={{ 
+                    '--hover-color': '#071552' 
+                  } as React.CSSProperties}
+                >
                   <span className="font-semibold">{faq.question}</span>
                 </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground pb-5 leading-relaxed">
+                <AccordionContent className="text-slate-600 pb-5 leading-relaxed">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>

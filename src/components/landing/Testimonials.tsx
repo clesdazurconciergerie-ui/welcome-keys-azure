@@ -34,19 +34,19 @@ const Testimonials = () => {
     }
   };
   return (
-    <section className="py-12 md:py-16 bg-secondary">
-      <div className="container mx-auto px-4">
+    <section className="py-20 lg:py-24 bg-slate-50">
+      <div className="mx-auto max-w-[1280px] px-6 lg:px-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-8 md:mb-12"
+          className="text-center mb-12"
         >
-          <h2 className="font-display font-bold text-foreground mb-3">
-            Des hôtes & voyageurs satisfaits
+          <h2 className="font-extrabold text-[clamp(32px,5vw,48px)] text-slate-900 leading-tight mb-4">
+            Des hôtes plus sereins, des séjours plus fluides
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
             Rejoignez des milliers d'hôtes qui ont amélioré l'expérience de leurs voyageurs
           </p>
         </motion.div>
@@ -87,28 +87,28 @@ const Testimonials = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="min-w-[85%] md:min-w-0 snap-start bg-card border border-border rounded-2xl p-6 shadow-sm"
+              className="min-w-[85%] md:min-w-0 snap-start bg-white border border-slate-200 rounded-2xl p-6 shadow-sm"
             >
               <div className="flex items-center gap-3 mb-4">
                 <Avatar>
-                  <AvatarFallback className="bg-primary text-primary-foreground">
+                  <AvatarFallback style={{ backgroundColor: '#071552', color: 'white' }}>
                     {testimonial.avatar}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-semibold text-foreground">{testimonial.name}</p>
-                  <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                  <p className="font-semibold text-slate-900">{testimonial.name}</p>
+                  <p className="text-sm text-slate-500">{testimonial.role}</p>
                 </div>
-                <BadgeCheck className="ml-auto h-5 w-5 text-primary" />
+                <BadgeCheck className="ml-auto h-5 w-5" style={{ color: '#071552' }} />
               </div>
               
               <div className="flex gap-0.5 mb-3">
                 {[...Array(testimonial.rating)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-primary text-primary" />
+                  <Star key={i} className="h-4 w-4 fill-[#F59E0B] text-[#F59E0B]" />
                 ))}
               </div>
               
-              <p className="text-foreground leading-relaxed">
+              <p className="text-slate-700 leading-relaxed">
                 {testimonial.text}
               </p>
             </motion.article>

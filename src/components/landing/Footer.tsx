@@ -4,9 +4,12 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   const links = [
-    { label: "Sécurité", href: "#security" },
-    { label: "Mentions légales", href: "#" },
-    { label: "Contact", href: "#" },
+    { label: "Fonctionnalités", href: "#features" },
+    { label: "Tarifs", href: "/tarifs" },
+    { label: "Aide", href: "#faq" },
+    { label: "Mentions légales", href: "#legal" },
+    { label: "CGV/CGU", href: "#terms" },
+    { label: "Confidentialité", href: "#privacy" },
   ];
 
   const scrollToSection = (id: string) => {
@@ -19,28 +22,39 @@ const Footer = () => {
   };
 
   return (
-    <footer className="border-t border-border bg-white py-12">
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+    <footer className="border-t border-slate-200 bg-white py-12">
+      <div className="mx-auto max-w-[1280px] px-6 lg:px-10">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
           {/* Logo */}
           <BrandMark variant="compact" />
 
           {/* Links */}
-          <div className="flex flex-wrap items-center justify-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             {links.map((link, index) => (
-              <button
+              <a
                 key={index}
-                onClick={() => scrollToSection(link.href)}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-2 py-1"
+                href={link.href}
+                onClick={(e) => {
+                  if (link.href.startsWith('#')) {
+                    e.preventDefault();
+                    scrollToSection(link.href);
+                  }
+                }}
+                className="text-sm text-slate-600 hover:text-slate-900 transition-colors focus:outline-none focus:ring-2 rounded-md px-2 py-1"
+                style={{
+                  '--focus-ring-color': '#071552'
+                } as React.CSSProperties}
               >
                 {link.label}
-              </button>
+              </a>
             ))}
           </div>
+        </div>
 
-          {/* Copyright */}
-          <p className="text-sm text-muted-foreground">
-            © {currentYear} Welkom by Clés d'Azur — Tous droits réservés
+        {/* Copyright */}
+        <div className="text-center">
+          <p className="text-sm text-slate-500">
+            © {currentYear} Wlekom by Clés d'Azur · Tous droits réservés
           </p>
         </div>
       </div>

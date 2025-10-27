@@ -1,39 +1,31 @@
 import Navigation from "@/components/landing/Navigation";
 import Hero from "@/components/landing/Hero";
-import TrustLogos from "@/components/landing/TrustLogos";
-import SatisfiedGuests from "@/components/landing/SatisfiedGuests";
-import SaveTime from "@/components/landing/SaveTime";
-import Features from "@/components/landing/Features";
-import Metrics from "@/components/landing/Metrics";
-import Customization from "@/components/landing/Customization";
-import Process from "@/components/landing/Process";
-import ConcreteResults from "@/components/landing/ConcreteResults";
-import ForEveryone from "@/components/landing/ForEveryone";
-import Personas from "@/components/landing/Personas";
+import SocialProof from "@/components/landing/SocialProof";
+import ProblemSolution from "@/components/landing/ProblemSolution";
+import FeaturesGrid from "@/components/landing/FeaturesGrid";
+import HowItWorks from "@/components/landing/HowItWorks";
+import DemoSection from "@/components/landing/DemoSection";
+import PricingTeaser from "@/components/landing/PricingTeaser";
 import Testimonials from "@/components/landing/Testimonials";
-import Regions from "@/components/landing/Regions";
 import FAQ from "@/components/landing/FAQ";
-import FinalCTA from "@/components/landing/FinalCTA";
 import Footer from "@/components/landing/Footer";
+
 const Landing = () => {
-  return <div className="min-h-screen bg-white">
+  return (
+    <div className="min-h-screen bg-white">
       <Navigation />
       <Hero />
-      <TrustLogos />
-      <SatisfiedGuests />
-      <SaveTime />
-      <Features />
-      <Metrics />
-      <Customization />
-      <Process />
-      <ConcreteResults />
-      
-      
+      <SocialProof />
+      <ProblemSolution />
+      <FeaturesGrid />
+      <HowItWorks />
+      <DemoSection />
+      <PricingTeaser />
       <Testimonials />
-      <Regions />
       <FAQ />
-      <FinalCTA />
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default Landing;
