@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,22 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-scroll vers le bas quand de nouveaux messages arrivent
+  useEffect(() => {
+    if (isOpen && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isOpen]);
+
+  // Focus sur l'input à l'ouverture
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen]);
 
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
@@ -88,15 +105,16 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
     sendMessage(prompt);
   };
 
-  return (
+  const widgetContent = (
     <>
       {/* Floating Button */}
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 left-5 h-14 w-14 rounded-full shadow-lg z-[1000] bg-[#071552] hover:bg-[#071552] hover:scale-105 transition-all duration-250 md:bottom-6 md:left-6"
+          className="fixed bottom-5 right-5 h-14 w-14 rounded-full shadow-lg bg-[#071552] hover:bg-[#071552]/90 hover:scale-105 transition-all duration-250 md:bottom-6 md:right-6"
           size="icon"
-          style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
+          style={{ zIndex: 9998, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
+          aria-label="Ouvrir le chat"
         >
           <MessageCircle className="h-6 w-6 text-white" />
         </Button>
@@ -104,20 +122,25 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
 
       {/* Chat Panel */}
       {isOpen && (
-        <Card className="fixed bottom-20 left-2.5 w-[calc(100vw-20px)] md:w-[380px] md:left-5 h-[600px] max-h-[70vh] shadow-2xl z-[1001] flex flex-col animate-chatbot-slide-up"
-          style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
+        <Card 
+          className="fixed bottom-20 right-5 w-[calc(100vw-40px)] md:w-[380px] h-[600px] max-h-[70vh] shadow-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300"
+          style={{ zIndex: 9999, boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
+          role="dialog"
+          aria-labelledby="chat-header"
+          aria-modal="true"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b bg-[#071552] text-white rounded-t-lg">
             <div className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5" />
-              <h3 className="font-semibold">Assistant virtuel</h3>
+              <h3 id="chat-header" className="font-semibold">Assistance · Clés d'Azur</h3>
             </div>
             <Button
               onClick={() => setIsOpen(false)}
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-white hover:bg-white/20"
+              aria-label="Fermer le chat"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -125,54 +148,57 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
 
           {/* Messages */}
           <ScrollArea className="flex-1 p-4">
-            {messages.length === 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Je m'appuie sur le livret. Si l'info n'y est pas, je peux donner des indications générales (pas de détails sensibles). Choisissez une question ou posez la vôtre :
-                </p>
-                <div className="grid gap-2">
-                  {quickActions.map((action, idx) => (
-                    <Button
-                      key={idx}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickAction(action.prompt)}
-                      className="text-left justify-start h-auto py-2 px-3 whitespace-normal"
-                      disabled={isLoading}
-                    >
-                      {action.label}
-                    </Button>
-                  ))}
+            <div role="log" aria-live="polite" aria-atomic="false">
+              {messages.length === 0 ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Je m'appuie sur le livret. Si l'info n'y est pas, je peux donner des indications générales (pas de détails sensibles). Choisissez une question ou posez la vôtre :
+                  </p>
+                  <div className="grid gap-2">
+                    {quickActions.map((action, idx) => (
+                      <Button
+                        key={idx}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleQuickAction(action.prompt)}
+                        className="text-left justify-start h-auto py-2 px-3 whitespace-normal"
+                        disabled={isLoading}
+                      >
+                        {action.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {messages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
+              ) : (
+                <div className="space-y-4">
+                  {messages.map((msg, idx) => (
                     <div
-                      className={`max-w-[80%] rounded-lg px-3.5 py-2.5 ${
-                        msg.role === 'user'
-                          ? 'bg-[#071552] text-white'
-                          : 'bg-[#F8F8F8] text-[#1A1A1A]'
-                      }`}
-                      style={{ wordWrap: 'break-word' }}
+                      key={idx}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
-                      <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
+                      <div
+                        className={`max-w-[80%] rounded-lg px-3.5 py-2.5 ${
+                          msg.role === 'user'
+                            ? 'bg-[#071552] text-white'
+                            : 'bg-[#F8F8F8] text-[#1A1A1A]'
+                        }`}
+                        style={{ wordWrap: 'break-word' }}
+                      >
+                        <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg px-4 py-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                  ))}
+                  {isLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-muted rounded-lg px-4 py-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
+            </div>
           </ScrollArea>
 
           {/* Input */}
@@ -185,16 +211,19 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
               className="flex gap-2"
             >
               <Input
+                ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Posez votre question..."
+                placeholder="Écrivez votre message..."
                 disabled={isLoading}
                 className="flex-1"
+                aria-label="Message"
               />
               <Button
                 type="submit"
                 size="icon"
                 disabled={isLoading || !input.trim()}
+                aria-label="Envoyer"
               >
                 <Send className="h-4 w-4" />
               </Button>
@@ -204,4 +233,9 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
       )}
     </>
   );
+
+  // Utiliser un portal pour éviter les problèmes de z-index
+  return typeof document !== 'undefined' 
+    ? createPortal(widgetContent, document.body)
+    : null;
 }

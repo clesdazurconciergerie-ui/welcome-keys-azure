@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Home, MapPin, Wifi, Phone, Mail, Clock, ArrowLeft, Package, Trash2, MapPinIcon, HelpCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import ChatWidget from "@/components/ChatWidget";
 
 interface Step {
   id: string;
@@ -114,6 +115,7 @@ export default function PreviewBooklet() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [booklet, setBooklet] = useState<Booklet | null>(null);
+  const [pin, setPin] = useState<string>('');
 
   useEffect(() => {
     const checkAuthAndFetch = async () => {
@@ -146,6 +148,20 @@ export default function PreviewBooklet() {
           navigate('/dashboard');
         } else {
           setBooklet(data.booklet);
+          
+          // Récupérer le PIN actif pour le chatbot
+          if (data.booklet.id) {
+            const { data: pinData } = await supabase
+              .from('pins')
+              .select('pin_code')
+              .eq('booklet_id', data.booklet.id)
+              .eq('status', 'active')
+              .maybeSingle();
+            
+            if (pinData?.pin_code) {
+              setPin(pinData.pin_code);
+            }
+          }
         }
       } catch (err) {
         console.error('Error fetching preview:', err);
@@ -610,6 +626,9 @@ export default function PreviewBooklet() {
           </Card>
         )}
       </div>
+
+      {/* Chatbot Widget */}
+      {pin && <ChatWidget pin={pin} locale={booklet.language || 'fr'} />}
     </div>
   );
 }
