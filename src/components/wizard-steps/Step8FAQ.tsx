@@ -38,7 +38,7 @@ export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
         .from("faq")
         .select("*")
         .eq("booklet_id", bookletId)
-        .order("order_index");
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       
@@ -67,11 +67,11 @@ export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
   };
 
   const addFAQ = () => {
-    setFaqs([...faqs, {
+    setFaqs([{
       question: "",
       answer: "",
-      order_index: faqs.length + 1,
-    }]);
+      order_index: 0,
+    }, ...faqs]);
   };
 
   const removeFAQ = async (index: number) => {
