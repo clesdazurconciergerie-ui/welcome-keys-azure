@@ -35,10 +35,10 @@ const Hero = () => {
   };
 
   return (
-    <section className="bg-white">
-      <div className="mx-auto max-w-[1280px] px-6 lg:px-10 py-20 lg:py-24">
+    <section className="bg-white min-h-[90vh] flex items-center">
+      <div className="mx-auto max-w-[1280px] px-6 lg:px-10 py-20 lg:py-24 w-full">
         <motion.div 
-          className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center"
+          className="grid lg:grid-cols-2 gap-8 lg:gap-24 items-center"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -54,7 +54,7 @@ const Hero = () => {
             
             <motion.p 
               variants={itemVariants}
-              className="mt-6 text-[18px] lg:text-[20px] leading-7 text-slate-600 max-w-xl"
+              className="mt-6 text-[18px] lg:text-[20px] leading-7 text-slate-600 max-w-[600px] opacity-80"
             >
               Votre livret d'accueil digital pour Airbnb, hôtels, gîtes, campings – accessible par simple QR code.
             </motion.p>
@@ -65,9 +65,9 @@ const Hero = () => {
             >
               <button
                 onClick={() => navigate("/booklets/new")}
-                className="inline-flex items-center justify-center rounded-xl px-6 py-3 text-white font-semibold text-base
-                  transition-all duration-200 ease-out
-                  hover:shadow-lg hover:-translate-y-0.5
+                className="inline-flex items-center justify-center rounded-xl px-7 py-3 text-white font-semibold text-base
+                  transition-all duration-300 ease-out
+                  hover:brightness-115 hover:shadow-lg hover:-translate-y-0.5
                   active:translate-y-0
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#071552]
                   motion-reduce:hover:translate-y-0"
@@ -103,7 +103,8 @@ const Hero = () => {
             {/* Back phone - hidden on mobile */}
             <motion.div 
               variants={mockupVariants}
-              className="hidden sm:block absolute left-0 lg:left-auto lg:-left-6 top-8 -rotate-[10deg] scale-95"
+              className="hidden sm:block absolute -left-8 top-5 -rotate-[10deg]"
+              style={{ zIndex: 1 }}
             >
               <PhoneMockup variant="back" />
             </motion.div>
@@ -111,7 +112,8 @@ const Hero = () => {
             {/* Front phone */}
             <motion.div 
               variants={mockupVariants}
-              className="relative rotate-[10deg] z-10"
+              className="relative rotate-[10deg] lg:scale-100 scale-[0.8]"
+              style={{ zIndex: 2 }}
             >
               <PhoneMockup variant="front" />
             </motion.div>
