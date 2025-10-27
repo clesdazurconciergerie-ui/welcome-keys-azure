@@ -504,34 +504,6 @@ export default function PreviewBooklet() {
             </CardContent>
           </Card>
         )}
-                          {place.category}
-                        </Badge>
-                      </div>
-                      {place.distance && (
-                        <p className="text-sm text-muted-foreground mb-2">
-                          • {place.distance}
-                        </p>
-                      )}
-                      {place.note && (
-                        <p className="text-sm mb-2">{place.note}</p>
-                      )}
-                      {place.mapsUrl && (
-                        <a
-                          href={place.mapsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
-                        >
-                          Itinéraire →
-                        </a>
-                      )}
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : null;
-        })()}
 
         {/* Contacts (visible to creator) */}
         {booklet.contacts && (

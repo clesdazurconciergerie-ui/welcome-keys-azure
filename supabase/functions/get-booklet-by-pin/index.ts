@@ -151,7 +151,7 @@ serve(async (req) => {
     // Fetch nearby places
     const { data: nearbyPlaces } = await supabase
       .from('nearby_places')
-      .select('*')
+      .select('id, name, type, description, distance, maps_link, image_url, website_url')
       .eq('booklet_id', booklet.id)
       .order('created_at');
 
