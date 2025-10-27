@@ -134,6 +134,7 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
     if (currentStep < STEPS.length) {
       setCurrentStep(currentStep + 1);
       autoSave({ wizard_step: currentStep + 1 });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -141,6 +142,7 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
       autoSave({ wizard_step: currentStep - 1 });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -357,7 +359,10 @@ export default function BookletWizard({ bookletId }: BookletWizardProps) {
                   return (
                     <button
                       key={step.number}
-                      onClick={() => setCurrentStep(step.number)}
+                      onClick={() => {
+                        setCurrentStep(step.number);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
                       className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all ${
                         isActive
                           ? "bg-primary text-primary-foreground"
