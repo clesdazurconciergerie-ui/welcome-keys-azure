@@ -665,26 +665,10 @@ export default function PreviewBooklet() {
           </Card>
         )}
 
-        {/* Gallery */}
-        {booklet.gallery && booklet.gallery.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Galerie</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {booklet.gallery.map((image: any, index: number) => (
-                  <img
-                    key={index}
-                    src={image.url || image}
-                    alt={`Photo ${index + 1}`}
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Debug: End of sections marker */}
+        <div className="text-center text-sm text-muted-foreground py-4 border-t">
+          ✓ Fin du livret - Toutes les sections ont été chargées
+        </div>
       </div>
 
       {/* Chatbot Widget */}
