@@ -101,6 +101,8 @@ serve(async (req) => {
         amenities,
         nearby,
         gallery,
+        gallery_enabled,
+        gallery_items,
         chatbot_enabled,
         chatbot_config,
         updated_at,
