@@ -183,10 +183,7 @@ export default function PreviewBooklet() {
     checkAuthAndFetch();
   }, [id, navigate]);
 
-  // Inject CSS variables dynamically when booklet appearance changes
-  // Get accent color for dynamic styling
-  const accentColor = booklet?.appearance?.colors?.accent || '#071552';
-  
+  // Inject CSS theme variables for consistent theming
   useEffect(() => {
     if (!booklet?.appearance) return;
 
@@ -194,20 +191,25 @@ export default function PreviewBooklet() {
     const colors = booklet.appearance.colors;
     const typography = booklet.appearance.typography;
 
-    // Apply CSS variables to document root
+    // Apply theme CSS variables to document root
     if (colors) {
-      root.style.setProperty('--booklet-bg', colors.background || '#ffffff');
-      root.style.setProperty('--booklet-surface', colors.surface || '#ffffff');
-      root.style.setProperty('--booklet-accent', colors.accent || '#071552');
-      root.style.setProperty('--booklet-text', colors.text || '#1a1a1a');
-      root.style.setProperty('--booklet-muted', colors.muted || '#6b7280');
+      root.style.setProperty('--theme-bg', colors.background || '#ffffff');
+      root.style.setProperty('--theme-primary', colors.accent || '#071552');
+      root.style.setProperty('--theme-accent', colors.accent || '#071552');
+      root.style.setProperty('--theme-text', colors.text || '#0F172A');
+      root.style.setProperty('--theme-muted', colors.muted || '#64748B');
     }
 
     if (typography) {
-      root.style.setProperty('--booklet-font', typography.font_family === 'System' 
-        ? 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif'
-        : typography.font_family || 'Inter');
-      root.style.setProperty('--booklet-size', `${typography.base_size || 16}px`);
+      const fontFamilyMap: Record<string, string> = {
+        'Inter': "'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif",
+        'Poppins': "'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif",
+        'Montserrat': "'Montserrat', ui-sans-serif, system-ui, -apple-system, sans-serif",
+        'System': "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif"
+      };
+      
+      root.style.setProperty('--theme-font-family', fontFamilyMap[typography.font_family] || fontFamilyMap.Inter);
+      root.style.setProperty('--theme-font-size', `${typography.base_size || 16}px`);
     }
   }, [booklet]);
 
@@ -232,17 +234,13 @@ export default function PreviewBooklet() {
       {/* Preview Badge */}
       <div 
         className="text-white py-2 px-4 text-center sticky top-0 z-50 flex items-center justify-between"
-        style={{ backgroundColor: accentColor }}
+        style={{ backgroundColor: 'var(--theme-accent, #071552)' }}
       >
         <Button
           variant="ghost"
           size="sm"
           onClick={() => navigate('/dashboard')}
-          className="text-white hover:text-white"
-          style={{ 
-            '--tw-bg-opacity': '0.2',
-            backgroundColor: 'rgba(255, 255, 255, var(--tw-bg-opacity))'
-          } as React.CSSProperties}
+          className="text-white hover:bg-white/20"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Retour
@@ -250,7 +248,7 @@ export default function PreviewBooklet() {
         <Badge 
           variant="secondary" 
           className="bg-white"
-          style={{ color: accentColor }}
+          style={{ color: 'var(--theme-accent, #071552)' }}
         >
           Aperçu créateur - Peut contenir des infos privées
         </Badge>
@@ -344,7 +342,7 @@ export default function PreviewBooklet() {
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="hover:underline"
-                  style={{ color: accentColor }}
+                  style={{ color: 'var(--theme-accent, #071552)' }}
                 >
                   Voir sur Google Maps
                 </a>
@@ -403,7 +401,7 @@ export default function PreviewBooklet() {
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="hover:underline"
-                  style={{ color: accentColor }}
+                  style={{ color: 'var(--theme-accent, #071552)' }}
                 >
                   📄 Télécharger le manuel complet
                 </a>
@@ -477,7 +475,7 @@ export default function PreviewBooklet() {
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className="hover:underline"
-                          style={{ color: accentColor }}
+                          style={{ color: 'var(--theme-accent, #071552)' }}
                         >
                           📄 Voir le manuel
                         </a>
@@ -573,7 +571,7 @@ export default function PreviewBooklet() {
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className="text-sm hover:underline"
-                          style={{ color: accentColor }}
+                          style={{ color: 'var(--theme-accent, #071552)' }}
                         >
                           Visiter le site
                         </a>
@@ -584,7 +582,7 @@ export default function PreviewBooklet() {
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className="text-sm hover:underline"
-                          style={{ color: accentColor }}
+                          style={{ color: 'var(--theme-accent, #071552)' }}
                         >
                           Itinéraire
                         </a>
@@ -601,15 +599,18 @@ export default function PreviewBooklet() {
         {booklet.contacts && (
           <Card 
             style={{
-              backgroundColor: `${accentColor}15`,
-              borderColor: `${accentColor}40`
+              backgroundColor: 'color-mix(in srgb, var(--theme-accent, #071552) 8%, transparent)',
+              borderColor: 'color-mix(in srgb, var(--theme-accent, #071552) 25%, transparent)'
             }}
           >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Badge 
                   variant="outline"
-                  style={{ borderColor: accentColor, color: accentColor }}
+                  style={{ 
+                    borderColor: 'var(--theme-accent, #071552)', 
+                    color: 'var(--theme-accent, #071552)' 
+                  }}
                 >
                   Privé - Créateur uniquement
                 </Badge>
@@ -618,13 +619,13 @@ export default function PreviewBooklet() {
             <CardContent className="space-y-3">
               {booklet.contacts.contact_phone && (
                 <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5" style={{ color: accentColor }} />
+                  <Phone className="h-5 w-5" style={{ color: 'var(--theme-accent, #071552)' }} />
                   <span>{booklet.contacts.contact_phone}</span>
                 </div>
               )}
               {booklet.contacts.contact_email && (
                 <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5" style={{ color: accentColor }} />
+                  <Mail className="h-5 w-5" style={{ color: 'var(--theme-accent, #071552)' }} />
                   <span>{booklet.contacts.contact_email}</span>
                 </div>
               )}
@@ -660,9 +661,9 @@ export default function PreviewBooklet() {
                       <p className="whitespace-pre-wrap">{item.answer}</p>
                       <p className="text-xs text-muted-foreground mt-2">
                         {item.is_favorite ? (
-                          <span style={{ color: accentColor }}>✅ Visible dans le livret public</span>
+                          <span style={{ color: 'var(--theme-accent, #071552)' }}>✅ Visible dans le livret public</span>
                         ) : (
-                          <span style={{ color: `${accentColor}CC` }}>⚙️ Utilisée uniquement par le chatbot</span>
+                          <span style={{ color: 'color-mix(in srgb, var(--theme-accent, #071552) 80%, transparent)' }}>⚙️ Utilisée uniquement par le chatbot</span>
                         )}
                       </p>
                     </AccordionContent>
@@ -718,8 +719,7 @@ export default function PreviewBooklet() {
       {pin && (
         <ChatWidget 
           pin={pin} 
-          locale={booklet.language || 'fr'} 
-          accentColor={booklet.appearance?.colors?.accent || '#071552'}
+          locale={booklet.language || 'fr'}
         />
       )}
     </div>

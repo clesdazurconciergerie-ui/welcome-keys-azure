@@ -15,7 +15,6 @@ interface Message {
 interface ChatWidgetProps {
   pin: string;
   locale?: string;
-  accentColor?: string;
 }
 
 const quickActions = [
@@ -27,27 +26,13 @@ const quickActions = [
   { label: "Urgences", prompt: "Où se trouve la pharmacie de garde et les numéros d'urgence ?" },
 ];
 
-export default function ChatWidget({ pin, locale = 'fr', accentColor = '#071552' }: ChatWidgetProps) {
+export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Fonction pour déterminer si un texte doit être clair ou foncé selon le fond
-  const getContrastTextColor = (bgColor: string): string => {
-    // Convertir hex en RGB
-    const hex = bgColor.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    // Calculer la luminance
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.5 ? '#1A1A1A' : '#FFFFFF';
-  };
-
-  const textColor = getContrastTextColor(accentColor);
 
   // Auto-scroll vers le bas quand de nouveaux messages arrivent
   useEffect(() => {
@@ -146,17 +131,22 @@ export default function ChatWidget({ pin, locale = 'fr', accentColor = '#071552'
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 h-14 w-14 rounded-full shadow-lg hover:scale-105 transition-all duration-250 md:bottom-6 md:right-6"
+          className="fixed bottom-5 right-5 h-14 w-14 rounded-full shadow-lg transition-all duration-250 md:bottom-6 md:right-6 text-white"
           size="icon"
           style={{ 
             zIndex: 9998, 
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            backgroundColor: accentColor,
-            color: textColor
+            backgroundColor: 'var(--theme-accent, #071552)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
           }}
           aria-label="Ouvrir le chat"
         >
-          <MessageCircle className="h-6 w-6" style={{ color: textColor }} />
+          <MessageCircle className="h-6 w-6" />
         </Button>
       )}
 
@@ -171,19 +161,18 @@ export default function ChatWidget({ pin, locale = 'fr', accentColor = '#071552'
         >
           {/* Header */}
           <div 
-            className="flex items-center justify-between p-4 border-b rounded-t-lg"
-            style={{ backgroundColor: accentColor, color: textColor }}
+            className="flex items-center justify-between p-4 border-b rounded-t-lg text-white"
+            style={{ backgroundColor: 'var(--theme-accent, #071552)' }}
           >
             <div className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" style={{ color: textColor }} />
+              <MessageCircle className="h-5 w-5" />
               <h3 id="chat-header" className="font-semibold">Assistance · Clés d'Azur</h3>
             </div>
             <Button
               onClick={() => setIsOpen(false)}
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
-              style={{ color: textColor }}
+              className="h-8 w-8 text-white hover:bg-white/20"
               aria-label="Fermer le chat"
             >
               <X className="h-4 w-4" />
@@ -211,10 +200,16 @@ export default function ChatWidget({ pin, locale = 'fr', accentColor = '#071552'
                         variant="outline"
                         size="sm"
                         onClick={() => handleQuickAction(action.prompt)}
-                        className="text-left justify-start h-auto py-2 px-3 whitespace-normal border hover:bg-opacity-10"
+                        className="text-left justify-start h-auto py-2 px-3 whitespace-normal"
                         style={{ 
-                          borderColor: accentColor + '40',
-                          color: accentColor 
+                          borderColor: 'color-mix(in srgb, var(--theme-accent, #071552) 25%, transparent)',
+                          color: 'var(--theme-accent, #071552)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--theme-accent, #071552) 10%, transparent)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
                         }}
                         disabled={isLoading}
                       >
@@ -234,8 +229,8 @@ export default function ChatWidget({ pin, locale = 'fr', accentColor = '#071552'
                         className="max-w-[80%] rounded-lg px-3.5 py-2.5"
                         style={{ 
                           wordWrap: 'break-word',
-                          backgroundColor: msg.role === 'user' ? accentColor : '#F8F8F8',
-                          color: msg.role === 'user' ? textColor : '#1A1A1A'
+                          backgroundColor: msg.role === 'user' ? 'var(--theme-accent, #071552)' : '#F8F8F8',
+                          color: msg.role === 'user' ? '#ffffff' : '#1A1A1A'
                         }}
                       >
                         <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
@@ -277,10 +272,19 @@ export default function ChatWidget({ pin, locale = 'fr', accentColor = '#071552'
                 type="submit"
                 size="icon"
                 disabled={isLoading || !input.trim()}
-                style={{ backgroundColor: accentColor, color: textColor }}
+                className="text-white"
+                style={{ backgroundColor: 'var(--theme-accent, #071552)' }}
+                onMouseEnter={(e) => {
+                  if (!isLoading && input.trim()) {
+                    e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--theme-accent, #071552) 85%, black)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--theme-accent, #071552)';
+                }}
                 aria-label="Envoyer"
               >
-                <Send className="h-4 w-4" style={{ color: textColor }} />
+                <Send className="h-4 w-4" />
               </Button>
             </form>
           </div>
