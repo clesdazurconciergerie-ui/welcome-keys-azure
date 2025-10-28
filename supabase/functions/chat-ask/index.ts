@@ -190,6 +190,98 @@ function initLocationContext(booklet: any): any {
   };
 }
 
+// Recherche contextuelle intelligente dans tout le livret
+function searchInBooklet(query: string, fullContext: any): Array<{ section: string; excerpt: string; score: number }> {
+  const normalizedQuery = normalize(query);
+  const keywords = normalizedQuery.split(/\s+/).filter(w => w.length > 2);
+  
+  const results: Array<{ section: string; excerpt: string; score: number; fullText: string }> = [];
+  
+  // Définir toutes les sections recherchables avec leurs priorités
+  const searchableSections = [
+    { name: 'FAQ', data: fullContext.faq, priority: 10, fields: ['question', 'answer'] },
+    { name: 'Équipements', data: fullContext.equipment, priority: 9, fields: ['name', 'category', 'instructions'] },
+    { name: 'Règles et consignes', data: fullContext.rules, priority: 8, fields: ['house_rules', 'safety_tips', 'safety_instructions'] },
+    { name: 'Nettoyage', data: fullContext.cleaning, priority: 8, fields: ['waste_location', 'sorting_instructions', 'cleaning_tips', 'cleaning_rules'] },
+    { name: 'Accès et codes', data: fullContext.access, priority: 7, fields: ['checkin_procedure', 'checkout_procedure', 'parking_info'] },
+    { name: 'Wi-Fi', data: fullContext.wifi, priority: 7, fields: ['ssid'] },
+    { name: 'Restaurants', data: fullContext.nearby?.restaurants || [], priority: 6, fields: ['name', 'cuisine', 'address', 'tags'] },
+    { name: 'Activités', data: fullContext.nearby?.activities || [], priority: 6, fields: ['name', 'category', 'tags', 'when_available'] },
+    { name: 'Commerces essentiels', data: fullContext.nearby?.essentials || [], priority: 6, fields: ['name', 'type', 'notes'] },
+    { name: 'Transports', data: fullContext.nearby?.transport || [], priority: 5, fields: ['name', 'type', 'instructions'] },
+    { name: 'Informations générales', data: fullContext.property, priority: 4, fields: ['welcome_message', 'tagline'] },
+  ];
+  
+  for (const section of searchableSections) {
+    if (Array.isArray(section.data)) {
+      // Pour les tableaux d'items
+      for (const item of section.data) {
+        let fullText = '';
+        for (const field of section.fields) {
+          const value = item[field];
+          if (value) {
+            if (Array.isArray(value)) {
+              fullText += ' ' + value.join(' ');
+            } else {
+              fullText += ' ' + String(value);
+            }
+          }
+        }
+        
+        const normalizedText = normalize(fullText);
+        let score = 0;
+        
+        // Compter les occurrences de mots-clés
+        for (const keyword of keywords) {
+          const occurrences = (normalizedText.match(new RegExp(keyword, 'g')) || []).length;
+          score += occurrences * section.priority;
+        }
+        
+        if (score > 0) {
+          results.push({
+            section: section.name,
+            excerpt: fullText.trim().substring(0, 200),
+            score,
+            fullText: fullText.trim()
+          });
+        }
+      }
+    } else if (section.data && typeof section.data === 'object') {
+      // Pour les objets
+      let fullText = '';
+      for (const field of section.fields) {
+        const value = section.data[field];
+        if (value && typeof value === 'string') {
+          fullText += ' ' + value;
+        }
+      }
+      
+      const normalizedText = normalize(fullText);
+      let score = 0;
+      
+      for (const keyword of keywords) {
+        const occurrences = (normalizedText.match(new RegExp(keyword, 'g')) || []).length;
+        score += occurrences * section.priority;
+      }
+      
+      if (score > 0) {
+        results.push({
+          section: section.name,
+          excerpt: fullText.trim().substring(0, 200),
+          score,
+          fullText: fullText.trim()
+        });
+      }
+    }
+  }
+  
+  // Trier par score décroissant et retourner les 5 meilleurs
+  return results
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .map(r => ({ section: r.section, excerpt: r.excerpt, score: r.score }));
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -494,11 +586,39 @@ serve(async (req) => {
       }
     }
 
+    // Recherche contextuelle intelligente dans le livret
+    const searchResults = searchInBooklet(sanitizedMessage, fullContext);
+    console.log('Résultats de recherche:', searchResults);
+
     // Construire le prompt système avec le contexte complet
     const systemPrompt = `Tu es un assistant de conciergerie représentant Welkom (aussi connue sous Clés d'Azur).
 Tu es là pour aider les voyageurs pendant leur séjour à "${booklet.property_name}" à ${locationContext.city}.
 
 IMPORTANT : Tu parles et réagis comme un agent de service client humain, jamais comme une IA ou un robot.
+
+═══════════════════════════════════════════════════════════════════
+APPROCHE PROACTIVE ET RECHERCHE INTELLIGENTE
+═══════════════════════════════════════════════════════════════════
+
+🔍 PRINCIPE DE BASE
+• Tu as accès à TOUT le contenu du livret d'accueil (voir ci-dessous)
+• Avant de répondre "je ne sais pas", CHERCHE dans toutes les sections disponibles
+• Si la question est vague, DÉDUIS la réponse la plus probable en analysant le contexte
+• Sois proactif : ne t'arrête pas à la première impression, fouille dans les données
+
+🎯 RÉSULTATS DE RECHERCHE PRIORITAIRES
+Voici les extraits les plus pertinents trouvés automatiquement pour cette question :
+
+${searchResults.length > 0 
+  ? searchResults.map((r, i) => `${i + 1}. Section "${r.section}" (score: ${r.score}):\n   ${r.excerpt}`).join('\n\n')
+  : '(Aucun extrait direct trouvé - analyse le contexte complet ci-dessous)'
+}
+
+⚙️ COMMENT UTILISER CES RÉSULTATS
+• Commence par analyser ces extraits en priorité
+• Si plusieurs résultats : choisis le plus pertinent OU propose plusieurs options
+• Si aucun résultat direct : raisonne avec le contexte complet du livret
+• Ne dis jamais "je ne trouve pas" sans avoir vraiment cherché partout
 
 ═══════════════════════════════════════════════════════════════════
 STYLE DE COMMUNICATION
@@ -544,18 +664,33 @@ STRUCTURE DE RÉPONSE (À SUIVRE OBLIGATOIREMENT)
 GESTION DES CAS PARTICULIERS
 ═══════════════════════════════════════════════════════════════════
 
+📌 QUESTION VAGUE OU FLOUE
+→ Ne t'arrête pas ! Cherche par déduction et raisonnement
+→ Exemples :
+   - "Je ne trouve pas la clé" → cherche dans "Accès et codes", "checkin_procedure", "access_code"
+   - "Où je peux jeter ça ?" → cherche "poubelles", "déchets", "tri", "waste_location"
+   - "Comment ça marche ?" → identifie le contexte (équipements ? maison ?) et cherche la section appropriée
+
 📌 PLUSIEURS OPTIONS DISPONIBLES
-→ "Il y a deux options selon votre logement, voulez-vous que je vous détaille les deux ?"
+→ "D'après ce que je vois, il y a deux possibilités selon votre besoin. Voulez-vous que je vous détaille les deux ?"
 
 📌 QUESTION RÉPÉTÉE
 → Reformule légèrement au lieu de répéter mot pour mot
+→ Ajoute un détail complémentaire si possible
 
-📌 INFORMATION MANQUANTE
-→ "Je n'ai pas cette information dans le livret, mais je peux transmettre votre message à l'hôte"
-→ Reste humain et utile
+📌 INFORMATION VRAIMENT MANQUANTE (après recherche complète)
+→ "J'ai vérifié dans toutes les sections du livret, mais je n'ai pas trouvé cette information précise."
+→ "Je vous recommande de contacter directement l'hôte pour cette question spécifique."
+→ Propose une alternative si possible : "En attendant, voici ce que je sais sur..."
 
-📌 QUESTION HORS SCOPE
-→ "Je n'ai pas d'information spécifique là-dessus dans le livret, mais je peux vous donner les infos pratiques disponibles"
+📌 QUESTION HORS SCOPE (réservation, paiement, contrat)
+→ "Je n'ai pas accès à ces informations, mais votre hôte pourra vous aider directement."
+
+📌 DÉDUCTION ET RAISONNEMENT
+→ Si la question mentionne "télécommande" → cherche dans équipements (TV, climatiseur, etc.)
+→ Si la question parle de "bruit" ou "horaires" → cherche dans règles de la maison
+→ Si la question concerne "restaurants italiens" → filtre les restaurants par cuisine
+→ Utilise les tags, catégories et métadonnées pour affiner ta recherche
 
 ═══════════════════════════════════════════════════════════════════
 UTILISATION DES ÉMOJIS
@@ -623,7 +758,7 @@ Réponds maintenant comme un véritable agent de conciergerie Welkom, profession
           { role: 'user', content: sanitizedMessage }
         ],
         temperature: 0.8,
-        max_tokens: 400,
+        max_tokens: 500,
       }),
     });
 
