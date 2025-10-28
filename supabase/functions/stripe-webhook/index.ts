@@ -210,8 +210,8 @@ Deno.serve(async (req) => {
       console.log('User and subscription updated successfully for user:', userId);
     }
 
-    // Handle subscription cancellation
-    if (event.type === 'customer.subscription.deleted' || event.type === 'customer.subscription.updated') {
+    // Handle subscription lifecycle events
+    if (['customer.subscription.deleted', 'customer.subscription.updated'].includes(event.type)) {
       const subscription = event.data.object as Stripe.Subscription;
       const customerId = subscription.customer as string;
 
@@ -224,11 +224,13 @@ Deno.serve(async (req) => {
 
       if (userData) {
         const userId = userData.id;
+        const status = subscription.status;
 
-        if (event.type === 'customer.subscription.deleted' || subscription.status === 'canceled') {
-          console.log('Handling subscription cancellation for user:', userId);
+        console.log(`Subscription ${event.type} for user ${userId}, status: ${status}`);
 
-          // Update user status
+        // Handle different subscription statuses
+        if (status === 'canceled' || event.type === 'customer.subscription.deleted') {
+          // Subscription canceled - downgrade to free
           await supabase
             .from('users')
             .update({
@@ -254,7 +256,165 @@ Deno.serve(async (req) => {
             })
             .eq('stripe_subscription_id', subscription.id);
 
-          console.log('Subscription canceled for user:', userId);
+          console.log('✅ Subscription canceled, user downgraded to free');
+        } else if (status === 'past_due' || status === 'unpaid') {
+          // Payment failed - suspend premium access
+          await supabase
+            .from('users')
+            .update({
+              subscription_status: 'past_due',
+              role: 'free',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId);
+
+          // Remove all paid roles temporarily
+          await supabase
+            .from('user_roles')
+            .delete()
+            .eq('user_id', userId)
+            .in('role', ['pack_starter', 'pack_pro', 'pack_business', 'pack_premium']);
+
+          console.log('⚠️ Payment past due, premium access suspended');
+        } else if (status === 'active' || status === 'trialing') {
+          // Subscription active or trialing - grant/restore access
+          // Determine role from price
+          const priceId = subscription.items.data[0]?.price.id;
+          let role = 'pack_starter'; // default
+
+          // Try to match role based on product metadata or price
+          const product = subscription.items.data[0]?.price.product;
+          if (typeof product === 'object' && product.metadata?.role) {
+            role = product.metadata.role;
+          }
+
+          await supabase
+            .from('users')
+            .update({
+              subscription_status: status === 'trialing' ? 'trial_active' : 'active',
+              role: role,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId);
+
+          // Add role to user_roles
+          await supabase
+            .from('user_roles')
+            .upsert(
+              {
+                user_id: userId,
+                role: role,
+                assigned_at: new Date().toISOString(),
+              },
+              {
+                onConflict: 'user_id,role',
+                ignoreDuplicates: false,
+              }
+            );
+
+          // Update subscription record
+          await supabase
+            .from('subscriptions')
+            .update({
+              status: status,
+              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              cancel_at_period_end: subscription.cancel_at_period_end,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('stripe_subscription_id', subscription.id);
+
+          console.log(`✅ Subscription ${status}, role ${role} applied`);
+        }
+      }
+    }
+
+    // Handle payment failures
+    if (event.type === 'invoice.payment_failed') {
+      const invoice = event.data.object as Stripe.Invoice;
+      const customerId = invoice.customer as string;
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('stripe_customer_id', customerId)
+        .single();
+
+      if (userData) {
+        console.log('⚠️ Payment failed for user:', userData.id);
+
+        // Suspend premium access after payment failure
+        await supabase
+          .from('users')
+          .update({
+            subscription_status: 'past_due',
+            role: 'free',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userData.id);
+
+        // Remove paid roles
+        await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', userData.id)
+          .in('role', ['pack_starter', 'pack_pro', 'pack_business', 'pack_premium']);
+
+        console.log('✅ Premium access suspended due to payment failure');
+      }
+    }
+
+    // Handle successful payment after failure
+    if (event.type === 'invoice.payment_succeeded') {
+      const invoice = event.data.object as Stripe.Invoice;
+      const customerId = invoice.customer as string;
+      const subscriptionId = invoice.subscription as string;
+
+      if (subscriptionId) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id, subscription_status')
+          .eq('stripe_customer_id', customerId)
+          .single();
+
+        if (userData && userData.subscription_status === 'past_due') {
+          console.log('✅ Payment recovered for user:', userData.id);
+
+          // Retrieve subscription to get role
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const product = subscription.items.data[0]?.price.product;
+          let role = 'pack_starter';
+
+          if (typeof product === 'object' && product.metadata?.role) {
+            role = product.metadata.role;
+          }
+
+          // Restore premium access
+          await supabase
+            .from('users')
+            .update({
+              subscription_status: 'active',
+              role: role,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userData.id);
+
+          // Restore role
+          await supabase
+            .from('user_roles')
+            .upsert(
+              {
+                user_id: userData.id,
+                role: role,
+                assigned_at: new Date().toISOString(),
+              },
+              {
+                onConflict: 'user_id,role',
+                ignoreDuplicates: false,
+              }
+            );
+
+          console.log('✅ Premium access restored after payment recovery');
         }
       }
     }

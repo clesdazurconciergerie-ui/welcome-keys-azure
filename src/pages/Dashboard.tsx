@@ -24,6 +24,7 @@ import BrandMark from "@/components/BrandMark";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import SubscriptionSection from "@/components/dashboard/SubscriptionSection";
 import DemoExpirationBanner from "@/components/DemoExpirationBanner";
+import SubscriptionAlert from "@/components/SubscriptionAlert";
 
 interface Pin {
   pin_code: string;
@@ -410,6 +411,9 @@ const Dashboard = () => {
 
         {/* Subscription Section */}
         <SubscriptionSection />
+
+        {/* Subscription Alerts (payment failures, expirations) */}
+        <SubscriptionAlert />
 
         {/* Demo Expiration Banner */}
         <DemoExpirationBanner />
