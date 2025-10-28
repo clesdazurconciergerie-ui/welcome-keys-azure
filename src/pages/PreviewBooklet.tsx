@@ -661,7 +661,13 @@ export default function PreviewBooklet() {
       </div>
 
       {/* Chatbot Widget */}
-      {pin && <ChatWidget pin={pin} locale={booklet.language || 'fr'} />}
+      {pin && (
+        <ChatWidget 
+          pin={pin} 
+          locale={booklet.language || 'fr'} 
+          accentColor={booklet.appearance?.colors?.accent || '#071552'}
+        />
+      )}
     </div>
   );
 }

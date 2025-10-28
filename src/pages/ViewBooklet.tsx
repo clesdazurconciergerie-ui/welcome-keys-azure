@@ -1358,7 +1358,11 @@ export default function ViewBooklet() {
       </div>
 
       {/* Chatbot Widget */}
-      <ChatWidget pin={code || ''} locale={booklet.language || 'fr'} />
+      <ChatWidget 
+        pin={code || ''} 
+        locale={booklet.language || 'fr'} 
+        accentColor={theme?.accentHex || booklet.appearance?.colors?.accent || booklet.accent_color || '#071552'} 
+      />
 
       {/* Free Trial Watermark */}
       <FreeTrialWatermark userRole={ownerRole || undefined} />
