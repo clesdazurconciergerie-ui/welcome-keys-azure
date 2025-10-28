@@ -273,6 +273,14 @@ export default function PreviewBooklet() {
           </Badge>
         </div>
 
+        {/* Gallery */}
+        {booklet.gallery_items && booklet.gallery_items.length > 0 && (
+          <GalleryView 
+            items={booklet.gallery_items} 
+            enabled={booklet.gallery_enabled ?? true} 
+          />
+        )}
+
         {/* Welcome Message */}
         {booklet.welcome_message && (
           <Card>
@@ -283,14 +291,6 @@ export default function PreviewBooklet() {
               <p className="whitespace-pre-wrap ai-description">{booklet.welcome_message}</p>
             </CardContent>
           </Card>
-        )}
-
-        {/* Gallery */}
-        {booklet.gallery_items && booklet.gallery_items.length > 0 && (
-          <GalleryView 
-            items={booklet.gallery_items} 
-            enabled={booklet.gallery_enabled ?? true} 
-          />
         )}
 
         {/* Practical Info */}

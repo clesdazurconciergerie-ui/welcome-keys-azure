@@ -470,6 +470,18 @@ export default function ViewBooklet() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-10 space-y-8">
+        {/* Gallery */}
+        {booklet.gallery_items && booklet.gallery_items.length > 0 && (
+          <Card className="shadow-lg border-0" style={{ background: 'var(--theme-bg)' }}>
+            <CardContent className="pt-6">
+              <GalleryView 
+                items={booklet.gallery_items} 
+                enabled={booklet.gallery_enabled ?? true} 
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Welcome Message */}
         {booklet.welcome_message && (
           <Card 
@@ -492,18 +504,6 @@ export default function ViewBooklet() {
               <p className="whitespace-pre-wrap ai-description text-base leading-relaxed" style={{ color: 'var(--theme-text)' }}>
                 {booklet.welcome_message}
               </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Gallery */}
-        {booklet.gallery_items && booklet.gallery_items.length > 0 && (
-          <Card className="shadow-lg border-0" style={{ background: 'var(--theme-bg)' }}>
-            <CardContent className="pt-6">
-              <GalleryView 
-                items={booklet.gallery_items} 
-                enabled={booklet.gallery_enabled ?? true} 
-              />
             </CardContent>
           </Card>
         )}
