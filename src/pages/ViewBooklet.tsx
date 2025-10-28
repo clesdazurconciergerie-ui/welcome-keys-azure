@@ -491,7 +491,16 @@ export default function ViewBooklet() {
           }
           
           return allImages.length > 0 ? (
-            <Card className="shadow-lg border-0" style={{ background: 'var(--theme-bg)' }}>
+            <Card 
+              className="shadow-lg border-0 overflow-hidden"
+              style={{
+                background: "rgba(255, 255, 255, 0.55)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                borderColor: "rgba(7, 21, 82, 0.12)",
+                boxShadow: "0 20px 45px rgba(7, 21, 82, 0.08)"
+              }}
+            >
               <CardContent className="pt-6">
                 <GalleryView 
                   items={allImages} 

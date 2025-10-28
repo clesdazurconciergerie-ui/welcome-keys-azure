@@ -293,12 +293,22 @@ export default function PreviewBooklet() {
             allImages.push(...booklet.gallery_items);
           }
           
-          
           return allImages.length > 0 ? (
-            <GalleryView 
-              items={allImages} 
-              enabled={booklet.gallery_enabled ?? true} 
-            />
+            <div
+              className="rounded-3xl p-6 lg:p-8 border transition-all duration-300"
+              style={{
+                background: "rgba(255, 255, 255, 0.55)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                borderColor: "rgba(7, 21, 82, 0.12)",
+                boxShadow: "0 20px 45px rgba(7, 21, 82, 0.08)"
+              }}
+            >
+              <GalleryView 
+                items={allImages} 
+                enabled={booklet.gallery_enabled ?? true} 
+              />
+            </div>
           ) : null;
         })()}
 
