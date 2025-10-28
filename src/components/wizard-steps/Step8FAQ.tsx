@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus, Trash2, GripVertical } from "lucide-react";
+import { toast } from "sonner";
 
 interface FAQ {
   id?: string;
@@ -23,6 +24,7 @@ export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [loading, setLoading] = useState(true);
   const bookletId = data?.id;
+  const saveTimeoutRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
   useEffect(() => {
     if (bookletId) {
@@ -94,24 +96,62 @@ export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
     newFAQs[index] = { ...newFAQs[index], ...updates };
     setFaqs(newFAQs);
     
-    // Auto-save
-    setTimeout(async () => {
+    // Debounced auto-save: clear previous timeout and set a new one
+    const faqKey = newFAQs[index].id || `temp-${index}`;
+    if (saveTimeoutRef.current[faqKey]) {
+      clearTimeout(saveTimeoutRef.current[faqKey]);
+    }
+    
+    saveTimeoutRef.current[faqKey] = setTimeout(async () => {
       try {
         const faq = newFAQs[index];
         if (faq.question && faq.answer) {
-          await supabase
-            .from("faq")
-            .upsert({
-              id: faq.id,
-              booklet_id: bookletId,
-              ...faq,
-            });
+          if (faq.id) {
+            // Update existing FAQ
+            await supabase
+              .from("faq")
+              .update({
+                question: faq.question,
+                answer: faq.answer,
+                order_index: faq.order_index,
+              })
+              .eq("id", faq.id);
+          } else {
+            // Insert new FAQ
+            const { data, error } = await supabase
+              .from("faq")
+              .insert({
+                booklet_id: bookletId,
+                question: faq.question,
+                answer: faq.answer,
+                order_index: faq.order_index,
+              })
+              .select()
+              .single();
+            
+            if (!error && data) {
+              // Update the FAQ in state with the new ID
+              const updatedFAQs = [...faqs];
+              updatedFAQs[index] = { ...updatedFAQs[index], id: data.id };
+              setFaqs(updatedFAQs);
+              toast.success("FAQ ajoutée");
+            }
+          }
         }
       } catch (error) {
         console.error("Error saving:", error);
+        toast.error("Erreur lors de la sauvegarde");
       }
-    }, 1000);
+      delete saveTimeoutRef.current[faqKey];
+    }, 1500);
   };
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(saveTimeoutRef.current).forEach(timeout => clearTimeout(timeout));
+    };
+  }, []);
 
   if (loading) {
     return <div>Chargement...</div>;
