@@ -17,7 +17,7 @@ const FinalCTA = () => {
     }
 
     try {
-      toast.loading("Activation de la démo...");
+      toast.loading("Création de votre livret de démo...");
       
       const response = await supabase.functions.invoke('activate-demo', {
         headers: {
@@ -25,22 +25,26 @@ const FinalCTA = () => {
         },
       });
 
+      toast.dismiss();
+
       if (response.error) {
-        toast.dismiss();
-        toast.error("Impossible d'activer la démo. Vous l'avez peut-être déjà utilisée.");
+        toast.error("Vous avez déjà utilisé votre démo gratuite.");
         return;
       }
 
-      toast.dismiss();
-      toast.success("Démo activée ! Redirection...");
-      
-      setTimeout(() => {
-        navigate('/booklets/new');
-      }, 1000);
+      if (response.data?.pin_code) {
+        toast.success("Livret de démo créé ! Redirection...");
+        // Redirect to public view of the demo booklet
+        setTimeout(() => {
+          window.location.href = `/view/${response.data.pin_code}`;
+        }, 1000);
+      } else {
+        toast.error("Erreur lors de la création du livret");
+      }
     } catch (error) {
       toast.dismiss();
       console.error('Error activating demo:', error);
-      toast.error("Une erreur est survenue lors de l'activation de la démo");
+      toast.error("Une erreur est survenue");
     }
   };
 

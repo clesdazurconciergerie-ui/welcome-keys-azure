@@ -1,9 +1,59 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Smartphone, Eye, QrCode } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useState } from "react";
 
 const DemoSection = () => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleTryDemo = async () => {
+    setIsLoading(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // Not logged in - redirect to auth with demo mode
+        navigate('/auth?mode=demo');
+        return;
+      }
+
+      // Logged in - activate demo and redirect to booklet view
+      toast.loading("Création de votre livret de démo...");
+      
+      const response = await supabase.functions.invoke('activate-demo', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      toast.dismiss();
+
+      if (response.error) {
+        toast.error("Vous avez déjà utilisé votre démo gratuite.");
+        return;
+      }
+
+      if (response.data?.pin_code) {
+        toast.success("Livret de démo créé ! Redirection...");
+        // Redirect to public view of the demo booklet
+        setTimeout(() => {
+          window.location.href = `/view/${response.data.pin_code}`;
+        }, 1000);
+      } else {
+        toast.error("Erreur lors de la création du livret");
+      }
+    } catch (error) {
+      toast.dismiss();
+      console.error('Error activating demo:', error);
+      toast.error("Une erreur est survenue");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <section id="demo" className="py-20 lg:py-24 bg-slate-50 scroll-mt-20">
@@ -53,13 +103,14 @@ const DemoSection = () => {
             </p>
 
             <button
-              onClick={() => navigate("/auth?mode=demo")}
-              className="w-full text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 hover:brightness-115 hover:shadow-lg"
+              onClick={handleTryDemo}
+              disabled={isLoading}
+              className="w-full text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 hover:brightness-115 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: '#071552' }}
               aria-label="Essayer gratuitement"
             >
               <Smartphone className="inline-block w-5 h-5 mr-2 mb-1" />
-              Essayer gratuitement
+              {isLoading ? "Création en cours..." : "Essayer gratuitement"}
             </button>
           </motion.div>
 
