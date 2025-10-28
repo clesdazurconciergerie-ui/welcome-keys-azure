@@ -470,17 +470,37 @@ export default function ViewBooklet() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-10 space-y-8">
-        {/* Gallery */}
-        {booklet.gallery_items && booklet.gallery_items.length > 0 && (
-          <Card className="shadow-lg border-0" style={{ background: 'var(--theme-bg)' }}>
-            <CardContent className="pt-6">
-              <GalleryView 
-                items={booklet.gallery_items} 
-                enabled={booklet.gallery_enabled ?? true} 
-              />
-            </CardContent>
-          </Card>
-        )}
+        {/* Gallery - All Photos */}
+        {(() => {
+          const allImages = [];
+          
+          // Add cover image first if it exists
+          if (booklet.cover_image_url) {
+            allImages.push({
+              id: 'cover',
+              url: booklet.cover_image_url,
+              alt: `Photo principale - ${booklet.property_name}`,
+              caption: null,
+              order: -1
+            });
+          }
+          
+          // Add gallery items
+          if (booklet.gallery_items && Array.isArray(booklet.gallery_items)) {
+            allImages.push(...booklet.gallery_items);
+          }
+          
+          return allImages.length > 0 ? (
+            <Card className="shadow-lg border-0" style={{ background: 'var(--theme-bg)' }}>
+              <CardContent className="pt-6">
+                <GalleryView 
+                  items={allImages} 
+                  enabled={booklet.gallery_enabled ?? true} 
+                />
+              </CardContent>
+            </Card>
+          ) : null;
+        })()}
 
         {/* Welcome Message */}
         {booklet.welcome_message && (

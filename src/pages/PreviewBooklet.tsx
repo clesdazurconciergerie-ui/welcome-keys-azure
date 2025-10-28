@@ -273,13 +273,33 @@ export default function PreviewBooklet() {
           </Badge>
         </div>
 
-        {/* Gallery */}
-        {booklet.gallery_items && booklet.gallery_items.length > 0 && (
-          <GalleryView 
-            items={booklet.gallery_items} 
-            enabled={booklet.gallery_enabled ?? true} 
-          />
-        )}
+        {/* Gallery - All Photos */}
+        {(() => {
+          const allImages = [];
+          
+          // Add cover image first if it exists
+          if (booklet.cover_image_url) {
+            allImages.push({
+              id: 'cover',
+              url: booklet.cover_image_url,
+              alt: `Photo principale - ${booklet.property_name}`,
+              caption: null,
+              order: -1
+            });
+          }
+          
+          // Add gallery items
+          if (booklet.gallery_items && Array.isArray(booklet.gallery_items)) {
+            allImages.push(...booklet.gallery_items);
+          }
+          
+          return allImages.length > 0 ? (
+            <GalleryView 
+              items={allImages} 
+              enabled={booklet.gallery_enabled ?? true} 
+            />
+          ) : null;
+        })()}
 
         {/* Welcome Message */}
         {booklet.welcome_message && (
