@@ -12,6 +12,7 @@ export default function GalleryView({ items, enabled }: GalleryViewProps) {
 
   if (!enabled || items.length === 0) return null;
 
+  // Sort: cover first (order -1), then by order
   const sortedItems = [...items].sort((a, b) => a.order - b.order);
 
   return (
@@ -42,7 +43,7 @@ export default function GalleryView({ items, enabled }: GalleryViewProps) {
           <div className="space-y-2 text-sm text-muted-foreground">
             {sortedItems
               .filter((item) => item.caption)
-              .map((item, index) => (
+              .map((item) => (
                 <p key={item.id}>
                   <strong>Photo {sortedItems.indexOf(item) + 1}:</strong> {item.caption}
                 </p>
