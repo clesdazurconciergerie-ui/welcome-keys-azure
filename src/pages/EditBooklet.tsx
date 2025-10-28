@@ -19,6 +19,7 @@ import RulesSection from "@/components/booklet-editor/RulesSection";
 import EquipmentsSection from "@/components/booklet-editor/EquipmentsSection";
 import NearbySection from "@/components/booklet-editor/NearbySection";
 import ChatbotSection from "@/components/booklet-editor/ChatbotSection";
+import DemoExpirationBanner from "@/components/DemoExpirationBanner";
 
 // Mapping 1–1 Section → Composant (pas d'ambiguïté)
 const SECTION_VIEWS: Record<SectionKey, React.FC<any>> = {
@@ -465,6 +466,7 @@ const EditBooklet = () => {
 
   return (
     <div className="min-h-screen bg-[#F7FAFC]">
+      <DemoExpirationBanner />
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-[1140px] mx-auto px-4 md:px-6 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">

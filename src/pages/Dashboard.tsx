@@ -23,6 +23,7 @@ import { motion } from "framer-motion";
 import BrandMark from "@/components/BrandMark";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import SubscriptionSection from "@/components/dashboard/SubscriptionSection";
+import DemoExpirationBanner from "@/components/DemoExpirationBanner";
 
 interface Pin {
   pin_code: string;
@@ -56,8 +57,28 @@ const Dashboard = () => {
   useEffect(() => {
     if (!rolesLoading && userRole && subscriptionStatus) {
       fetchBooklets();
+      checkExpiredDemo();
     }
   }, [userRole, subscriptionStatus, rolesLoading]);
+
+  const checkExpiredDemo = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role, demo_token_expires_at')
+      .eq('id', user.id)
+      .single();
+
+    if (userData?.role === 'demo_user' && userData.demo_token_expires_at) {
+      const expiresAt = new Date(userData.demo_token_expires_at);
+      const now = new Date();
+      if (now >= expiresAt) {
+        navigate('/expired-demo');
+      }
+    }
+  };
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -390,6 +411,9 @@ const Dashboard = () => {
         {/* Subscription Section */}
         <SubscriptionSection />
 
+        {/* Demo Expiration Banner */}
+        <DemoExpirationBanner />
+
         {/* Free Trial Banner */}
         {userRole === 'free_trial' && daysRemaining !== null && daysRemaining > 0 && (
           <motion.div
@@ -423,38 +447,6 @@ const Dashboard = () => {
           </motion.div>
         )}
 
-        {/* Demo User Banner */}
-        {userRole === 'demo_user' && daysRemaining !== null && daysRemaining > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-6"
-          >
-            <Card className="bg-gradient-to-r from-amber-500/10 to-amber-500/5 border-amber-500/20">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground mb-1">
-                      🎬 Démo active
-                    </p>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Il vous reste <span className="font-semibold text-foreground">{daysRemaining} jour{daysRemaining > 1 ? 's' : ''}</span> avant la suppression automatique de votre livret de démonstration.
-                    </p>
-                    <Button
-                      size="sm"
-                      onClick={() => navigate('/tarifs')}
-                      variant="outline"
-                      className="border-amber-500 text-amber-700 hover:bg-amber-500/10"
-                    >
-                      Sauvegarder mes données
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
 
         {/* Quota Banner */}
         {!canCreateBooklet && quotaMessage && (
