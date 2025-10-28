@@ -172,9 +172,11 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
               {messages.length === 0 ? (
                 <div className="space-y-3">
                   <p className="text-sm text-muted-foreground mb-4">
-                    👋 Bonjour ! Je suis là pour vous aider pendant votre séjour. N'hésitez pas à me poser vos questions sur le logement, les équipements, les codes d'accès, le Wi-Fi, les lieux à proximité, les règles de la maison, etc.
+                    Bonjour 👋
                     <br /><br />
-                    💡 Choisissez une question rapide ci-dessous ou posez-moi directement votre question :
+                    Je suis là pour vous accompagner pendant votre séjour. Vous avez une question sur le logement, le Wi-Fi, les équipements, les restaurants du coin ou autre chose ? Je vous aide avec plaisir !
+                    <br /><br />
+                    💬 Choisissez une question ci-dessous ou posez-moi directement la vôtre :
                   </p>
                   <div className="grid gap-2">
                     {quickActions.map((action, idx) => (
