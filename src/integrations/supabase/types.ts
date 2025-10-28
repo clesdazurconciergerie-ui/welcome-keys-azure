@@ -396,6 +396,7 @@ export type Database = {
           booklet_id: string
           created_at: string
           id: string
+          is_favorite: boolean
           order_index: number | null
           question: string
         }
@@ -404,6 +405,7 @@ export type Database = {
           booklet_id: string
           created_at?: string
           id?: string
+          is_favorite?: boolean
           order_index?: number | null
           question: string
         }
@@ -412,6 +414,7 @@ export type Database = {
           booklet_id?: string
           created_at?: string
           id?: string
+          is_favorite?: boolean
           order_index?: number | null
           question?: string
         }

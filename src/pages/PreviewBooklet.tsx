@@ -39,6 +39,7 @@ interface FAQ {
   question: string;
   answer: string;
   order_index?: number;
+  is_favorite: boolean;
 }
 
 interface WifiCredentials {
@@ -554,14 +555,31 @@ export default function PreviewBooklet() {
                 <HelpCircle className="h-5 w-5" />
                 Questions fréquentes
               </CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                ⭐ = Visible publiquement • ⚙️ = Réservée au chatbot
+              </p>
             </CardHeader>
             <CardContent>
               <Accordion type="single" collapsible className="w-full">
-                {booklet.faq.map((item, index) => (
+                {booklet.faq
+                  .sort((a, b) => (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0))
+                  .map((item, index) => (
                   <AccordionItem key={item.id} value={`faq-${index}`}>
-                    <AccordionTrigger>{item.question}</AccordionTrigger>
+                    <AccordionTrigger className="flex items-center gap-2">
+                      <span className="flex-1 text-left flex items-center gap-2">
+                        {item.is_favorite ? "⭐" : "⚙️"}
+                        {item.question}
+                      </span>
+                    </AccordionTrigger>
                     <AccordionContent>
                       <p className="whitespace-pre-wrap">{item.answer}</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {item.is_favorite ? (
+                          <span className="text-green-600">✅ Visible dans le livret public</span>
+                        ) : (
+                          <span className="text-orange-600">⚙️ Utilisée uniquement par le chatbot</span>
+                        )}
+                      </p>
                     </AccordionContent>
                   </AccordionItem>
                 ))}

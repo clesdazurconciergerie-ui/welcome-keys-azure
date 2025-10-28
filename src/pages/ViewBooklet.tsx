@@ -49,6 +49,7 @@ interface FAQ {
   question: string;
   answer: string;
   order_index?: number;
+  is_favorite?: boolean;
 }
 
 interface AppearanceConfig {

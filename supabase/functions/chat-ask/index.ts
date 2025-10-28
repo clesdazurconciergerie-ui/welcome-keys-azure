@@ -409,10 +409,10 @@ serve(async (req) => {
       .select('name, category, instructions, manual_url')
       .eq('booklet_id', booklet.id);
 
-    // Récupérer les FAQ
+    // Récupérer les FAQ (TOUTES, y compris non-favorites pour enrichir le contexte du chatbot)
     const { data: faq } = await supabase
       .from('faq')
-      .select('question, answer, order_index')
+      .select('question, answer, order_index, is_favorite')
       .eq('booklet_id', booklet.id)
       .order('order_index');
 
@@ -553,6 +553,7 @@ serve(async (req) => {
       faq: (faq || []).map((f: any) => ({
         question: f.question,
         answer: f.answer,
+        is_favorite: f.is_favorite, // Les favorites sont affichées publiquement, les autres enrichissent le contexte
       })),
       emergency: {
         contacts: booklet.emergency_contacts,
@@ -730,6 +731,16 @@ PRIORITÉS DANS LES SUGGESTIONS
 • Toujours prioriser les coups de cœur du propriétaire (is_owner_pick: true)
 • Donner 2-3 suggestions maximum
 • Citer la source : "Selon les recommandations du propriétaire..."
+
+═══════════════════════════════════════════════════════════════════
+UTILISATION DE LA FAQ
+═══════════════════════════════════════════════════════════════════
+
+IMPORTANT : Tu as accès à TOUTES les questions FAQ, même celles qui ne sont pas affichées publiquement dans le livret.
+• Les questions avec is_favorite: true sont visibles publiquement
+• Les questions avec is_favorite: false sont cachées du livret MAIS tu peux les utiliser pour améliorer tes réponses
+• Quand tu utilises une réponse FAQ, cite-la naturellement sans mentionner si elle est favorite ou non
+• Exemple : "D'après ce que je vois dans les informations..." (pas "dans la FAQ cachée")
 
 ═══════════════════════════════════════════════════════════════════
 LANGUE : ${locale}

@@ -155,11 +155,12 @@ serve(async (req) => {
       .eq('booklet_id', booklet.id)
       .order('created_at');
 
-    // Fetch FAQ (public in view)
+    // Fetch FAQ (only favorites are public in view)
     const { data: faq } = await supabase
       .from('faq')
       .select('*')
       .eq('booklet_id', booklet.id)
+      .eq('is_favorite', true)
       .order('order_index');
 
     console.log('Successfully returning booklet:', booklet.property_name);

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, Star } from "lucide-react";
 import { toast } from "sonner";
 
 interface FAQ {
@@ -13,6 +13,7 @@ interface FAQ {
   question: string;
   answer: string;
   order_index: number;
+  is_favorite: boolean;
 }
 
 interface Step8FAQProps {
@@ -42,6 +43,7 @@ export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
         .from("faq")
         .select("*")
         .eq("booklet_id", bookletId)
+        .order("is_favorite", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -49,9 +51,9 @@ export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
       if (!data || data.length === 0) {
         // Insert default FAQs if none exist
         const defaultFAQs = [
-          { question: "Comment faire le check-in ?", answer: "Les instructions vous seront envoyées 24h avant.", order_index: 1 },
-          { question: "Où jeter les poubelles ?", answer: "Consultez la section 'Ménage et tri'.", order_index: 2 },
-          { question: "Le WiFi ne fonctionne pas ?", answer: "Vérifiez le mot de passe. En cas de problème, contactez-nous.", order_index: 3 },
+          { question: "Comment faire le check-in ?", answer: "Les instructions vous seront envoyées 24h avant.", order_index: 1, is_favorite: true },
+          { question: "Où jeter les poubelles ?", answer: "Consultez la section 'Ménage et tri'.", order_index: 2, is_favorite: true },
+          { question: "Le WiFi ne fonctionne pas ?", answer: "Vérifiez le mot de passe. En cas de problème, contactez-nous.", order_index: 3, is_favorite: false },
         ];
         
         const { data: newData } = await supabase
@@ -115,14 +117,37 @@ export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
   };
 
   const updateFAQ = async (id: string, updates: Partial<FAQ>) => {
-    if (!updates.question?.trim() && !updates.answer?.trim()) {
+    if (!updates.question?.trim() && !updates.answer?.trim() && updates.is_favorite === undefined) {
       return;
     }
 
     // Update local state immediately (optimistic update)
-    setFaqs(prev => prev.map(faq => faq.id === id ? { ...faq, ...updates } : faq));
+    setFaqs(prev => {
+      const updated = prev.map(faq => faq.id === id ? { ...faq, ...updates } : faq);
+      // Re-sort to keep favorites on top
+      return updated.sort((a, b) => {
+        if (a.is_favorite === b.is_favorite) return 0;
+        return a.is_favorite ? -1 : 1;
+      });
+    });
 
-    // Debounced auto-save
+    // Debounced auto-save (except for is_favorite which saves immediately)
+    if (updates.is_favorite !== undefined) {
+      try {
+        const { error } = await supabase
+          .from("faq")
+          .update({ is_favorite: updates.is_favorite })
+          .eq("id", id);
+
+        if (error) throw error;
+        toast.success(updates.is_favorite ? "Ajoutée aux favoris" : "Retirée des favoris");
+      } catch (error) {
+        console.error("Error updating favorite:", error);
+        toast.error("Erreur lors de la mise à jour");
+      }
+      return;
+    }
+
     const faqKey = id;
     if (saveTimeoutRef.current[faqKey]) {
       clearTimeout(saveTimeoutRef.current[faqKey]);
@@ -274,6 +299,19 @@ export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
                     <div className="flex items-center gap-2">
                       <GripVertical className="w-4 h-4 text-muted-foreground" />
                       <h3 className="font-semibold">Question #{index + 1}</h3>
+                      <button
+                        onClick={() => updateFAQ(faq.id!, { is_favorite: !faq.is_favorite })}
+                        className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                        title={faq.is_favorite ? "Visible dans le livret" : "Utilisée uniquement pour le chatbot"}
+                      >
+                        <Star
+                          className={`w-5 h-5 ${
+                            faq.is_favorite
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-gray-300 hover:text-yellow-400"
+                          }`}
+                        />
+                      </button>
                     </div>
                     <div className="flex gap-2">
                       <Button
@@ -291,6 +329,14 @@ export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
                         <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>
                     </div>
+                  </div>
+
+                  <div className="text-xs text-muted-foreground mb-2">
+                    {faq.is_favorite ? (
+                      <span className="text-green-600">✅ Affichée dans le livret (favori)</span>
+                    ) : (
+                      <span className="text-orange-600">⚙️ Utilisée uniquement pour le chatbot</span>
+                    )}
                   </div>
 
                   <div>
