@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GalleryItem } from "./GalleryEditor";
 import GalleryLightbox from "./GalleryLightbox";
 
@@ -16,91 +17,50 @@ export default function GalleryView({ items, enabled }: GalleryViewProps) {
   const sortedItems = [...items].sort((a, b) => a.order - b.order);
 
   return (
-    <>
-      {/* Header with accent line */}
-      <div className="mb-6">
-        <h2 className="text-2xl lg:text-3xl font-extrabold text-slate-900">
-          Galerie photo
-        </h2>
-        <div
-          className="h-[3px] w-16 mt-2 rounded-full"
-          style={{ backgroundColor: "#071552" }}
-        />
-      </div>
-
-      {/* Grid */}
-      <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-        {sortedItems.map((item) => (
-          <li key={item.id}>
+    <Card>
+      <CardHeader>
+        <CardTitle>Galerie photo</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {sortedItems.map((item) => (
             <button
+              key={item.id}
               onClick={() => setLightboxId(item.id)}
-              className="group relative w-full overflow-hidden rounded-2xl ring-1 ring-slate-200 transition-all duration-300 hover:-translate-y-[3px] hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:transform-none"
-              style={{
-                boxShadow: "0 8px 24px rgba(7, 21, 82, 0.10)",
-                aspectRatio: "1 / 1"
-              }}
-              onMouseEnter={(e) => {
-                if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                  e.currentTarget.style.boxShadow = "0 12px 32px rgba(7, 21, 82, 0.18), 0 0 0 1px rgba(7, 21, 82, 0.12)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "0 8px 24px rgba(7, 21, 82, 0.10)";
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.outlineColor = "#071552";
-              }}
+              className="group relative overflow-hidden rounded-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              style={{ aspectRatio: "1 / 1" }}
               aria-label={item.alt || item.caption || "Voir la photo en grand"}
             >
-              {/* Glass reflection overlay */}
-              <span
-                className="pointer-events-none absolute inset-0 z-10"
-                style={{
-                  background: "linear-gradient(120deg, rgba(255,255,255,0.35), rgba(255,255,255,0) 60%)"
-                }}
-              />
-
-              {/* Image */}
               <img
                 src={item.url}
                 alt={item.alt || item.caption || "Photo du logement"}
                 loading="lazy"
                 className="w-full h-full object-cover"
               />
-
-              {/* Cover badge */}
+              
               {item.id === 'cover' && (
-                <span
-                  className="absolute top-2 left-2 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white z-20"
-                  style={{ backgroundColor: "#071552" }}
-                >
+                <span className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs font-semibold px-2 py-1 rounded">
                   Couverture
                 </span>
               )}
-
-              {/* Caption overlay */}
+              
               {item.caption && (
-                <span
-                  className="absolute bottom-2 left-2 right-2 text-white text-xs px-2 py-1 rounded-lg z-20 line-clamp-2"
-                  style={{
-                    background: "rgba(0, 0, 0, 0.45)",
-                    backdropFilter: "blur(6px)",
-                    WebkitBackdropFilter: "blur(6px)"
-                  }}
-                >
+                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2 line-clamp-2">
                   {item.caption}
-                </span>
+                </div>
               )}
+              
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200" />
             </button>
-          </li>
-        ))}
-      </ul>
+          ))}
+        </div>
 
-      <GalleryLightbox
-        items={sortedItems}
-        initialId={lightboxId}
-        onClose={() => setLightboxId(null)}
-      />
-    </>
+        <GalleryLightbox
+          items={sortedItems}
+          initialId={lightboxId}
+          onClose={() => setLightboxId(null)}
+        />
+      </CardContent>
+    </Card>
   );
 }
