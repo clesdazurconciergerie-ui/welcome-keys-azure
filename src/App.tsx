@@ -20,6 +20,7 @@ import ExampleMaisonsDHotes from "./pages/ExampleMaisonsDHotes";
 import ExampleHotelsResidences from "./pages/ExampleHotelsResidences";
 import Pricing from "./pages/Pricing";
 import BillingSuccess from "./pages/BillingSuccess";
+import ExpiredDemoPage from "./components/ExpiredDemoPage";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/booklets/:id/wizard" element={<BookletWizardPage />} />
           <Route path="/view/:code" element={<ViewBooklet />} />
           <Route path="/preview/:id" element={<PreviewBooklet />} />
+          <Route path="/expired-demo" element={<ExpiredDemoPage />} />
           <Route path="/exemples/proprietaires" element={<ExampleProprietaires />} />
           <Route path="/exemples/conciergeries" element={<ExampleConciergeries />} />
           <Route path="/exemples/maisons-d-hotes" element={<ExampleMaisonsDHotes />} />

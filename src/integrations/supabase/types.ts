@@ -147,6 +147,7 @@ export type Database = {
           country: string | null
           cover_image_url: string | null
           created_at: string
+          demo_expires_at: string | null
           disclaimer: string | null
           emergency_contacts: string | null
           gallery: Json | null
@@ -158,6 +159,7 @@ export type Database = {
           house_rules: string | null
           id: string
           is_complete: boolean | null
+          is_demo: boolean | null
           language: string | null
           logo_url: string | null
           manual_pdf_url: string | null
@@ -201,6 +203,7 @@ export type Database = {
           country?: string | null
           cover_image_url?: string | null
           created_at?: string
+          demo_expires_at?: string | null
           disclaimer?: string | null
           emergency_contacts?: string | null
           gallery?: Json | null
@@ -212,6 +215,7 @@ export type Database = {
           house_rules?: string | null
           id?: string
           is_complete?: boolean | null
+          is_demo?: boolean | null
           language?: string | null
           logo_url?: string | null
           manual_pdf_url?: string | null
@@ -255,6 +259,7 @@ export type Database = {
           country?: string | null
           cover_image_url?: string | null
           created_at?: string
+          demo_expires_at?: string | null
           disclaimer?: string | null
           emergency_contacts?: string | null
           gallery?: Json | null
@@ -266,6 +271,7 @@ export type Database = {
           house_rules?: string | null
           id?: string
           is_complete?: boolean | null
+          is_demo?: boolean | null
           language?: string | null
           logo_url?: string | null
           manual_pdf_url?: string | null
@@ -891,6 +897,7 @@ export type Database = {
       can_create_booklet: { Args: { uid: string }; Returns: boolean }
       check_booklet_quota: { Args: { p_user_id: string }; Returns: boolean }
       cleanup_demo_users: { Args: never; Returns: undefined }
+      expire_demo_trials: { Args: never; Returns: undefined }
       generate_pin_code: { Args: never; Returns: string }
       generate_unique_pin: { Args: never; Returns: string }
       has_role: {

@@ -101,11 +101,68 @@ Deno.serve(async (req) => {
       // Don't fail the request, just log the error
     }
 
+    // Create or reactivate demo booklet
+    const { data: existingDemoBooklet, error: bookletFetchError } = await supabaseClient
+      .from('booklets')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('is_demo', true)
+      .maybeSingle();
+
+    if (bookletFetchError) {
+      console.error('Error fetching demo booklet:', bookletFetchError);
+    }
+
+    let bookletId: string | null = null;
+
+    if (existingDemoBooklet) {
+      // Reactivate existing demo booklet
+      const { error: updateBookletError } = await supabaseClient
+        .from('booklets')
+        .update({
+          status: 'published',
+          demo_expires_at: expiresAt.toISOString()
+        })
+        .eq('id', existingDemoBooklet.id);
+
+      if (updateBookletError) {
+        console.error('Error updating demo booklet:', updateBookletError);
+      } else {
+        bookletId = existingDemoBooklet.id;
+      }
+    } else {
+      // Create new demo booklet
+      const { data: newBooklet, error: createBookletError } = await supabaseClient
+        .from('booklets')
+        .insert({
+          user_id: user.id,
+          property_name: 'Mon Livret de Démonstration',
+          property_address: '123 Rue de la Démo, 06000 Nice',
+          tagline: 'Découvrez toutes les fonctionnalités',
+          status: 'published',
+          is_demo: true,
+          demo_expires_at: expiresAt.toISOString(),
+          welcome_message: 'Bienvenue dans votre livret de démonstration ! Vous avez 7 jours pour explorer toutes les fonctionnalités de Wlekom.',
+          check_in_time: '15:00',
+          check_out_time: '11:00'
+        })
+        .select('id')
+        .single();
+
+      if (createBookletError) {
+        console.error('Error creating demo booklet:', createBookletError);
+      } else {
+        bookletId = newBooklet.id;
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Demo mode activated',
         expires_at: expiresAt.toISOString(),
+        booklet_id: bookletId,
+        days_remaining: 7
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
