@@ -184,6 +184,9 @@ export default function PreviewBooklet() {
   }, [id, navigate]);
 
   // Inject CSS variables dynamically when booklet appearance changes
+  // Get accent color for dynamic styling
+  const accentColor = booklet?.appearance?.colors?.accent || '#071552';
+  
   useEffect(() => {
     if (!booklet?.appearance) return;
 
@@ -195,7 +198,7 @@ export default function PreviewBooklet() {
     if (colors) {
       root.style.setProperty('--booklet-bg', colors.background || '#ffffff');
       root.style.setProperty('--booklet-surface', colors.surface || '#ffffff');
-      root.style.setProperty('--booklet-accent', colors.accent || '#18c0df');
+      root.style.setProperty('--booklet-accent', colors.accent || '#071552');
       root.style.setProperty('--booklet-text', colors.text || '#1a1a1a');
       root.style.setProperty('--booklet-muted', colors.muted || '#6b7280');
     }
@@ -227,17 +230,28 @@ export default function PreviewBooklet() {
   return (
     <div className="min-h-screen bg-background">
       {/* Preview Badge */}
-      <div className="bg-amber-500 text-white py-2 px-4 text-center sticky top-0 z-50 flex items-center justify-between">
+      <div 
+        className="text-white py-2 px-4 text-center sticky top-0 z-50 flex items-center justify-between"
+        style={{ backgroundColor: accentColor }}
+      >
         <Button
           variant="ghost"
           size="sm"
           onClick={() => navigate('/dashboard')}
-          className="text-white hover:text-white hover:bg-amber-600"
+          className="text-white hover:text-white"
+          style={{ 
+            '--tw-bg-opacity': '0.2',
+            backgroundColor: 'rgba(255, 255, 255, var(--tw-bg-opacity))'
+          } as React.CSSProperties}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Retour
         </Button>
-        <Badge variant="secondary" className="bg-white text-amber-700">
+        <Badge 
+          variant="secondary" 
+          className="bg-white"
+          style={{ color: accentColor }}
+        >
           Aperçu créateur - Peut contenir des infos privées
         </Badge>
         <div className="w-24" />
@@ -325,7 +339,13 @@ export default function PreviewBooklet() {
             {booklet.google_maps_link && (
               <div>
                 <strong>Localisation :</strong>{' '}
-                <a href={booklet.google_maps_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                <a 
+                  href={booklet.google_maps_link} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="hover:underline"
+                  style={{ color: accentColor }}
+                >
                   Voir sur Google Maps
                 </a>
               </div>
@@ -378,7 +398,13 @@ export default function PreviewBooklet() {
 
             {booklet.manual_pdf_url && (
               <div>
-                <a href={booklet.manual_pdf_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                <a 
+                  href={booklet.manual_pdf_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="hover:underline"
+                  style={{ color: accentColor }}
+                >
                   📄 Télécharger le manuel complet
                 </a>
               </div>
@@ -446,7 +472,13 @@ export default function PreviewBooklet() {
                         </div>
                       )}
                       {item.manual_url && (
-                        <a href={item.manual_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <a 
+                          href={item.manual_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="hover:underline"
+                          style={{ color: accentColor }}
+                        >
                           📄 Voir le manuel
                         </a>
                       )}
@@ -536,12 +568,24 @@ export default function PreviewBooklet() {
                     )}
                     <div className="flex gap-2 flex-wrap">
                       {place.website_url && (
-                        <a href={place.website_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                        <a 
+                          href={place.website_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-sm hover:underline"
+                          style={{ color: accentColor }}
+                        >
                           Visiter le site
                         </a>
                       )}
                       {place.maps_link && (
-                        <a href={place.maps_link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                        <a 
+                          href={place.maps_link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-sm hover:underline"
+                          style={{ color: accentColor }}
+                        >
                           Itinéraire
                         </a>
                       )}
@@ -555,22 +599,32 @@ export default function PreviewBooklet() {
 
         {/* Contacts (visible to creator) */}
         {booklet.contacts && (
-          <Card className="border-amber-200 bg-amber-50">
+          <Card 
+            style={{
+              backgroundColor: `${accentColor}15`,
+              borderColor: `${accentColor}40`
+            }}
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Badge variant="outline">Privé - Créateur uniquement</Badge>
+                <Badge 
+                  variant="outline"
+                  style={{ borderColor: accentColor, color: accentColor }}
+                >
+                  Privé - Créateur uniquement
+                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {booklet.contacts.contact_phone && (
                 <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <Phone className="h-5 w-5" style={{ color: accentColor }} />
                   <span>{booklet.contacts.contact_phone}</span>
                 </div>
               )}
               {booklet.contacts.contact_email && (
                 <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-muted-foreground" />
+                  <Mail className="h-5 w-5" style={{ color: accentColor }} />
                   <span>{booklet.contacts.contact_email}</span>
                 </div>
               )}
@@ -606,9 +660,9 @@ export default function PreviewBooklet() {
                       <p className="whitespace-pre-wrap">{item.answer}</p>
                       <p className="text-xs text-muted-foreground mt-2">
                         {item.is_favorite ? (
-                          <span className="text-green-600">✅ Visible dans le livret public</span>
+                          <span style={{ color: accentColor }}>✅ Visible dans le livret public</span>
                         ) : (
-                          <span className="text-orange-600">⚙️ Utilisée uniquement par le chatbot</span>
+                          <span style={{ color: `${accentColor}CC` }}>⚙️ Utilisée uniquement par le chatbot</span>
                         )}
                       </p>
                     </AccordionContent>
