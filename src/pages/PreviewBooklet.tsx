@@ -293,6 +293,13 @@ export default function PreviewBooklet() {
             allImages.push(...booklet.gallery_items);
           }
           
+          console.log('PreviewBooklet - Gallery Debug:', {
+            gallery_enabled: booklet.gallery_enabled,
+            gallery_items_count: booklet.gallery_items?.length || 0,
+            allImages_count: allImages.length,
+            cover_exists: !!booklet.cover_image_url
+          });
+          
           return allImages.length > 0 ? (
             <GalleryView 
               items={allImages} 

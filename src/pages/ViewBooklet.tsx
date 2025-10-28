@@ -490,6 +490,13 @@ export default function ViewBooklet() {
             allImages.push(...booklet.gallery_items);
           }
           
+          console.log('ViewBooklet - Gallery Debug:', {
+            gallery_enabled: booklet.gallery_enabled,
+            gallery_items_count: booklet.gallery_items?.length || 0,
+            allImages_count: allImages.length,
+            cover_exists: !!booklet.cover_image_url
+          });
+          
           return allImages.length > 0 ? (
             <Card className="shadow-lg border-0" style={{ background: 'var(--theme-bg)' }}>
               <CardContent className="pt-6">
