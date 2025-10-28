@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { extractThemeFromBooklet } from "@/lib/theme-db";
 import ThemeScope from "@/components/ThemeScope";
 import { Theme } from "@/types/theme";
+import GalleryView from "@/components/gallery/GalleryView";
 
 interface Photo {
   url: string;
@@ -112,6 +113,8 @@ interface Booklet {
   accent_color?: string;
   text_color?: string;
   appearance?: AppearanceConfig;
+  gallery_enabled?: boolean;
+  gallery_items?: any[];
 }
 
 interface WifiCredentials {
@@ -489,6 +492,18 @@ export default function ViewBooklet() {
               <p className="whitespace-pre-wrap ai-description text-base leading-relaxed" style={{ color: 'var(--theme-text)' }}>
                 {booklet.welcome_message}
               </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Gallery */}
+        {booklet.gallery_items && booklet.gallery_items.length > 0 && (
+          <Card className="shadow-lg border-0" style={{ background: 'var(--theme-bg)' }}>
+            <CardContent className="pt-6">
+              <GalleryView 
+                items={booklet.gallery_items} 
+                enabled={booklet.gallery_enabled ?? true} 
+              />
             </CardContent>
           </Card>
         )}

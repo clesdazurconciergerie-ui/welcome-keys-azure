@@ -150,6 +150,8 @@ export type Database = {
           disclaimer: string | null
           emergency_contacts: string | null
           gallery: Json | null
+          gallery_enabled: boolean
+          gallery_items: Json
           gdpr_notice: string | null
           geo: Json | null
           google_maps_link: string | null
@@ -202,6 +204,8 @@ export type Database = {
           disclaimer?: string | null
           emergency_contacts?: string | null
           gallery?: Json | null
+          gallery_enabled?: boolean
+          gallery_items?: Json
           gdpr_notice?: string | null
           geo?: Json | null
           google_maps_link?: string | null
@@ -254,6 +258,8 @@ export type Database = {
           disclaimer?: string | null
           emergency_contacts?: string | null
           gallery?: Json | null
+          gallery_enabled?: boolean
+          gallery_items?: Json
           gdpr_notice?: string | null
           geo?: Json | null
           google_maps_link?: string | null

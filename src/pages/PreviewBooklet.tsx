@@ -9,6 +9,7 @@ import { Home, MapPin, Wifi, Phone, Mail, Clock, ArrowLeft, Package, Trash2, Map
 import { toast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import ChatWidget from "@/components/ChatWidget";
+import GalleryView from "@/components/gallery/GalleryView";
 
 interface Step {
   id: string;
@@ -109,6 +110,8 @@ interface Booklet {
   status?: string;
   show_logo?: boolean;
   appearance?: AppearanceConfig;
+  gallery_enabled?: boolean;
+  gallery_items?: any[];
 }
 
 export default function PreviewBooklet() {
@@ -280,6 +283,14 @@ export default function PreviewBooklet() {
               <p className="whitespace-pre-wrap ai-description">{booklet.welcome_message}</p>
             </CardContent>
           </Card>
+        )}
+
+        {/* Gallery */}
+        {booklet.gallery_items && booklet.gallery_items.length > 0 && (
+          <GalleryView 
+            items={booklet.gallery_items} 
+            enabled={booklet.gallery_enabled ?? true} 
+          />
         )}
 
         {/* Practical Info */}

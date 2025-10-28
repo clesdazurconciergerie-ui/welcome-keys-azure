@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import GalleryEditor, { GalleryItem } from "@/components/gallery/GalleryEditor";
 
 interface Step1IdentityProps {
   data: any;
@@ -25,6 +26,8 @@ export default function Step1Identity({ data, onUpdate, bookletId }: Step1Identi
   const [showLogo, setShowLogo] = useState(data?.show_logo ?? true);
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [galleryEnabled, setGalleryEnabled] = useState(data?.gallery_enabled ?? true);
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>(data?.gallery_items || []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -35,11 +38,13 @@ export default function Step1Identity({ data, onUpdate, bookletId }: Step1Identi
         welcome_message: welcomeMessage,
         language,
         show_logo: showLogo,
+        gallery_enabled: galleryEnabled,
+        gallery_items: galleryItems,
       });
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [propertyName, tagline, coverImage, welcomeMessage, language, showLogo]);
+  }, [propertyName, tagline, coverImage, welcomeMessage, language, showLogo, galleryEnabled, galleryItems]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -207,6 +212,23 @@ export default function Step1Identity({ data, onUpdate, bookletId }: Step1Identi
               </Label>
             </div>
           )}
+        </div>
+
+        <div className="space-y-4 border-t pt-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-1">Galerie photo</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Ajoutez plusieurs photos pour créer une belle galerie visuelle
+            </p>
+          </div>
+          
+          <GalleryEditor
+            enabled={galleryEnabled}
+            items={galleryItems}
+            bookletId={bookletId || data?.id || ""}
+            onToggle={setGalleryEnabled}
+            onChange={setGalleryItems}
+          />
         </div>
 
         <div className="space-y-2">
