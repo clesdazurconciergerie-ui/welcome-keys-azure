@@ -23,6 +23,8 @@ interface Step8FAQProps {
 export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftFAQ, setDraftFAQ] = useState({ question: "", answer: "" });
   const bookletId = data?.id;
   const saveTimeoutRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
@@ -68,12 +70,33 @@ export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
     }
   };
 
-  const addFAQ = () => {
-    setFaqs([{
-      question: "",
-      answer: "",
-      order_index: 0,
-    }, ...faqs]);
+  const addFAQ = async () => {
+    if (!draftFAQ.question.trim() || !draftFAQ.answer.trim()) {
+      toast.error("La question et la réponse sont requises");
+      return;
+    }
+
+    try {
+      const { data: newFAQ, error } = await supabase
+        .from("faq")
+        .insert({
+          booklet_id: bookletId,
+          question: draftFAQ.question.trim(),
+          answer: draftFAQ.answer.trim(),
+          order_index: faqs.length,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setFaqs([...faqs, newFAQ]);
+      setDraftFAQ({ question: "", answer: "" });
+      toast.success("FAQ ajoutée");
+    } catch (error) {
+      console.error("Error adding FAQ:", error);
+      toast.error("Erreur lors de l'ajout");
+    }
   };
 
   const removeFAQ = async (index: number) => {
@@ -91,59 +114,40 @@ export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
     setFaqs(faqs.filter((_, i) => i !== index));
   };
 
-  const updateFAQ = (index: number, updates: Partial<FAQ>) => {
-    const newFAQs = [...faqs];
-    newFAQs[index] = { ...newFAQs[index], ...updates };
-    setFaqs(newFAQs);
-    
-    // Debounced auto-save: clear previous timeout and set a new one
-    const faqKey = newFAQs[index].id || `temp-${index}`;
+  const updateFAQ = async (id: string, updates: Partial<FAQ>) => {
+    if (!updates.question?.trim() && !updates.answer?.trim()) {
+      return;
+    }
+
+    // Update local state immediately (optimistic update)
+    setFaqs(prev => prev.map(faq => faq.id === id ? { ...faq, ...updates } : faq));
+
+    // Debounced auto-save
+    const faqKey = id;
     if (saveTimeoutRef.current[faqKey]) {
       clearTimeout(saveTimeoutRef.current[faqKey]);
     }
     
     saveTimeoutRef.current[faqKey] = setTimeout(async () => {
       try {
-        const faq = newFAQs[index];
-        if (faq.question && faq.answer) {
-          if (faq.id) {
-            // Update existing FAQ
-            await supabase
-              .from("faq")
-              .update({
-                question: faq.question,
-                answer: faq.answer,
-                order_index: faq.order_index,
-              })
-              .eq("id", faq.id);
-          } else {
-            // Insert new FAQ
-            const { data, error } = await supabase
-              .from("faq")
-              .insert({
-                booklet_id: bookletId,
-                question: faq.question,
-                answer: faq.answer,
-                order_index: faq.order_index,
-              })
-              .select()
-              .single();
-            
-            if (!error && data) {
-              // Update the FAQ in state with the new ID
-              const updatedFAQs = [...faqs];
-              updatedFAQs[index] = { ...updatedFAQs[index], id: data.id };
-              setFaqs(updatedFAQs);
-              toast.success("FAQ ajoutée");
-            }
-          }
-        }
+        const faq = faqs.find(f => f.id === id);
+        if (!faq) return;
+
+        const { error } = await supabase
+          .from("faq")
+          .update({
+            question: updates.question || faq.question,
+            answer: updates.answer || faq.answer,
+          })
+          .eq("id", id);
+
+        if (error) throw error;
       } catch (error) {
-        console.error("Error saving:", error);
-        toast.error("Erreur lors de la sauvegarde");
+        console.error("Error updating FAQ:", error);
+        toast.error("Erreur lors de la mise à jour");
       }
       delete saveTimeoutRef.current[faqKey];
-    }, 1500);
+    }, 1000);
   };
 
   // Cleanup timeouts on unmount
@@ -159,58 +163,145 @@ export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
 
   return (
     <div className="space-y-8 md:space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold mb-4">FAQ et Chatbot</h2>
-          <p className="text-muted-foreground">
-            Questions fréquentes pour l'assistant automatique
-          </p>
-        </div>
-        <Button onClick={addFAQ}>
-          <Plus className="w-4 h-4 mr-2" />
-          Ajouter
-        </Button>
+      <div>
+        <h2 className="text-2xl font-bold mb-4">FAQ et Chatbot</h2>
+        <p className="text-muted-foreground">
+          Questions fréquentes pour l'assistant automatique
+        </p>
       </div>
 
+      {/* Draft Form for adding new FAQ */}
+      <Card className="p-4 bg-muted/50">
+        <h3 className="font-semibold mb-4 flex items-center gap-2">
+          <Plus className="w-5 h-5" />
+          Ajouter une question
+        </h3>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Question</Label>
+            <Input
+              value={draftFAQ.question}
+              onChange={(e) => setDraftFAQ({ ...draftFAQ, question: e.target.value })}
+              placeholder="Ex: Comment faire le check-in ?"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && e.ctrlKey) {
+                  addFAQ();
+                }
+              }}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Réponse</Label>
+            <Textarea
+              value={draftFAQ.answer}
+              onChange={(e) => setDraftFAQ({ ...draftFAQ, answer: e.target.value })}
+              placeholder="Réponse détaillée..."
+              rows={3}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && e.ctrlKey) {
+                  addFAQ();
+                }
+              }}
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={addFAQ}>
+              <Plus className="w-4 h-4 mr-2" />
+              Ajouter
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setDraftFAQ({ question: "", answer: "" })}
+            >
+              Réinitialiser
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            💡 Appuyez sur Ctrl+Entrée pour ajouter rapidement
+          </p>
+        </div>
+      </Card>
+
+      {/* Existing FAQs List */}
       <div className="space-y-4">
-        {faqs.map((faq, index) => (
-          <Card key={index} className="p-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <GripVertical className="w-4 h-4 text-muted-foreground" />
-                  <h3 className="font-semibold">Question #{index + 1}</h3>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeFAQ(index)}
-                >
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Question</Label>
-                <Input
-                  value={faq.question}
-                  onChange={(e) => updateFAQ(index, { question: e.target.value })}
-                  placeholder="Ex: Comment faire le check-in ?"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Réponse</Label>
-                <Textarea
-                  value={faq.answer}
-                  onChange={(e) => updateFAQ(index, { answer: e.target.value })}
-                  placeholder="Réponse détaillée..."
-                  rows={3}
-                />
-              </div>
-            </div>
+        {faqs.length === 0 ? (
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground">
+              Aucune question ajoutée. Remplissez le formulaire ci-dessus pour ajouter une FAQ.
+            </p>
           </Card>
-        ))}
+        ) : (
+          faqs.map((faq, index) => (
+            <Card key={faq.id} className="p-4">
+              {editingId === faq.id ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">Modifier la question #{index + 1}</h3>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Question</Label>
+                    <Input
+                      value={faq.question}
+                      onChange={(e) => updateFAQ(faq.id!, { question: e.target.value })}
+                      placeholder="Ex: Comment faire le check-in ?"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Réponse</Label>
+                    <Textarea
+                      value={faq.answer}
+                      onChange={(e) => updateFAQ(faq.id!, { answer: e.target.value })}
+                      placeholder="Réponse détaillée..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditingId(null)}
+                  >
+                    Terminé
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <GripVertical className="w-4 h-4 text-muted-foreground" />
+                      <h3 className="font-semibold">Question #{index + 1}</h3>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingId(faq.id!)}
+                      >
+                        Modifier
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFAQ(index)}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="font-medium text-sm mb-1">Q: {faq.question}</p>
+                    <p className="text-sm text-muted-foreground">R: {faq.answer}</p>
+                  </div>
+                </div>
+              )}
+            </Card>
+          ))
+        )}
       </div>
     </div>
   );
