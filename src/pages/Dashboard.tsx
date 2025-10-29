@@ -110,9 +110,17 @@ const Dashboard = () => {
 
   const fetchBooklets = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Session expirée");
+        navigate("/auth");
+        return;
+      }
+
       const { data, error } = await supabase
         .from("booklets")
         .select("*")
+        .eq("user_id", user.id) // Explicit owner filter - defense in depth
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
