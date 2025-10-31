@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
-import { CreditCard, Calendar, CheckCircle, AlertCircle, ExternalLink, Clock, RefreshCw } from "lucide-react";
+import { CreditCard, Calendar, CheckCircle, AlertCircle, ExternalLink, Clock, RefreshCw, XCircle } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
 import { format, differenceInDays } from "date-fns";
@@ -11,6 +11,7 @@ import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
+import CancelSubscriptionModal from "./CancelSubscriptionModal";
 
 const PAYMENT_LINKS = {
   pack_starter: 'https://buy.stripe.com/test/cNi5kDeMB6Cd8htgEQ',
@@ -34,6 +35,8 @@ const SubscriptionSection = () => {
   } = useSubscription();
   const navigate = useNavigate();
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [isCanceling, setIsCanceling] = useState(false);
 
   if (isLoading) {
     return (
@@ -125,6 +128,45 @@ const SubscriptionSection = () => {
       toast.error('Échec de la synchronisation');
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleCancelSubscription = async (immediate: boolean) => {
+    setIsCanceling(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Non authentifié');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+        body: { immediate },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.ok) {
+        if (immediate) {
+          toast.success('✅ Abonnement annulé immédiatement. Les accès premium vont être retirés.');
+        } else {
+          const endDate = data.subscription.current_period_end
+            ? format(new Date(data.subscription.current_period_end * 1000), 'dd/MM/yyyy', { locale: fr })
+            : 'la fin de période';
+          toast.success(`✅ Annulation programmée à ${endDate}.`);
+        }
+        await refresh();
+      } else {
+        toast.error('Erreur lors de l\'annulation');
+      }
+    } catch (error: any) {
+      console.error('Cancel error:', error);
+      toast.error(error.message || 'Échec de l\'annulation');
+    } finally {
+      setIsCanceling(false);
     }
   };
 
@@ -338,15 +380,16 @@ const SubscriptionSection = () => {
                     disabled={isSyncing}
                   >
                     <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                    Synchroniser Stripe
+                    Synchroniser
                   </Button>
                   <Button
-                    onClick={() => navigate('/tarifs')}
+                    onClick={() => setShowCancelModal(true)}
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+                    disabled={isCanceling}
                   >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Comparer les plans
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Résilier
                   </Button>
                 </>
               ) : isCanceled || isPastDue ? (
@@ -388,6 +431,13 @@ const SubscriptionSection = () => {
           </div>
         </CardContent>
       </Card>
+
+      <CancelSubscriptionModal
+        open={showCancelModal}
+        onOpenChange={setShowCancelModal}
+        onConfirm={handleCancelSubscription}
+        currentPeriodEnd={subscription?.current_period_end}
+      />
     </motion.div>
   );
 };

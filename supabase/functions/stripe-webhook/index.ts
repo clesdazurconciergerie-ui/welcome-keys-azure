@@ -230,11 +230,12 @@ Deno.serve(async (req) => {
 
         // Handle different subscription statuses
         if (status === 'canceled' || event.type === 'customer.subscription.deleted') {
-          // Subscription canceled - downgrade to free
+          // Subscription canceled - downgrade to free ONLY if actually deleted
+          console.log('🔴 Subscription canceled/deleted - downgrading to free');
           await supabase
             .from('users')
             .update({
-              subscription_status: 'expired',
+              subscription_status: 'canceled',
               role: 'free',
               updated_at: new Date().toISOString(),
             })
@@ -257,6 +258,21 @@ Deno.serve(async (req) => {
             .eq('stripe_subscription_id', subscription.id);
 
           console.log('✅ Subscription canceled, user downgraded to free');
+        } else if (subscription.cancel_at_period_end && (status === 'active' || status === 'trialing')) {
+          // Subscription scheduled for cancellation but still active
+          console.log('⚠️ Subscription scheduled for cancellation at period end - keeping premium access');
+          
+          // Update subscription record to reflect cancellation schedule
+          await supabase
+            .from('subscriptions')
+            .update({
+              cancel_at_period_end: true,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('stripe_subscription_id', subscription.id);
+          
+          // DO NOT downgrade role yet - user keeps premium until actual cancellation
+          console.log('✅ Subscription marked as cancel_at_period_end, premium access maintained');
         } else if (status === 'past_due' || status === 'unpaid') {
           // Payment failed - suspend premium access
           await supabase
