@@ -12,13 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
 import CancelSubscriptionModal from "./CancelSubscriptionModal";
-
-const PAYMENT_LINKS = {
-  pack_starter: 'https://buy.stripe.com/test/cNi5kDeMB6Cd8htgEQ',
-  pack_pro: 'https://buy.stripe.com/test/7sYfZh9sh4u57dpgEQ',
-  pack_business: 'https://buy.stripe.com/test/14A4gzbAp6CdcxJcoA',
-  pack_premium: 'https://buy.stripe.com/test/bJe5kD5c1aStdBN2O',
-} as const;
+import { paymentLinks } from "@/config/pricing";
 
 const SubscriptionSection = () => {
   const { 
@@ -91,8 +85,12 @@ const SubscriptionSection = () => {
   };
 
   const handleSubscribe = (planKey?: string) => {
-    if (planKey && planKey in PAYMENT_LINKS) {
-      const link = PAYMENT_LINKS[planKey as keyof typeof PAYMENT_LINKS];
+    // Map plan keys: pack_premium -> premium, pack_pro -> pro, etc.
+    const stripPackPrefix = (key: string) => key.replace('pack_', '');
+    const mappedKey = planKey ? stripPackPrefix(planKey) : null;
+    
+    if (mappedKey && mappedKey in paymentLinks) {
+      const link = paymentLinks[mappedKey as keyof typeof paymentLinks];
       const returnUrl = `${window.location.origin}/dashboard?success=1`;
       window.location.href = `${link}?client_reference_id=${userEmail}&success_url=${encodeURIComponent(returnUrl)}`;
     } else {
