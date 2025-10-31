@@ -52,7 +52,7 @@ export default function DemoExpirationBanner() {
             Votre période d'essai est terminée. Passez à la version complète pour continuer à utiliser vos livrets.
           </span>
           <Button 
-            onClick={() => navigate('/pricing')}
+            onClick={() => navigate('/tarifs')}
             variant="destructive"
             size="sm"
           >
@@ -78,7 +78,7 @@ export default function DemoExpirationBanner() {
             : `Plus que ${daysRemaining} jours d'essai gratuit.`}
         </span>
         <Button 
-          onClick={() => navigate('/pricing')}
+          onClick={() => navigate('/tarifs')}
           variant="outline"
           size="sm"
           className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
