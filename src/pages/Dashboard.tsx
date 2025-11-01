@@ -190,9 +190,9 @@ const Dashboard = () => {
       } else if (userRole === 'pack_pro' && bookletCount >= 5) {
         canCreate = false;
         message = "Vous avez atteint votre quota (5/5 livrets). Passez au plan Business pour créer plus de livrets.";
-      } else if (userRole === 'pack_business' && bookletCount >= 15) {
+      } else if (userRole === 'pack_business' && bookletCount >= 25) {
         canCreate = false;
-        message = "Vous avez atteint votre quota (15/15 livrets). Passez au plan Premium pour des livrets illimités.";
+        message = "Vous avez atteint votre quota (25/25 livrets). Passez au plan Premium pour des livrets illimités.";
       }
 
       setCanCreateBooklet(canCreate);

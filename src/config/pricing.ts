@@ -45,7 +45,7 @@ export const pricingPlans: PricingPlan[] = [
     id: "business",
     name: "Business",
     price: "49,90",
-    livrets: "5 à 15 livrets",
+    livrets: "5 à 25 livrets",
     features: [
       "Multi-utilisateurs",
       "Gestion centralisée",
