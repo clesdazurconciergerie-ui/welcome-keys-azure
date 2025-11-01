@@ -33,7 +33,7 @@ const PhoneMockup = ({ imageUrl, variant = "front", className }: PhoneMockupProp
         {imageUrl ? (
           <img 
             src={imageUrl} 
-            alt={variant === "front" ? "Aperçu du livret d'accueil sur mobile" : ""}
+            alt={variant === "front" ? "Aperçu du livret d'accueil numérique MyWelkom sur smartphone - Interface mobile responsive pour locations saisonnières" : "Livret d'accueil digital sur mobile"}
             className="w-full h-full object-cover"
             loading="lazy"
           />

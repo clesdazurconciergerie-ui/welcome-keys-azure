@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Navigation from "@/components/landing/Navigation";
 import Footer from "@/components/landing/Footer";
+import SEOHead from "@/components/SEOHead";
 import {
   Accordion,
   AccordionContent,
@@ -140,8 +141,14 @@ const Pricing = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
+    <>
+      <SEOHead 
+        title="Tarifs MyWelkom - Plans et Prix Livret d'Accueil Digital Conciergerie"
+        description="Découvrez nos forfaits de livret d'accueil numérique pour conciergeries, Airbnb et locations saisonnières. De 9,90€/mois à illimité. Essai gratuit disponible. Chatbot IA inclus dans tous les plans."
+        keywords="tarifs livret digital, prix conciergerie digitale, forfait livret numérique, abonnement guest book, prix MyWelkom, logiciel conciergerie tarif"
+      />
+      <div className="min-h-screen bg-background">
+        <Navigation />
       
       {/* Hero Section */}
       <section className="pt-32 pb-16 md:pb-20 bg-secondary">
@@ -437,6 +444,7 @@ const Pricing = () => {
 
       <Footer />
     </div>
+    </>
   );
 };
 

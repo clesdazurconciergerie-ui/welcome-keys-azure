@@ -66,7 +66,11 @@ const SaveTime = () => {
           duration: 0.6
         }}>
             <div className="aspect-[4/3] rounded-[18px] bg-white border border-border overflow-hidden shadow-lg">
-              <img src="https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&q=80" alt="Gagner du temps" className="w-full h-full object-cover" />
+              <img 
+                src="https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&q=80" 
+                alt="Équipe de conciergerie utilisant un livret d'accueil digital pour gagner du temps dans la gestion des locations saisonnières" 
+                className="w-full h-full object-cover" 
+              />
             </div>
           </motion.div>
         </div>

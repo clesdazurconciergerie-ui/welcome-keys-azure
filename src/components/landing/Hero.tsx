@@ -59,7 +59,7 @@ const Hero = () => {
           variants={itemVariants}
           className="font-extrabold leading-[1.05] text-[clamp(48px,7vw,88px)] text-slate-900 mb-6"
         >
-          Le livret d'accueil digital qui simplifie leur séjour et votre quotidien
+          Livret d'accueil digital pour conciergerie et location saisonnière
         </motion.h1>
         
         {/* Sous-titre */}
@@ -67,7 +67,7 @@ const Hero = () => {
           variants={itemVariants}
           className="text-lg lg:text-xl leading-relaxed text-slate-600 max-w-[650px] mx-auto mb-10 opacity-80"
         >
-          Un livret d'accueil moderne pour Airbnb, hôtels, gîtes et campings — accessible instantanément via QR code.
+          Créez un livret de bienvenue numérique moderne pour vos locations Airbnb, gîtes, hôtels et campings — accessible instantanément via QR code ou code PIN.
         </motion.p>
         
         {/* Boutons CTA */}

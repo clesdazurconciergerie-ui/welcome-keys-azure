@@ -18,7 +18,7 @@ const SatisfiedGuests = () => {
             <div className="aspect-[4/3] rounded-[18px] bg-secondary border border-border overflow-hidden shadow-lg">
               <img 
                 src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=80" 
-                alt="Voyageurs satisfaits"
+                alt="Voyageurs heureux consultant leur livret d'accueil digital MyWelkom sur smartphone lors de leur séjour en location saisonnière"
                 className="w-full h-full object-cover"
               />
             </div>
