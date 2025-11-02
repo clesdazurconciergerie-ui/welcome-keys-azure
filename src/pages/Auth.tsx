@@ -248,27 +248,27 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4 sm:p-6">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-8">
           <BrandMark variant="full" showIcon={true} />
         </div>
 
         <Card className="glass shadow-premium border-0">
-          <CardHeader>
-            <CardTitle>{isDemoMode ? "Créer un compte démo" : "Accès"}</CardTitle>
-            <CardDescription>
+          <CardHeader className="px-4 sm:px-6 pt-5 sm:pt-6">
+            <CardTitle className="text-xl sm:text-2xl">{isDemoMode ? "Créer un compte démo" : "Accès"}</CardTitle>
+            <CardDescription className="text-sm">
               {isDemoMode 
                 ? "Créez votre compte et testez Welkom gratuitement pendant 7 jours"
                 : "Connectez-vous ou créez un compte pour gérer vos livrets"
               }
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6 pb-5 sm:pb-6">
             <Tabs defaultValue={defaultTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="signin">Connexion</TabsTrigger>
-                <TabsTrigger value="signup">{isDemoMode ? "Démo gratuite" : "Inscription"}</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6 h-9 sm:h-10">
+                <TabsTrigger value="signin" className="text-xs sm:text-sm">Connexion</TabsTrigger>
+                <TabsTrigger value="signup" className="text-xs sm:text-sm">{isDemoMode ? "Démo gratuite" : "Inscription"}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="signin">

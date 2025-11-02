@@ -36,19 +36,19 @@ const FAQ = () => {
   ];
 
   return (
-    <section id="faq" className="py-20 lg:py-24 bg-white scroll-mt-20">
-      <div className="mx-auto max-w-[1280px] px-6 lg:px-10">
+    <section id="faq" className="py-16 sm:py-20 lg:py-24 bg-white scroll-mt-20">
+      <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12"
+          className="text-center mb-10 sm:mb-12"
         >
-          <h2 className="font-extrabold text-[clamp(32px,5vw,48px)] text-slate-900 leading-tight mb-4">
+          <h2 className="font-extrabold text-[2rem] sm:text-[2.5rem] md:text-[3rem] text-slate-900 leading-tight mb-3 sm:mb-4 px-4">
             Questions fréquentes
           </h2>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto px-4">
             Tout ce que vous devez savoir sur Welkom
           </p>
         </motion.div>
@@ -60,22 +60,22 @@ const FAQ = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="max-w-3xl mx-auto"
         >
-          <Accordion type="single" collapsible className="space-y-4">
+          <Accordion type="single" collapsible className="space-y-3 sm:space-y-4">
             {faqs.map((faq, index) => (
               <AccordionItem
                 key={index}
                 value={`item-${index}`}
-                className="border border-slate-200 rounded-2xl px-6 bg-white hover:shadow-md transition-shadow"
+                className="border border-slate-200 rounded-xl sm:rounded-2xl px-4 sm:px-6 bg-white hover:shadow-md transition-shadow"
               >
                 <AccordionTrigger 
-                  className="text-left text-slate-900 py-5 hover:no-underline"
+                  className="text-left text-slate-900 py-4 sm:py-5 hover:no-underline text-sm sm:text-base"
                   style={{ 
                     '--hover-color': '#071552' 
                   } as React.CSSProperties}
                 >
-                  <span className="font-semibold">{faq.question}</span>
+                  <span className="font-semibold pr-2">{faq.question}</span>
                 </AccordionTrigger>
-                <AccordionContent className="text-slate-600 pb-5 leading-relaxed">
+                <AccordionContent className="text-slate-600 pb-4 sm:pb-5 leading-relaxed text-sm sm:text-base">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>

@@ -54,24 +54,24 @@ const Pricing = () => {
   ];
 
   return (
-    <section id="pricing" className="py-20 md:py-24 scroll-mt-20">
-      <div className="container mx-auto px-4">
+    <section id="pricing" className="py-16 sm:py-20 md:py-24 scroll-mt-20">
+      <div className="container mx-auto px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16 max-w-3xl mx-auto"
+          className="text-center mb-12 sm:mb-16 max-w-3xl mx-auto"
         >
-          <h2 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl text-foreground mb-4">
+          <h2 className="font-display font-bold text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-foreground mb-3 sm:mb-4 px-4">
             Tarifs simples et transparents
           </h2>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-base sm:text-lg text-muted-foreground px-4">
             Choisissez l'offre qui correspond à vos besoins. Sans engagement.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
           {plans.map((plan, index) => (
             <motion.div
               key={index}
@@ -83,46 +83,46 @@ const Pricing = () => {
               <Card
                 className={`h-full relative ${
                   plan.featured
-                    ? "border-primary border-2 shadow-xl scale-105"
+                    ? "border-primary border-2 shadow-xl sm:col-span-2 md:col-span-1 md:scale-105"
                     : "border-border hover:border-primary/50"
                 } transition-all duration-300`}
               >
                 {plan.featured && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-white px-4 py-1 rounded-full text-sm font-medium">
+                  <div className="absolute -top-3 sm:-top-4 left-1/2 -translate-x-1/2 bg-primary text-white px-3 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap">
                     Populaire
                   </div>
                 )}
                 
-                <CardHeader className="text-center pb-4">
-                  <h3 className="font-display font-semibold text-2xl text-foreground mb-2">
+                <CardHeader className="text-center pb-3 sm:pb-4 px-4 sm:px-6">
+                  <h3 className="font-display font-semibold text-xl sm:text-2xl text-foreground mb-2">
                     {plan.name}
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                     {plan.description}
                   </p>
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="font-display font-bold text-4xl text-foreground">
+                    <span className="font-display font-bold text-3xl sm:text-4xl text-foreground">
                       {plan.price}
                     </span>
                     {plan.period && (
-                      <span className="text-muted-foreground">{plan.period}</span>
+                      <span className="text-sm sm:text-base text-muted-foreground">{plan.period}</span>
                     )}
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-6">
-                  <ul className="space-y-3">
+                <CardContent className="space-y-5 sm:space-y-6 px-4 sm:px-6 pb-5 sm:pb-6">
+                  <ul className="space-y-2.5 sm:space-y-3">
                     {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                        <span className="text-sm text-muted-foreground">{feature}</span>
+                      <li key={i} className="flex items-start gap-2 sm:gap-3">
+                        <Check className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0 mt-0.5" />
+                        <span className="text-xs sm:text-sm text-muted-foreground">{feature}</span>
                       </li>
                     ))}
                   </ul>
 
                   <Button
                     onClick={() => navigate("/auth")}
-                    className={`w-full rounded-xl ${
+                    className={`w-full rounded-xl text-sm sm:text-base py-5 sm:py-6 ${
                       plan.featured
                         ? "bg-primary hover:bg-primary/90 text-white shadow-lg"
                         : "bg-secondary hover:bg-secondary/80 text-foreground"
