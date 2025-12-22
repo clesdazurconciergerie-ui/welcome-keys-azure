@@ -143,14 +143,27 @@ Deno.serve(async (req) => {
           stripe_customer_id: customerId,
           latest_checkout_session_id: session.id,
           subscription_status: 'active',
+          grace_period_ends_at: null, // Clear grace period on payment
           updated_at: new Date().toISOString(),
-          // demo_active remains unchanged - it's just informational
         })
         .eq('id', userId);
 
       if (userError) {
         console.error('Error updating user:', userError);
         return new Response(`Database error: ${userError.message}`, { status: 500, headers: corsHeaders });
+      }
+
+      // Reactivate all disabled booklets for this user
+      const { error: reactivateError } = await supabase
+        .from('booklets')
+        .update({ status: 'published' })
+        .eq('user_id', userId)
+        .eq('status', 'disabled');
+
+      if (reactivateError) {
+        console.error('Error reactivating booklets:', reactivateError);
+      } else {
+        console.log('✅ Reactivated disabled booklets for user:', userId);
       }
 
       console.log('✅ User upgraded:', {

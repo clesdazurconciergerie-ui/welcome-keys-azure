@@ -807,6 +807,7 @@ export type Database = {
           demo_token_expires_at: string | null
           demo_token_issued_at: string | null
           email: string
+          grace_period_ends_at: string | null
           has_used_demo: boolean | null
           id: string
           latest_checkout_session_id: string | null
@@ -823,6 +824,7 @@ export type Database = {
           demo_token_expires_at?: string | null
           demo_token_issued_at?: string | null
           email: string
+          grace_period_ends_at?: string | null
           has_used_demo?: boolean | null
           id: string
           latest_checkout_session_id?: string | null
@@ -839,6 +841,7 @@ export type Database = {
           demo_token_expires_at?: string | null
           demo_token_issued_at?: string | null
           email?: string
+          grace_period_ends_at?: string | null
           has_used_demo?: boolean | null
           id?: string
           latest_checkout_session_id?: string | null

@@ -30,6 +30,9 @@ verify_jwt = true
 [functions.expire-trials]
 verify_jwt = false
 
+[functions.cleanup-expired-trials]
+verify_jwt = false
+
 [functions.confirm-session]
 verify_jwt = true
 
