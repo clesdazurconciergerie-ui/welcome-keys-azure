@@ -7,16 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
-import { Separator } from "@/components/ui/separator";
 
 const Auth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   
   // Check if demo mode is requested
@@ -46,24 +45,6 @@ const Auth = () => {
     }
   }, [navigate]);
 
-  const handleGoogleSignIn = async () => {
-    setGoogleLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        },
-      });
-
-      if (error) throw error;
-    } catch (error: any) {
-      console.error("Google sign-in error:", error);
-      toast.error(error.message || "Erreur lors de la connexion avec Google");
-      setGoogleLoading(false);
-    }
-  };
-
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
@@ -88,46 +69,59 @@ const Auth = () => {
 
       if (error) throw error;
       
-      // If demo mode, activate demo after signup
-      if (isDemoMode && data.session) {
-        try {
-          toast.loading("Activation de votre démo gratuite...");
-          
-          const response = await supabase.functions.invoke('activate-demo', {
-            headers: {
-              Authorization: `Bearer ${data.session.access_token}`,
-            },
-          });
+      // If signup successful and session exists, user is auto-logged in
+      if (data.session) {
+        // If demo mode, activate demo after signup
+        if (isDemoMode) {
+          try {
+            toast.loading("Activation de votre démo gratuite...");
+            
+            const response = await supabase.functions.invoke('activate-demo', {
+              headers: {
+                Authorization: `Bearer ${data.session.access_token}`,
+              },
+            });
 
-          if (response.error) {
-            console.error('Error activating demo:', response.error);
+            if (response.error) {
+              console.error('Error activating demo:', response.error);
+              toast.dismiss();
+              toast.warning("Compte créé mais la démo n'a pas pu être activée");
+              navigate("/dashboard");
+              return;
+            } else {
+              toast.dismiss();
+              toast.success("Démo activée ! Créez votre premier livret...", { duration: 2000 });
+              
+              // Redirection vers la création de livret après un court délai
+              setTimeout(() => {
+                navigate("/booklets/new");
+              }, 1500);
+              return;
+            }
+          } catch (demoError) {
+            console.error('Demo activation error:', demoError);
             toast.dismiss();
             toast.warning("Compte créé mais la démo n'a pas pu être activée");
             navigate("/dashboard");
             return;
-          } else {
-            toast.dismiss();
-            toast.success("Démo activée ! Créez votre premier livret...", { duration: 2000 });
-            
-            // Redirection vers la création de livret après un court délai
-            setTimeout(() => {
-              navigate("/booklets/new");
-            }, 1500);
-            return;
           }
-        } catch (demoError) {
-          console.error('Demo activation error:', demoError);
-          toast.dismiss();
-          toast.warning("Compte créé mais la démo n'a pas pu être activée");
-          navigate("/dashboard");
-          return;
         }
+        
+        // Normal signup with session - redirect to dashboard
+        toast.success("Compte créé avec succès ! Bienvenue sur Welkom.");
+        navigate("/dashboard");
+      } else {
+        // Email confirmation required - user needs to verify email first
+        toast.success("Inscription réussie ! Vérifiez votre email pour confirmer votre compte.");
       }
-      
-      toast.success("Inscription réussie ! Vérifiez votre email pour confirmer votre compte.");
     } catch (error: any) {
       console.error("Signup error:", error);
-      toast.error(error.message || "Une erreur est survenue lors de l'inscription");
+      // Handle "User already registered" error
+      if (error.message?.includes('already registered') || error.message?.includes('already been registered')) {
+        toast.error("Cet email est déjà utilisé. Veuillez vous connecter.");
+      } else {
+        toast.error(error.message || "Une erreur est survenue lors de l'inscription");
+      }
     } finally {
       setLoading(false);
     }
@@ -247,6 +241,46 @@ const Auth = () => {
     }
   };
 
+  const PasswordInput = ({ 
+    id, 
+    value, 
+    onChange, 
+    placeholder = "••••••••",
+    disabled = false 
+  }: { 
+    id: string; 
+    value: string; 
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    placeholder?: string;
+    disabled?: boolean;
+  }) => (
+    <div className="relative">
+      <Input
+        id={id}
+        type={showPassword ? "text" : "password"}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        required
+        className="pr-10"
+      />
+      <button
+        type="button"
+        onClick={() => setShowPassword(!showPassword)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+        aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+        tabIndex={-1}
+      >
+        {showPassword ? (
+          <EyeOff className="h-4 w-4" />
+        ) : (
+          <Eye className="h-4 w-4" />
+        )}
+      </button>
+    </div>
+  );
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4 sm:p-6">
       <div className="w-full max-w-md">
@@ -259,7 +293,7 @@ const Auth = () => {
             <CardTitle className="text-xl sm:text-2xl">{isDemoMode ? "Créer un compte démo" : "Accès"}</CardTitle>
             <CardDescription className="text-sm">
               {isDemoMode 
-                ? "Créez votre compte et testez Welkom gratuitement pendant 7 jours"
+                ? "Créez votre compte et testez Welkom gratuitement pendant 30 jours"
                 : "Connectez-vous ou créez un compte pour gérer vos livrets"
               }
             </CardDescription>
@@ -274,54 +308,6 @@ const Auth = () => {
               <TabsContent value="signin">
                 {!showForgotPassword ? (
                   <form onSubmit={handleSignIn} className="space-y-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={handleGoogleSignIn}
-                      disabled={loading || googleLoading}
-                    >
-                      {googleLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Connexion...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                            <path
-                              fill="currentColor"
-                              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                            />
-                            <path
-                              fill="currentColor"
-                              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                            />
-                            <path
-                              fill="currentColor"
-                              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                            />
-                            <path
-                              fill="currentColor"
-                              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                            />
-                          </svg>
-                          Continuer avec Google
-                        </>
-                      )}
-                    </Button>
-                    
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <Separator />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                          Ou avec email
-                        </span>
-                      </div>
-                    </div>
-
                     <div className="space-y-2">
                       <Label htmlFor="signin-email">Email</Label>
                       <Input
@@ -345,14 +331,11 @@ const Auth = () => {
                           Mot de passe oublié ?
                         </button>
                       </div>
-                      <Input
+                      <PasswordInput
                         id="signin-password"
-                        type="password"
-                        placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={loading}
-                        required
                       />
                     </div>
                     <Button type="submit" className="w-full" disabled={loading}>
@@ -419,54 +402,6 @@ const Auth = () => {
 
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleGoogleSignIn}
-                    disabled={loading || googleLoading}
-                  >
-                    {googleLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Connexion...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                          <path
-                            fill="currentColor"
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                          />
-                          <path
-                            fill="currentColor"
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                          />
-                          <path
-                            fill="currentColor"
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                          />
-                          <path
-                            fill="currentColor"
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                          />
-                        </svg>
-                        Continuer avec Google
-                      </>
-                    )}
-                  </Button>
-                  
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <Separator />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">
-                        Ou avec email
-                      </span>
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <Input
@@ -481,14 +416,11 @@ const Auth = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Mot de passe</Label>
-                    <Input
+                    <PasswordInput
                       id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={loading}
-                      required
                     />
                     <p className="text-xs text-muted-foreground">
                       Minimum 6 caractères
@@ -506,7 +438,7 @@ const Auth = () => {
                   </Button>
                   {isDemoMode && (
                     <p className="text-xs text-center text-muted-foreground mt-3">
-                      7 jours d'essai gratuit • 1 livret • Aucune carte requise
+                      30 jours d'essai gratuit • 1 livret • Aucune carte requise
                     </p>
                   )}
                 </form>
