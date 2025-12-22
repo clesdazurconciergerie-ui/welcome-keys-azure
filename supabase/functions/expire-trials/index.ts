@@ -20,7 +20,65 @@ serve(async (req) => {
 
     console.log('[Expire Trials] Starting trial expiration check at', new Date().toISOString());
 
-    // Find all demo users whose trial has expired
+    // =========================================================================
+    // 1. HANDLE FREE_TRIAL USERS WHOSE 30-DAY TRIAL HAS EXPIRED
+    // =========================================================================
+    const { data: expiredTrialUsers, error: trialUsersError } = await supabase
+      .from('users')
+      .select('id, email, role, trial_expires_at, grace_period_ends_at, subscription_status')
+      .eq('role', 'free_trial')
+      .lt('trial_expires_at', new Date().toISOString())
+      .is('grace_period_ends_at', null); // Only users not yet in grace period
+
+    if (trialUsersError) {
+      console.error('[Expire Trials] Error fetching expired trial users:', trialUsersError);
+      throw trialUsersError;
+    }
+
+    console.log(`[Expire Trials] Found ${expiredTrialUsers?.length || 0} free_trial users whose trial just expired`);
+
+    if (expiredTrialUsers && expiredTrialUsers.length > 0) {
+      // Set grace period (30 more days) and update subscription status
+      const gracePeriodEnd = new Date();
+      gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 30);
+
+      const { error: updateTrialUsersError } = await supabase
+        .from('users')
+        .update({
+          subscription_status: 'expired',
+          grace_period_ends_at: gracePeriodEnd.toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .in('id', expiredTrialUsers.map(u => u.id));
+
+      if (updateTrialUsersError) {
+        console.error('[Expire Trials] Error updating trial users:', updateTrialUsersError);
+        throw updateTrialUsersError;
+      }
+
+      // Disable their booklets (set status to 'disabled')
+      for (const user of expiredTrialUsers) {
+        const { error: disableBookletsError } = await supabase
+          .from('booklets')
+          .update({ status: 'disabled' })
+          .eq('user_id', user.id)
+          .neq('status', 'disabled');
+
+        if (disableBookletsError) {
+          console.error(`[Expire Trials] Error disabling booklets for user ${user.email}:`, disableBookletsError);
+        } else {
+          console.log(`[Expire Trials] Disabled booklets for user ${user.email} (trial expired, grace period started)`);
+        }
+      }
+
+      expiredTrialUsers.forEach(user => {
+        console.log(`[Expire Trials] Grace period started for user ${user.email} (${user.id}), ends at ${gracePeriodEnd.toISOString()}`);
+      });
+    }
+
+    // =========================================================================
+    // 2. HANDLE DEMO_USER USERS (keeping existing logic for 7-day demo)
+    // =========================================================================
     const { data: expiredDemoUsers, error: usersError } = await supabase
       .from('users')
       .select('id, email, role, demo_token_expires_at')
@@ -40,12 +98,13 @@ serve(async (req) => {
         .from('users')
         .update({
           role: 'free',
-          subscription_status: 'expired'
+          subscription_status: 'expired',
+          updated_at: new Date().toISOString()
         })
         .in('id', expiredDemoUsers.map(u => u.id));
 
       if (updateUsersError) {
-        console.error('[Expire Trials] Error updating users:', updateUsersError);
+        console.error('[Expire Trials] Error updating demo users:', updateUsersError);
         throw updateUsersError;
       }
 
@@ -69,49 +128,15 @@ serve(async (req) => {
           .in('id', expiredBooklets.map(b => b.id));
 
         if (updateBookletsError) {
-          console.error('[Expire Trials] Error archiving booklets:', updateBookletsError);
+          console.error('[Expire Trials] Error archiving demo booklets:', updateBookletsError);
           throw updateBookletsError;
         }
 
         console.log(`[Expire Trials] Archived ${expiredBooklets.length} demo booklets`);
       }
 
-      // Log each expired user
       expiredDemoUsers.forEach(user => {
         console.log(`[Expire Trials] Expired demo for user ${user.email} (${user.id})`);
-      });
-    }
-
-    // Also check for free trial users who have exceeded their trial period
-    const { data: expiredTrialUsers, error: trialUsersError } = await supabase
-      .from('users')
-      .select('id, email, role, trial_expires_at')
-      .eq('role', 'free_trial')
-      .lt('trial_expires_at', new Date().toISOString());
-
-    if (trialUsersError) {
-      console.error('[Expire Trials] Error fetching expired trial users:', trialUsersError);
-      throw trialUsersError;
-    }
-
-    console.log(`[Expire Trials] Found ${expiredTrialUsers?.length || 0} expired free trial users`);
-
-    if (expiredTrialUsers && expiredTrialUsers.length > 0) {
-      const { error: updateTrialUsersError } = await supabase
-        .from('users')
-        .update({
-          role: 'free',
-          subscription_status: 'expired'
-        })
-        .in('id', expiredTrialUsers.map(u => u.id));
-
-      if (updateTrialUsersError) {
-        console.error('[Expire Trials] Error updating trial users:', updateTrialUsersError);
-        throw updateTrialUsersError;
-      }
-
-      expiredTrialUsers.forEach(user => {
-        console.log(`[Expire Trials] Expired free trial for user ${user.email} (${user.id})`);
       });
     }
 
@@ -120,9 +145,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        trial_users_entered_grace_period: expiredTrialUsers?.length || 0,
         expired_demos: expiredDemoUsers?.length || 0,
-        expired_trials: expiredTrialUsers?.length || 0,
-        total_expired: totalExpired,
+        total_processed: totalExpired,
         timestamp: new Date().toISOString()
       }),
       {
