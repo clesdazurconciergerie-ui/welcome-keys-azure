@@ -2,29 +2,21 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { 
   Plus, 
   LogOut, 
-  Edit, 
-  Eye, 
-  Copy, 
-  Trash2,
   FileText,
   Loader2,
-  QrCode,
-  ExternalLink
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { fr } from "date-fns/locale";
 import { motion } from "framer-motion";
 import BrandMark from "@/components/BrandMark";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import SubscriptionSection from "@/components/dashboard/SubscriptionSection";
 import DemoExpirationBanner from "@/components/DemoExpirationBanner";
 import SubscriptionAlert from "@/components/SubscriptionAlert";
+import BookletCard from "@/components/dashboard/BookletCard";
 
 interface Pin {
   pin_code: string;
@@ -548,177 +540,23 @@ const Dashboard = () => {
             </Card>
           </motion.div>
         ) : (
-          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-            {booklets.map((booklet, index) => {
-              const pin = pins[booklet.id];
-              
-              return (
-                <motion.div
-                  key={booklet.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                >
-                  <Card 
-                    className="h-full border border-[#EEF0F5] bg-white transition-all duration-300 hover:-translate-y-1"
-                    style={{
-                      borderRadius: '12px',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(7,21,82,0.12)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
-                    }}
-                  >
-                    <CardHeader className="pb-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="font-display text-xl font-semibold text-primary mb-2 truncate">
-                            {booklet.title || booklet.property_name || "Sans titre"}
-                          </CardTitle>
-                          {(booklet.subtitle || booklet.welcome_message) && (
-                            <CardDescription className="text-sm text-[#707070] line-clamp-2 leading-relaxed">
-                              {booklet.subtitle || booklet.welcome_message}
-                            </CardDescription>
-                          )}
-                        </div>
-                        <Badge 
-                          className={`flex-shrink-0 rounded-xl px-3 py-1 font-medium ${
-                            booklet.status === 'published' 
-                              ? 'bg-primary text-white' 
-                              : 'bg-[#F7F9FC] text-[#6C6C6C] border border-[#ECEEF3]'
-                          }`}
-                        >
-                          {booklet.status === 'published' ? 'Publié' : 'Brouillon'}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent className="space-y-4">
-                      {/* PIN Block */}
-                      {booklet.status === 'published' && pin && (
-                        <div 
-                          className="p-4 rounded-lg space-y-3"
-                          style={{
-                            background: '#F9FAFB',
-                            border: '1px solid #EEF0F5'
-                          }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-primary uppercase tracking-wide">
-                              Code PIN
-                            </span>
-                            <code 
-                              className="text-lg font-bold text-primary px-3 py-1 rounded-lg"
-                              style={{
-                                background: '#FFFFFF',
-                                fontFamily: 'Monaco, Consolas, monospace',
-                                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)'
-                              }}
-                            >
-                              {pin.pin_code}
-                            </code>
-                          </div>
-                          
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 text-xs border-[#E1E5EC] hover:bg-[#F2F4F9] transition-colors"
-                              onClick={() => handleCopyCode(pin.pin_code)}
-                            >
-                              <Copy className="w-3 h-3 mr-1.5" />
-                              Code
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 text-xs border-[#E1E5EC] hover:bg-[#F2F4F9] transition-colors"
-                              onClick={() => handleCopyLink(pin.pin_code)}
-                            >
-                              <ExternalLink className="w-3 h-3 mr-1.5" />
-                              Lien
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 text-xs border-[#E1E5EC] hover:bg-[#F2F4F9] transition-colors"
-                              onClick={() => handleGenerateQR(pin.pin_code, booklet.property_name || 'livret')}
-                            >
-                              <QrCode className="w-3 h-3 mr-1.5" />
-                              QR
-                            </Button>
-                          </div>
-                          
-                          <button
-                            className="w-full text-xs text-primary hover:underline transition-all py-1 focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
-                            onClick={() => handleRegeneratePin(booklet.id)}
-                          >
-                            Régénérer le code PIN
-                          </button>
-                        </div>
-                      )}
-                      
-                      {/* Stats Line */}
-                      <div className="flex items-center text-sm text-[#6C6C6C] gap-2">
-                        <span>Vues : {booklet.views_count || 0}</span>
-                        <span>·</span>
-                        <span className="truncate">
-                          {formatDistanceToNow(new Date(booklet.updated_at), { 
-                            addSuffix: true, 
-                            locale: fr 
-                          })}
-                        </span>
-                      </div>
-                      
-                      {/* Actions */}
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-primary hover:bg-[#122372] text-white rounded-lg transition-all duration-200"
-                          onClick={() => navigate(`/booklets/${booklet.id}/wizard`)}
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Modifier
-                        </Button>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-lg border-[#E1E5EC] hover:bg-[#F2F4F9] transition-colors"
-                          onClick={() => handlePreview(booklet.id)}
-                          title="Prévisualiser"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-lg border-[#E1E5EC] hover:bg-[#F2F4F9] transition-colors"
-                          onClick={() => handleDuplicate(booklet)}
-                          title="Dupliquer"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-lg border-[#E1E5EC] hover:bg-red-50 hover:text-red-600 transition-colors"
-                          onClick={() => handleDelete(booklet.id)}
-                          title="Supprimer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+            {booklets.map((booklet, index) => (
+              <BookletCard
+                key={booklet.id}
+                booklet={booklet}
+                pin={pins[booklet.id]}
+                index={index}
+                onEdit={(id) => navigate(`/booklets/${id}/wizard`)}
+                onPreview={handlePreview}
+                onCopyCode={handleCopyCode}
+                onCopyLink={handleCopyLink}
+                onGenerateQR={handleGenerateQR}
+                onRegeneratePin={handleRegeneratePin}
+                onDuplicate={handleDuplicate}
+                onDelete={handleDelete}
+              />
+            ))}
           </div>
         )}
       </main>
