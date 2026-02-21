@@ -673,6 +673,48 @@ export type Database = {
           },
         ]
       }
+      saved_places: {
+        Row: {
+          created_at: string
+          description: string | null
+          distance: string | null
+          id: string
+          image_url: string | null
+          maps_link: string | null
+          name: string
+          type: string
+          updated_at: string
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          distance?: string | null
+          id?: string
+          image_url?: string | null
+          maps_link?: string | null
+          name: string
+          type: string
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          distance?: string | null
+          id?: string
+          image_url?: string | null
+          maps_link?: string | null
+          name?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean
