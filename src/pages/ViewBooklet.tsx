@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Home, MapPin, Wifi, Clock, Eye, Loader2, Package, Trash2, MapPinIcon, Phone, HelpCircle, DoorOpen, LogIn, LogOut, Car, FileText, Shield, Recycle, Calendar, Menu, X, Sparkles, ChevronRight } from "lucide-react";
+import { Home, MapPin, Wifi, Clock, Eye, Loader2, Package, Trash2, MapPinIcon, Phone, HelpCircle, DoorOpen, LogIn, LogOut, Car, FileText, Shield, Recycle, Calendar, Menu, X, Sparkles, ChevronRight, ChevronLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import ChatWidget from "@/components/ChatWidget";
@@ -1097,41 +1097,70 @@ export default function ViewBooklet() {
                 <span>À proximité</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-6">
-              <div className="grid gap-5 md:grid-cols-2">
-                {booklet.nearby_places.map((place) => (
-                  <div 
-                    key={place.id} 
-                    className="rounded-xl transition-all hover:shadow-lg overflow-hidden"
-                    style={{
-                      backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
-                      border: '1px solid color-mix(in srgb, var(--theme-primary) 20%, transparent)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--theme-primary) 40%, transparent)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--theme-primary) 20%, transparent)';
-                    }}
-                  >
-                    {place.image_url && (
-                      <div className="w-full h-48 overflow-hidden">
-                        <img 
-                          src={place.image_url} 
-                          alt={place.name}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
+            <CardContent className="pt-6 px-0">
+              <div className="relative group">
+                {/* Left Arrow */}
+                <button
+                  onClick={(e) => {
+                    const container = e.currentTarget.parentElement?.querySelector('.nearby-scroll') as HTMLElement;
+                    if (container) container.scrollBy({ left: -container.clientWidth * 0.8, behavior: 'smooth' });
+                  }}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-white hover:scale-110 hidden md:flex"
+                  aria-label="Précédent"
+                >
+                  <ChevronLeft className="w-5 h-5" style={{ color: 'var(--theme-text)' }} />
+                </button>
+
+                {/* Right Arrow */}
+                <button
+                  onClick={(e) => {
+                    const container = e.currentTarget.parentElement?.querySelector('.nearby-scroll') as HTMLElement;
+                    if (container) container.scrollBy({ left: container.clientWidth * 0.8, behavior: 'smooth' });
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-white hover:scale-110 hidden md:flex"
+                  aria-label="Suivant"
+                >
+                  <ChevronRight className="w-5 h-5" style={{ color: 'var(--theme-text)' }} />
+                </button>
+
+                {/* Horizontal Scroll Container */}
+                <div
+                  className="nearby-scroll flex gap-4 overflow-x-auto px-6 pb-2 scroll-smooth snap-x snap-mandatory"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  <style>{`.nearby-scroll::-webkit-scrollbar { display: none; }`}</style>
+                  {booklet.nearby_places.map((place) => (
+                    <div
+                      key={place.id}
+                      className="flex-shrink-0 snap-start rounded-xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-0.5 w-[80vw] sm:w-[45vw] md:w-[32vw] lg:w-[24vw] xl:w-[280px]"
+                      style={{
+                        backgroundColor: 'color-mix(in srgb, var(--theme-primary) 5%, var(--theme-bg))',
+                        border: '1px solid color-mix(in srgb, var(--theme-primary) 20%, transparent)'
+                      }}
+                    >
+                      {/* Image */}
+                      <div className="w-full overflow-hidden" style={{ aspectRatio: '4 / 3' }}>
+                        {place.image_url ? (
+                          <img
+                            src={place.image_url}
+                            alt={place.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 10%, transparent)' }}>
+                            <MapPin className="w-10 h-10" style={{ color: 'color-mix(in srgb, var(--theme-primary) 40%, transparent)' }} />
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <div className="p-5">
-                      <div className="flex items-start gap-3 mb-3">
-                        <MapPin className="h-5 w-5 mt-0.5 flex-shrink-0" style={{ color: 'var(--theme-accent, var(--theme-primary))' }} />
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--theme-text)' }}>{place.name}</h3>
-                          <Badge 
-                            variant="secondary" 
-                            className="text-xs"
+
+                      {/* Content */}
+                      <div className="p-4 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-semibold text-sm line-clamp-1" style={{ color: 'var(--theme-text)' }}>{place.name}</h3>
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] flex-shrink-0 px-2 py-0.5"
                             style={{
                               backgroundColor: 'color-mix(in srgb, var(--theme-accent, var(--theme-primary)) 12%, transparent)',
                               color: 'var(--theme-text)'
@@ -1140,65 +1169,58 @@ export default function ViewBooklet() {
                             {place.type}
                           </Badge>
                         </div>
-                      </div>
-                      {place.description && (
-                        <p className="text-sm mb-3" style={{ color: 'var(--theme-muted)' }}>
-                          {place.description}
-                        </p>
-                      )}
-                      {place.distance && (
-                        <p className="text-sm mb-2 flex items-center gap-2" style={{ color: 'var(--theme-muted)' }}>
-                          <Clock className="h-4 w-4" />
-                          {place.distance}
-                        </p>
-                      )}
-                      <div className="flex gap-2 flex-wrap mt-3">
-                        {place.website_url && (
-                          <a
-                            href={place.website_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm hover:underline inline-flex items-center gap-2 font-medium px-3 py-1.5 rounded-lg transition-colors"
-                            style={{ 
-                              color: 'var(--theme-accent, var(--theme-primary))',
-                              backgroundColor: 'color-mix(in srgb, var(--theme-primary) 10%, transparent)'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--theme-primary) 20%, transparent)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--theme-primary) 10%, transparent)';
-                            }}
-                          >
-                            Visiter le site
-                            <ChevronRight className="h-4 w-4" />
-                          </a>
+
+                        {place.description && (
+                          <p className="text-xs line-clamp-2" style={{ color: 'var(--theme-muted)' }}>
+                            {place.description}
+                          </p>
                         )}
-                        {place.maps_link && (
-                          <a
-                            href={place.maps_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm hover:underline inline-flex items-center gap-2 font-medium px-3 py-1.5 rounded-lg transition-colors"
-                            style={{ 
-                              color: 'var(--theme-accent, var(--theme-primary))',
-                              backgroundColor: 'color-mix(in srgb, var(--theme-primary) 10%, transparent)'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--theme-primary) 20%, transparent)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--theme-primary) 10%, transparent)';
-                            }}
-                          >
-                            Voir l'itinéraire
-                            <ChevronRight className="h-4 w-4" />
-                          </a>
+
+                        {place.distance && (
+                          <p className="text-xs flex items-center gap-1" style={{ color: 'var(--theme-muted)' }}>
+                            <Clock className="h-3 w-3" />
+                            {place.distance}
+                          </p>
+                        )}
+
+                        {(place.website_url || place.maps_link) && (
+                          <div className="flex gap-2 pt-1">
+                            {place.website_url && (
+                              <a
+                                href={place.website_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs font-medium inline-flex items-center gap-1 px-2.5 py-1 rounded-lg transition-colors"
+                                style={{
+                                  color: 'var(--theme-accent, var(--theme-primary))',
+                                  backgroundColor: 'color-mix(in srgb, var(--theme-primary) 10%, transparent)'
+                                }}
+                              >
+                                Site web
+                                <ChevronRight className="h-3 w-3" />
+                              </a>
+                            )}
+                            {place.maps_link && (
+                              <a
+                                href={place.maps_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs font-medium inline-flex items-center gap-1 px-2.5 py-1 rounded-lg transition-colors"
+                                style={{
+                                  color: 'var(--theme-accent, var(--theme-primary))',
+                                  backgroundColor: 'color-mix(in srgb, var(--theme-primary) 10%, transparent)'
+                                }}
+                              >
+                                Itinéraire
+                                <ChevronRight className="h-3 w-3" />
+                              </a>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
