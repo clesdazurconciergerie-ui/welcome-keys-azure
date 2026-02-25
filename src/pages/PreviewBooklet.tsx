@@ -547,48 +547,60 @@ export default function PreviewBooklet() {
                 À proximité
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
+            <CardContent className="px-0">
+              <div
+                className="flex gap-4 overflow-x-auto px-6 pb-2 scroll-smooth snap-x snap-mandatory"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                <style>{`.preview-nearby::-webkit-scrollbar { display: none; }`}</style>
                 {booklet.nearby_places.map((place) => (
-                  <Card key={place.id} className="p-4">
-                    {place.image_url && (
-                      <img src={place.image_url} alt={place.name} className="w-full h-32 object-cover rounded-lg mb-3" />
-                    )}
-                    <div className="flex items-start gap-2 mb-2">
-                      <h3 className="font-semibold flex-1">{place.name}</h3>
-                      <Badge variant="secondary" className="text-xs">{place.type}</Badge>
-                    </div>
-                    {place.description && (
-                      <p className="text-sm text-muted-foreground mb-2">{place.description}</p>
-                    )}
-                    {place.distance && (
-                      <p className="text-sm text-muted-foreground mb-2">📍 {place.distance}</p>
-                    )}
-                    <div className="flex gap-2 flex-wrap">
-                      {place.website_url && (
-                        <a 
-                          href={place.website_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="text-sm hover:underline"
-                          style={{ color: 'var(--theme-accent, #071552)' }}
-                        >
-                          Visiter le site
-                        </a>
-                      )}
-                      {place.maps_link && (
-                        <a 
-                          href={place.maps_link} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="text-sm hover:underline"
-                          style={{ color: 'var(--theme-accent, #071552)' }}
-                        >
-                          Itinéraire
-                        </a>
+                  <div
+                    key={place.id}
+                    className="preview-nearby flex-shrink-0 snap-start rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] w-[80vw] sm:w-[45vw] md:w-[32vw] lg:w-[24vw] xl:w-[280px]"
+                    style={{
+                      border: '1px solid color-mix(in srgb, var(--theme-accent, #071552) 20%, transparent)'
+                    }}
+                  >
+                    <div className="w-full overflow-hidden" style={{ aspectRatio: '4 / 3' }}>
+                      {place.image_url ? (
+                        <img src={place.image_url} alt={place.name} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <MapPinIcon className="w-10 h-10 text-muted-foreground/40" />
+                        </div>
                       )}
                     </div>
-                  </Card>
+                    <div className="p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold text-sm line-clamp-1">{place.name}</h3>
+                        <Badge variant="secondary" className="text-[10px] flex-shrink-0 px-2 py-0.5">{place.type}</Badge>
+                      </div>
+                      {place.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">{place.description}</p>
+                      )}
+                      {place.distance && (
+                        <p className="text-xs text-muted-foreground">📍 {place.distance}</p>
+                      )}
+                      {(place.website_url || place.maps_link) && (
+                        <div className="flex gap-2 pt-1">
+                          {place.website_url && (
+                            <a href={place.website_url} target="_blank" rel="noopener noreferrer"
+                              className="text-xs font-medium hover:underline"
+                              style={{ color: 'var(--theme-accent, #071552)' }}>
+                              Site web
+                            </a>
+                          )}
+                          {place.maps_link && (
+                            <a href={place.maps_link} target="_blank" rel="noopener noreferrer"
+                              className="text-xs font-medium hover:underline"
+                              style={{ color: 'var(--theme-accent, #071552)' }}>
+                              Itinéraire
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
             </CardContent>
