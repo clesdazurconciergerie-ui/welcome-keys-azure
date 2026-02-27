@@ -1302,6 +1302,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_owner_of_property: {
+        Args: { _property_id: string; _user_id: string }
+        Returns: boolean
+      }
       try_cast_jsonb: { Args: { txt: string }; Returns: Json }
     }
     Enums: {
