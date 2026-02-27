@@ -108,7 +108,7 @@ const Auth = () => {
         }
         
         // Normal signup with session - redirect to dashboard
-        toast.success("Compte créé avec succès ! Bienvenue sur Welkom.");
+        toast.success("Compte créé avec succès ! Bienvenue sur MyWelkom.");
         navigate("/dashboard");
       } else {
         // Email confirmation required - user needs to verify email first
@@ -243,19 +243,22 @@ const Auth = () => {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4 sm:p-6">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-primary p-4 sm:p-6 relative overflow-hidden">
+      {/* Subtle gold radial */}
+      <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(196, 164, 91, 0.25) 0%, transparent 60%)' }} />
+
+      <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-6 sm:mb-8">
-          <BrandMark variant="full" showIcon={true} />
+          <BrandMark variant="full" showIcon={true} light />
         </div>
 
-        <Card className="glass shadow-premium border-0">
+        <Card className="shadow-2xl border-0 bg-card">
           <CardHeader className="px-4 sm:px-6 pt-5 sm:pt-6">
-            <CardTitle className="text-xl sm:text-2xl">{isDemoMode ? "Créer un compte démo" : "Accès"}</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">{isDemoMode ? "Créer un compte démo" : "Accès à MyWelkom"}</CardTitle>
             <CardDescription className="text-sm">
               {isDemoMode 
-                ? "Créez votre compte et testez Welkom gratuitement pendant 30 jours"
-                : "Connectez-vous ou créez un compte pour gérer vos livrets"
+                ? "Créez votre compte et testez MyWelkom gratuitement pendant 30 jours"
+                : "Connectez-vous ou créez un compte pour gérer votre conciergerie"
               }
             </CardDescription>
           </CardHeader>

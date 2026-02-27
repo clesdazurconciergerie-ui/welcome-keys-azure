@@ -8,6 +8,7 @@ import DemoSection from "@/components/landing/DemoSection";
 import PricingTeaser from "@/components/landing/PricingTeaser";
 import Testimonials from "@/components/landing/Testimonials";
 import CredibilitySection from "@/components/landing/CredibilitySection";
+import FinalCTA from "@/components/landing/FinalCTA";
 import FAQ from "@/components/landing/FAQ";
 import Footer from "@/components/landing/Footer";
 import SEOHead from "@/components/SEOHead";
@@ -31,6 +32,7 @@ const Landing = () => {
         <PricingTeaser />
         <Testimonials />
         <CredibilitySection />
+        <FinalCTA />
         <FAQ />
         <Footer />
       </div>

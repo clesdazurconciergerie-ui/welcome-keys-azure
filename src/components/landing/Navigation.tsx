@@ -25,30 +25,23 @@ const Navigation = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
-    // Check authentication status
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
       setUserEmail(session?.user?.email || null);
       setIsAuthLoading(false);
     };
-    
     checkAuth();
-
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
       setUserEmail(session?.user?.email || null);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
@@ -65,13 +58,11 @@ const Navigation = () => {
   };
 
   const scrollToSection = (id: string) => {
-    // If not on home page, navigate to home first
     if (location.pathname !== "/") {
       window.location.href = `/#${id}`;
       setIsMobileMenuOpen(false);
       return;
     }
-    
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
@@ -91,41 +82,36 @@ const Navigation = () => {
     { label: "Accéder à un livret", href: "/acces-livret", isRoute: true },
   ];
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? "bg-white/95 backdrop-blur-sm shadow-sm border-b border-[#ECEEF3]"
-          : "bg-white border-b border-[#ECEEF3]"
+          ? "bg-background/95 backdrop-blur-md shadow-sm border-b border-border"
+          : "bg-background/80 backdrop-blur-sm border-b border-transparent"
       }`}
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link
             to="/"
-            onClick={scrollToTop}
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             className="hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
           >
             <BrandMark variant="compact" />
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
               if (link.isRoute && link.href) {
                 return (
                   <Link
                     key={link.href}
                     to={link.href}
-                    className={`text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-3 py-2 border-b-2 ${
+                    className={`text-sm font-medium transition-colors rounded-lg px-3 py-2 ${
                       isActive(link.href)
-                        ? "text-primary border-primary"
-                        : "text-foreground border-transparent hover:text-primary"
+                        ? "text-primary bg-primary/5"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
                   >
                     {link.label}
@@ -136,7 +122,7 @@ const Navigation = () => {
                 <button
                   key={link.id}
                   onClick={() => scrollToSection(link.id!)}
-                  className="text-sm font-medium text-foreground hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-md px-3 py-2"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors rounded-lg px-3 py-2"
                 >
                   {link.label}
                 </button>
@@ -145,17 +131,13 @@ const Navigation = () => {
           </div>
 
           {/* Desktop CTAs */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2">
             {isAuthLoading ? (
               <div className="h-10 w-32 bg-muted animate-pulse rounded-xl" />
             ) : isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="border-2 rounded-xl px-4 gap-2"
-                    aria-label="Menu utilisateur"
-                  >
+                  <Button variant="outline" className="rounded-xl px-4 gap-2">
                     <User className="h-4 w-4" />
                     <span className="max-w-[150px] truncate">{userEmail}</span>
                   </Button>
@@ -177,33 +159,25 @@ const Navigation = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-            <>
-              <Link to="/auth">
-                <Button
-                  variant="outline"
-                  className="border-2 hover:bg-primary hover:text-primary-foreground rounded-xl px-6 gap-2 transition-all"
-                  aria-label="Se connecter"
-                >
-                  <User className="h-4 w-4" />
-                  Connexion
-                </Button>
-              </Link>
-              <Link to="/auth?mode=demo">
-                <Button 
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-6 shadow-md hover:shadow-lg transition-all"
-                  aria-label="Essayer gratuitement"
-                >
-                  Essayer gratuitement
-                </Button>
-              </Link>
-            </>
+              <>
+                <Link to="/auth">
+                  <Button variant="ghost" className="rounded-xl px-5 text-sm font-medium">
+                    Connexion
+                  </Button>
+                </Link>
+                <Link to="/auth?mode=demo">
+                  <Button className="bg-gold hover:bg-gold-light text-primary rounded-xl px-5 text-sm font-semibold shadow-md hover:shadow-lg transition-all">
+                    Essai gratuit
+                  </Button>
+                </Link>
+              </>
             )}
           </div>
 
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
+            className="md:hidden p-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
             aria-label="Toggle menu"
             aria-expanded={isMobileMenuOpen}
           >
@@ -219,7 +193,7 @@ const Navigation = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-white border-b border-[#ECEEF3] overflow-hidden"
+            className="md:hidden bg-background border-b border-border overflow-hidden"
           >
             <div className="container mx-auto px-4 py-4 space-y-2">
               {navLinks.map((link) => {
@@ -229,10 +203,10 @@ const Navigation = () => {
                       key={link.href}
                       to={link.href}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`block w-full text-left py-3 px-3 text-sm font-medium transition-colors rounded-md ${
+                      className={`block w-full text-left py-3 px-3 text-sm font-medium transition-colors rounded-lg ${
                         isActive(link.href)
-                          ? "text-primary bg-secondary border-l-2 border-primary"
-                          : "text-foreground hover:bg-secondary hover:text-primary"
+                          ? "text-primary bg-primary/5"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
                       }`}
                     >
                       {link.label}
@@ -243,7 +217,7 @@ const Navigation = () => {
                   <button
                     key={link.id}
                     onClick={() => scrollToSection(link.id!)}
-                    className="block w-full text-left py-3 px-3 text-sm font-medium text-foreground hover:bg-secondary hover:text-primary transition-colors rounded-md"
+                    className="block w-full text-left py-3 px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors rounded-lg"
                   >
                     {link.label}
                   </button>
@@ -260,58 +234,31 @@ const Navigation = () => {
                       {userEmail}
                     </div>
                   )}
-                  <Link
-                    to="/dashboard"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block w-full"
-                  >
-                    <Button 
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl justify-center"
-                      aria-label="Accéder au tableau de bord"
-                    >
+                  <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="block w-full">
+                    <Button className="w-full bg-primary text-primary-foreground rounded-xl justify-center">
                       <User className="mr-2 h-4 w-4" />
                       Tableau de bord
                     </Button>
                   </Link>
-                  <Button
-                    onClick={handleLogout}
-                    variant="outline"
-                    className="w-full border-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-xl justify-center"
-                    aria-label="Se déconnecter"
-                  >
+                  <Button onClick={handleLogout} variant="outline" className="w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-xl justify-center">
                     <LogOut className="mr-2 h-4 w-4" />
                     Déconnexion
                   </Button>
                 </>
               ) : (
-              <>
-                <Link
-                  to="/auth"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block w-full"
-                >
-                  <Button
-                    variant="outline"
-                    className="w-full border-2 hover:bg-primary hover:text-primary-foreground rounded-xl justify-center gap-2"
-                    aria-label="Se connecter"
-                  >
-                    <User className="h-4 w-4" />
-                    Connexion
-                  </Button>
-                </Link>
-                <Link
-                  to="/auth?mode=demo"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block w-full"
-                >
-                  <Button 
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl justify-center"
-                    aria-label="Essayer gratuitement"
-                  >
-                    Essayer gratuitement
-                  </Button>
-                </Link>
-              </>
+                <>
+                  <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)} className="block w-full">
+                    <Button variant="outline" className="w-full rounded-xl justify-center gap-2">
+                      <User className="h-4 w-4" />
+                      Connexion
+                    </Button>
+                  </Link>
+                  <Link to="/auth?mode=demo" onClick={() => setIsMobileMenuOpen(false)} className="block w-full">
+                    <Button className="w-full bg-gold hover:bg-gold-light text-primary rounded-xl justify-center font-semibold">
+                      Essai gratuit
+                    </Button>
+                  </Link>
+                </>
               )}
             </div>
           </motion.div>
