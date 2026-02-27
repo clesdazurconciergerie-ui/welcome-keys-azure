@@ -540,6 +540,182 @@ export type Database = {
           },
         ]
       }
+      owner_documents: {
+        Row: {
+          concierge_user_id: string
+          file_url: string
+          id: string
+          name: string
+          owner_id: string
+          type: string
+          uploaded_at: string
+        }
+        Insert: {
+          concierge_user_id: string
+          file_url: string
+          id?: string
+          name: string
+          owner_id: string
+          type?: string
+          uploaded_at?: string
+        }
+        Update: {
+          concierge_user_id?: string
+          file_url?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          type?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_documents_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      owner_interventions: {
+        Row: {
+          booklet_id: string | null
+          completed_at: string | null
+          concierge_user_id: string
+          created_at: string
+          description: string | null
+          id: string
+          owner_id: string
+          scheduled_at: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          booklet_id?: string | null
+          completed_at?: string | null
+          concierge_user_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          owner_id: string
+          scheduled_at?: string | null
+          status?: string
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          booklet_id?: string | null
+          completed_at?: string | null
+          concierge_user_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          owner_id?: string
+          scheduled_at?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_interventions_booklet_id_fkey"
+            columns: ["booklet_id"]
+            isOneToOne: false
+            referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_interventions_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      owner_properties: {
+        Row: {
+          booklet_id: string
+          created_at: string
+          id: string
+          owner_id: string
+        }
+        Insert: {
+          booklet_id: string
+          created_at?: string
+          id?: string
+          owner_id: string
+        }
+        Update: {
+          booklet_id?: string
+          created_at?: string
+          id?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_properties_booklet_id_fkey"
+            columns: ["booklet_id"]
+            isOneToOne: false
+            referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_properties_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      owners: {
+        Row: {
+          auth_user_id: string | null
+          concierge_user_id: string
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          notes: string | null
+          phone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          concierge_user_id: string
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          concierge_user_id?: string
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pins: {
         Row: {
           booklet_id: string
