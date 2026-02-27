@@ -7,6 +7,7 @@ import HowItWorks from "@/components/landing/HowItWorks";
 import DemoSection from "@/components/landing/DemoSection";
 import PricingTeaser from "@/components/landing/PricingTeaser";
 import Testimonials from "@/components/landing/Testimonials";
+import CredibilitySection from "@/components/landing/CredibilitySection";
 import FAQ from "@/components/landing/FAQ";
 import Footer from "@/components/landing/Footer";
 import SEOHead from "@/components/SEOHead";
@@ -15,11 +16,11 @@ const Landing = () => {
   return (
     <>
       <SEOHead 
-        title="MyWelkom - Livret d'Accueil Digital pour Conciergerie et Location Saisonnière"
-        description="Créez facilement un livret d'accueil numérique interactif pour vos locations saisonnières. Solution professionnelle de conciergerie digitale avec chatbot IA, QR code et gestion centralisée. Parfait pour Airbnb, gîtes et résidences de tourisme."
-        keywords="livret d'accueil digital, livret de bienvenue numérique, conciergerie digitale, logiciel conciergerie, guest book digital, livret numérique location saisonnière, MyWelkom, Welkom, livret interactif Airbnb, outil conciergerie automatisé"
+        title="MyWelkom by Azur Keys - Plateforme Digitale Premium pour Conciergeries"
+        description="La plateforme digitale pensée pour les conciergeries orientées performance. CRM, livret d'accueil digital, espace propriétaire, dashboard analytics. Développé par Azur Keys Conciergerie."
+        keywords="plateforme conciergerie, logiciel conciergerie, gestion conciergerie, livret d'accueil digital, espace propriétaire, CRM conciergerie, MyWelkom, Azur Keys, dashboard performance, conciergerie premium"
       />
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-background">
         <Navigation />
         <Hero />
         <SocialProof />
@@ -29,6 +30,7 @@ const Landing = () => {
         <DemoSection />
         <PricingTeaser />
         <Testimonials />
+        <CredibilitySection />
         <FAQ />
         <Footer />
       </div>

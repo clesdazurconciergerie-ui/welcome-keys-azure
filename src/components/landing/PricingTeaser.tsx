@@ -5,31 +5,19 @@ import { pricingPlans } from "@/config/pricing";
 
 const PricingTeaser = () => {
   const navigate = useNavigate();
-
-  // Afficher les 3 premiers plans
-  const plans = pricingPlans
-    .sort((a, b) => a.order - b.order)
-    .slice(0, 3);
+  const plans = pricingPlans.sort((a, b) => a.order - b.order).slice(0, 3);
 
   return (
-    <section id="pricing" className="py-16 sm:py-20 lg:py-24 bg-white scroll-mt-20">
-      <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12 sm:mb-16"
-        >
-          <h2 className="font-extrabold text-[2rem] sm:text-[2.5rem] md:text-[3rem] text-slate-900 leading-tight mb-3 sm:mb-4 px-4">
-            Une formule pour chaque besoin
+    <section id="pricing" className="py-20 lg:py-28 bg-secondary scroll-mt-20">
+      <div className="mx-auto max-w-6xl px-6 lg:px-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="text-center mb-16">
+          <h2 className="!text-[clamp(1.75rem,4vw,2.75rem)] font-bold text-foreground leading-tight mb-4">
+            Une formule pour chaque ambition
           </h2>
-          <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto px-4">
-            Commencez gratuitement, évoluez à votre rythme
-          </p>
+          <p className="text-muted-foreground max-w-2xl mx-auto">Commencez gratuitement, évoluez à votre rythme</p>
         </motion.div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto mb-8 sm:mb-12">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-5xl mx-auto mb-12">
           {plans.map((plan, index) => (
             <motion.div
               key={plan.id}
@@ -37,52 +25,36 @@ const PricingTeaser = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className={`bg-white rounded-xl sm:rounded-2xl p-5 sm:p-6 border-2 shadow-sm transition-all duration-300 hover:shadow-md ${
-                plan.is_featured ? 'border-2 shadow-lg sm:col-span-2 lg:col-span-1' : 'border-slate-200'
+              className={`bg-card rounded-2xl p-6 border-2 transition-all duration-300 hover:shadow-lg ${
+                plan.is_featured ? 'border-gold shadow-lg sm:col-span-2 lg:col-span-1' : 'border-border'
               }`}
-              style={plan.is_featured ? { borderColor: '#071552' } : {}}
             >
               {plan.badge && (
-                <div 
-                  className="inline-block px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold text-white mb-3 sm:mb-4"
-                  style={{ backgroundColor: '#071552' }}
-                >
+                <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold text-primary-foreground bg-gold mb-4">
                   {plan.badge}
                 </div>
               )}
-
-              <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
-                {plan.name}
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-500 mb-2">
-                {plan.livrets}
-              </p>
-              <div className="mb-5 sm:mb-6">
-                <span className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-                  {plan.price}€
-                </span>
-                <span className="text-xs sm:text-sm font-medium text-slate-500">/mois</span>
+              <h3 className="!text-[1.25rem] font-bold text-foreground mb-1">{plan.name}</h3>
+              <p className="text-xs text-muted-foreground mb-2">{plan.livrets}</p>
+              <div className="mb-6">
+                <span className="text-3xl font-extrabold text-foreground">{plan.price}€</span>
+                <span className="text-sm text-muted-foreground">/mois</span>
               </div>
-
-              <ul className="space-y-2.5 sm:space-y-3 mb-5 sm:mb-6">
+              <ul className="space-y-3 mb-6">
                 {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-slate-700">
-                    <Check 
-                      className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 mt-0.5" 
-                      style={{ color: plan.is_featured ? '#071552' : '#10B981' }} 
-                      strokeWidth={2.5} 
-                    />
+                  <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <Check className={`w-4 h-4 flex-shrink-0 mt-0.5 ${plan.is_featured ? 'text-gold' : 'text-green-500'}`} strokeWidth={2.5} />
                     <span>{feature}</span>
                   </li>
                 ))}
               </ul>
-
               <a
                 href={`/tarifs?plan=${encodeURIComponent(plan.id)}`}
-                data-source="home"
-                data-plan={plan.id}
-                className="block w-full text-center rounded-xl px-4 sm:px-5 py-2.5 sm:py-3 text-white font-semibold text-sm sm:text-base transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
-                style={{ backgroundColor: '#071552' }}
+                className={`block w-full text-center rounded-xl px-5 py-3 font-semibold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${
+                  plan.is_featured 
+                    ? 'bg-gold text-primary hover:bg-gold-light' 
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                }`}
               >
                 {plan.cta}
               </a>
@@ -90,17 +62,10 @@ const PricingTeaser = () => {
           ))}
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="text-center px-4"
-        >
+        <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.4 }} className="text-center">
           <button
             onClick={() => navigate("/tarifs")}
-            className="text-xs sm:text-sm font-medium px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl border-2 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 w-full sm:w-auto max-w-xs"
-            style={{ borderColor: '#071552', color: '#071552' }}
+            className="text-sm font-medium px-6 py-3 rounded-xl border-2 border-primary text-primary transition-all duration-300 hover:bg-primary hover:text-primary-foreground"
           >
             Voir tous les tarifs →
           </button>

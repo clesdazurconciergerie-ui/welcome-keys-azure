@@ -8,69 +8,75 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Welkom Premium Design System - Brand Color #071552 */
-    --background: 0 0% 100%;  /* #ffffff */
-    --foreground: 222 47% 11%;  /* #0F172A - ink */
+    /* MyWelkom Premium Design System - Brand #061452 + Gold #C4A45B */
+    --background: 0 0% 100%;
+    --foreground: 230 60% 10%;
 
-    /* Brand - Welkom Blue #071552 - PRIMARY BRAND COLOR */
-    --brand-blue: 229 84% 17%;  /* #071552 */
-    --brand-blue-hover: 229 84% 12%;  /* darker hover */
+    /* Brand - Deep Blue #061452 */
+    --brand-blue: 232 85% 17%;
+    --brand-blue-hover: 232 85% 12%;
+    
+    /* Gold accent #C4A45B */
+    --gold: 42 46% 56%;
+    --gold-light: 42 50% 72%;
+    --gold-dark: 42 46% 42%;
     
     /* Card */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 230 60% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 230 60% 10%;
 
-    /* Primary = Welkom Blue #071552 */
-    --primary: 229 84% 17%;  /* #071552 */
+    /* Primary = Deep Blue #061452 */
+    --primary: 232 85% 17%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Section background #F7FAFC */
-    --secondary: 210 40% 98%;
-    --secondary-foreground: 222 47% 11%;
+    /* Secondary - Soft background */
+    --secondary: 220 30% 97%;
+    --secondary-foreground: 230 60% 10%;
 
-    /* Muted - Text secondaire #64748B */
-    --muted: 210 40% 98%;
-    --muted-foreground: 215 20% 45%;
+    /* Muted */
+    --muted: 220 20% 96%;
+    --muted-foreground: 220 15% 46%;
 
-    /* Accent - Welkom Blue #071552 */
-    --accent: 229 84% 17%;  /* #071552 */
+    /* Accent - Gold #C4A45B */
+    --accent: 42 46% 56%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders - #E6EDF2 */
-    --border: 210 25% 92%;
-    --input: 210 25% 92%;
-    --ring: 229 84% 17%;
+    /* Borders */
+    --border: 220 20% 92%;
+    --input: 220 20% 92%;
+    --ring: 232 85% 17%;
 
-    --radius: 1.125rem;  /* 18px */
+    --radius: 1rem;
 
-    /* Premium shadows with blue tint */
-    --shadow-sm: 0 1px 2px 0 rgba(7, 21, 82, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(7, 21, 82, 0.1), 0 2px 4px -1px rgba(7, 21, 82, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(7, 21, 82, 0.12), 0 4px 6px -2px rgba(7, 21, 82, 0.08);
-    --shadow-xl: 0 20px 25px -5px rgba(7, 21, 82, 0.15), 0 10px 10px -5px rgba(7, 21, 82, 0.08);
+    /* Premium shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(6, 20, 82, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(6, 20, 82, 0.1), 0 2px 4px -1px rgba(6, 20, 82, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(6, 20, 82, 0.12), 0 4px 6px -2px rgba(6, 20, 82, 0.08);
+    --shadow-xl: 0 20px 25px -5px rgba(6, 20, 82, 0.15), 0 10px 10px -5px rgba(6, 20, 82, 0.08);
     
     /* Glass effect */
     --glass-bg: rgba(255, 255, 255, 0.8);
     --glass-border: rgba(255, 255, 255, 0.3);
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(229, 84%, 17%) 0%, hsl(229, 84%, 27%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(229, 84%, 17%) 0%, hsl(229, 84%, 27%) 50%, hsl(229, 84%, 37%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(232, 85%, 17%) 0%, hsl(232, 85%, 27%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(232, 85%, 17%) 0%, hsl(232, 85%, 22%) 50%, hsl(232, 85%, 30%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(42, 46%, 56%) 0%, hsl(42, 50%, 65%) 100%);
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 229 84% 17%;
+    --sidebar-background: 232 85% 10%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 42 46% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 20% 98%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 214 31% 91%;
-    --sidebar-ring: 229 84% 17%;
+    --sidebar-accent: 232 60% 18%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 232 40% 22%;
+    --sidebar-ring: 42 46% 56%;
   }
 
   .dark {
