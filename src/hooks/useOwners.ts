@@ -20,6 +20,7 @@ export interface OwnerFormData {
   first_name: string;
   last_name: string;
   email: string;
+  password: string;
   phone?: string;
   notes?: string;
   property_ids?: string[];
@@ -53,37 +54,24 @@ export function useOwners() {
 
   const createOwner = async (formData: OwnerFormData) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Non authentifié');
-
-      const { data, error } = await (supabase as any)
-        .from('owners')
-        .insert({
-          concierge_user_id: user.id,
+      const { data, error } = await supabase.functions.invoke('create-owner', {
+        body: {
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
           first_name: formData.first_name.trim(),
           last_name: formData.last_name.trim(),
-          email: formData.email.trim().toLowerCase(),
           phone: formData.phone?.trim() || null,
           notes: formData.notes?.trim() || null,
-          status: 'pending',
-        })
-        .select()
-        .single();
+          property_ids: formData.property_ids || [],
+        },
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      // Link properties if provided
-      if (formData.property_ids?.length && data) {
-        const links = formData.property_ids.map(property_id => ({
-          owner_id: data.id,
-          property_id,
-        }));
-        await (supabase as any).from('owner_properties').insert(links);
-      }
-
-      toast.success('Propriétaire créé avec succès');
+      toast.success('Compte propriétaire créé avec succès');
       await fetchOwners();
-      return data;
+      return data.owner;
     } catch (err: any) {
       console.error('Error creating owner:', err);
       toast.error(err.message || 'Erreur lors de la création');
