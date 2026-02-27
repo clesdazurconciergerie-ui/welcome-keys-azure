@@ -56,3 +56,12 @@ verify_jwt = true
 
 [functions.create-owner]
 verify_jwt = false
+
+[functions.create-service-provider]
+verify_jwt = false
+
+[functions.delete-service-provider]
+verify_jwt = false
+
+[functions.complete-intervention]
+verify_jwt = false
