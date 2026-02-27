@@ -25,6 +25,27 @@ export interface Property {
   updated_at: string;
 }
 
+export interface PropertyPhoto {
+  id: string;
+  property_id: string;
+  url: string;
+  caption: string | null;
+  category: string;
+  order_index: number;
+  is_main: boolean;
+  uploaded_at: string;
+}
+
+export interface PropertyDocument {
+  id: string;
+  property_id: string;
+  name: string;
+  category: string;
+  file_url: string;
+  file_size: number | null;
+  uploaded_at: string;
+}
+
 export interface PropertyFormData {
   name: string;
   address: string;
@@ -104,6 +125,45 @@ export function useProperties() {
     }
   };
 
+  const duplicateProperty = async (id: string) => {
+    try {
+      const prop = properties.find(p => p.id === id);
+      if (!prop) return null;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Non authentifié');
+
+      const { data, error } = await (supabase as any)
+        .from('properties')
+        .insert({
+          user_id: user.id,
+          name: `${prop.name} (copie)`,
+          address: prop.address,
+          city: prop.city,
+          postcode: prop.postcode,
+          country: prop.country,
+          surface_m2: prop.surface_m2,
+          capacity: prop.capacity,
+          bedrooms: prop.bedrooms,
+          bathrooms: prop.bathrooms,
+          property_type: prop.property_type,
+          avg_nightly_rate: prop.avg_nightly_rate,
+          pricing_strategy: prop.pricing_strategy,
+          notes: prop.notes,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      toast.success('Bien dupliqué avec succès');
+      await fetchProperties();
+      return data;
+    } catch (err: any) {
+      toast.error('Erreur lors de la duplication');
+      return null;
+    }
+  };
+
   const updateProperty = async (id: string, formData: Partial<PropertyFormData>) => {
     try {
       const updateData: any = {};
@@ -152,6 +212,118 @@ export function useProperties() {
     }
   };
 
+  // Photo management
+  const fetchPhotos = async (propertyId: string): Promise<PropertyPhoto[]> => {
+    const { data, error } = await (supabase as any)
+      .from('property_photos')
+      .select('*')
+      .eq('property_id', propertyId)
+      .order('order_index');
+    if (error) { console.error(error); return []; }
+    return data || [];
+  };
+
+  const uploadPhoto = async (propertyId: string, file: File, category = 'general', caption = '') => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Non authentifié');
+
+      const ext = file.name.split('.').pop();
+      const path = `${user.id}/${propertyId}/photos/${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from('property-files').upload(path, file);
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabase.storage.from('property-files').getPublicUrl(path);
+
+      const { error } = await (supabase as any)
+        .from('property_photos')
+        .insert({
+          property_id: propertyId,
+          user_id: user.id,
+          url: urlData.publicUrl,
+          caption: caption || null,
+          category,
+        });
+
+      if (error) throw error;
+      toast.success('Photo ajoutée');
+      return true;
+    } catch (err) {
+      toast.error('Erreur lors de l\'upload');
+      return false;
+    }
+  };
+
+  const deletePhoto = async (photoId: string) => {
+    const { error } = await (supabase as any).from('property_photos').delete().eq('id', photoId);
+    if (error) toast.error('Erreur'); else toast.success('Photo supprimée');
+  };
+
+  // Document management
+  const fetchDocuments = async (propertyId: string): Promise<PropertyDocument[]> => {
+    const { data, error } = await (supabase as any)
+      .from('property_documents')
+      .select('*')
+      .eq('property_id', propertyId)
+      .order('uploaded_at', { ascending: false });
+    if (error) { console.error(error); return []; }
+    return data || [];
+  };
+
+  const uploadDocument = async (propertyId: string, file: File, category: string, name: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Non authentifié');
+
+      const ext = file.name.split('.').pop();
+      const path = `${user.id}/${propertyId}/docs/${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from('property-files').upload(path, file);
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabase.storage.from('property-files').getPublicUrl(path);
+
+      const { error } = await (supabase as any)
+        .from('property_documents')
+        .insert({
+          property_id: propertyId,
+          user_id: user.id,
+          name: name.trim(),
+          category,
+          file_url: urlData.publicUrl,
+          file_size: file.size,
+        });
+
+      if (error) throw error;
+      toast.success('Document ajouté');
+      return true;
+    } catch (err) {
+      toast.error('Erreur lors de l\'upload');
+      return false;
+    }
+  };
+
+  const deleteDocument = async (docId: string) => {
+    const { error } = await (supabase as any).from('property_documents').delete().eq('id', docId);
+    if (error) toast.error('Erreur'); else toast.success('Document supprimé');
+  };
+
+  // Fetch associated owners
+  const fetchPropertyOwners = async (propertyId: string) => {
+    const { data, error } = await (supabase as any)
+      .from('owner_properties')
+      .select('owner_id')
+      .eq('property_id', propertyId);
+    if (error) return [];
+    if (!data?.length) return [];
+
+    const ownerIds = data.map((r: any) => r.owner_id);
+    const { data: owners } = await (supabase as any)
+      .from('owners')
+      .select('id, first_name, last_name, email, status')
+      .in('id', ownerIds);
+    return owners || [];
+  };
+
   useEffect(() => {
     fetchProperties();
   }, [fetchProperties]);
@@ -162,6 +334,14 @@ export function useProperties() {
     createProperty,
     updateProperty,
     deleteProperty,
+    duplicateProperty,
+    fetchPhotos,
+    uploadPhoto,
+    deletePhoto,
+    fetchDocuments,
+    uploadDocument,
+    deleteDocument,
+    fetchPropertyOwners,
     refetch: fetchProperties,
   };
 }

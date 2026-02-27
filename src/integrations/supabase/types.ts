@@ -879,6 +879,91 @@ export type Database = {
         }
         Relationships: []
       }
+      property_documents: {
+        Row: {
+          category: string
+          file_size: number | null
+          file_url: string
+          id: string
+          name: string
+          property_id: string
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          name: string
+          property_id: string
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          name?: string
+          property_id?: string
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_documents_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_photos: {
+        Row: {
+          caption: string | null
+          category: string | null
+          id: string
+          is_main: boolean | null
+          order_index: number | null
+          property_id: string
+          uploaded_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          category?: string | null
+          id?: string
+          is_main?: boolean | null
+          order_index?: number | null
+          property_id: string
+          uploaded_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          category?: string | null
+          id?: string
+          is_main?: boolean | null
+          order_index?: number | null
+          property_id?: string
+          uploaded_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_photos_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurants: {
         Row: {
           address: string | null

@@ -25,6 +25,7 @@ import DashboardHome from "./pages/dashboard/DashboardHome";
 import LivretsPage from "./pages/dashboard/LivretsPage";
 import ProprietairesPage from "./pages/dashboard/ProprietairesPage";
 import LogementsPage from "./pages/dashboard/LogementsPage";
+import PropertyDetailPage from "./pages/dashboard/PropertyDetailPage";
 import PrestatairesPage from "./pages/dashboard/PrestatairesPage";
 import PerformancePage from "./pages/dashboard/PerformancePage";
 import AbonnementPage from "./pages/dashboard/AbonnementPage";
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="livrets" element={<LivretsPage />} />
             <Route path="proprietaires" element={<ProprietairesPage />} />
             <Route path="logements" element={<LogementsPage />} />
+            <Route path="logements/:id" element={<PropertyDetailPage />} />
             <Route path="prestataires" element={<PrestatairesPage />} />
             <Route path="performance" element={<PerformancePage />} />
             <Route path="abonnement" element={<AbonnementPage />} />
