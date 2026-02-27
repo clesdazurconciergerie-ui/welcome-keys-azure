@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
 import NewBooklet from "./pages/NewBooklet";
 import EditBookletWrapper from "./pages/EditBookletWrapper";
 import ViewBooklet from "./pages/ViewBooklet";
@@ -21,6 +20,15 @@ import ExampleHotelsResidences from "./pages/ExampleHotelsResidences";
 import Pricing from "./pages/Pricing";
 import BillingSuccess from "./pages/BillingSuccess";
 import ExpiredDemoPage from "./components/ExpiredDemoPage";
+import DashboardLayout from "./layouts/DashboardLayout";
+import DashboardHome from "./pages/dashboard/DashboardHome";
+import LivretsPage from "./pages/dashboard/LivretsPage";
+import ProprietairesPage from "./pages/dashboard/ProprietairesPage";
+import LogementsPage from "./pages/dashboard/LogementsPage";
+import PrestatairesPage from "./pages/dashboard/PrestatairesPage";
+import PerformancePage from "./pages/dashboard/PerformancePage";
+import AbonnementPage from "./pages/dashboard/AbonnementPage";
+import ParametresPage from "./pages/dashboard/ParametresPage";
 
 const queryClient = new QueryClient();
 
@@ -37,7 +45,19 @@ const App = () => (
           <Route path="/acces-livret" element={<AccessBooklet />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          
+          {/* Dashboard with sidebar layout */}
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<DashboardHome />} />
+            <Route path="livrets" element={<LivretsPage />} />
+            <Route path="proprietaires" element={<ProprietairesPage />} />
+            <Route path="logements" element={<LogementsPage />} />
+            <Route path="prestataires" element={<PrestatairesPage />} />
+            <Route path="performance" element={<PerformancePage />} />
+            <Route path="abonnement" element={<AbonnementPage />} />
+            <Route path="parametres" element={<ParametresPage />} />
+          </Route>
+
           <Route path="/booklets/new" element={<NewBooklet />} />
           <Route path="/booklets/:id/edit" element={<EditBookletWrapper />} />
           <Route path="/booklets/:id/wizard" element={<BookletWizardPage />} />
