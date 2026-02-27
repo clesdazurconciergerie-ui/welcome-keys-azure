@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import type { OwnerFormData } from "@/hooks/useOwners";
 
 interface Props {
@@ -22,11 +22,13 @@ interface PropertyOption {
 
 export function CreateOwnerDialog({ open, onOpenChange, onSubmit }: Props) {
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [form, setForm] = useState<OwnerFormData>({
     first_name: "",
     last_name: "",
     email: "",
+    password: "",
     phone: "",
     notes: "",
     property_ids: [],
@@ -49,15 +51,14 @@ export function CreateOwnerDialog({ open, onOpenChange, onSubmit }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.first_name || !form.last_name || !form.email) return;
-    if (!form.property_ids?.length) {
-      return; // Must have at least one property
-    }
+    if (!form.first_name || !form.last_name || !form.email || !form.password) return;
+    if (form.password.length < 6) return;
+    if (!form.property_ids?.length) return;
     setLoading(true);
     const result = await onSubmit(form);
     setLoading(false);
     if (result) {
-      setForm({ first_name: "", last_name: "", email: "", phone: "", notes: "", property_ids: [] });
+      setForm({ first_name: "", last_name: "", email: "", password: "", phone: "", notes: "", property_ids: [] });
       onOpenChange(false);
     }
   };
@@ -78,6 +79,7 @@ export function CreateOwnerDialog({ open, onOpenChange, onSubmit }: Props) {
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Créer un compte propriétaire</DialogTitle>
+          <DialogDescription>Le propriétaire pourra se connecter avec son email et le mot de passe que vous définissez.</DialogDescription>
         </DialogHeader>
 
         {noProperties ? (
@@ -98,8 +100,34 @@ export function CreateOwnerDialog({ open, onOpenChange, onSubmit }: Props) {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="email">Email (identifiant de connexion) *</Label>
               <Input id="email" type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} required maxLength={255} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Mot de passe *</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                  required
+                  minLength={6}
+                  maxLength={72}
+                  placeholder="Min. 6 caractères"
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPassword(v => !v)}
+                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {form.password && form.password.length < 6 && (
+                <p className="text-xs text-destructive">Minimum 6 caractères</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="phone">Téléphone</Label>
@@ -131,7 +159,7 @@ export function CreateOwnerDialog({ open, onOpenChange, onSubmit }: Props) {
 
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-              <Button type="submit" disabled={loading || !form.property_ids?.length} className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold">
+              <Button type="submit" disabled={loading || !form.property_ids?.length || form.password.length < 6} className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold">
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Créer le compte
               </Button>

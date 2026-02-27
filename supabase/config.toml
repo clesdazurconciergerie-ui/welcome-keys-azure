@@ -53,3 +53,6 @@ verify_jwt = true
 
 [functions.me-subscription]
 verify_jwt = true
+
+[functions.create-owner]
+verify_jwt = false
