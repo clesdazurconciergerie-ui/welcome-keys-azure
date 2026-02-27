@@ -205,23 +205,35 @@ const Auth = () => {
         throw error;
       }
       
-      // Check subscription status
+      // Check if user is an owner (created by concierge)
+      const { data: ownerRecord } = await (supabase as any)
+        .from('owners')
+        .select('id')
+        .eq('auth_user_id', data.user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      toast.success("Connexion réussie !");
+
+      // Owner → redirect to owner space
+      if (ownerRecord) {
+        navigate("/proprietaire");
+        return;
+      }
+
+      // Check subscription status for concierge users
       const { data: userData } = await supabase
         .from('users')
         .select('role, subscription_status')
         .eq('id', data.user.id)
         .single();
 
-      toast.success("Connexion réussie !");
-
       // Check for next parameter in URL
       const searchParams = new URLSearchParams(window.location.search);
       const next = searchParams.get('next');
 
       if (next === '/tarifs') {
-        // If coming from pricing page, check subscription
         if (userData?.subscription_status !== 'active' || userData?.role === 'free') {
-          // Redirect to Payment Link if not subscribed
           const baseUrl = "https://buy.stripe.com/cNi5kDeMB6Cd8htgEQ5kk00";
           const url = new URL(baseUrl);
           url.searchParams.set('prefilled_email', data.user.email || '');
@@ -231,7 +243,7 @@ const Auth = () => {
         }
       }
 
-      // Default: go to dashboard
+      // Default: go to concierge dashboard
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Signin error:", error);

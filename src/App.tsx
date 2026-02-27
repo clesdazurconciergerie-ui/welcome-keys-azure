@@ -21,6 +21,7 @@ import Pricing from "./pages/Pricing";
 import BillingSuccess from "./pages/BillingSuccess";
 import ExpiredDemoPage from "./components/ExpiredDemoPage";
 import DashboardLayout from "./layouts/DashboardLayout";
+import OwnerDashboardLayout from "./layouts/OwnerDashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import LivretsPage from "./pages/dashboard/LivretsPage";
 import ProprietairesPage from "./pages/dashboard/ProprietairesPage";
@@ -30,6 +31,12 @@ import PrestatairesPage from "./pages/dashboard/PrestatairesPage";
 import PerformancePage from "./pages/dashboard/PerformancePage";
 import AbonnementPage from "./pages/dashboard/AbonnementPage";
 import ParametresPage from "./pages/dashboard/ParametresPage";
+import OwnerDashboardHome from "./pages/owner/OwnerDashboardHome";
+import OwnerPropertiesPage from "./pages/owner/OwnerPropertiesPage";
+import OwnerBookletsPage from "./pages/owner/OwnerBookletsPage";
+import OwnerCleaningPhotosPage from "./pages/owner/OwnerCleaningPhotosPage";
+import OwnerDocumentsPage from "./pages/owner/OwnerDocumentsPage";
+import OwnerAccountPage from "./pages/owner/OwnerAccountPage";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +65,16 @@ const App = () => (
             <Route path="performance" element={<PerformancePage />} />
             <Route path="abonnement" element={<AbonnementPage />} />
             <Route path="parametres" element={<ParametresPage />} />
+          </Route>
+
+          {/* Owner dashboard (propriétaires créés par conciergerie) */}
+          <Route path="/proprietaire" element={<OwnerDashboardLayout />}>
+            <Route index element={<OwnerDashboardHome />} />
+            <Route path="biens" element={<OwnerPropertiesPage />} />
+            <Route path="livrets" element={<OwnerBookletsPage />} />
+            <Route path="photos-menage" element={<OwnerCleaningPhotosPage />} />
+            <Route path="documents" element={<OwnerDocumentsPage />} />
+            <Route path="compte" element={<OwnerAccountPage />} />
           </Route>
 
           <Route path="/booklets/new" element={<NewBooklet />} />

@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import { OwnerSidebar } from "@/components/owner/OwnerSidebar";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsOwner } from "@/hooks/useIsOwner";
 import { Loader2, Menu } from "lucide-react";
+import { useIsOwner } from "@/hooks/useIsOwner";
 
-export default function DashboardLayout() {
+export default function OwnerDashboardLayout() {
   const navigate = useNavigate();
   const [authLoading, setAuthLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
@@ -25,10 +25,10 @@ export default function DashboardLayout() {
     checkAuth();
   }, [navigate]);
 
-  // If user is an owner created by concierge, redirect to owner space
+  // Once both checks complete, if not owner redirect to concierge dashboard
   useEffect(() => {
-    if (!authLoading && !ownerLoading && isOwner) {
-      navigate("/proprietaire");
+    if (!authLoading && !ownerLoading && !isOwner) {
+      navigate("/dashboard");
     }
   }, [authLoading, ownerLoading, isOwner, navigate]);
 
@@ -43,7 +43,7 @@ export default function DashboardLayout() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-[#F7F9FC]">
-        <DashboardSidebar />
+        <OwnerSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 flex items-center gap-3 border-b border-border bg-white px-4 sticky top-0 z-40">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground">
