@@ -45,14 +45,24 @@ serve(async (req) => {
   }
 
   try {
-    const { url, fallbackText, mode, bookletId } = await req.json();
+    const { url, fallbackText, mode, bookletId, propertyId, userId, photoUrls: rawPhotoUrls } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!LOVABLE_API_KEY) {
+    if (!LOVABLE_API_KEY && mode !== 'photos-only') {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log('Import Airbnb request:', { url, mode, hasFallbackText: !!fallbackText, bookletId });
+    console.log('Import Airbnb request:', { url, mode, hasFallbackText: !!fallbackText, bookletId, propertyId });
+
+    // Mode photos-only: download photos for an existing property
+    if (mode === 'photos-only' && propertyId && userId && rawPhotoUrls?.length > 0) {
+      console.log('Photos-only mode for property:', propertyId, 'photos:', rawPhotoUrls.length);
+      const stored = await downloadAndStorePropertyPhotos(rawPhotoUrls, propertyId, userId);
+      return new Response(
+        JSON.stringify({ success: true, photos: stored }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Mode fallback: l'utilisateur a collé le texte de l'annonce
     if (mode === 'fallback' && fallbackText) {
@@ -62,6 +72,9 @@ serve(async (req) => {
       // Télécharger et stocker les photos si un bookletId est fourni
       if (bookletId && aiResult.photos?.length > 0) {
         aiResult.photos = await downloadAndStorePhotos(aiResult.photos, bookletId);
+      }
+      if (propertyId && userId && aiResult.photos?.length > 0) {
+        aiResult.photos = await downloadAndStorePropertyPhotos(aiResult.photos, propertyId, userId);
       }
       
       return new Response(
@@ -96,6 +109,9 @@ serve(async (req) => {
     // Télécharger et stocker les photos si un bookletId est fourni
     if (bookletId && extractedData.photos?.length > 0) {
       extractedData.photos = await downloadAndStorePhotos(extractedData.photos, bookletId);
+    }
+    if (propertyId && userId && extractedData.photos?.length > 0) {
+      extractedData.photos = await downloadAndStorePropertyPhotos(extractedData.photos, propertyId, userId);
     }
 
     return new Response(
@@ -383,5 +399,72 @@ async function downloadAndStorePhotos(photoUrls: string[], bookletId: string): P
   }
   
   console.log(`Successfully stored ${storedUrls.length}/${photosToDownload.length} photos`);
+  return storedUrls;
+}
+
+async function downloadAndStorePropertyPhotos(photoUrls: string[], propertyId: string, userId: string): Promise<string[]> {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const storedUrls: string[] = [];
+  
+  console.log(`Downloading ${photoUrls.length} photos for property ${propertyId}`);
+  const photosToDownload = photoUrls.slice(0, 20);
+  
+  for (let i = 0; i < photosToDownload.length; i++) {
+    try {
+      const photoUrl = photosToDownload[i];
+      console.log(`Downloading property photo ${i + 1}/${photosToDownload.length}`);
+      
+      const imageResponse = await fetch(photoUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        },
+        signal: AbortSignal.timeout(15000),
+      });
+      
+      if (!imageResponse.ok) continue;
+      
+      const imageBlob = await imageResponse.blob();
+      const arrayBuffer = await imageBlob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
+      const filePath = `${userId}/${propertyId}/photos/airbnb-${Date.now()}-${i}.${ext}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('property-files')
+        .upload(filePath, uint8Array, { contentType, upsert: false });
+      
+      if (uploadError) {
+        console.error(`Upload error photo ${i + 1}:`, uploadError);
+        continue;
+      }
+      
+      const { data: publicUrlData } = supabase.storage.from('property-files').getPublicUrl(filePath);
+      const publicUrl = publicUrlData.publicUrl;
+      
+      // Insert into property_photos table
+      const { error: insertError } = await supabase
+        .from('property_photos')
+        .insert({
+          property_id: propertyId,
+          user_id: userId,
+          url: publicUrl,
+          caption: `Photo Airbnb ${i + 1}`,
+          category: 'general',
+          order_index: i,
+          is_main: i === 0,
+        });
+      
+      if (insertError) console.error(`Insert error photo ${i + 1}:`, insertError);
+      
+      storedUrls.push(publicUrl);
+      console.log(`Property photo ${i + 1} saved`);
+    } catch (error) {
+      console.error(`Error processing property photo ${i + 1}:`, error);
+    }
+  }
+  
+  console.log(`Stored ${storedUrls.length}/${photosToDownload.length} property photos`);
   return storedUrls;
 }

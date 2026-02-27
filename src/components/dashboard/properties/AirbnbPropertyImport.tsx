@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Link2, FileText, ArrowRight } from "lucide-react";
+import { Loader2, Link2, FileText, ArrowRight, ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { PropertyFormData } from "@/hooks/useProperties";
@@ -34,6 +34,7 @@ export function AirbnbPropertyImport({ open, onOpenChange, onImport }: Props) {
 
     setLoading(true);
     try {
+      // Step 1: Import data from Airbnb (without photos yet)
       const body = tab === "url"
         ? { url, mode: "scrape" }
         : { fallbackText, mode: "fallback" };
@@ -50,6 +51,9 @@ export function AirbnbPropertyImport({ open, onOpenChange, onImport }: Props) {
       if (!data?.success) throw new Error(data?.error || "Échec de l'import");
 
       const d = data.data;
+      const photoUrls: string[] = d.photos || [];
+
+      // Step 2: Create the property
       const formData: PropertyFormData = {
         name: d.title || "Import Airbnb",
         address: d.addressApprox || d.city || "",
@@ -62,12 +66,32 @@ export function AirbnbPropertyImport({ open, onOpenChange, onImport }: Props) {
       };
 
       const result = await onImport(formData);
-      if (result) {
-        toast.success("Bien importé depuis Airbnb !");
-        setUrl("");
-        setFallbackText("");
-        onOpenChange(false);
+      if (!result) {
+        setLoading(false);
+        return;
       }
+
+      // Step 3: Download & store photos for the new property
+      if (photoUrls.length > 0 && result.id) {
+        toast.info(`Import des ${photoUrls.length} photos Airbnb...`);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.functions.invoke("import-airbnb", {
+            body: {
+              mode: "photos-only",
+              propertyId: result.id,
+              userId: user.id,
+              photoUrls,
+            },
+          });
+          toast.success(`${photoUrls.length} photos importées !`);
+        }
+      }
+
+      toast.success("Bien importé depuis Airbnb !");
+      setUrl("");
+      setFallbackText("");
+      onOpenChange(false);
     } catch (err: any) {
       console.error("Airbnb import error:", err);
       toast.error(err.message || "Erreur lors de l'import");
@@ -84,7 +108,7 @@ export function AirbnbPropertyImport({ open, onOpenChange, onImport }: Props) {
             <span className="text-lg">Importer depuis Airbnb</span>
           </DialogTitle>
           <DialogDescription>
-            Importez automatiquement les informations d'une annonce Airbnb pour créer un bien.
+            Importez automatiquement les informations et photos d'une annonce Airbnb.
           </DialogDescription>
         </DialogHeader>
 
@@ -107,6 +131,10 @@ export function AirbnbPropertyImport({ open, onOpenChange, onImport }: Props) {
                 placeholder="https://www.airbnb.fr/rooms/123456"
                 type="url"
               />
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
+              <ImageIcon className="w-3.5 h-3.5 shrink-0" />
+              Les photos de l'annonce seront automatiquement importées.
             </div>
             <p className="text-xs text-muted-foreground">
               Si l'import automatique échoue, passez en mode "Texte".
