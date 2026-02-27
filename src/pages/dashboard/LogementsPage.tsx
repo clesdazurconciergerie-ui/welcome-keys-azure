@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Plus, Home, Loader2 } from "lucide-react";
+import { Plus, Home, Loader2, Download } from "lucide-react";
 import { motion } from "framer-motion";
 import { useProperties, type Property } from "@/hooks/useProperties";
 import { CreatePropertyDialog } from "@/components/dashboard/properties/CreatePropertyDialog";
 import { EditPropertyDialog } from "@/components/dashboard/properties/EditPropertyDialog";
 import { PropertiesList } from "@/components/dashboard/properties/PropertiesList";
+import { AirbnbPropertyImport } from "@/components/dashboard/properties/AirbnbPropertyImport";
 
 const LogementsPage = () => {
   const { properties, isLoading, createProperty, updateProperty, deleteProperty, duplicateProperty } = useProperties();
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editProp, setEditProp] = useState<Property | null>(null);
   const navigate = useNavigate();
 
@@ -32,13 +34,22 @@ const LogementsPage = () => {
               {properties.length} bien{properties.length !== 1 ? "s" : ""} enregistré{properties.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <Button
-            onClick={() => setCreateOpen(true)}
-            className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Ajouter un bien
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setImportOpen(true)}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Import Airbnb
+            </Button>
+            <Button
+              onClick={() => setCreateOpen(true)}
+              className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Ajouter un bien
+            </Button>
+          </div>
         </div>
       </motion.div>
 
@@ -75,6 +86,7 @@ const LogementsPage = () => {
 
       <CreatePropertyDialog open={createOpen} onOpenChange={setCreateOpen} onSubmit={createProperty} />
       <EditPropertyDialog property={editProp} open={!!editProp} onOpenChange={open => !open && setEditProp(null)} onSubmit={updateProperty} />
+      <AirbnbPropertyImport open={importOpen} onOpenChange={setImportOpen} onImport={createProperty} />
     </div>
   );
 };
