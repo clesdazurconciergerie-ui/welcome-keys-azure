@@ -16,20 +16,13 @@ export interface Owner {
   updated_at: string;
 }
 
-export interface OwnerProperty {
-  id: string;
-  owner_id: string;
-  booklet_id: string;
-  created_at: string;
-}
-
 export interface OwnerFormData {
   first_name: string;
   last_name: string;
   email: string;
   phone?: string;
   notes?: string;
-  booklet_ids?: string[];
+  property_ids?: string[];
 }
 
 export function useOwners() {
@@ -79,11 +72,11 @@ export function useOwners() {
 
       if (error) throw error;
 
-      // Link booklets if provided
-      if (formData.booklet_ids?.length && data) {
-        const links = formData.booklet_ids.map(booklet_id => ({
+      // Link properties if provided
+      if (formData.property_ids?.length && data) {
+        const links = formData.property_ids.map(property_id => ({
           owner_id: data.id,
-          booklet_id,
+          property_id,
         }));
         await (supabase as any).from('owner_properties').insert(links);
       }
@@ -155,20 +148,6 @@ export function useOwners() {
     }
   };
 
-  const getOwnerProperties = async (ownerId: string) => {
-    try {
-      const { data, error } = await (supabase as any)
-        .from('owner_properties')
-        .select('booklet_id')
-        .eq('owner_id', ownerId);
-
-      if (error) throw error;
-      return (data || []).map((r: any) => r.booklet_id);
-    } catch {
-      return [];
-    }
-  };
-
   useEffect(() => {
     fetchOwners();
   }, [fetchOwners]);
@@ -180,7 +159,6 @@ export function useOwners() {
     updateOwner,
     deleteOwner,
     toggleOwnerStatus,
-    getOwnerProperties,
     refetch: fetchOwners,
   };
 }

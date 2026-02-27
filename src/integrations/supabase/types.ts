@@ -167,6 +167,7 @@ export type Database = {
           parking_info: string | null
           postcode: string | null
           property_address: string
+          property_id: string | null
           property_name: string
           property_type: string | null
           safety_instructions: string | null
@@ -223,6 +224,7 @@ export type Database = {
           parking_info?: string | null
           postcode?: string | null
           property_address: string
+          property_id?: string | null
           property_name: string
           property_type?: string | null
           safety_instructions?: string | null
@@ -279,6 +281,7 @@ export type Database = {
           parking_info?: string | null
           postcode?: string | null
           property_address?: string
+          property_id?: string | null
           property_name?: string
           property_type?: string | null
           safety_instructions?: string | null
@@ -296,6 +299,13 @@ export type Database = {
           wizard_step?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "booklets_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "booklets_user_id_fkey"
             columns: ["user_id"]
@@ -587,6 +597,7 @@ export type Database = {
           description: string | null
           id: string
           owner_id: string
+          property_id: string | null
           scheduled_at: string | null
           status: string
           title: string
@@ -601,6 +612,7 @@ export type Database = {
           description?: string | null
           id?: string
           owner_id: string
+          property_id?: string | null
           scheduled_at?: string | null
           status?: string
           title: string
@@ -615,6 +627,7 @@ export type Database = {
           description?: string | null
           id?: string
           owner_id?: string
+          property_id?: string | null
           scheduled_at?: string | null
           status?: string
           title?: string
@@ -636,40 +649,47 @@ export type Database = {
             referencedRelation: "owners"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "owner_interventions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
         ]
       }
       owner_properties: {
         Row: {
-          booklet_id: string
           created_at: string
           id: string
           owner_id: string
+          property_id: string
         }
         Insert: {
-          booklet_id: string
           created_at?: string
           id?: string
           owner_id: string
+          property_id: string
         }
         Update: {
-          booklet_id?: string
           created_at?: string
           id?: string
           owner_id?: string
+          property_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "owner_properties_booklet_id_fkey"
-            columns: ["booklet_id"]
-            isOneToOne: false
-            referencedRelation: "booklets"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "owner_properties_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_properties_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -787,6 +807,75 @@ export type Database = {
           stripe_price_id?: string | null
           stripe_product_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      properties: {
+        Row: {
+          address: string
+          amenities: Json | null
+          avg_nightly_rate: number | null
+          bathrooms: number | null
+          bedrooms: number | null
+          capacity: number | null
+          city: string | null
+          country: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          photos: Json | null
+          postcode: string | null
+          pricing_strategy: string | null
+          property_type: string | null
+          status: string
+          surface_m2: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          amenities?: Json | null
+          avg_nightly_rate?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          capacity?: number | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          photos?: Json | null
+          postcode?: string | null
+          pricing_strategy?: string | null
+          property_type?: string | null
+          status?: string
+          surface_m2?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          amenities?: Json | null
+          avg_nightly_rate?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          capacity?: number | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          photos?: Json | null
+          postcode?: string | null
+          pricing_strategy?: string | null
+          property_type?: string | null
+          status?: string
+          surface_m2?: number | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
