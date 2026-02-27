@@ -31,9 +31,9 @@ import { toast } from "sonner";
 
 const mainNav = [
   { title: "Tableau de bord", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen },
+  { title: "Biens / Logements", url: "/dashboard/logements", icon: Home },
   { title: "Propriétaires", url: "/dashboard/proprietaires", icon: Users },
-  { title: "Logements", url: "/dashboard/logements", icon: Home },
+  { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen },
   { title: "Prestataires", url: "/dashboard/prestataires", icon: Wrench },
 ];
 
