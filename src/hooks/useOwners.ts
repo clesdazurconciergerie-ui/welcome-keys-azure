@@ -123,16 +123,18 @@ export function useOwners() {
 
   const deleteOwner = async (id: string) => {
     try {
-      const { error } = await (supabase as any)
-        .from('owners')
-        .delete()
-        .eq('id', id);
+      const { data, error } = await supabase.functions.invoke('delete-owner', {
+        body: { owner_id: id },
+      });
 
       if (error) throw error;
-      toast.success('Propriétaire supprimé');
+      if (data?.error) throw new Error(data.error);
+
+      toast.success('Propriétaire et compte supprimés définitivement');
       await fetchOwners();
-    } catch (err) {
-      toast.error('Erreur lors de la suppression');
+    } catch (err: any) {
+      console.error('Error deleting owner:', err);
+      toast.error(err.message || 'Erreur lors de la suppression');
     }
   };
 
