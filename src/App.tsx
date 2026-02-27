@@ -22,12 +22,14 @@ import BillingSuccess from "./pages/BillingSuccess";
 import ExpiredDemoPage from "./components/ExpiredDemoPage";
 import DashboardLayout from "./layouts/DashboardLayout";
 import OwnerDashboardLayout from "./layouts/OwnerDashboardLayout";
+import ServiceProviderDashboardLayout from "./layouts/ServiceProviderDashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import LivretsPage from "./pages/dashboard/LivretsPage";
 import ProprietairesPage from "./pages/dashboard/ProprietairesPage";
 import LogementsPage from "./pages/dashboard/LogementsPage";
 import PropertyDetailPage from "./pages/dashboard/PropertyDetailPage";
 import PrestatairesPage from "./pages/dashboard/PrestatairesPage";
+import InterventionsPage from "./pages/dashboard/InterventionsPage";
 import PerformancePage from "./pages/dashboard/PerformancePage";
 import AbonnementPage from "./pages/dashboard/AbonnementPage";
 import ParametresPage from "./pages/dashboard/ParametresPage";
@@ -37,6 +39,9 @@ import OwnerBookletsPage from "./pages/owner/OwnerBookletsPage";
 import OwnerCleaningPhotosPage from "./pages/owner/OwnerCleaningPhotosPage";
 import OwnerDocumentsPage from "./pages/owner/OwnerDocumentsPage";
 import OwnerAccountPage from "./pages/owner/OwnerAccountPage";
+import SPDashboardHome from "./pages/service-provider/SPDashboardHome";
+import SPInterventionsPage from "./pages/service-provider/SPInterventionsPage";
+import SPAccountPage from "./pages/service-provider/SPAccountPage";
 
 const queryClient = new QueryClient();
 
@@ -62,12 +67,13 @@ const App = () => (
             <Route path="logements" element={<LogementsPage />} />
             <Route path="logements/:id" element={<PropertyDetailPage />} />
             <Route path="prestataires" element={<PrestatairesPage />} />
+            <Route path="interventions" element={<InterventionsPage />} />
             <Route path="performance" element={<PerformancePage />} />
             <Route path="abonnement" element={<AbonnementPage />} />
             <Route path="parametres" element={<ParametresPage />} />
           </Route>
 
-          {/* Owner dashboard (propriétaires créés par conciergerie) */}
+          {/* Owner dashboard */}
           <Route path="/proprietaire" element={<OwnerDashboardLayout />}>
             <Route index element={<OwnerDashboardHome />} />
             <Route path="biens" element={<OwnerPropertiesPage />} />
@@ -75,6 +81,13 @@ const App = () => (
             <Route path="photos-menage" element={<OwnerCleaningPhotosPage />} />
             <Route path="documents" element={<OwnerDocumentsPage />} />
             <Route path="compte" element={<OwnerAccountPage />} />
+          </Route>
+
+          {/* Service provider dashboard */}
+          <Route path="/prestataire" element={<ServiceProviderDashboardLayout />}>
+            <Route index element={<SPDashboardHome />} />
+            <Route path="interventions" element={<SPInterventionsPage />} />
+            <Route path="compte" element={<SPAccountPage />} />
           </Route>
 
           <Route path="/booklets/new" element={<NewBooklet />} />

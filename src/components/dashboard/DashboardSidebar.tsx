@@ -21,6 +21,7 @@ import {
   Users,
   Home,
   Wrench,
+  ClipboardList,
   BarChart3,
   Settings,
   LogOut,
@@ -35,6 +36,7 @@ const mainNav = [
   { title: "Propriétaires", url: "/dashboard/proprietaires", icon: Users },
   { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen },
   { title: "Prestataires", url: "/dashboard/prestataires", icon: Wrench },
+  { title: "Interventions", url: "/dashboard/interventions", icon: ClipboardList },
 ];
 
 const secondaryNav = [

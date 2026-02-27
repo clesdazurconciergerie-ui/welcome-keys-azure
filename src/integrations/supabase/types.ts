@@ -315,6 +315,101 @@ export type Database = {
           },
         ]
       }
+      cleaning_interventions: {
+        Row: {
+          completed_at: string | null
+          concierge_notes: string | null
+          concierge_user_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          property_id: string
+          scheduled_date: string
+          service_provider_id: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          concierge_notes?: string | null
+          concierge_user_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          property_id: string
+          scheduled_date: string
+          service_provider_id?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          concierge_notes?: string | null
+          concierge_user_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          property_id?: string
+          scheduled_date?: string
+          service_provider_id?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaning_interventions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaning_interventions_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cleaning_photos: {
+        Row: {
+          caption: string | null
+          id: string
+          intervention_id: string
+          type: string
+          uploaded_at: string
+          url: string
+        }
+        Insert: {
+          caption?: string | null
+          id?: string
+          intervention_id: string
+          type?: string
+          uploaded_at?: string
+          url: string
+        }
+        Update: {
+          caption?: string | null
+          id?: string
+          intervention_id?: string
+          type?: string
+          uploaded_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaning_photos_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "cleaning_interventions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment: {
         Row: {
           booklet_id: string
@@ -1065,6 +1160,51 @@ export type Database = {
         }
         Relationships: []
       }
+      service_providers: {
+        Row: {
+          auth_user_id: string | null
+          concierge_user_id: string
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          notes: string | null
+          phone: string | null
+          specialty: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          concierge_user_id: string
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          notes?: string | null
+          phone?: string | null
+          specialty?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          concierge_user_id?: string
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          notes?: string | null
+          phone?: string | null
+          specialty?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean
@@ -1289,12 +1429,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_intervention: {
+        Args: { _intervention_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_create_booklet: { Args: { uid: string }; Returns: boolean }
+      can_upload_intervention_photo: {
+        Args: { _intervention_id: string; _user_id: string }
+        Returns: boolean
+      }
       check_booklet_quota: { Args: { p_user_id: string }; Returns: boolean }
       cleanup_demo_users: { Args: never; Returns: undefined }
       expire_demo_trials: { Args: never; Returns: undefined }
       generate_pin_code: { Args: never; Returns: string }
       generate_unique_pin: { Args: never; Returns: string }
+      get_service_provider_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1318,6 +1467,7 @@ export type Database = {
         | "pack_business"
         | "pack_premium"
         | "super_admin"
+        | "service_provider"
       billing_interval: "month" | "year"
       subscription_status:
         | "trialing"
@@ -1463,6 +1613,7 @@ export const Constants = {
         "pack_business",
         "pack_premium",
         "super_admin",
+        "service_provider",
       ],
       billing_interval: ["month", "year"],
       subscription_status: [
