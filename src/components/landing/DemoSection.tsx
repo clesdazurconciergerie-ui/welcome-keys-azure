@@ -1,184 +1,69 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Smartphone, Eye, QrCode } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { useState } from "react";
+import { Building2, UserCheck, BarChart3, BookOpen } from "lucide-react";
 
 const DemoSection = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleTryDemo = async () => {
-    setIsLoading(true);
-    
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        // Not logged in - redirect to auth with demo mode
-        navigate('/auth?mode=demo');
-        return;
-      }
-
-      // Logged in - activate demo and redirect to booklet view
-      toast.loading("Création de votre livret de démo...");
-      
-      const response = await supabase.functions.invoke('activate-demo', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      toast.dismiss();
-
-      if (response.error) {
-        toast.error("Vous avez déjà utilisé votre démo gratuite.");
-        return;
-      }
-
-      if (response.data?.pin_code) {
-        toast.success("Livret de démo créé ! Redirection...");
-        // Redirect to public view of the demo booklet
-        setTimeout(() => {
-          window.location.href = `/view/${response.data.pin_code}`;
-        }, 1000);
-      } else {
-        toast.error("Erreur lors de la création du livret");
-      }
-    } catch (error) {
-      toast.dismiss();
-      console.error('Error activating demo:', error);
-      toast.error("Une erreur est survenue");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const audiences = [
+    {
+      icon: Building2,
+      title: "Pour les conciergeries",
+      points: ["CRM de prospection intégré", "Dashboard performance en temps réel", "Gestion prestataires & ménage", "Scalabilité multi-logements"],
+    },
+    {
+      icon: UserCheck,
+      title: "Pour les propriétaires",
+      points: ["Revenus mensuels visibles", "Taux d'occupation transparent", "Photos ménage en temps réel", "Documents centralisés"],
+    },
+  ];
 
   return (
-    <section id="demo" className="py-20 lg:py-24 bg-slate-50 scroll-mt-20">
-      <div className="mx-auto max-w-[1280px] px-6 lg:px-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <h2 className="font-extrabold text-[clamp(32px,5vw,48px)] text-slate-900 leading-tight mb-4">
-            Essayez par vous-même
+    <section id="demo" className="py-20 lg:py-28 bg-background scroll-mt-20">
+      <div className="mx-auto max-w-6xl px-6 lg:px-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="text-center mb-16">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase text-gold bg-gold/10 mb-4">
+            Double usage
+          </span>
+          <h2 className="!text-[clamp(1.75rem,4vw,2.75rem)] font-bold text-foreground leading-tight mb-4">
+            Transparence totale pour vos propriétaires
           </h2>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Découvrez comment vos voyageurs accèdent au livret en un instant
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Pilotez vos performances en temps réel et impressionnez vos propriétaires
           </p>
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-12 items-center max-w-5xl mx-auto">
-          {/* Left: QR Code Demo */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="bg-white rounded-2xl p-8 border-2 shadow-lg text-center"
-            style={{ borderColor: '#071552' }}
-          >
-            <div className="mb-6">
-              <div className="w-48 h-48 mx-auto bg-slate-100 rounded-2xl flex items-center justify-center border-2 border-slate-200">
-                {/* Placeholder QR code */}
-                <div className="w-40 h-40 bg-white rounded-xl flex items-center justify-center border border-slate-300">
-                  <div className="text-center space-y-2">
-                    <QrCode className="w-12 h-12 mx-auto" style={{ color: '#071552' }} />
-                    <p className="text-xs text-slate-500">QR Code de démo</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <h3 className="text-xl font-bold text-slate-900 mb-2">
-              Scannez pour tester
-            </h3>
-            <p className="text-slate-600 mb-6">
-              Accédez instantanément à un livret de démonstration complet
-            </p>
-
-            <button
-              onClick={handleTryDemo}
-              disabled={isLoading}
-              className="w-full text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 hover:brightness-115 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#071552' }}
-              aria-label="Essayer gratuitement"
+        <div className="grid lg:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
+          {audiences.map((audience, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+              className="bg-card rounded-2xl p-8 border border-border hover:border-gold/30 hover:shadow-lg transition-all duration-300"
             >
-              <Smartphone className="inline-block w-5 h-5 mr-2 mb-1" />
-              {isLoading ? "Création en cours..." : "Essayer gratuitement"}
-            </button>
-          </motion.div>
-
-          {/* Right: Features list */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="space-y-6"
-          >
-            <div className="flex items-start gap-4">
-              <div 
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: 'rgba(7, 21, 82, 0.1)' }}
-              >
-                <Eye className="w-5 h-5" style={{ color: '#071552' }} />
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center">
+                  <audience.icon className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="!text-[1.25rem] font-bold text-foreground">{audience.title}</h3>
               </div>
-              <div>
-                <h4 className="font-bold text-slate-900 mb-1">Aperçu instantané</h4>
-                <p className="text-slate-600 text-sm">
-                  Visualisez comment vos voyageurs découvrent votre livret sur mobile
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div 
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: 'rgba(7, 21, 82, 0.1)' }}
-              >
-                <Smartphone className="w-5 h-5" style={{ color: '#071552' }} />
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-900 mb-1">Design responsive</h4>
-                <p className="text-slate-600 text-sm">
-                  Interface optimisée pour tous les smartphones et tablettes
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div 
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: 'rgba(7, 21, 82, 0.1)' }}
-              >
-                <QrCode className="w-5 h-5" style={{ color: '#071552' }} />
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-900 mb-1">QR code inclus</h4>
-                <p className="text-slate-600 text-sm">
-                  Générez automatiquement un QR code élégant prêt à imprimer
-                </p>
-              </div>
-            </div>
-          </motion.div>
+              <ul className="space-y-3">
+                {audience.points.map((point, j) => (
+                  <li key={j} className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <div className="w-1.5 h-1.5 rounded-full bg-gold flex-shrink-0" />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          ))}
         </div>
 
-        {/* Additional note */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="text-center mt-12"
-        >
-          <p className="text-sm text-slate-500">
-            ⚡ Moins de 2,5s de chargement · 📱 Compatible tous appareils · 🔒 Données sécurisées
+        <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.3 }} className="text-center">
+          <p className="text-xs text-muted-foreground">
+            ⚡ Déploiement en 24h · 📱 Compatible tous appareils · 🔒 Données sécurisées RGPD
           </p>
         </motion.div>
       </div>

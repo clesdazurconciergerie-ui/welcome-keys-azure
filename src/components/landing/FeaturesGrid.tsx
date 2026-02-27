@@ -1,43 +1,61 @@
 import { motion } from "framer-motion";
-import { Key, Info, Wrench, Wifi, MapPin, MessageCircleQuestion } from "lucide-react";
+import { BarChart3, Users, Home, Wrench, Camera, BookOpen, CalendarSync, UserPlus } from "lucide-react";
 
 const FeaturesGrid = () => {
   const features = [
     {
-      icon: Key,
-      title: "Codes & accès",
-      description: "Boîte à clés, interphone, portail… tous vos codes d'accès centralisés et accessibles."
+      icon: UserPlus,
+      title: "CRM de prospection",
+      description: "Pipeline Kanban, suivi appels, historique échanges. Convertissez plus de propriétaires.",
+      tag: "Conciergeries"
     },
     {
-      icon: Info,
-      title: "Infos essentielles",
-      description: "Check-in/out, règles de la maison, contacts d'urgence — tout ce qu'il faut savoir."
+      icon: Users,
+      title: "Fiches propriétaires",
+      description: "Centralisation des infos, documents, performances et historique d'interventions.",
+      tag: "Conciergeries"
+    },
+    {
+      icon: Home,
+      title: "Gestion logements",
+      description: "Calendrier iCal synchronisé, check-in/out, revenus par période en un coup d'œil.",
+      tag: "Conciergeries"
     },
     {
       icon: Wrench,
-      title: "Consignes & équipements",
-      description: "Mode d'emploi, déclaration de pannes, garanties — guidez vos voyageurs pas à pas."
+      title: "Gestion prestataires",
+      description: "Fiches, zones, tarifs, affectation automatique et notifications de mission.",
+      tag: "Conciergeries"
     },
     {
-      icon: Wifi,
-      title: "Wi-Fi",
-      description: "Partagez nom et mot de passe du réseau. Désactivez si vous n'en proposez pas."
+      icon: Camera,
+      title: "Validation ménage photo",
+      description: "Upload avant/après obligatoire. Validation par la conciergerie. Visible côté propriétaire.",
+      tag: "Qualité"
     },
     {
-      icon: MapPin,
-      title: "À proximité",
-      description: "Image + lien vers chaque lieu d'intérêt. Restaurants, commerces, activités."
+      icon: BarChart3,
+      title: "Dashboard performance",
+      description: "KPIs en temps réel : revenus, occupation, conversion. Graphiques clairs et exportables.",
+      tag: "Analytics"
     },
     {
-      icon: MessageCircleQuestion,
-      title: "FAQ & Chatbot",
-      description: "FAQ éditable + chatbot intégré pour répondre automatiquement aux questions."
-    }
+      icon: CalendarSync,
+      title: "Espace propriétaire",
+      description: "Accès sécurisé aux revenus, occupation, photos ménage et documents. Élégant et rassurant.",
+      tag: "Propriétaires"
+    },
+    {
+      icon: BookOpen,
+      title: "Livret d'accueil digital",
+      description: "QR code personnalisé, recommandations, règlement, chatbot IA. Vos livrets existants conservés.",
+      tag: "Voyageurs"
+    },
   ];
 
   return (
-    <section id="features" className="py-20 lg:py-24 bg-white scroll-mt-20">
-      <div className="mx-auto max-w-[1280px] px-6 lg:px-10">
+    <section id="features" className="py-20 lg:py-28 bg-background scroll-mt-20">
+      <div className="mx-auto max-w-6xl px-6 lg:px-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -45,55 +63,36 @@ const FeaturesGrid = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="font-extrabold text-[clamp(32px,5vw,48px)] text-slate-900 leading-tight mb-4">
-            Fonctionnalités clés
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase text-gold bg-gold/10 mb-4">
+            Plateforme complète
+          </span>
+          <h2 className="!text-[clamp(1.75rem,4vw,2.75rem)] font-bold text-foreground leading-tight mb-4">
+            Centralisez, analysez, optimisez
           </h2>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Tout ce dont vous avez besoin pour créer un livret d'accueil professionnel
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Une gestion moderne pour des conciergeries ambitieuses
           </p>
         </motion.div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {features.map((feature, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 group hover:border-slate-300"
+              transition={{ duration: 0.5, delay: index * 0.06 }}
+              className="group bg-card rounded-2xl p-6 border border-border hover:border-gold/30 hover:shadow-lg transition-all duration-300"
             >
-              <div 
-                className="w-14 h-14 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110"
-                style={{ backgroundColor: 'rgba(7, 21, 82, 0.1)' }}
-              >
-                <feature.icon className="w-7 h-7" style={{ color: '#071552' }} strokeWidth={1.75} />
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-primary/5 group-hover:bg-gold/10 transition-colors">
+                <feature.icon className="w-6 h-6 text-primary group-hover:text-gold transition-colors" strokeWidth={1.75} />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">
-                {feature.title}
-              </h3>
-              <p className="text-slate-600 leading-relaxed text-[15px]">
-                {feature.description}
-              </p>
+              <span className="inline-block text-[10px] font-semibold uppercase tracking-wider text-gold mb-2">{feature.tag}</span>
+              <h3 className="!text-[1rem] font-bold text-foreground mb-2">{feature.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
             </motion.div>
           ))}
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="text-center mt-12"
-        >
-          <button
-            onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
-            className="text-white font-semibold px-7 py-3 rounded-xl transition-all duration-300 hover:brightness-115 hover:shadow-lg hover:-translate-y-0.5"
-            style={{ backgroundColor: '#071552' }}
-          >
-            Voir la démo →
-          </button>
-        </motion.div>
       </div>
     </section>
   );
