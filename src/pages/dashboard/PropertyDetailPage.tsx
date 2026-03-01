@@ -269,10 +269,10 @@ const PropertyDetailPage = () => {
                 {photoCategories.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
               </SelectContent>
             </Select>
-            <input id={photoInputId} ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} />
-            <label htmlFor={photoInputId}
+            <label
               className={cn("inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
-              {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+              <input ref={photoInputRef} type="file" accept="image/*" multiple className="absolute w-0 h-0 opacity-0 overflow-hidden" onChange={handlePhotoUpload} />
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               Ajouter des photos
             </label>
           </div>
@@ -311,10 +311,10 @@ const PropertyDetailPage = () => {
               </SelectContent>
             </Select>
             <Input value={docName} onChange={e => setDocName(e.target.value)} placeholder="Nom du document" className="w-52" maxLength={200} />
-            <input id={docInputId} ref={docInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="hidden" onChange={handleDocUpload} />
-            <label htmlFor={docInputId}
+            <label
               className={cn("inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
-              {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+              <input ref={docInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="absolute w-0 h-0 opacity-0 overflow-hidden" onChange={handleDocUpload} />
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               Ajouter
             </label>
           </div>
@@ -366,10 +366,10 @@ const PropertyDetailPage = () => {
               </SelectContent>
             </Select>
             <Input value={contractDocName} onChange={e => setContractDocName(e.target.value)} placeholder="Nom du document" className="w-52" maxLength={200} />
-            <input id={contractInputId} ref={contractDocInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="hidden" onChange={handleContractDocUpload} />
-            <label htmlFor={contractInputId}
+            <label
               className={cn("inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
-              {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+              <input ref={contractDocInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="absolute w-0 h-0 opacity-0 overflow-hidden" onChange={handleContractDocUpload} />
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               Ajouter
             </label>
           </div>
