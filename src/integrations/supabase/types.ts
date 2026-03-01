@@ -91,6 +91,220 @@ export type Database = {
           },
         ]
       }
+      ai_feature_flags: {
+        Row: {
+          ai_analysis_enabled: boolean
+          ai_enabled: boolean
+          ai_forecast_enabled: boolean
+          ai_listing_enabled: boolean
+          ai_tasks_enabled: boolean
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_analysis_enabled?: boolean
+          ai_enabled?: boolean
+          ai_forecast_enabled?: boolean
+          ai_listing_enabled?: boolean
+          ai_tasks_enabled?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_analysis_enabled?: boolean
+          ai_enabled?: boolean
+          ai_forecast_enabled?: boolean
+          ai_listing_enabled?: boolean
+          ai_tasks_enabled?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_insights: {
+        Row: {
+          bullets_json: Json | null
+          created_at: string
+          id: string
+          period_end: string | null
+          period_start: string | null
+          run_id: string | null
+          summary_text: string | null
+          user_id: string
+        }
+        Insert: {
+          bullets_json?: Json | null
+          created_at?: string
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          run_id?: string | null
+          summary_text?: string | null
+          user_id: string
+        }
+        Update: {
+          bullets_json?: Json | null
+          created_at?: string
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          run_id?: string | null
+          summary_text?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_insights_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_listing_suggestions: {
+        Row: {
+          created_at: string
+          id: string
+          property_id: string | null
+          run_id: string | null
+          suggestions: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          property_id?: string | null
+          run_id?: string | null
+          suggestions?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          property_id?: string | null
+          run_id?: string | null
+          suggestions?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_listing_suggestions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_listing_suggestions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          period_end: string | null
+          period_start: string | null
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_tasks: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string
+          related_id: string | null
+          related_type: string | null
+          run_id: string | null
+          scope: string
+          source: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          related_id?: string | null
+          related_type?: string | null
+          run_id?: string | null
+          scope?: string
+          source?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          related_id?: string | null
+          related_type?: string | null
+          run_id?: string | null
+          scope?: string
+          source?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_tasks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           calendar_event_id: string | null
