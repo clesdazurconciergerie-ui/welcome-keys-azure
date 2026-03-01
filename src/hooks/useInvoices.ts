@@ -78,6 +78,7 @@ export function useInvoices() {
     type?: string;
     status?: string;
     vat_rate: number;
+    vatEnabled?: boolean;
     items: Omit<InvoiceItem, "id" | "invoice_id">[];
     financial_settings: any;
     owner: any;
@@ -90,13 +91,22 @@ export function useInvoices() {
     const prefix = fs?.invoice_prefix || "FAC";
     const nextNum = fs?.next_invoice_number || 1;
     const invoiceNumber = `${prefix}-${String(nextNum).padStart(5, "0")}`;
+    const vatEnabled = params.vatEnabled ?? true;
 
-    // Compute totals from items
-    const subtotal = params.items.reduce((s, item) => s + (item.quantity * item.unit_price), 0);
-    const vatAmount = params.items.reduce((s, item) => {
-      const lineTotal = item.quantity * item.unit_price;
-      return s + lineTotal * ((item.vat_rate || 0) / 100);
-    }, 0);
+    // Sanitize items: force vat to 0 when disabled
+    const sanitizedItems = params.items.map(item => ({
+      ...item,
+      vat_rate: vatEnabled ? (item.vat_rate || 0) : 0,
+    }));
+
+    // Compute totals from sanitized items
+    const subtotal = sanitizedItems.reduce((s, item) => s + (item.quantity * item.unit_price), 0);
+    const vatAmount = vatEnabled
+      ? sanitizedItems.reduce((s, item) => {
+          const lineTotal = item.quantity * item.unit_price;
+          return s + lineTotal * ((item.vat_rate || 0) / 100);
+        }, 0)
+      : 0;
     const total = subtotal + vatAmount;
 
     const { data: invoice, error } = await supabase
@@ -110,7 +120,7 @@ export function useInvoices() {
         period_start: params.period_start,
         period_end: params.period_end,
         subtotal,
-        vat_rate: params.vat_rate,
+        vat_rate: vatEnabled ? params.vat_rate : 0,
         vat_amount: vatAmount,
         total,
         type: params.type || "invoice",
@@ -136,7 +146,7 @@ export function useInvoices() {
     if (error) { toast.error("Erreur génération facture"); return null; }
 
     const invoiceId = (invoice as any).id;
-    for (const item of params.items) {
+    for (const item of sanitizedItems) {
       await supabase.from("invoice_items" as any).insert({
         invoice_id: invoiceId,
         booking_id: item.booking_id || null,
@@ -146,7 +156,7 @@ export function useInvoices() {
         total: item.quantity * item.unit_price,
         item_type: item.item_type || "revenue",
         line_type: item.line_type || "rental_manual",
-        vat_rate: item.vat_rate || 0,
+        vat_rate: vatEnabled ? (item.vat_rate || 0) : 0,
         property_id: item.property_id || null,
         metadata: item.metadata || {},
       });

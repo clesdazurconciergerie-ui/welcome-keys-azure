@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useInvoices } from "@/hooks/useInvoices";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useVendorPayments } from "@/hooks/useVendorPayments";
+import { useFinancialSettings } from "@/hooks/useFinancialSettings";
 import { useOwners } from "@/hooks/useOwners";
 import { useProperties } from "@/hooks/useProperties";
 import {
@@ -25,6 +26,11 @@ export function FinanceDashboardTab() {
   const { invoices, loading: iLoading } = useInvoices();
   const { expenses, loading: eLoading } = useExpenses();
   const { payments: vendorPayments, loading: vpLoading } = useVendorPayments();
+  const { settings: fs } = useFinancialSettings();
+
+  const vatEnabled = fs?.vat_enabled ?? true;
+  // When VAT disabled, always use subtotal (= total since vat=0)
+  const effectiveDisplayMode = vatEnabled ? displayMode : "ht";
 
   const loading = iLoading || eLoading || vpLoading;
 
@@ -52,7 +58,7 @@ export function FinanceDashboardTab() {
       return inRange && inv.type === "credit_note" && ["sent", "paid"].includes(inv.status);
     });
 
-    const amountField = displayMode === "ht" ? "subtotal" : "total";
+    const amountField = effectiveDisplayMode === "ht" ? "subtotal" : "total";
 
     // Revenue
     const invoiceRevenue = activeInvoices.reduce((s, inv) => s + Number(inv[amountField] || 0), 0);
@@ -93,7 +99,7 @@ export function FinanceDashboardTab() {
       expensesTotal, vpTotal, totalExpenses,
       netProfit, receivable, sentTotal, overdueTotal,
     };
-  }, [invoices, expenses, vendorPayments, dateRange, displayMode, cashOnly]);
+  }, [invoices, expenses, vendorPayments, dateRange, effectiveDisplayMode, cashOnly]);
 
   // Chart data
   const chartData = useMemo(() => {
@@ -112,7 +118,7 @@ export function FinanceDashboardTab() {
           const id = new Date(inv.issue_date || inv.invoice_date);
           return isWithinInterval(id, interval) && ["sent", "paid", "overdue"].includes(inv.status) && inv.type !== "credit_note";
         })
-        .reduce((s, inv) => s + Number(displayMode === "ht" ? inv.subtotal : inv.total), 0);
+        .reduce((s, inv) => s + Number(effectiveDisplayMode === "ht" ? inv.subtotal : inv.total), 0);
 
       const exp = expenses
         .filter(e => {
@@ -135,7 +141,7 @@ export function FinanceDashboardTab() {
 
       return { label, revenue: rev, expenses: exp };
     });
-  }, [invoices, expenses, vendorPayments, dateRange, period, displayMode]);
+  }, [invoices, expenses, vendorPayments, dateRange, period, effectiveDisplayMode]);
 
   // Recent items
   const recentInvoices = invoices
@@ -163,13 +169,15 @@ export function FinanceDashboardTab() {
               <SelectItem value="year">Cette année</SelectItem>
             </SelectContent>
           </Select>
-          <Button
-            variant={displayMode === "ht" ? "default" : "outline"}
-            size="sm" className="h-9 text-xs"
-            onClick={() => setDisplayMode(displayMode === "ht" ? "ttc" : "ht")}
-          >
-            {displayMode === "ht" ? "HT" : "TTC"}
-          </Button>
+          {vatEnabled && (
+            <Button
+              variant={displayMode === "ht" ? "default" : "outline"}
+              size="sm" className="h-9 text-xs"
+              onClick={() => setDisplayMode(displayMode === "ht" ? "ttc" : "ht")}
+            >
+              {displayMode === "ht" ? "HT" : "TTC"}
+            </Button>
+          )}
           <Button
             variant={cashOnly ? "default" : "outline"}
             size="sm" className="h-9 text-xs"

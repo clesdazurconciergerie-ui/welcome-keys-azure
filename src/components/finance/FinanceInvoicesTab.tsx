@@ -198,6 +198,7 @@ export function FinanceInvoicesTab() {
       type: invoiceType,
       status: invoiceStatus,
       vat_rate: vatEnabled ? (fs?.default_vat_rate || 0) : 0,
+      vatEnabled,
       items,
       financial_settings: fs,
       owner,

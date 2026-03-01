@@ -69,7 +69,51 @@ export function useFinancialSettings() {
     await fetchSettings();
   };
 
-  return { settings, loading, saveSettings, refetch: fetchSettings };
+  /** One-time cleanup: zero out VAT on all existing data when vat_enabled=false */
+  const cleanupVatData = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Zero out invoice_items vat_rate for all invoices belonging to this user
+    const { data: userInvoices } = await supabase
+      .from("invoices" as any)
+      .select("id")
+      .eq("user_id", user.id);
+
+    if (userInvoices && userInvoices.length > 0) {
+      const invoiceIds = (userInvoices as any[]).map((i: any) => i.id);
+      for (const invId of invoiceIds) {
+        await supabase
+          .from("invoice_items" as any)
+          .update({ vat_rate: 0 })
+          .eq("invoice_id", invId);
+      }
+      // Recompute invoice totals: vat_amount=0, total=subtotal
+      for (const invId of invoiceIds) {
+        const { data: inv } = await supabase
+          .from("invoices" as any)
+          .select("subtotal")
+          .eq("id", invId)
+          .single();
+        if (inv) {
+          await supabase
+            .from("invoices" as any)
+            .update({ vat_rate: 0, vat_amount: 0, total: (inv as any).subtotal })
+            .eq("id", invId);
+        }
+      }
+    }
+
+    // Zero out expenses vat
+    await supabase
+      .from("expenses" as any)
+      .update({ vat_rate: 0, vat_amount: 0 })
+      .eq("user_id", user.id);
+
+    toast.success("Données TVA nettoyées");
+  };
+
+  return { settings, loading, saveSettings, refetch: fetchSettings, cleanupVatData };
 }
 
 export function usePropertyFinancialSettings(propertyId: string | undefined) {
