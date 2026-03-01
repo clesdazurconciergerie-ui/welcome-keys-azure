@@ -40,37 +40,60 @@ export function useFinancialSettings() {
   const [loading, setLoading] = useState(true);
 
   const fetchSettings = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data, error } = await supabase
-      .from("financial_settings" as any)
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (!error && data) setSettings(data as any);
-    setLoading(false);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+      const { data, error } = await supabase
+        .from("financial_settings" as any)
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) {
+        console.error("[FinancialSettings] fetch error:", error);
+      }
+      if (data) setSettings(data as any);
+      setLoading(false);
+    } catch (e) {
+      console.error("[FinancialSettings] unexpected error:", e);
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
   const saveSettings = async (values: Partial<FinancialSettings>) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const payload = { ...values, user_id: user.id };
-    if (settings?.id) {
-      const { error } = await supabase
-        .from("financial_settings" as any)
-        .update(payload)
-        .eq("id", settings.id);
-      if (error) { toast.error("Erreur de sauvegarde"); return; }
-    } else {
-      const { error } = await supabase
-        .from("financial_settings" as any)
-        .insert(payload);
-      if (error) { toast.error("Erreur de création"); return; }
+    if (!user) {
+      toast.error("Non authentifié");
+      return;
     }
+
+    // Validate
+    if (values.default_due_days !== undefined && (!Number.isInteger(values.default_due_days) || values.default_due_days < 0)) {
+      toast.error("Le délai de paiement doit être un entier positif");
+      return;
+    }
+
+    const payload: any = { ...values, user_id: user.id };
+    // Remove id from payload to avoid conflict
+    delete payload.id;
+
+    // Use upsert with onConflict on user_id
+    const { data, error } = await supabase
+      .from("financial_settings" as any)
+      .upsert(payload, { onConflict: "user_id" })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("[FinancialSettings] save error:", error);
+      toast.error(`Erreur de sauvegarde: ${error.message}`);
+      return;
+    }
+
     toast.success("Paramètres financiers enregistrés");
-    await fetchSettings();
+    if (data) setSettings(data as any);
+    else await fetchSettings();
   };
 
   const cleanupVatData = async () => {
@@ -121,13 +144,14 @@ export function usePropertyFinancialSettings(propertyId: string | undefined) {
   const [loading, setLoading] = useState(true);
 
   const fetchSettings = useCallback(async () => {
-    if (!propertyId) return;
+    if (!propertyId) { setLoading(false); return; }
     const { data, error } = await supabase
       .from("property_financial_settings" as any)
       .select("*")
       .eq("property_id", propertyId)
       .maybeSingle();
-    if (!error && data) setSettings(data as any);
+    if (error) console.error("[PropertyFinancialSettings] fetch error:", error);
+    if (data) setSettings(data as any);
     setLoading(false);
   }, [propertyId]);
 
@@ -136,21 +160,23 @@ export function usePropertyFinancialSettings(propertyId: string | undefined) {
   const saveSettings = async (values: Partial<PropertyFinancialSettings>) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || !propertyId) return;
-    const payload = { ...values, user_id: user.id, property_id: propertyId };
-    if (settings?.id) {
-      const { error } = await supabase
-        .from("property_financial_settings" as any)
-        .update(payload)
-        .eq("id", settings.id);
-      if (error) { toast.error("Erreur"); return; }
-    } else {
-      const { error } = await supabase
-        .from("property_financial_settings" as any)
-        .insert(payload);
-      if (error) { toast.error("Erreur"); return; }
+    const payload: any = { ...values, user_id: user.id, property_id: propertyId };
+    delete payload.id;
+
+    const { data, error } = await supabase
+      .from("property_financial_settings" as any)
+      .upsert(payload, { onConflict: "property_id" })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("[PropertyFinancialSettings] save error:", error);
+      toast.error(`Erreur: ${error.message}`);
+      return;
     }
     toast.success("Configuration financière enregistrée");
-    await fetchSettings();
+    if (data) setSettings(data as any);
+    else await fetchSettings();
   };
 
   return { settings, loading, saveSettings };

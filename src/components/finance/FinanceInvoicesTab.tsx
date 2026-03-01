@@ -20,7 +20,7 @@ import { format, startOfMonth, endOfMonth, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { InvoicePrintView } from "./InvoicePrintView";
 import { formatEUR, invoiceStatusLabels, invoiceStatusColors } from "@/lib/finance-utils";
-import { generateAndUploadInvoicePdf, printInvoice, getInvoiceDownloadUrl } from "@/lib/invoice-pdf";
+import { generateAndUploadInvoicePdf, printInvoice, getInvoiceDownloadUrl, validateInvoiceForGeneration } from "@/lib/invoice-pdf";
 import { toast } from "sonner";
 
 // ── Location row (commission-based) ──
@@ -665,10 +665,22 @@ export function FinanceInvoicesTab() {
               </Button>
               <Button size="sm" variant="outline" className="gap-2 h-8 text-xs" onClick={async () => {
                 if (!previewInvoice) return;
-                const path = await generateAndUploadInvoicePdf(previewInvoice.id, previewInvoice.invoice_number);
-                if (path) {
-                  await updateInvoicePdf(previewInvoice.id, path);
-                  toast.success("Facture sauvegardée");
+                // Preflight validation
+                const errors = validateInvoiceForGeneration(previewInvoice, previewItems, fs);
+                if (errors.length > 0) {
+                  errors.forEach(err => toast.error(err));
+                  console.error("[InvoiceGeneration] Preflight errors:", errors);
+                  return;
+                }
+                try {
+                  const path = await generateAndUploadInvoicePdf(previewInvoice.id, previewInvoice.invoice_number);
+                  if (path) {
+                    await updateInvoicePdf(previewInvoice.id, path);
+                    toast.success("Facture sauvegardée");
+                  }
+                } catch (e: any) {
+                  console.error("[InvoiceGeneration] Error:", e);
+                  toast.error(`Erreur génération: ${e?.message || "Erreur inconnue"}`);
                 }
               }}>
                 <Save className="h-3.5 w-3.5" />Générer
