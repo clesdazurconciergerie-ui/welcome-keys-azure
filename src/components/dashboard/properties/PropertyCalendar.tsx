@@ -25,6 +25,12 @@ const platformColors: Record<string, string> = {
   other: "bg-accent/50 text-accent-foreground border-accent",
 };
 
+const eventTypeStyles: Record<string, { bg: string; pattern?: string; label: string; icon: string }> = {
+  reservation: { bg: "", label: "Réservation", icon: "●" },
+  manual_block: { bg: "opacity-50 border-dashed", label: "Blocage manuel", icon: "▧" },
+  unknown: { bg: "bg-muted/60 text-muted-foreground border-muted", label: "Indéfini", icon: "■" },
+};
+
 const platformLabels: Record<string, string> = {
   airbnb: "Airbnb",
   booking: "Booking.com",
@@ -188,15 +194,20 @@ export function PropertyCalendar({ propertyId }: Props) {
                     {date.getDate()}
                   </p>
                   <div className="space-y-0.5">
-                    {dayEvents.slice(0, viewMode === "week" ? 5 : 2).map(ev => (
-                      <div
-                        key={ev.id}
-                        className={`text-[9px] leading-tight px-1.5 py-0.5 rounded-md truncate border ${platformColors[ev.platform] || platformColors.other}`}
-                        title={`${ev.summary || "Réservation"} ${ev.guest_name ? `- ${ev.guest_name}` : ""}`}
-                      >
-                        {ev.guest_name || ev.summary || "Réservation"}
-                      </div>
-                    ))}
+                    {dayEvents.slice(0, viewMode === "week" ? 5 : 2).map(ev => {
+                      const evType = ev.event_type || "unknown";
+                      const typeStyle = eventTypeStyles[evType] || eventTypeStyles.unknown;
+                      const colorCls = evType === "unknown" ? typeStyle.bg : (platformColors[ev.platform] || platformColors.other);
+                      return (
+                        <div
+                          key={ev.id}
+                          className={`text-[9px] leading-tight px-1.5 py-0.5 rounded-md truncate border ${colorCls} ${typeStyle.bg}`}
+                          title={`${typeStyle.label}: ${ev.summary || "Réservation"} ${ev.guest_name ? `- ${ev.guest_name}` : ""}`}
+                        >
+                          {ev.guest_name || ev.summary || "Réservation"}
+                        </div>
+                      );
+                    })}
                     {dayEvents.length > (viewMode === "week" ? 5 : 2) && (
                       <p className="text-[9px] text-muted-foreground text-center">+{dayEvents.length - (viewMode === "week" ? 5 : 2)}</p>
                     )}
@@ -207,17 +218,28 @@ export function PropertyCalendar({ propertyId }: Props) {
           </div>
 
           {/* Legend */}
-          <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t">
-            {Object.entries(platformLabels).map(([key, label]) => {
-              const hasEvents = events.some(e => e.platform === key) || calendars.some(c => c.platform === key);
-              if (!hasEvents && key !== "manual") return null;
-              return (
+          <div className="flex flex-wrap gap-4 mt-4 pt-3 border-t">
+            <div className="flex flex-wrap gap-3">
+              {Object.entries(eventTypeStyles).map(([key, style]) => (
                 <div key={key} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <span className={`w-3 h-3 rounded-sm border ${platformColors[key]}`} />
-                  {label}
+                  <span className="text-xs">{style.icon}</span>
+                  {style.label}
                 </div>
-              );
-            })}
+              ))}
+            </div>
+            <div className="w-px bg-border" />
+            <div className="flex flex-wrap gap-3">
+              {Object.entries(platformLabels).map(([key, label]) => {
+                const hasEvents = events.some(e => e.platform === key) || calendars.some(c => c.platform === key);
+                if (!hasEvents && key !== "manual") return null;
+                return (
+                  <div key={key} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <span className={`w-3 h-3 rounded-sm border ${platformColors[key]}`} />
+                    {label}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </CardContent>
       </Card>

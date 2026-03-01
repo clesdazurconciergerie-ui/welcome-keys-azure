@@ -24,6 +24,7 @@ export interface CalendarEvent {
   platform: string;
   status: string;
   ical_uid: string | null;
+  event_type: string | null;
 }
 
 export function useICalCalendar(propertyId: string | undefined) {
