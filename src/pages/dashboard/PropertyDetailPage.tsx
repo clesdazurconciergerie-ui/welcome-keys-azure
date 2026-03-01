@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,13 +9,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, MapPin, Bed, Bath, Users, Ruler, Euro, Upload, Trash2, FileText,
-  Download, Image as ImageIcon, Calendar, Loader2, User, Wrench, CheckCircle, Clock, AlertTriangle, XCircle,
+  Download, Image as ImageIcon, Calendar, Loader2, User, Wrench, CheckCircle, Clock, AlertTriangle, XCircle, CalendarIcon, X,
 } from "lucide-react";
 import { useCleaningInterventions } from "@/hooks/useCleaningInterventions";
 import { motion } from "framer-motion";
@@ -49,7 +54,7 @@ const PropertyDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { properties, isLoading, fetchPhotos, uploadPhoto, deletePhoto, fetchDocuments, uploadDocument, deleteDocument, fetchPropertyOwners, updateProperty } = useProperties();
-  const { interventions } = useCleaningInterventions('concierge');
+  const { interventions, deleteIntervention } = useCleaningInterventions('concierge');
 
   const [property, setProperty] = useState<Property | null>(null);
   const [photos, setPhotos] = useState<PropertyPhoto[]>([]);
@@ -62,6 +67,25 @@ const PropertyDetailPage = () => {
   const [docName, setDocName] = useState("");
   const [deletePhotoId, setDeletePhotoId] = useState<string | null>(null);
   const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
+  const [deleteInterventionId, setDeleteInterventionId] = useState<string | null>(null);
+  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(undefined);
+  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined);
+
+  const filteredInterventions = useMemo(() => {
+    return interventions
+      .filter(i => i.property_id === id)
+      .filter(i => {
+        const d = new Date(i.scheduled_date);
+        if (filterDateFrom && d < filterDateFrom) return false;
+        if (filterDateTo) {
+          const end = new Date(filterDateTo);
+          end.setHours(23, 59, 59, 999);
+          if (d > end) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime());
+  }, [interventions, id, filterDateFrom, filterDateTo]);
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
@@ -279,74 +303,116 @@ const PropertyDetailPage = () => {
         </TabsContent>
 
         {/* INTERVENTIONS TAB */}
-        <TabsContent value="interventions" className="mt-4 space-y-3">
-          {(() => {
-            const propertyInterventions = interventions.filter(i => i.property_id === id).sort((a, b) => new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime());
-            const statusConfig: Record<string, { label: string; icon: any; color: string }> = {
-              scheduled: { label: "Planifiée", icon: Clock, color: "text-muted-foreground" },
-              in_progress: { label: "En cours", icon: Clock, color: "text-blue-600" },
-              completed: { label: "À valider", icon: AlertTriangle, color: "text-amber-600" },
-              validated: { label: "Validée", icon: CheckCircle, color: "text-emerald-600" },
-              refused: { label: "Refusée", icon: XCircle, color: "text-destructive" },
-            };
-            const missionTypeLabels: Record<string, string> = {
-              cleaning: "Ménage", checkin: "Check-in", checkout: "Check-out", intervention: "Intervention",
-            };
-            if (propertyInterventions.length === 0) return (
-              <Card>
-                <CardContent className="text-center py-12">
-                  <Wrench className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-                  <h3 className="font-semibold text-foreground mb-1">Aucune intervention</h3>
-                  <p className="text-sm text-muted-foreground">Les missions planifiées pour ce bien apparaîtront ici.</p>
-                </CardContent>
-              </Card>
-            );
-            return propertyInterventions.map(intervention => {
-              const sc = statusConfig[intervention.status] || statusConfig.scheduled;
-              const StatusIcon = sc.icon;
-              return (
-                <Card key={intervention.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${intervention.status === 'validated' ? 'bg-emerald-100' : intervention.status === 'in_progress' ? 'bg-blue-100' : intervention.status === 'completed' ? 'bg-amber-100' : intervention.status === 'refused' ? 'bg-red-100' : 'bg-muted'}`}>
-                          <StatusIcon className={`w-4 h-4 ${sc.color}`} />
+        <TabsContent value="interventions" className="mt-4 space-y-4">
+          {/* Date filters */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-[180px] justify-start text-left font-normal", !filterDateFrom && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {filterDateFrom ? format(filterDateFrom, "dd MMM yyyy", { locale: fr }) : "Date début"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarPicker mode="single" selected={filterDateFrom} onSelect={setFilterDateFrom} initialFocus className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-[180px] justify-start text-left font-normal", !filterDateTo && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {filterDateTo ? format(filterDateTo, "dd MMM yyyy", { locale: fr }) : "Date fin"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarPicker mode="single" selected={filterDateTo} onSelect={setFilterDateTo} initialFocus className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+            {(filterDateFrom || filterDateTo) && (
+              <Button variant="ghost" size="sm" onClick={() => { setFilterDateFrom(undefined); setFilterDateTo(undefined); }}>
+                <X className="w-4 h-4 mr-1" /> Réinitialiser
+              </Button>
+            )}
+            <span className="text-xs text-muted-foreground ml-auto">{filteredInterventions.length} intervention{filteredInterventions.length !== 1 ? 's' : ''}</span>
+          </div>
+
+          {filteredInterventions.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Wrench className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                <h3 className="font-semibold text-foreground mb-1">Aucune intervention</h3>
+                <p className="text-sm text-muted-foreground">
+                  {(filterDateFrom || filterDateTo) ? "Aucune intervention pour cette période." : "Les missions planifiées pour ce bien apparaîtront ici."}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {filteredInterventions.map(intervention => {
+                const statusCfg: Record<string, { label: string; icon: any; color: string; bg: string }> = {
+                  scheduled: { label: "Planifiée", icon: Clock, color: "text-muted-foreground", bg: "bg-muted" },
+                  in_progress: { label: "En cours", icon: Clock, color: "text-blue-600", bg: "bg-blue-100" },
+                  completed: { label: "À valider", icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-100" },
+                  validated: { label: "Validée", icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-100" },
+                  refused: { label: "Refusée", icon: XCircle, color: "text-destructive", bg: "bg-red-100" },
+                };
+                const missionTypeLabels: Record<string, string> = {
+                  cleaning: "Ménage", checkin: "Check-in", checkout: "Check-out", intervention: "Intervention",
+                };
+                const sc = statusCfg[intervention.status] || statusCfg.scheduled;
+                const StatusIcon = sc.icon;
+                return (
+                  <Card key={intervention.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${sc.bg}`}>
+                            <StatusIcon className={`w-4 h-4 ${sc.color}`} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{missionTypeLabels[intervention.mission_type] || intervention.mission_type}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(intervention.scheduled_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              {intervention.service_provider && ` — ${intervention.service_provider.first_name} ${intervention.service_provider.last_name}`}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">{missionTypeLabels[intervention.mission_type] || intervention.mission_type}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(intervention.scheduled_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                            {intervention.service_provider && ` — ${intervention.service_provider.first_name} ${intervention.service_provider.last_name}`}
-                          </p>
+                        <div className="flex items-center gap-2">
+                          {intervention.mission_amount > 0 && (
+                            <span className="text-sm font-medium text-foreground">{intervention.mission_amount}€</span>
+                          )}
+                          <Badge variant={intervention.status === 'validated' ? 'default' : 'outline'} className="text-[10px]">
+                            {sc.label}
+                          </Badge>
+                          {intervention.payment_done && (
+                            <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border-emerald-200">Payé</Badge>
+                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteInterventionId(intervention.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        {intervention.mission_amount > 0 && (
-                          <span className="text-sm font-medium text-foreground">{intervention.mission_amount}€</span>
-                        )}
-                        <Badge variant={intervention.status === 'validated' ? 'default' : 'outline'} className="text-[10px]">
-                          {sc.label}
-                        </Badge>
-                        {intervention.payment_done && (
-                          <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border-emerald-200">Payé</Badge>
-                        )}
-                      </div>
-                    </div>
-                    {(intervention.photos?.length ?? 0) > 0 && (
-                      <div className="flex gap-2 mt-3 overflow-x-auto">
-                        {intervention.photos!.slice(0, 4).map(p => (
-                          <img key={p.id} src={p.url} className="w-16 h-16 rounded-md object-cover border" />
-                        ))}
-                        {(intervention.photos!.length > 4) && (
-                          <div className="w-16 h-16 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">+{intervention.photos!.length - 4}</div>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            });
-          })()}
+                      {(intervention.photos?.length ?? 0) > 0 && (
+                        <div className="flex gap-2 mt-3 overflow-x-auto">
+                          {intervention.photos!.slice(0, 4).map(p => (
+                            <img key={p.id} src={p.url} className="w-16 h-16 rounded-md object-cover border" />
+                          ))}
+                          {(intervention.photos!.length > 4) && (
+                            <div className="w-16 h-16 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">+{intervention.photos!.length - 4}</div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
 
         {/* CALENDAR TAB */}
@@ -422,6 +488,25 @@ const PropertyDetailPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={handleDeleteDoc}>Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete intervention confirmation */}
+      <AlertDialog open={!!deleteInterventionId} onOpenChange={() => setDeleteInterventionId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette intervention ?</AlertDialogTitle>
+            <AlertDialogDescription>Cette action est irréversible. L'intervention et ses photos seront supprimées.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={async () => {
+              if (deleteInterventionId) {
+                await deleteIntervention(deleteInterventionId);
+                setDeleteInterventionId(null);
+              }
+            }}>Supprimer</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
