@@ -843,6 +843,7 @@ export type Database = {
           next_invoice_number: number | null
           updated_at: string | null
           user_id: string
+          vat_enabled: boolean
           vat_number: string | null
         }
         Insert: {
@@ -859,6 +860,7 @@ export type Database = {
           next_invoice_number?: number | null
           updated_at?: string | null
           user_id: string
+          vat_enabled?: boolean
           vat_number?: string | null
         }
         Update: {
@@ -875,6 +877,7 @@ export type Database = {
           next_invoice_number?: number | null
           updated_at?: string | null
           user_id?: string
+          vat_enabled?: boolean
           vat_number?: string | null
         }
         Relationships: []

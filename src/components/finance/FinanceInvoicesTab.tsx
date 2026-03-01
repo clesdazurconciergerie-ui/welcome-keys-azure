@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useFinancialSettings } from "@/hooks/useFinancialSettings";
 import { useOwners } from "@/hooks/useOwners";
@@ -59,6 +60,8 @@ export function FinanceInvoicesTab() {
   const { properties } = useProperties();
   const { services: catalog } = useServicesCatalog();
 
+  const vatEnabled = fs?.vat_enabled ?? true;
+
   // Filter state
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterOwner, setFilterOwner] = useState("all");
@@ -79,7 +82,7 @@ export function FinanceInvoicesTab() {
   const [extras, setExtras] = useState<ExtraLine[]>([]);
   // Extra add modal
   const [extraModalType, setExtraModalType] = useState<"service" | "pass_through_cost" | "adjustment" | null>(null);
-  const [extraForm, setExtraForm] = useState<Omit<ExtraLine, "id" | "type">>({ description: "", quantity: 1, unit_price: 0, vat_rate: fs?.default_vat_rate || 20 });
+  const [extraForm, setExtraForm] = useState<Omit<ExtraLine, "id" | "type">>({ description: "", quantity: 1, unit_price: 0, vat_rate: vatEnabled ? (fs?.default_vat_rate || 20) : 0 });
 
   // Preview
   const [previewInvoice, setPreviewInvoice] = useState<any>(null);
@@ -124,7 +127,7 @@ export function FinanceInvoicesTab() {
   // ── Extra helpers ──
   const openExtraModal = (type: "service" | "pass_through_cost" | "adjustment") => {
     setExtraModalType(type);
-    setExtraForm({ description: "", quantity: 1, unit_price: 0, vat_rate: fs?.default_vat_rate || 20 });
+    setExtraForm({ description: "", quantity: 1, unit_price: 0, vat_rate: vatEnabled ? (fs?.default_vat_rate || 20) : 0 });
   };
 
   const confirmExtra = () => {
@@ -141,10 +144,12 @@ export function FinanceInvoicesTab() {
   const totalCommissions = locations.reduce((s, l) => s + (l.rental_amount * l.commission_rate / 100), 0);
   const totalExtrasHT = extras.reduce((s, e) => s + e.quantity * e.unit_price, 0);
   const subtotalHT = totalCommissions + totalExtrasHT;
-  const totalVAT = locations.reduce((s, l) => {
-    const comm = l.rental_amount * l.commission_rate / 100;
-    return s + comm * ((fs?.default_vat_rate || 20) / 100);
-  }, 0) + extras.reduce((s, e) => s + e.quantity * e.unit_price * (e.vat_rate / 100), 0);
+  const totalVAT = vatEnabled
+    ? locations.reduce((s, l) => {
+        const comm = l.rental_amount * l.commission_rate / 100;
+        return s + comm * ((fs?.default_vat_rate || 20) / 100);
+      }, 0) + extras.reduce((s, e) => s + e.quantity * e.unit_price * (e.vat_rate / 100), 0)
+    : 0;
   const totalTTC = subtotalHT + totalVAT;
 
   // ── Create invoice ──
@@ -166,7 +171,7 @@ export function FinanceInvoicesTab() {
         total: l.rental_amount * l.commission_rate / 100,
         item_type: "revenue" as const,
         line_type: "rental_manual",
-        vat_rate: fs?.default_vat_rate || 20,
+        vat_rate: vatEnabled ? (fs?.default_vat_rate || 20) : 0,
         property_id: l.property_id || null,
         metadata: { rental_amount: l.rental_amount, commission_rate: l.commission_rate, platform: l.platform },
       })),
@@ -178,7 +183,7 @@ export function FinanceInvoicesTab() {
         total: e.quantity * e.unit_price,
         item_type: e.type === "service" ? "revenue" : e.type,
         line_type: e.type,
-        vat_rate: e.vat_rate,
+        vat_rate: vatEnabled ? e.vat_rate : 0,
         property_id: null,
         metadata: {},
       })),
@@ -192,7 +197,7 @@ export function FinanceInvoicesTab() {
       due_date: dueDate || undefined,
       type: invoiceType,
       status: invoiceStatus,
-      vat_rate: fs?.default_vat_rate || 0,
+      vat_rate: vatEnabled ? (fs?.default_vat_rate || 0) : 0,
       items,
       financial_settings: fs,
       owner,
@@ -224,6 +229,8 @@ export function FinanceInvoicesTab() {
     return true;
   });
 
+  const hasLines = locations.length > 0 || extras.length > 0;
+
   return (
     <div className="space-y-6 mt-4">
       {/* Header */}
@@ -254,13 +261,12 @@ export function FinanceInvoicesTab() {
           <DialogTrigger asChild>
             <Button className="gap-2"><Plus className="h-4 w-4" />Nouvelle facture</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-0">
-            <DialogHeader className="px-6 pt-6 pb-0">
-              <DialogTitle className="text-lg">Nouvelle facture</DialogTitle>
-            </DialogHeader>
-
-            <div className="px-6 pb-6 space-y-6">
-              {/* ── Header fields ── */}
+          <DialogContent className="max-w-[1300px] w-[95vw] h-[90vh] p-0 flex flex-col gap-0">
+            {/* ── STICKY HEADER ── */}
+            <div className="shrink-0 border-b bg-background px-6 py-4 space-y-4">
+              <DialogHeader className="p-0">
+                <DialogTitle className="text-lg">Nouvelle facture</DialogTitle>
+              </DialogHeader>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Propriétaire *</Label>
@@ -295,11 +301,12 @@ export function FinanceInvoicesTab() {
                   </Select>
                 </div>
               </div>
+            </div>
 
-              {genOwner && (
+            {/* ── SCROLLABLE BODY ── */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+              {genOwner ? (
                 <>
-                  <Separator />
-
                   {/* ═══════════ LOCATIONS (COMMISSION) ═══════════ */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -419,7 +426,7 @@ export function FinanceInvoicesTab() {
                         {catalog.filter(s => s.active).map(svc => (
                           <button
                             key={svc.id}
-                            onClick={() => setExtras(prev => [...prev, { id: crypto.randomUUID(), type: "service", description: svc.name, quantity: 1, unit_price: Number(svc.default_unit_price), vat_rate: Number(svc.default_vat_rate) || 20 }])}
+                            onClick={() => setExtras(prev => [...prev, { id: crypto.randomUUID(), type: "service", description: svc.name, quantity: 1, unit_price: Number(svc.default_unit_price), vat_rate: vatEnabled ? (Number(svc.default_vat_rate) || 20) : 0 }])}
                             className="text-[11px] px-2.5 py-1 rounded-full border border-dashed border-primary/30 text-primary hover:bg-primary/5 transition-colors"
                           >
                             + {svc.name} ({formatEUR(svc.default_unit_price)})
@@ -438,7 +445,7 @@ export function FinanceInvoicesTab() {
                             <Badge variant="outline" className="text-[9px] shrink-0">{extraTypeLabels[extra.type]}</Badge>
                             <span className="text-sm flex-1 truncate">{extra.description}</span>
                             <span className="text-xs text-muted-foreground shrink-0">{extra.quantity} × {formatEUR(extra.unit_price)}</span>
-                            <span className="text-xs text-muted-foreground shrink-0">TVA {extra.vat_rate}%</span>
+                            {vatEnabled && <span className="text-xs text-muted-foreground shrink-0">TVA {extra.vat_rate}%</span>}
                             <span className="text-sm font-semibold shrink-0">{formatEUR(extra.quantity * extra.unit_price)}</span>
                             <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive shrink-0" onClick={() => removeExtra(extra.id)}>
                               <X className="h-3.5 w-3.5" />
@@ -462,19 +469,28 @@ export function FinanceInvoicesTab() {
                       <span className="font-medium">{formatEUR(totalExtrasHT)}</span>
                     </div>
                     <Separator className="my-1" />
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Sous-total HT</span>
-                      <span className="font-semibold">{formatEUR(subtotalHT)}</span>
-                    </div>
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>TVA</span>
-                      <span>{formatEUR(totalVAT)}</span>
-                    </div>
-                    <Separator className="my-1" />
-                    <div className="flex justify-between text-base font-bold">
-                      <span>Total TTC</span>
-                      <span className="text-primary">{formatEUR(totalTTC)}</span>
-                    </div>
+                    {vatEnabled ? (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Sous-total HT</span>
+                          <span className="font-semibold">{formatEUR(subtotalHT)}</span>
+                        </div>
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>TVA</span>
+                          <span>{formatEUR(totalVAT)}</span>
+                        </div>
+                        <Separator className="my-1" />
+                        <div className="flex justify-between text-base font-bold">
+                          <span>Total TTC</span>
+                          <span className="text-primary">{formatEUR(totalTTC)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex justify-between text-base font-bold">
+                        <span>Total à payer</span>
+                        <span className="text-primary">{formatEUR(subtotalHT)}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Notes */}
@@ -482,28 +498,32 @@ export function FinanceInvoicesTab() {
                     <Label className="text-xs text-muted-foreground">Notes internes (optionnel)</Label>
                     <Input value={invoiceNotes} onChange={e => setInvoiceNotes(e.target.value)} className="h-9 text-sm" placeholder="Notes…" />
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-3 pt-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1 h-10"
-                      disabled={creating || (locations.length === 0 && extras.length === 0)}
-                      onClick={() => { setInvoiceStatus("draft"); handleCreate(); }}
-                    >
-                      Sauvegarder brouillon
-                    </Button>
-                    <Button
-                      className="flex-1 h-10 gap-2"
-                      disabled={creating || (locations.length === 0 && extras.length === 0)}
-                      onClick={() => { setInvoiceStatus("sent"); handleCreate(); }}
-                    >
-                      {creating && <Loader2 className="h-4 w-4 animate-spin" />}
-                      <Send className="h-4 w-4" />Envoyer la facture
-                    </Button>
-                  </div>
                 </>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted-foreground text-sm">Sélectionnez un propriétaire pour commencer</p>
+                </div>
               )}
+            </div>
+
+            {/* ── STICKY FOOTER ── */}
+            <div className="shrink-0 border-t bg-background px-6 py-4 flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 h-10"
+                disabled={creating || !hasLines}
+                onClick={() => { setInvoiceStatus("draft"); handleCreate(); }}
+              >
+                Sauvegarder brouillon
+              </Button>
+              <Button
+                className="flex-1 h-10 gap-2"
+                disabled={creating || !hasLines}
+                onClick={() => { setInvoiceStatus("sent"); handleCreate(); }}
+              >
+                {creating && <Loader2 className="h-4 w-4 animate-spin" />}
+                <Send className="h-4 w-4" />Envoyer la facture
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -522,22 +542,24 @@ export function FinanceInvoicesTab() {
               <Label className="text-xs">Description *</Label>
               <Input value={extraForm.description} onChange={e => setExtraForm(f => ({ ...f, description: e.target.value }))} className="h-9" placeholder="Ex: Ménage supplémentaire" />
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className={`grid gap-3 ${vatEnabled ? "grid-cols-3" : "grid-cols-2"}`}>
               <div className="space-y-1.5">
                 <Label className="text-xs">Quantité</Label>
                 <Input type="number" min={1} value={extraForm.quantity} onChange={e => setExtraForm(f => ({ ...f, quantity: Number(e.target.value) || 1 }))} className="h-9" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Prix unitaire HT</Label>
+                <Label className="text-xs">Prix unitaire{vatEnabled ? " HT" : ""}</Label>
                 <Input type="number" step="0.01" value={extraForm.unit_price || ""} onChange={e => setExtraForm(f => ({ ...f, unit_price: Number(e.target.value) || 0 }))} className="h-9" placeholder="0.00" />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">TVA %</Label>
-                <Input type="number" step="0.5" value={extraForm.vat_rate} onChange={e => setExtraForm(f => ({ ...f, vat_rate: Number(e.target.value) || 0 }))} className="h-9" />
-              </div>
+              {vatEnabled && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">TVA %</Label>
+                  <Input type="number" step="0.5" value={extraForm.vat_rate} onChange={e => setExtraForm(f => ({ ...f, vat_rate: Number(e.target.value) || 0 }))} className="h-9" />
+                </div>
+              )}
             </div>
             <div className="text-right text-sm">
-              Total HT: <span className="font-semibold">{formatEUR(extraForm.quantity * extraForm.unit_price)}</span>
+              Total{vatEnabled ? " HT" : ""}: <span className="font-semibold">{formatEUR(extraForm.quantity * extraForm.unit_price)}</span>
             </div>
           </div>
           <DialogFooter>
@@ -584,7 +606,7 @@ export function FinanceInvoicesTab() {
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <p className="text-sm font-bold">{formatEUR(Number(inv.total))}</p>
-                    <p className="text-[10px] text-muted-foreground">HT: {formatEUR(Number(inv.subtotal))}</p>
+                    {vatEnabled && <p className="text-[10px] text-muted-foreground">HT: {formatEUR(Number(inv.subtotal))}</p>}
                   </div>
                   <Badge className={`text-[10px] ${invoiceStatusColors[inv.status] || ""}`}>
                     {invoiceStatusLabels[inv.status] || inv.status}

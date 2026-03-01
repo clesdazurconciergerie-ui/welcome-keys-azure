@@ -15,6 +15,7 @@ export interface FinancialSettings {
   iban: string | null;
   legal_footer: string | null;
   default_due_days: number;
+  vat_enabled: boolean;
 }
 
 export interface PropertyFinancialSettings {

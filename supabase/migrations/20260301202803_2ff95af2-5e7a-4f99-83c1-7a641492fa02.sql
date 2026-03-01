@@ -1,0 +1,1 @@
+ALTER TABLE public.financial_settings ADD COLUMN IF NOT EXISTS vat_enabled boolean NOT NULL DEFAULT true;
