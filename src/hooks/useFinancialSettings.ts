@@ -8,11 +8,15 @@ export interface FinancialSettings {
   company_name: string | null;
   logo_url: string | null;
   address: string | null;
+  org_phone: string | null;
+  org_postal_code: string | null;
+  org_city: string | null;
   vat_number: string | null;
   default_vat_rate: number;
   invoice_prefix: string;
   next_invoice_number: number;
   iban: string | null;
+  bic: string | null;
   legal_footer: string | null;
   default_due_days: number;
   vat_enabled: boolean;
@@ -69,12 +73,10 @@ export function useFinancialSettings() {
     await fetchSettings();
   };
 
-  /** One-time cleanup: zero out VAT on all existing data when vat_enabled=false */
   const cleanupVatData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Zero out invoice_items vat_rate for all invoices belonging to this user
     const { data: userInvoices } = await supabase
       .from("invoices" as any)
       .select("id")
@@ -88,7 +90,6 @@ export function useFinancialSettings() {
           .update({ vat_rate: 0 })
           .eq("invoice_id", invId);
       }
-      // Recompute invoice totals: vat_amount=0, total=subtotal
       for (const invId of invoiceIds) {
         const { data: inv } = await supabase
           .from("invoices" as any)
@@ -104,7 +105,6 @@ export function useFinancialSettings() {
       }
     }
 
-    // Zero out expenses vat
     await supabase
       .from("expenses" as any)
       .update({ vat_rate: 0, vat_amount: 0 })

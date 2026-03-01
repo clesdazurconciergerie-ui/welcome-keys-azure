@@ -831,6 +831,7 @@ export type Database = {
       financial_settings: {
         Row: {
           address: string | null
+          bic: string | null
           company_name: string | null
           created_at: string | null
           default_due_days: number | null
@@ -841,6 +842,9 @@ export type Database = {
           legal_footer: string | null
           logo_url: string | null
           next_invoice_number: number | null
+          org_city: string | null
+          org_phone: string | null
+          org_postal_code: string | null
           updated_at: string | null
           user_id: string
           vat_enabled: boolean
@@ -848,6 +852,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          bic?: string | null
           company_name?: string | null
           created_at?: string | null
           default_due_days?: number | null
@@ -858,6 +863,9 @@ export type Database = {
           legal_footer?: string | null
           logo_url?: string | null
           next_invoice_number?: number | null
+          org_city?: string | null
+          org_phone?: string | null
+          org_postal_code?: string | null
           updated_at?: string | null
           user_id: string
           vat_enabled?: boolean
@@ -865,6 +873,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          bic?: string | null
           company_name?: string | null
           created_at?: string | null
           default_due_days?: number | null
@@ -875,6 +884,9 @@ export type Database = {
           legal_footer?: string | null
           logo_url?: string | null
           next_invoice_number?: number | null
+          org_city?: string | null
+          org_phone?: string | null
+          org_postal_code?: string | null
           updated_at?: string | null
           user_id?: string
           vat_enabled?: boolean
@@ -1101,6 +1113,7 @@ export type Database = {
           company_snapshot: Json | null
           created_at: string | null
           due_date: string | null
+          generated_at: string | null
           id: string
           invoice_date: string | null
           invoice_number: string
@@ -1108,6 +1121,7 @@ export type Database = {
           notes: string | null
           owner_id: string
           owner_snapshot: Json | null
+          pdf_path: string | null
           period_end: string
           period_start: string
           status: string | null
@@ -1123,6 +1137,7 @@ export type Database = {
           company_snapshot?: Json | null
           created_at?: string | null
           due_date?: string | null
+          generated_at?: string | null
           id?: string
           invoice_date?: string | null
           invoice_number: string
@@ -1130,6 +1145,7 @@ export type Database = {
           notes?: string | null
           owner_id: string
           owner_snapshot?: Json | null
+          pdf_path?: string | null
           period_end: string
           period_start: string
           status?: string | null
@@ -1145,6 +1161,7 @@ export type Database = {
           company_snapshot?: Json | null
           created_at?: string | null
           due_date?: string | null
+          generated_at?: string | null
           id?: string
           invoice_date?: string | null
           invoice_number?: string
@@ -1152,6 +1169,7 @@ export type Database = {
           notes?: string | null
           owner_id?: string
           owner_snapshot?: Json | null
+          pdf_path?: string | null
           period_end?: string
           period_start?: string
           status?: string | null
@@ -1411,6 +1429,9 @@ export type Database = {
       owners: {
         Row: {
           auth_user_id: string | null
+          billing_city: string | null
+          billing_postal_code: string | null
+          billing_street: string | null
           concierge_user_id: string
           created_at: string
           email: string
@@ -1424,6 +1445,9 @@ export type Database = {
         }
         Insert: {
           auth_user_id?: string | null
+          billing_city?: string | null
+          billing_postal_code?: string | null
+          billing_street?: string | null
           concierge_user_id: string
           created_at?: string
           email: string
@@ -1437,6 +1461,9 @@ export type Database = {
         }
         Update: {
           auth_user_id?: string | null
+          billing_city?: string | null
+          billing_postal_code?: string | null
+          billing_street?: string | null
           concierge_user_id?: string
           created_at?: string
           email?: string
