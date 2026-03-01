@@ -624,7 +624,31 @@ export function FinanceInvoicesTab() {
                   </Badge>
                   <div className="flex items-center gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePreview(inv.id)} title="Voir">
-                      <Printer className="h-4 w-4" />
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={async () => {
+                      const { invoice, items } = await fetchInvoiceWithItems(inv.id);
+                      setPreviewInvoice(invoice);
+                      setPreviewItems(items);
+                      setPreviewOpen(true);
+                      // Wait for render then trigger download
+                      setTimeout(() => {
+                        const printEl = document.getElementById("invoice-print");
+                        if (!printEl) { toast.error("Prévisualisation introuvable"); return; }
+                        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Facture ${invoice.invoice_number}</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Segoe UI',Arial,sans-serif;}</style></head><body>${printEl.outerHTML}</body></html>`;
+                        const blob = new Blob([html], { type: "text/html" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `Facture-${invoice.invoice_number}.html`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        toast.success("Facture téléchargée");
+                      }, 500);
+                    }} title="Télécharger">
+                      <Download className="h-4 w-4" />
                     </Button>
                     {inv.status === "draft" && (
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateInvoiceStatus(inv.id, "sent")} title="Envoyer">
@@ -685,14 +709,23 @@ export function FinanceInvoicesTab() {
               }}>
                 <Save className="h-3.5 w-3.5" />Générer
               </Button>
-              {previewInvoice?.pdf_path && (
-                <Button size="sm" className="gap-2 h-8 text-xs" onClick={async () => {
-                  const url = await getInvoiceDownloadUrl(previewInvoice.pdf_path!);
-                  if (url) window.open(url, "_blank");
-                }}>
-                  <Download className="h-3.5 w-3.5" />Télécharger
-                </Button>
-              )}
+              <Button size="sm" className="gap-2 h-8 text-xs" onClick={() => {
+                const printEl = document.getElementById("invoice-print");
+                if (!printEl) { toast.error("Prévisualisation introuvable"); return; }
+                const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Facture ${previewInvoice?.invoice_number || ""}</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Segoe UI',Arial,sans-serif;}</style></head><body>${printEl.outerHTML}</body></html>`;
+                const blob = new Blob([html], { type: "text/html" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `Facture-${previewInvoice?.invoice_number || "draft"}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                toast.success("Facture téléchargée");
+              }}>
+                <Download className="h-3.5 w-3.5" />Télécharger
+              </Button>
             </div>
           </div>
           <div className="p-6">
