@@ -42,6 +42,7 @@ const EditBooklet = () => {
   const [saving, setSaving] = useState(false);
   const [booklet, setBooklet] = useState<any>(null);
   const [generating, setGenerating] = useState<Record<string, boolean>>({});
+  const [currentPropertyId, setCurrentPropertyId] = useState<string | null>(null);
   
   // Import Airbnb states
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -110,6 +111,7 @@ const EditBooklet = () => {
       if (error) throw error;
 
       setBooklet(data);
+      setCurrentPropertyId(data.property_id || null);
       
       // Charger les données générales
       setGeneralData({
@@ -429,6 +431,9 @@ const EditBooklet = () => {
         setGeneralData(prev => ({ ...prev, ...updates })),
       onGenerate: handleGenerate,
       generating,
+      bookletId: id,
+      propertyId: currentPropertyId,
+      onPropertyChange: setCurrentPropertyId,
     },
     identity: {
       data: identityData,

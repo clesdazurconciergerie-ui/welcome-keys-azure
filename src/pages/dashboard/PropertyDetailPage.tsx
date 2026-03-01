@@ -18,11 +18,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, MapPin, Bed, Bath, Users, Ruler, Euro, Upload, Trash2, FileText,
-  Download, Image as ImageIcon, Calendar, Loader2, User, Wrench, CheckCircle, Clock, AlertTriangle, XCircle, CalendarIcon, X,
+  Download, Image as ImageIcon, Calendar, Loader2, User, Wrench, CheckCircle, Clock, AlertTriangle, XCircle, CalendarIcon, X, BookOpen, Link2, Unlink,
 } from "lucide-react";
 import { useCleaningInterventions } from "@/hooks/useCleaningInterventions";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useProperties, type Property, type PropertyPhoto, type PropertyDocument } from "@/hooks/useProperties";
 import { EditPropertyDialog } from "@/components/dashboard/properties/EditPropertyDialog";
 
@@ -55,6 +56,9 @@ const PropertyDetailPage = () => {
   const navigate = useNavigate();
   const { properties, isLoading, fetchPhotos, uploadPhoto, deletePhoto, fetchDocuments, uploadDocument, deleteDocument, fetchPropertyOwners, updateProperty } = useProperties();
   const { interventions, deleteIntervention } = useCleaningInterventions('concierge');
+  const [linkedBooklets, setLinkedBooklets] = useState<any[]>([]);
+  const [allBooklets, setAllBooklets] = useState<any[]>([]);
+  const [linkingBooklet, setLinkingBooklet] = useState(false);
 
   const [property, setProperty] = useState<Property | null>(null);
   const [photos, setPhotos] = useState<PropertyPhoto[]>([]);
@@ -106,6 +110,10 @@ const PropertyDetailPage = () => {
       fetchPhotos(id).then(setPhotos);
       fetchDocuments(id).then(setDocuments);
       fetchPropertyOwners(id).then(setOwners);
+      // Fetch linked booklets
+      supabase.from("booklets").select("id, property_name, status, property_address, created_at").eq("property_id", id).then(({ data }) => setLinkedBooklets(data || []));
+      // Fetch all user booklets for linking
+      supabase.from("booklets").select("id, property_name, property_id").then(({ data }) => setAllBooklets(data || []));
     }
   }, [id]);
 
@@ -198,9 +206,10 @@ const PropertyDetailPage = () => {
       </motion.div>
 
       <Tabs defaultValue="photos" className="w-full">
-        <TabsList className="w-full justify-start">
+        <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="photos">Photos</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="livrets">Livrets</TabsTrigger>
           <TabsTrigger value="interventions">Interventions</TabsTrigger>
           <TabsTrigger value="calendar">Calendrier</TabsTrigger>
           <TabsTrigger value="owners">Propriétaires</TabsTrigger>
@@ -300,6 +309,95 @@ const PropertyDetailPage = () => {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* LIVRETS TAB */}
+        <TabsContent value="livrets" className="mt-4 space-y-4">
+          {/* Linked booklets */}
+          {linkedBooklets.length > 0 ? (
+            <div className="space-y-3">
+              {linkedBooklets.map(b => (
+                <Card key={b.id}>
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <BookOpen className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{b.property_name}</p>
+                        <p className="text-xs text-muted-foreground">{b.property_address}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={b.status === 'published' ? 'default' : 'outline'} className="text-[10px]">
+                        {b.status === 'published' ? 'Publié' : b.status === 'draft' ? 'Brouillon' : b.status}
+                      </Badge>
+                      <Button size="sm" variant="outline" onClick={() => navigate(`/booklets/${b.id}/edit`)}>
+                        Modifier
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={async () => {
+                        await supabase.from("booklets").update({ property_id: null }).eq("id", b.id);
+                        setLinkedBooklets(prev => prev.filter(x => x.id !== b.id));
+                        setAllBooklets(prev => prev.map(x => x.id === b.id ? { ...x, property_id: null } : x));
+                        toast.success("Livret dissocié");
+                      }}>
+                        <Unlink className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="text-center py-8">
+                <BookOpen className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                <h3 className="font-semibold text-foreground mb-1">Aucun livret associé</h3>
+                <p className="text-sm text-muted-foreground mb-4">Associez un livret existant ou créez-en un nouveau.</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Link existing booklet */}
+          {(() => {
+            const unlinked = allBooklets.filter(b => !b.property_id && !linkedBooklets.some(lb => lb.id === b.id));
+            if (unlinked.length === 0) return null;
+            return (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Associer un livret existant</Label>
+                <div className="flex gap-2">
+                  <Select onValueChange={async (bookletId) => {
+                    setLinkingBooklet(true);
+                    await supabase.from("booklets").update({ property_id: id }).eq("id", bookletId);
+                    const linked = allBooklets.find(b => b.id === bookletId);
+                    if (linked) setLinkedBooklets(prev => [...prev, { ...linked, property_id: id }]);
+                    setAllBooklets(prev => prev.map(b => b.id === bookletId ? { ...b, property_id: id } : b));
+                    toast.success("Livret associé au logement");
+                    setLinkingBooklet(false);
+                  }}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Choisir un livret…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {unlinked.map(b => (
+                        <SelectItem key={b.id} value={b.id}>
+                          <div className="flex items-center gap-2">
+                            <BookOpen className="w-3.5 h-3.5" />
+                            {b.property_name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            );
+          })()}
+
+          <Button variant="outline" onClick={() => navigate("/booklets/new")} className="w-full">
+            <BookOpen className="w-4 h-4 mr-2" />
+            Créer un nouveau livret
+          </Button>
         </TabsContent>
 
         {/* INTERVENTIONS TAB */}
