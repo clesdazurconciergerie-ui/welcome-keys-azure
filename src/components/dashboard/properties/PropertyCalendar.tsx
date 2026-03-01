@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +13,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  ChevronLeft, ChevronRight, Plus, RefreshCw, Trash2, Link2, Loader2, Calendar,
+  ChevronLeft, ChevronRight, Plus, RefreshCw, Trash2, Link2, Loader2, Calendar, CalendarCheck, Moon,
 } from "lucide-react";
 import { useICalCalendar, type CalendarEvent } from "@/hooks/useICalCalendar";
+import { useBookings, type Booking } from "@/hooks/useBookings";
+import { supabase } from "@/integrations/supabase/client";
 
 const platformColors: Record<string, string> = {
   airbnb: "bg-[#FF5A5F]/10 text-[#FF5A5F] border-[#FF5A5F]/20",
@@ -23,10 +25,12 @@ const platformColors: Record<string, string> = {
   vrbo: "bg-[#3B5998]/10 text-[#3B5998] border-[#3B5998]/20",
   manual: "bg-muted text-muted-foreground border-border",
   other: "bg-accent/50 text-accent-foreground border-accent",
+  bookings_table: "bg-primary/10 text-primary border-primary/20",
 };
 
 const eventTypeStyles: Record<string, { bg: string; label: string; icon: string }> = {
   reservation: { bg: "", label: "Réservation", icon: "●" },
+  booking: { bg: "", label: "Réservation (DB)", icon: "◆" },
   manual_block: { bg: "bg-amber-100 text-amber-700 border-amber-300 border-dashed", label: "Date bloquée", icon: "▧" },
   unknown: { bg: "bg-amber-100 text-amber-700 border-amber-300 border-dashed", label: "Date bloquée", icon: "▧" },
 };
@@ -37,6 +41,7 @@ const platformLabels: Record<string, string> = {
   vrbo: "VRBO",
   manual: "Manuel",
   other: "Autre",
+  bookings_table: "Réservation",
 };
 
 interface Props {
@@ -47,6 +52,7 @@ export function PropertyCalendar({ propertyId }: Props) {
   const {
     calendars, events, isSyncing, addCalendar, removeCalendar, syncAll, deleteEvent,
   } = useICalCalendar(propertyId);
+  const { bookings } = useBookings(propertyId);
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
@@ -82,21 +88,74 @@ export function PropertyCalendar({ propertyId }: Props) {
     }
   }, [year, month, currentDate, viewMode]);
 
-  const getEventsForDay = (date: Date): CalendarEvent[] => {
+  // Convert bookings to CalendarEvent-like objects for unified display
+  const bookingEvents = useMemo(() => {
+    return bookings.map(b => ({
+      id: `bk-${b.id}`,
+      start_date: b.check_in,
+      end_date: b.check_out,
+      summary: b.guest_name || "Réservation",
+      guest_name: b.guest_name,
+      platform: "bookings_table" as string,
+      event_type: "booking" as string,
+      source: b.source,
+    }));
+  }, [bookings]);
+
+  // Merge iCal events + bookings for calendar display
+  const allEvents = useMemo(() => {
+    return [...events.map(e => ({ ...e })), ...bookingEvents];
+  }, [events, bookingEvents]);
+
+  const getEventsForDay = (date: Date) => {
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    const dayEvents = events.filter(e => e.start_date <= dateStr && e.end_date > dateStr);
+    const dayEvents = allEvents.filter(e => e.start_date <= dateStr && e.end_date > dateStr);
     
-    // Deduplicate: keep all reservations, but only one "date bloquée"
-    const reservations = dayEvents.filter(e => e.event_type === "reservation");
-    const nonReservations = dayEvents.filter(e => e.event_type !== "reservation");
+    // Deduplicate: keep all reservations/bookings, but only one "date bloquée"
+    const reservations = dayEvents.filter(e => e.event_type === "reservation" || e.event_type === "booking");
+    const nonReservations = dayEvents.filter(e => e.event_type !== "reservation" && e.event_type !== "booking");
     
-    // If there are reservations, show them. Add max 1 block entry if blocks exist.
-    if (reservations.length > 0) {
-      return reservations;
-    }
-    // No reservations: show only one "date bloquée"
+    if (reservations.length > 0) return reservations;
     return nonReservations.length > 0 ? [nonReservations[0]] : [];
   };
+
+  // Occupancy stats for the current month
+  const occupancyStats = useMemo(() => {
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const totalNights = lastDay.getDate();
+    const monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+    const monthEnd = `${year}-${String(month + 1).padStart(2, "0")}-${String(totalNights).padStart(2, "0")}`;
+
+    // Count booked nights from bookings table (date overlap)
+    let bookedNights = 0;
+    for (const b of bookings) {
+      const s = Math.max(new Date(b.check_in).getTime(), firstDay.getTime());
+      const e = Math.min(new Date(b.check_out).getTime(), new Date(year, month + 1, 0).getTime() + 86400000);
+      bookedNights += Math.max(0, Math.round((e - s) / 86400000));
+    }
+    // Also count from iCal reservations
+    for (const ev of events) {
+      if (ev.event_type === "reservation") {
+        const s = Math.max(new Date(ev.start_date).getTime(), firstDay.getTime());
+        const e = Math.min(new Date(ev.end_date).getTime(), new Date(year, month + 1, 0).getTime() + 86400000);
+        bookedNights += Math.max(0, Math.round((e - s) / 86400000));
+      }
+    }
+    bookedNights = Math.min(bookedNights, totalNights); // cap at total
+
+    const emptyDays = totalNights - bookedNights;
+    const occupancyPct = Math.round((bookedNights / totalNights) * 100);
+
+    // Next arrival
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const futureBookings = bookings
+      .filter(b => b.check_in >= todayStr)
+      .sort((a, b) => a.check_in.localeCompare(b.check_in));
+    const nextArrival = futureBookings.length > 0 ? futureBookings[0] : null;
+
+    return { bookedNights, emptyDays, occupancyPct, totalNights, nextArrival };
+  }, [bookings, events, year, month]);
 
   const today = new Date();
   const isToday = (d: Date) =>
@@ -122,6 +181,50 @@ export function PropertyCalendar({ propertyId }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Occupancy stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card>
+          <CardContent className="p-3 flex items-center gap-2">
+            <CalendarCheck className="h-4 w-4 text-primary" />
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Nuits réservées</p>
+              <p className="text-sm font-bold text-foreground">{occupancyStats.bookedNights} / {occupancyStats.totalNights}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 flex items-center gap-2">
+            <div className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] font-bold ${occupancyStats.occupancyPct >= 50 ? "bg-emerald-100 text-emerald-700" : occupancyStats.occupancyPct >= 20 ? "bg-amber-100 text-amber-700" : "bg-destructive/10 text-destructive"}`}>%</div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Occupation</p>
+              <p className={`text-sm font-bold ${occupancyStats.occupancyPct >= 50 ? "text-emerald-600" : occupancyStats.occupancyPct >= 20 ? "text-amber-600" : "text-destructive"}`}>{occupancyStats.occupancyPct}%</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 flex items-center gap-2">
+            <Moon className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Jours vides</p>
+              <p className="text-sm font-bold text-foreground">{occupancyStats.emptyDays}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-primary" />
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Prochaine arrivée</p>
+              <p className="text-sm font-bold text-foreground">
+                {occupancyStats.nextArrival
+                  ? new Date(occupancyStats.nextArrival.check_in).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
+                  : "—"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Connected calendars */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-wrap">
@@ -215,7 +318,7 @@ export function PropertyCalendar({ propertyId }: Props) {
                           className={`text-[9px] leading-tight px-1.5 py-0.5 rounded-md truncate border ${colorCls} ${typeStyle.bg}`}
                           title={`${typeStyle.label}: ${ev.summary || "Réservation"} ${ev.guest_name ? `- ${ev.guest_name}` : ""}`}
                         >
-                          {evType === "reservation" ? (ev.guest_name || ev.summary || "Réservation") : "Date bloquée"}
+                          {(evType === "reservation" || evType === "booking") ? (ev.guest_name || ev.summary || "Réservation") : "Date bloquée"}
                         </div>
                       );
                     })}
@@ -241,8 +344,9 @@ export function PropertyCalendar({ propertyId }: Props) {
             <div className="w-px bg-border" />
             <div className="flex flex-wrap gap-3">
               {Object.entries(platformLabels).map(([key, label]) => {
-                const hasEvents = events.some(e => e.platform === key) || calendars.some(c => c.platform === key);
-                if (!hasEvents && key !== "manual") return null;
+                const hasEvents = allEvents.some(e => e.platform === key) || calendars.some(c => c.platform === key);
+                if (!hasEvents && key !== "manual" && key !== "bookings_table") return null;
+                if (key === "bookings_table" && bookings.length === 0) return null;
                 return (
                   <div key={key} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                     <span className={`w-3 h-3 rounded-sm border ${platformColors[key]}`} />
@@ -256,13 +360,14 @@ export function PropertyCalendar({ propertyId }: Props) {
       </Card>
 
       {/* Upcoming events list */}
-      {events.length > 0 && (
+      {allEvents.length > 0 && (
         <Card>
           <CardContent className="pt-5">
             <h3 className="text-sm font-semibold text-foreground mb-3">Réservations à venir</h3>
             <div className="space-y-2">
-              {events
-                .filter(e => e.end_date >= new Date().toISOString().substring(0, 10))
+              {allEvents
+                .filter(e => e.end_date >= new Date().toISOString().substring(0, 10) && (e.event_type === "reservation" || e.event_type === "booking"))
+                .sort((a, b) => a.start_date.localeCompare(b.start_date))
                 .slice(0, 10)
                 .map(ev => (
                   <div key={ev.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/40">
