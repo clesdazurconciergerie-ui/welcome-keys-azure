@@ -4,11 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useInvoices } from "@/hooks/useInvoices";
-import { useExpenses } from "@/hooks/useExpenses";
-import { useVendorPayments } from "@/hooks/useVendorPayments";
+import { useUnifiedExpenses } from "@/hooks/useUnifiedExpenses";
 import { useFinancialSettings } from "@/hooks/useFinancialSettings";
-import { useOwners } from "@/hooks/useOwners";
-import { useProperties } from "@/hooks/useProperties";
 import {
   TrendingUp, TrendingDown, Euro, AlertCircle, FileText, Receipt,
   CheckCircle, Clock, ArrowUpRight
@@ -24,15 +21,13 @@ export function FinanceDashboardTab() {
   const [cashOnly, setCashOnly] = useState(false);
 
   const { invoices, loading: iLoading } = useInvoices();
-  const { expenses, loading: eLoading } = useExpenses();
-  const { payments: vendorPayments, loading: vpLoading } = useVendorPayments();
+  const { unified: allExpenses, loading: uLoading, paidByType } = useUnifiedExpenses();
   const { settings: fs } = useFinancialSettings();
 
   const vatEnabled = fs?.vat_enabled ?? true;
-  // When VAT disabled, always use subtotal (= total since vat=0)
   const effectiveDisplayMode = vatEnabled ? displayMode : "ht";
 
-  const loading = iLoading || eLoading || vpLoading;
+  const loading = iLoading || uLoading;
 
   const dateRange = useMemo(() => {
     const now = new Date();
@@ -69,20 +64,15 @@ export function FinanceDashboardTab() {
 
     const grossRevenue = cashOnly ? paidRevenue - creditNoteTotal : invoiceRevenue - creditNoteTotal;
 
-    // Expenses
-    const filteredExpenses = expenses.filter(e => {
-      const d = new Date(e.expense_date);
-      return d >= dateRange.start && d <= dateRange.end && e.status === "paid";
+    // Expenses (unified: manual expenses + vendor payments + paid interventions)
+    const filteredUnified = allExpenses.filter(u => {
+      const d = new Date(u.date);
+      return d >= dateRange.start && d <= dateRange.end && u.status === "paid";
     });
-    const expensesTotal = filteredExpenses.reduce((s, e) => s + Number(e.amount), 0);
-
-    const filteredVP = vendorPayments.filter(vp => {
-      const d = new Date(vp.date);
-      return d >= dateRange.start && d <= dateRange.end && vp.status === "paid";
-    });
-    const vpTotal = filteredVP.reduce((s, vp) => s + Number(vp.amount), 0);
-
-    const totalExpenses = expensesTotal + vpTotal;
+    const totalExpenses = filteredUnified.reduce((s, u) => s + u.amount, 0);
+    const expensesTotal = filteredUnified.filter(u => u.type === "expense").reduce((s, u) => s + u.amount, 0);
+    const vpTotal = filteredUnified.filter(u => u.type === "vendor_payment").reduce((s, u) => s + u.amount, 0);
+    const interventionTotal = filteredUnified.filter(u => u.type === "intervention").reduce((s, u) => s + u.amount, 0);
 
     // Profit
     const netProfit = grossRevenue - totalExpenses;
@@ -96,10 +86,10 @@ export function FinanceDashboardTab() {
 
     return {
       grossRevenue, paidRevenue, pendingRevenue,
-      expensesTotal, vpTotal, totalExpenses,
+      expensesTotal, vpTotal, interventionTotal, totalExpenses,
       netProfit, receivable, sentTotal, overdueTotal,
     };
-  }, [invoices, expenses, vendorPayments, dateRange, effectiveDisplayMode, cashOnly]);
+  }, [invoices, allExpenses, dateRange, effectiveDisplayMode, cashOnly]);
 
   // Chart data
   const chartData = useMemo(() => {
@@ -120,18 +110,12 @@ export function FinanceDashboardTab() {
         })
         .reduce((s, inv) => s + Number(effectiveDisplayMode === "ht" ? inv.subtotal : inv.total), 0);
 
-      const exp = expenses
-        .filter(e => {
-          const ed = new Date(e.expense_date);
-          return isWithinInterval(ed, interval) && e.status === "paid";
+      const exp = allExpenses
+        .filter(u => {
+          const ud = new Date(u.date);
+          return isWithinInterval(ud, interval) && u.status === "paid";
         })
-        .reduce((s, e) => s + Number(e.amount), 0)
-        + vendorPayments
-          .filter(vp => {
-            const vd = new Date(vp.date);
-            return isWithinInterval(vd, interval) && vp.status === "paid";
-          })
-          .reduce((s, vp) => s + Number(vp.amount), 0);
+        .reduce((s, u) => s + u.amount, 0);
 
       const label = period === "year"
         ? format(d, "MMM", { locale: fr })
@@ -141,13 +125,13 @@ export function FinanceDashboardTab() {
 
       return { label, revenue: rev, expenses: exp };
     });
-  }, [invoices, expenses, vendorPayments, dateRange, period, effectiveDisplayMode]);
+  }, [invoices, allExpenses, dateRange, period, effectiveDisplayMode]);
 
   // Recent items
   const recentInvoices = invoices
     .filter(i => i.type !== "credit_note")
     .slice(0, 5);
-  const recentExpenses = expenses.slice(0, 5);
+  const recentExpenses = allExpenses.slice(0, 5);
 
   return (
     <div className="space-y-6 mt-4">
@@ -220,9 +204,10 @@ export function FinanceDashboardTab() {
               {loading ? "—" : formatEUR(stats.totalExpenses)}
             </p>
             {!loading && (
-              <div className="flex gap-3 mt-1.5 text-[11px] text-muted-foreground">
-                <span>Prestataires: {formatEUR(stats.vpTotal)}</span>
+              <div className="flex gap-3 mt-1.5 text-[11px] text-muted-foreground flex-wrap">
                 <span>Dépenses: {formatEUR(stats.expensesTotal)}</span>
+                <span>Prestataires: {formatEUR(stats.vpTotal)}</span>
+                <span>Interventions: {formatEUR(stats.interventionTotal)}</span>
               </div>
             )}
           </CardContent>
@@ -335,7 +320,7 @@ export function FinanceDashboardTab() {
                   <div key={exp.id} className="flex items-center justify-between p-2.5 rounded-lg border">
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{exp.description}</p>
-                      <p className="text-xs text-muted-foreground">{format(new Date(exp.expense_date), "dd/MM/yyyy")}</p>
+                      <p className="text-xs text-muted-foreground">{format(new Date(exp.date), "dd/MM/yyyy")}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-red-500">-{formatEUR(Number(exp.amount))}</span>
