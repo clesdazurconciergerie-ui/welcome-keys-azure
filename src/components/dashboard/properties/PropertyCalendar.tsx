@@ -84,7 +84,18 @@ export function PropertyCalendar({ propertyId }: Props) {
 
   const getEventsForDay = (date: Date): CalendarEvent[] => {
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    return events.filter(e => e.start_date <= dateStr && e.end_date > dateStr);
+    const dayEvents = events.filter(e => e.start_date <= dateStr && e.end_date > dateStr);
+    
+    // Deduplicate: keep all reservations, but only one "date bloquée"
+    const reservations = dayEvents.filter(e => e.event_type === "reservation");
+    const nonReservations = dayEvents.filter(e => e.event_type !== "reservation");
+    
+    // If there are reservations, show them. Add max 1 block entry if blocks exist.
+    if (reservations.length > 0) {
+      return reservations;
+    }
+    // No reservations: show only one "date bloquée"
+    return nonReservations.length > 0 ? [nonReservations[0]] : [];
   };
 
   const today = new Date();
