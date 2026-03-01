@@ -25,10 +25,10 @@ const platformColors: Record<string, string> = {
   other: "bg-accent/50 text-accent-foreground border-accent",
 };
 
-const eventTypeStyles: Record<string, { bg: string; pattern?: string; label: string; icon: string }> = {
+const eventTypeStyles: Record<string, { bg: string; label: string; icon: string }> = {
   reservation: { bg: "", label: "Réservation", icon: "●" },
-  manual_block: { bg: "opacity-50 border-dashed", label: "Blocage manuel", icon: "▧" },
-  unknown: { bg: "bg-muted/60 text-muted-foreground border-muted", label: "Indéfini", icon: "■" },
+  manual_block: { bg: "bg-amber-100 text-amber-700 border-amber-300 border-dashed", label: "Date bloquée", icon: "▧" },
+  unknown: { bg: "bg-amber-100 text-amber-700 border-amber-300 border-dashed", label: "Date bloquée", icon: "▧" },
 };
 
 const platformLabels: Record<string, string> = {
@@ -204,7 +204,7 @@ export function PropertyCalendar({ propertyId }: Props) {
                           className={`text-[9px] leading-tight px-1.5 py-0.5 rounded-md truncate border ${colorCls} ${typeStyle.bg}`}
                           title={`${typeStyle.label}: ${ev.summary || "Réservation"} ${ev.guest_name ? `- ${ev.guest_name}` : ""}`}
                         >
-                          {ev.guest_name || ev.summary || "Réservation"}
+                          {evType === "reservation" ? (ev.guest_name || ev.summary || "Réservation") : "Date bloquée"}
                         </div>
                       );
                     })}
