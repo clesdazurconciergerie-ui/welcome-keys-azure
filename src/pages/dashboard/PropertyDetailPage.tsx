@@ -26,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProperties, type Property, type PropertyPhoto, type PropertyDocument } from "@/hooks/useProperties";
 import { EditPropertyDialog } from "@/components/dashboard/properties/EditPropertyDialog";
+import { PropertyCalendar } from "@/components/dashboard/properties/PropertyCalendar";
 
 const typeLabels: Record<string, string> = {
   apartment: "Appartement", house: "Maison", villa: "Villa",
@@ -515,16 +516,7 @@ const PropertyDetailPage = () => {
 
         {/* CALENDAR TAB */}
         <TabsContent value="calendar" className="mt-4">
-          <Card>
-            <CardContent className="text-center py-12">
-              <Calendar className="w-10 h-10 mx-auto text-[hsl(var(--gold))] mb-3" />
-              <h3 className="font-semibold text-foreground mb-1">Calendrier & Planning</h3>
-              <p className="text-sm text-muted-foreground max-w-md mx-auto mb-1">
-                Synchronisation iCal / Airbnb / Booking, statuts d'occupation et planning des check-in/check-out.
-              </p>
-              <p className="text-xs text-[hsl(var(--gold))] font-medium">🚧 Bientôt disponible</p>
-            </CardContent>
-          </Card>
+          <PropertyCalendar propertyId={id!} />
         </TabsContent>
 
         {/* OWNERS TAB */}

@@ -29,9 +29,9 @@ const LogementsPage = () => {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Biens / Logements</h1>
+            <h1 className="text-3xl font-bold text-foreground">Biens</h1>
             <p className="text-muted-foreground mt-1">
-              {properties.length} bien{properties.length !== 1 ? "s" : ""} enregistré{properties.length !== 1 ? "s" : ""}
+              {properties.length} bien{properties.length !== 1 ? "s" : ""}
             </p>
           </div>
           <div className="flex gap-2">
@@ -61,7 +61,7 @@ const LogementsPage = () => {
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">Aucun bien enregistré</h3>
             <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-              Commencez par créer vos biens. Vous pourrez ensuite y associer des propriétaires et des livrets d'accueil.
+              Commencez par créer vos biens.
             </p>
             <Button
               onClick={() => setCreateOpen(true)}

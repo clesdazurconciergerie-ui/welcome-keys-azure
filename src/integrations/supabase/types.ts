@@ -315,6 +315,69 @@ export type Database = {
           },
         ]
       }
+      calendar_events: {
+        Row: {
+          calendar_id: string
+          created_at: string
+          end_date: string
+          guest_name: string | null
+          ical_uid: string | null
+          id: string
+          platform: string
+          property_id: string
+          start_date: string
+          status: string
+          summary: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calendar_id: string
+          created_at?: string
+          end_date: string
+          guest_name?: string | null
+          ical_uid?: string | null
+          id?: string
+          platform?: string
+          property_id: string
+          start_date: string
+          status?: string
+          summary?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calendar_id?: string
+          created_at?: string
+          end_date?: string
+          guest_name?: string | null
+          ical_uid?: string | null
+          id?: string
+          platform?: string
+          property_id?: string
+          start_date?: string
+          status?: string
+          summary?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "ical_calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checklist_items: {
         Row: {
           created_at: string
@@ -665,6 +728,53 @@ export type Database = {
             columns: ["booklet_id"]
             isOneToOne: false
             referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ical_calendars: {
+        Row: {
+          created_at: string
+          id: string
+          last_synced_at: string | null
+          name: string
+          platform: string
+          property_id: string
+          sync_status: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          name?: string
+          platform?: string
+          property_id: string
+          sync_status?: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          name?: string
+          platform?: string
+          property_id?: string
+          sync_status?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ical_calendars_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
