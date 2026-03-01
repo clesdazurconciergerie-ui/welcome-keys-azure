@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
         platform: cal.platform,
         status: "confirmed",
         ical_uid: e.uid || null,
+        event_type: e.eventType,
       }));
 
       const { error: insertErr } = await supabase
@@ -110,6 +111,8 @@ interface ParsedEvent {
   startDate: string;
   endDate: string;
   guestName: string;
+  description: string;
+  eventType: "reservation" | "manual_block" | "unknown";
 }
 
 function parseICalEvents(icalText: string): ParsedEvent[] {
@@ -132,6 +135,8 @@ function parseICalEvents(icalText: string): ParsedEvent[] {
           startDate: current.startDate,
           endDate: current.endDate,
           guestName: current.guestName || "",
+          description: current.description || "",
+          eventType: classifyEvent(current.summary || "", current.description || "", current.uid || ""),
         });
       }
     } else if (inEvent) {
@@ -148,9 +153,10 @@ function parseICalEvents(icalText: string): ParsedEvent[] {
       } else if (line.startsWith("DTEND")) {
         current.endDate = parseICalDate(line);
       } else if (line.startsWith("DESCRIPTION:")) {
+        const desc = line.substring(12).trim();
+        current.description = desc;
         // Some platforms put guest name in description
         if (!current.guestName) {
-          const desc = line.substring(12).trim();
           if (desc.length > 0 && desc.length < 100) {
             current.guestName = desc;
           }
@@ -160,6 +166,32 @@ function parseICalEvents(icalText: string): ParsedEvent[] {
   }
 
   return events;
+}
+
+function classifyEvent(summary: string, description: string, uid: string): "reservation" | "manual_block" | "unknown" {
+  const s = summary.toLowerCase();
+  const d = description.toLowerCase();
+
+  // Reservation indicators
+  if (
+    s.includes("reserved") || s.includes("reservation") || s.includes("réservation") ||
+    s.includes("booked") || d.includes("guest") || d.includes("check-in") ||
+    d.includes("invité") || d.includes("voyageur") ||
+    // Airbnb pattern: "Name - (HMXXXXXX)"
+    /^.+\s*[-–]\s*\(/.test(summary)
+  ) {
+    return "reservation";
+  }
+
+  // Manual block indicators
+  if (
+    s.includes("blocked") || s.includes("not available") || s.includes("bloqué") ||
+    s.includes("indisponible") || s.includes("block") || s === "airbnb (not available)"
+  ) {
+    return "manual_block";
+  }
+
+  return "unknown";
 }
 
 function parseICalDate(line: string): string {
