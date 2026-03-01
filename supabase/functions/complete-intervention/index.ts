@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { intervention_id } = await req.json();
+    const { intervention_id, provider_comment } = await req.json();
     if (!intervention_id) {
       return new Response(JSON.stringify({ error: 'ID intervention manquant' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -73,19 +73,39 @@ Deno.serve(async (req) => {
       .select('id', { count: 'exact', head: true })
       .eq('intervention_id', intervention_id);
 
-    if (!count || count === 0) {
-      return new Response(JSON.stringify({ error: 'Vous devez uploader au moins une photo avant de valider' }), {
+    if (!count || count < 4) {
+      return new Response(JSON.stringify({ error: 'Minimum 4 photos requises avant de pouvoir valider' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Build update payload
+    const updatePayload: any = {
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      actual_end_time: new Date().toISOString(),
+      checklist_validated: true,
+    };
+    if (provider_comment) updatePayload.provider_comment = provider_comment;
+
+    // Calculate punctuality score
+    const { data: fullIntervention } = await adminClient
+      .from('cleaning_interventions')
+      .select('scheduled_start_time, actual_start_time')
+      .eq('id', intervention_id)
+      .single();
+
+    if (fullIntervention?.scheduled_start_time && fullIntervention?.actual_start_time) {
+      const scheduled = new Date(fullIntervention.scheduled_start_time).getTime();
+      const actual = new Date(fullIntervention.actual_start_time).getTime();
+      const diffMinutes = (actual - scheduled) / 60000;
+      updatePayload.punctuality_score = diffMinutes <= 10 ? 5 : 0;
     }
 
     // Update intervention status
     const { error: updateError } = await adminClient
       .from('cleaning_interventions')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', intervention_id);
 
     if (updateError) throw updateError;

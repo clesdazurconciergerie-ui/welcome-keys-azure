@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsOwner } from "@/hooks/useIsOwner";
+import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
 import { Loader2, Menu } from "lucide-react";
 
 export default function DashboardLayout() {
@@ -11,6 +12,7 @@ export default function DashboardLayout() {
   const [authLoading, setAuthLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
   const { isOwner, isLoading: ownerLoading } = useIsOwner();
+  const { isServiceProvider, isLoading: spLoading } = useIsServiceProvider();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -32,7 +34,14 @@ export default function DashboardLayout() {
     }
   }, [authLoading, ownerLoading, isOwner, navigate]);
 
-  if (authLoading || ownerLoading) {
+  // If user is a service provider, redirect to SP space
+  useEffect(() => {
+    if (!authLoading && !spLoading && isServiceProvider) {
+      navigate("/prestataire");
+    }
+  }, [authLoading, spLoading, isServiceProvider, navigate]);
+
+  if (authLoading || ownerLoading || spLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

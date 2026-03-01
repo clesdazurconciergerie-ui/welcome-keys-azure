@@ -205,6 +205,14 @@ const Auth = () => {
         throw error;
       }
       
+      // Check if user is a service provider
+      const { data: spRecord } = await (supabase as any)
+        .from('service_providers')
+        .select('id')
+        .eq('auth_user_id', data.user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
       // Check if user is an owner (created by concierge)
       const { data: ownerRecord } = await (supabase as any)
         .from('owners')
@@ -214,6 +222,12 @@ const Auth = () => {
         .maybeSingle();
 
       toast.success("Connexion réussie !");
+
+      // SP → redirect to SP space
+      if (spRecord) {
+        navigate("/prestataire");
+        return;
+      }
 
       // Owner → redirect to owner space
       if (ownerRecord) {

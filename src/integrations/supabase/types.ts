@@ -315,44 +315,115 @@ export type Database = {
           },
         ]
       }
+      checklist_items: {
+        Row: {
+          created_at: string
+          id: string
+          is_mandatory: boolean
+          order_index: number | null
+          property_id: string
+          task_text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_mandatory?: boolean
+          order_index?: number | null
+          property_id: string
+          task_text: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_mandatory?: boolean
+          order_index?: number | null
+          property_id?: string
+          task_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_items_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cleaning_interventions: {
         Row: {
+          actual_end_time: string | null
+          actual_start_time: string | null
+          admin_comment: string | null
+          checklist_validated: boolean
           completed_at: string | null
           concierge_notes: string | null
           concierge_user_id: string
           created_at: string
           id: string
+          internal_score: number | null
+          mission_amount: number | null
+          mission_type: string
           notes: string | null
+          payment_done: boolean
           property_id: string
+          provider_comment: string | null
+          punctuality_score: number | null
           scheduled_date: string
+          scheduled_end_time: string | null
+          scheduled_start_time: string | null
           service_provider_id: string | null
           status: string
           type: string
           updated_at: string
         }
         Insert: {
+          actual_end_time?: string | null
+          actual_start_time?: string | null
+          admin_comment?: string | null
+          checklist_validated?: boolean
           completed_at?: string | null
           concierge_notes?: string | null
           concierge_user_id: string
           created_at?: string
           id?: string
+          internal_score?: number | null
+          mission_amount?: number | null
+          mission_type?: string
           notes?: string | null
+          payment_done?: boolean
           property_id: string
+          provider_comment?: string | null
+          punctuality_score?: number | null
           scheduled_date: string
+          scheduled_end_time?: string | null
+          scheduled_start_time?: string | null
           service_provider_id?: string | null
           status?: string
           type?: string
           updated_at?: string
         }
         Update: {
+          actual_end_time?: string | null
+          actual_start_time?: string | null
+          admin_comment?: string | null
+          checklist_validated?: boolean
           completed_at?: string | null
           concierge_notes?: string | null
           concierge_user_id?: string
           created_at?: string
           id?: string
+          internal_score?: number | null
+          mission_amount?: number | null
+          mission_type?: string
           notes?: string | null
+          payment_done?: boolean
           property_id?: string
+          provider_comment?: string | null
+          punctuality_score?: number | null
           scheduled_date?: string
+          scheduled_end_time?: string | null
+          scheduled_start_time?: string | null
           service_provider_id?: string | null
           status?: string
           type?: string
@@ -594,6 +665,94 @@ export type Database = {
             columns: ["booklet_id"]
             isOneToOne: false
             referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_reports: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          intervention_id: string
+          is_resolved: boolean
+          is_urgent: boolean
+          photo_url: string | null
+          problem_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          intervention_id: string
+          is_resolved?: boolean
+          is_urgent?: boolean
+          photo_url?: string | null
+          problem_type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          intervention_id?: string
+          is_resolved?: boolean
+          is_urgent?: boolean
+          photo_url?: string | null
+          problem_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_reports_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "cleaning_interventions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_requests: {
+        Row: {
+          concierge_user_id: string
+          created_at: string
+          id: string
+          product: string
+          quantity: number
+          request_date: string
+          service_provider_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          concierge_user_id: string
+          created_at?: string
+          id?: string
+          product: string
+          quantity?: number
+          request_date?: string
+          service_provider_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          concierge_user_id?: string
+          created_at?: string
+          id?: string
+          product?: string
+          quantity?: number
+          request_date?: string
+          service_provider_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_requests_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
             referencedColumns: ["id"]
           },
         ]
@@ -1171,6 +1330,7 @@ export type Database = {
           last_name: string
           notes: string | null
           phone: string | null
+          score_global: number
           specialty: string
           status: string
           updated_at: string
@@ -1185,6 +1345,7 @@ export type Database = {
           last_name: string
           notes?: string | null
           phone?: string | null
+          score_global?: number
           specialty?: string
           status?: string
           updated_at?: string
@@ -1199,6 +1360,7 @@ export type Database = {
           last_name?: string
           notes?: string | null
           phone?: string | null
+          score_global?: number
           specialty?: string
           status?: string
           updated_at?: string

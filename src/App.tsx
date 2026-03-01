@@ -40,7 +40,13 @@ import OwnerCleaningPhotosPage from "./pages/owner/OwnerCleaningPhotosPage";
 import OwnerDocumentsPage from "./pages/owner/OwnerDocumentsPage";
 import OwnerAccountPage from "./pages/owner/OwnerAccountPage";
 import SPDashboardHome from "./pages/service-provider/SPDashboardHome";
-import SPInterventionsPage from "./pages/service-provider/SPInterventionsPage";
+import SPMissionsPage from "./pages/service-provider/SPMissionsPage";
+import SPPlanningPage from "./pages/service-provider/SPPlanningPage";
+import SPHistoryPage from "./pages/service-provider/SPHistoryPage";
+import SPPaymentsPage from "./pages/service-provider/SPPaymentsPage";
+import SPMaterialPage from "./pages/service-provider/SPMaterialPage";
+import SPSupportPage from "./pages/service-provider/SPSupportPage";
+import SPSettingsPage from "./pages/service-provider/SPSettingsPage";
 import SPAccountPage from "./pages/service-provider/SPAccountPage";
 
 const queryClient = new QueryClient();
@@ -86,7 +92,13 @@ const App = () => (
           {/* Service provider dashboard */}
           <Route path="/prestataire" element={<ServiceProviderDashboardLayout />}>
             <Route index element={<SPDashboardHome />} />
-            <Route path="interventions" element={<SPInterventionsPage />} />
+            <Route path="missions" element={<SPMissionsPage />} />
+            <Route path="planning" element={<SPPlanningPage />} />
+            <Route path="historique" element={<SPHistoryPage />} />
+            <Route path="paiements" element={<SPPaymentsPage />} />
+            <Route path="materiel" element={<SPMaterialPage />} />
+            <Route path="support" element={<SPSupportPage />} />
+            <Route path="parametres" element={<SPSettingsPage />} />
             <Route path="compte" element={<SPAccountPage />} />
           </Route>
 

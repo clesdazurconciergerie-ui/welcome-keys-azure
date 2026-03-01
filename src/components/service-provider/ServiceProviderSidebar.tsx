@@ -6,14 +6,22 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import BrandMark from "@/components/BrandMark";
-import { LayoutDashboard, ClipboardList, User, LogOut } from "lucide-react";
+import { LayoutDashboard, ClipboardList, CalendarDays, History, CreditCard, Package, LifeBuoy, Settings, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const spNav = [
+const mainNav = [
   { title: "Tableau de bord", url: "/prestataire", icon: LayoutDashboard },
-  { title: "Mes interventions", url: "/prestataire/interventions", icon: ClipboardList },
-  { title: "Mon compte", url: "/prestataire/compte", icon: User },
+  { title: "Mes missions", url: "/prestataire/missions", icon: ClipboardList },
+  { title: "Planning", url: "/prestataire/planning", icon: CalendarDays },
+  { title: "Historique", url: "/prestataire/historique", icon: History },
+];
+
+const secondaryNav = [
+  { title: "Paiements", url: "/prestataire/paiements", icon: CreditCard },
+  { title: "Matériel & Stock", url: "/prestataire/materiel", icon: Package },
+  { title: "Support", url: "/prestataire/support", icon: LifeBuoy },
+  { title: "Paramètres", url: "/prestataire/parametres", icon: Settings },
 ];
 
 export function ServiceProviderSidebar() {
@@ -44,7 +52,7 @@ export function ServiceProviderSidebar() {
             </div>
           ) : (
             <div className="w-8 h-8 rounded-lg bg-[hsl(var(--gold))] flex items-center justify-center font-bold text-[hsl(var(--brand-blue))] text-sm">
-              S
+              P
             </div>
           )}
         </div>
@@ -56,12 +64,41 @@ export function ServiceProviderSidebar() {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {spNav.map((item) => (
+                {mainNav.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
                       <NavLink
                         to={item.url}
                         end={item.url === "/prestataire"}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                          isActive(item.url)
+                            ? "bg-[hsl(var(--gold))] text-[hsl(var(--brand-blue))] shadow-lg shadow-[hsl(var(--gold))]/20"
+                            : "text-white/70 hover:text-white hover:bg-white/10"
+                        }`}
+                        activeClassName=""
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarGroup className="mt-6">
+            <SidebarGroupLabel className="text-white/40 text-[10px] uppercase tracking-widest px-3 mb-2">
+              {!collapsed && "Outils"}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {secondaryNav.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                           isActive(item.url)
                             ? "bg-[hsl(var(--gold))] text-[hsl(var(--brand-blue))] shadow-lg shadow-[hsl(var(--gold))]/20"
