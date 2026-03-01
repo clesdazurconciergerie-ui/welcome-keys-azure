@@ -14,6 +14,7 @@ export interface FinancialSettings {
   next_invoice_number: number;
   iban: string | null;
   legal_footer: string | null;
+  default_due_days: number;
 }
 
 export interface PropertyFinancialSettings {

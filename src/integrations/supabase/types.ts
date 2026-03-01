@@ -733,9 +733,13 @@ export type Database = {
           expense_date: string | null
           file_url: string | null
           id: string
+          owner_id: string | null
           property_id: string | null
+          status: string
           updated_at: string | null
           user_id: string
+          vat_amount: number | null
+          vat_rate: number | null
         }
         Insert: {
           amount: number
@@ -745,9 +749,13 @@ export type Database = {
           expense_date?: string | null
           file_url?: string | null
           id?: string
+          owner_id?: string | null
           property_id?: string | null
+          status?: string
           updated_at?: string | null
           user_id: string
+          vat_amount?: number | null
+          vat_rate?: number | null
         }
         Update: {
           amount?: number
@@ -757,11 +765,22 @@ export type Database = {
           expense_date?: string | null
           file_url?: string | null
           id?: string
+          owner_id?: string | null
           property_id?: string | null
+          status?: string
           updated_at?: string | null
           user_id?: string
+          vat_amount?: number | null
+          vat_rate?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_property_id_fkey"
             columns: ["property_id"]
@@ -814,6 +833,7 @@ export type Database = {
           address: string | null
           company_name: string | null
           created_at: string | null
+          default_due_days: number | null
           default_vat_rate: number | null
           iban: string | null
           id: string
@@ -829,6 +849,7 @@ export type Database = {
           address?: string | null
           company_name?: string | null
           created_at?: string | null
+          default_due_days?: number | null
           default_vat_rate?: number | null
           iban?: string | null
           id?: string
@@ -844,6 +865,7 @@ export type Database = {
           address?: string | null
           company_name?: string | null
           created_at?: string | null
+          default_due_days?: number | null
           default_vat_rate?: number | null
           iban?: string | null
           id?: string
@@ -1009,9 +1031,13 @@ export type Database = {
           id: string
           invoice_id: string
           item_type: string | null
+          line_type: string
+          metadata: Json | null
+          property_id: string | null
           quantity: number | null
           total: number | null
           unit_price: number | null
+          vat_rate: number | null
         }
         Insert: {
           booking_id?: string | null
@@ -1020,9 +1046,13 @@ export type Database = {
           id?: string
           invoice_id: string
           item_type?: string | null
+          line_type?: string
+          metadata?: Json | null
+          property_id?: string | null
           quantity?: number | null
           total?: number | null
           unit_price?: number | null
+          vat_rate?: number | null
         }
         Update: {
           booking_id?: string | null
@@ -1031,9 +1061,13 @@ export type Database = {
           id?: string
           invoice_id?: string
           item_type?: string | null
+          line_type?: string
+          metadata?: Json | null
+          property_id?: string | null
           quantity?: number | null
           total?: number | null
           unit_price?: number | null
+          vat_rate?: number | null
         }
         Relationships: [
           {
@@ -1050,15 +1084,24 @@ export type Database = {
             referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "invoice_items_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
         ]
       }
       invoices: {
         Row: {
           company_snapshot: Json | null
           created_at: string | null
+          due_date: string | null
           id: string
           invoice_date: string | null
           invoice_number: string
+          issue_date: string | null
           notes: string | null
           owner_id: string
           owner_snapshot: Json | null
@@ -1067,6 +1110,7 @@ export type Database = {
           status: string | null
           subtotal: number | null
           total: number | null
+          type: string
           updated_at: string | null
           user_id: string
           vat_amount: number | null
@@ -1075,9 +1119,11 @@ export type Database = {
         Insert: {
           company_snapshot?: Json | null
           created_at?: string | null
+          due_date?: string | null
           id?: string
           invoice_date?: string | null
           invoice_number: string
+          issue_date?: string | null
           notes?: string | null
           owner_id: string
           owner_snapshot?: Json | null
@@ -1086,6 +1132,7 @@ export type Database = {
           status?: string | null
           subtotal?: number | null
           total?: number | null
+          type?: string
           updated_at?: string | null
           user_id: string
           vat_amount?: number | null
@@ -1094,9 +1141,11 @@ export type Database = {
         Update: {
           company_snapshot?: Json | null
           created_at?: string | null
+          due_date?: string | null
           id?: string
           invoice_date?: string | null
           invoice_number?: string
+          issue_date?: string | null
           notes?: string | null
           owner_id?: string
           owner_snapshot?: Json | null
@@ -1105,6 +1154,7 @@ export type Database = {
           status?: string | null
           subtotal?: number | null
           total?: number | null
+          type?: string
           updated_at?: string | null
           user_id?: string
           vat_amount?: number | null
@@ -2024,6 +2074,42 @@ export type Database = {
         }
         Relationships: []
       }
+      services_catalog: {
+        Row: {
+          active: boolean
+          created_at: string
+          default_unit_price: number
+          default_vat_rate: number
+          id: string
+          name: string
+          unit_label: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          default_unit_price?: number
+          default_vat_rate?: number
+          id?: string
+          name: string
+          unit_label?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          default_unit_price?: number
+          default_vat_rate?: number
+          id?: string
+          name?: string
+          unit_label?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean
@@ -2204,6 +2290,76 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      vendor_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          description: string
+          id: string
+          owner_id: string | null
+          property_id: string | null
+          provider_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          vat_amount: number | null
+          vat_rate: number | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          date?: string
+          description: string
+          id?: string
+          owner_id?: string | null
+          property_id?: string | null
+          provider_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          vat_amount?: number | null
+          vat_rate?: number | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          owner_id?: string | null
+          property_id?: string | null
+          provider_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          vat_amount?: number | null
+          vat_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_payments_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_payments_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_payments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wifi_credentials: {
         Row: {

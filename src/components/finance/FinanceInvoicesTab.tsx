@@ -8,55 +8,58 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { useInvoices } from "@/hooks/useInvoices";
+import { useInvoices, type InvoiceItem } from "@/hooks/useInvoices";
 import { useBookings, type Booking } from "@/hooks/useBookings";
-import { useFinancialSettings, usePropertyFinancialSettings } from "@/hooks/useFinancialSettings";
+import { useFinancialSettings } from "@/hooks/useFinancialSettings";
 import { useOwners } from "@/hooks/useOwners";
 import { useProperties } from "@/hooks/useProperties";
-import { Plus, FileText, Printer, Trash2, CheckCircle, Clock, X, Loader2 } from "lucide-react";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { useServicesCatalog } from "@/hooks/useServicesCatalog";
+import { Plus, FileText, Printer, Trash2, CheckCircle, Clock, X, Loader2, Send, Ban, CreditCard } from "lucide-react";
+import { format, startOfMonth, endOfMonth, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { InvoicePrintView } from "./InvoicePrintView";
 import { supabase } from "@/integrations/supabase/client";
+import { formatEUR, invoiceStatusLabels, invoiceStatusColors, lineTypeLabels } from "@/lib/finance-utils";
 
-// --- Types ---
-interface ServiceLine {
+// Line item for the creation form
+interface FormLine {
   id: string;
+  line_type: string;
   description: string;
   quantity: number;
   unit_price: number;
+  vat_rate: number;
+  booking_id: string | null;
+  property_id: string | null;
 }
 
-interface SelectedBookingCalc {
-  booking: Booking;
-  gross: number;
-  commission: number;
-  cleaning: number;
-  checkin: number;
-  maintenance: number;
-  ownerNet: number;
-  conciergeRevenue: number;
-}
-
-// --- Main component ---
 export function FinanceInvoicesTab() {
-  const { invoices, loading, generateInvoice, updateInvoiceStatus, deleteInvoice, fetchInvoiceWithItems } = useInvoices();
+  const { invoices, loading, createInvoice, updateInvoiceStatus, deleteInvoice, fetchInvoiceWithItems } = useInvoices();
   const { bookings } = useBookings();
   const { settings: fs } = useFinancialSettings();
   const { owners } = useOwners();
   const { properties } = useProperties();
+  const { services: catalog } = useServicesCatalog();
 
-  // Dialog states
-  const [genOpen, setGenOpen] = useState(false);
+  // Filter state
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterOwner, setFilterOwner] = useState("all");
+
+  // Dialog
+  const [createOpen, setCreateOpen] = useState(false);
   const [genOwner, setGenOwner] = useState("");
   const [genMonth, setGenMonth] = useState(format(new Date(), "yyyy-MM"));
-  const [generating, setGenerating] = useState(false);
+  const [dueDate, setDueDate] = useState("");
+  const [invoiceType, setInvoiceType] = useState("invoice");
+  const [invoiceStatus, setInvoiceStatus] = useState("draft");
+  const [invoiceNotes, setInvoiceNotes] = useState("");
+  const [creating, setCreating] = useState(false);
 
-  // Selection
-  const [selectedBookingIds, setSelectedBookingIds] = useState<Set<string>>(new Set());
-  const [serviceLines, setServiceLines] = useState<ServiceLine[]>([]);
+  // Lines
+  const [lines, setLines] = useState<FormLine[]>([]);
 
-  // Property financial settings cache
+  // Selection helpers
+  const [ownerPropertyIds, setOwnerPropertyIds] = useState<string[]>([]);
   const [propFinSettings, setPropFinSettings] = useState<Record<string, any>>({});
 
   // Preview
@@ -64,8 +67,7 @@ export function FinanceInvoicesTab() {
   const [previewItems, setPreviewItems] = useState<any[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  // Load owner's property IDs
-  const [ownerPropertyIds, setOwnerPropertyIds] = useState<string[]>([]);
+  // Load owner property IDs & financial settings
   useEffect(() => {
     if (!genOwner) { setOwnerPropertyIds([]); return; }
     (async () => {
@@ -76,7 +78,6 @@ export function FinanceInvoicesTab() {
       const ids = (data as any[] || []).map((d: any) => d.property_id);
       setOwnerPropertyIds(ids);
 
-      // Fetch financial settings for each property
       const settingsMap: Record<string, any> = {};
       for (const pid of ids) {
         const { data: pfs } = await supabase
@@ -90,7 +91,14 @@ export function FinanceInvoicesTab() {
     })();
   }, [genOwner]);
 
-  // Filter bookings for selected owner & month
+  // Set due date default
+  useEffect(() => {
+    if (createOpen && fs?.default_due_days) {
+      setDueDate(format(addDays(new Date(), fs.default_due_days), "yyyy-MM-dd"));
+    }
+  }, [createOpen, fs]);
+
+  // Filtered bookings for selection
   const filteredBookings = useMemo(() => {
     if (!genOwner || ownerPropertyIds.length === 0) return [];
     const [y, m] = genMonth.split("-").map(Number);
@@ -102,113 +110,93 @@ export function FinanceInvoicesTab() {
     });
   }, [bookings, genOwner, ownerPropertyIds, genMonth]);
 
-  // Reset selections when owner/month changes
+  // Reset when owner/month changes
   useEffect(() => {
-    setSelectedBookingIds(new Set());
-    setServiceLines([]);
+    setLines([]);
   }, [genOwner, genMonth]);
 
-  // Calculate amounts per selected booking using property financial settings
-  const selectedCalcs: SelectedBookingCalc[] = useMemo(() => {
-    return filteredBookings
-      .filter(b => selectedBookingIds.has(b.id))
-      .map(b => {
-        const pfs = propFinSettings[b.property_id];
-        const gross = Number(b.gross_amount) || 0;
-        const commissionRate = pfs?.commission_rate ?? 20;
-        const cleaningFee = Number(pfs?.cleaning_fee ?? 0);
-        const checkinFee = Number(pfs?.checkin_fee ?? 0);
-        const maintenanceRate = pfs?.maintenance_rate ?? 0;
+  // Import reservation as line
+  const importBooking = (b: Booking) => {
+    if (lines.some(l => l.booking_id === b.id)) return;
+    const pfs = propFinSettings[b.property_id];
+    const gross = Number(b.gross_amount) || 0;
+    const commRate = pfs?.commission_rate ?? 20;
+    const cleanFee = Number(pfs?.cleaning_fee ?? 0);
+    const checkinFee = Number(pfs?.checkin_fee ?? 0);
+    const maintRate = pfs?.maintenance_rate ?? 0;
+    const commission = gross * (commRate / 100);
+    const maintenance = gross * (maintRate / 100);
+    const ownerNet = gross - commission - cleanFee - checkinFee - maintenance;
 
-        const commission = gross * (commissionRate / 100);
-        const maintenance = gross * (maintenanceRate / 100);
-        const conciergeRevenue = commission + cleaningFee + checkinFee;
-        const ownerNet = gross - commission - cleaningFee - checkinFee - maintenance;
-
-        return {
-          booking: b,
-          gross,
-          commission,
-          cleaning: cleaningFee,
-          checkin: checkinFee,
-          maintenance,
-          ownerNet: Math.max(0, ownerNet),
-          conciergeRevenue,
-        };
-      });
-  }, [filteredBookings, selectedBookingIds, propFinSettings]);
-
-  // Totals
-  const serviceLinesTotal = serviceLines.reduce((s, l) => s + l.quantity * l.unit_price, 0);
-  const bookingsSubtotal = selectedCalcs.reduce((s, c) => s + c.ownerNet, 0);
-  const subtotal = bookingsSubtotal + serviceLinesTotal;
-  const vatRate = fs?.default_vat_rate || 0;
-  const vatAmount = subtotal * (vatRate / 100);
-  const totalTTC = subtotal + vatAmount;
-
-  // Toggle booking
-  const toggleBooking = (id: string) => {
-    setSelectedBookingIds(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  const selectAllBookings = () => {
-    if (selectedBookingIds.size === filteredBookings.length) {
-      setSelectedBookingIds(new Set());
-    } else {
-      setSelectedBookingIds(new Set(filteredBookings.map(b => b.id)));
-    }
-  };
-
-  // Service lines
-  const addServiceLine = () => {
-    setServiceLines(prev => [...prev, { id: crypto.randomUUID(), description: "", quantity: 1, unit_price: 0 }]);
-  };
-
-  const updateServiceLine = (id: string, field: keyof ServiceLine, value: any) => {
-    setServiceLines(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
-  };
-
-  const removeServiceLine = (id: string) => {
-    setServiceLines(prev => prev.filter(l => l.id !== id));
-  };
-
-  // Suggest interventions as services
-  const [suggestedServices, setSuggestedServices] = useState<any[]>([]);
-  useEffect(() => {
-    if (ownerPropertyIds.length === 0) { setSuggestedServices([]); return; }
-    const [y, m] = genMonth.split("-").map(Number);
-    const start = format(startOfMonth(new Date(y, m - 1)), "yyyy-MM-dd");
-    const end = format(endOfMonth(new Date(y, m - 1)), "yyyy-MM-dd");
-    (async () => {
-      const { data } = await supabase
-        .from("cleaning_interventions" as any)
-        .select("*, property:properties(name)")
-        .in("property_id", ownerPropertyIds)
-        .gte("scheduled_date", start)
-        .lte("scheduled_date", end)
-        .eq("status", "completed");
-      setSuggestedServices((data as any[]) || []);
-    })();
-  }, [ownerPropertyIds, genMonth]);
-
-  const addSuggestedService = (s: any) => {
-    const exists = serviceLines.some(l => l.description.includes(s.id));
-    if (exists) return;
-    setServiceLines(prev => [...prev, {
+    setLines(prev => [...prev, {
       id: crypto.randomUUID(),
-      description: `${s.mission_type === 'cleaning' ? 'Ménage' : s.mission_type} — ${s.property?.name || ''} (${format(new Date(s.scheduled_date), "dd/MM/yyyy")})`,
+      line_type: "rental_reservation",
+      description: `Réservation ${b.check_in} → ${b.check_out}${b.guest_name ? ` (${b.guest_name})` : ""} — Net propriétaire`,
       quantity: 1,
-      unit_price: Number(s.mission_amount) || 0,
+      unit_price: Math.max(0, ownerNet),
+      vat_rate: fs?.default_vat_rate || 0,
+      booking_id: b.id,
+      property_id: b.property_id,
     }]);
   };
 
-  // Generate
-  const handleGenerate = async () => {
-    if (selectedCalcs.length === 0 && serviceLines.length === 0) return;
+  // Add empty line of a given type
+  const addLine = (type: string) => {
+    setLines(prev => [...prev, {
+      id: crypto.randomUUID(),
+      line_type: type,
+      description: "",
+      quantity: 1,
+      unit_price: 0,
+      vat_rate: fs?.default_vat_rate || 0,
+      booking_id: null,
+      property_id: null,
+    }]);
+  };
+
+  // Add from catalog
+  const addCatalogService = (svc: any) => {
+    setLines(prev => [...prev, {
+      id: crypto.randomUUID(),
+      line_type: "service",
+      description: svc.name,
+      quantity: 1,
+      unit_price: Number(svc.default_unit_price),
+      vat_rate: Number(svc.default_vat_rate) || 0,
+      booking_id: null,
+      property_id: null,
+    }]);
+  };
+
+  const updateLine = (id: string, field: keyof FormLine, value: any) => {
+    setLines(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
+  };
+
+  const removeLine = (id: string) => {
+    setLines(prev => prev.filter(l => l.id !== id));
+  };
+
+  // Totals
+  const subtotalHT = lines.reduce((s, l) => s + l.quantity * l.unit_price, 0);
+  const totalVAT = lines.reduce((s, l) => {
+    const ht = l.quantity * l.unit_price;
+    return s + ht * (l.vat_rate / 100);
+  }, 0);
+  const totalTTC = subtotalHT + totalVAT;
+
+  // Group lines by type for display
+  const lineGroups = useMemo(() => {
+    const groups: Record<string, FormLine[]> = {};
+    for (const l of lines) {
+      if (!groups[l.line_type]) groups[l.line_type] = [];
+      groups[l.line_type].push(l);
+    }
+    return groups;
+  }, [lines]);
+
+  // Create invoice
+  const handleCreate = async () => {
+    if (lines.length === 0) return;
     const owner = owners.find(o => o.id === genOwner);
     if (!owner) return;
 
@@ -216,44 +204,35 @@ export function FinanceInvoicesTab() {
     const start = startOfMonth(new Date(y, m - 1));
     const end = endOfMonth(new Date(y, m - 1));
 
-    // Build items
-    const items: any[] = [];
-    for (const c of selectedCalcs) {
-      items.push({
-        booking_id: c.booking.id,
-        description: `Réservation ${c.booking.check_in} → ${c.booking.check_out}${c.booking.guest_name ? ` (${c.booking.guest_name})` : ""} — Net propriétaire`,
-        quantity: 1,
-        unit_price: c.ownerNet,
-        total: c.ownerNet,
-        item_type: "revenue",
-      });
-    }
-    for (const sl of serviceLines) {
-      if (!sl.description) continue;
-      items.push({
-        booking_id: null,
-        description: sl.description,
-        quantity: sl.quantity,
-        unit_price: sl.unit_price,
-        total: sl.quantity * sl.unit_price,
-        item_type: "service",
-      });
-    }
-
-    setGenerating(true);
-    await generateInvoice({
+    setCreating(true);
+    await createInvoice({
       owner_id: genOwner,
       period_start: format(start, "yyyy-MM-dd"),
       period_end: format(end, "yyyy-MM-dd"),
-      bookings: selectedCalcs.map(c => c.booking),
+      due_date: dueDate || undefined,
+      type: invoiceType,
+      status: invoiceStatus,
+      vat_rate: fs?.default_vat_rate || 0,
+      items: lines.map(l => ({
+        booking_id: l.booking_id,
+        description: l.description,
+        quantity: l.quantity,
+        unit_price: l.unit_price,
+        total: l.quantity * l.unit_price,
+        item_type: l.line_type === "rental_reservation" || l.line_type === "rental_manual" ? "revenue" : l.line_type,
+        line_type: l.line_type,
+        vat_rate: l.vat_rate,
+        property_id: l.property_id,
+        metadata: {},
+      })),
       financial_settings: fs,
       owner,
-      vat_rate: vatRate,
-      custom_items: items,
-      custom_subtotal: subtotal,
+      notes: invoiceNotes || undefined,
     });
-    setGenerating(false);
-    setGenOpen(false);
+    setCreating(false);
+    setCreateOpen(false);
+    setLines([]);
+    setInvoiceNotes("");
   };
 
   const handlePreview = async (invoiceId: string) => {
@@ -269,39 +248,77 @@ export function FinanceInvoicesTab() {
     return { value: format(d, "yyyy-MM"), label: format(d, "MMMM yyyy", { locale: fr }) };
   });
 
-  const getPropertyName = (pid: string) => properties.find(p => p.id === pid)?.name || "";
+  // Filter invoices
+  const filteredInvoices = invoices.filter(inv => {
+    if (filterStatus !== "all" && inv.status !== filterStatus) return false;
+    if (filterOwner !== "all" && inv.owner_id !== filterOwner) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-6 mt-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Factures</h2>
-        <Dialog open={genOpen} onOpenChange={setGenOpen}>
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-36 h-9"><SelectValue placeholder="Statut" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les statuts</SelectItem>
+              <SelectItem value="draft">Brouillon</SelectItem>
+              <SelectItem value="sent">Envoyée</SelectItem>
+              <SelectItem value="paid">Payée</SelectItem>
+              <SelectItem value="overdue">En retard</SelectItem>
+              <SelectItem value="canceled">Annulée</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterOwner} onValueChange={setFilterOwner}>
+            <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Propriétaire" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous</SelectItem>
+              {owners.map(o => <SelectItem key={o.id} value={o.id}>{o.first_name} {o.last_name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold-dark))] text-white">
-              <Plus className="h-4 w-4" />Générer une facture
-            </Button>
+            <Button className="gap-2"><Plus className="h-4 w-4" />Nouvelle facture</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nouvelle facture</DialogTitle></DialogHeader>
 
             <div className="space-y-5 mt-2">
-              {/* Step 1: Owner + Month */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Header fields */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
-                  <Label className="text-xs font-semibold">Propriétaire</Label>
+                  <Label className="text-xs">Propriétaire *</Label>
                   <Select value={genOwner} onValueChange={setGenOwner}>
-                    <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
                     <SelectContent>
                       {owners.map(o => <SelectItem key={o.id} value={o.id}>{o.first_name} {o.last_name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs font-semibold">Période</Label>
+                  <Label className="text-xs">Période *</Label>
                   <Select value={genMonth} onValueChange={setGenMonth}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Échéance</Label>
+                  <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="h-9" />
+                </div>
+                <div>
+                  <Label className="text-xs">Type</Label>
+                  <Select value={invoiceType} onValueChange={setInvoiceType}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="invoice">Facture</SelectItem>
+                      <SelectItem value="credit_note">Avoir</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -311,49 +328,38 @@ export function FinanceInvoicesTab() {
                 <>
                   <Separator />
 
-                  {/* Step 2: Select bookings */}
+                  {/* Reservations section */}
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Réservations ({filteredBookings.length})
-                      </Label>
-                      {filteredBookings.length > 0 && (
-                        <Button variant="ghost" size="sm" className="text-xs h-7" onClick={selectAllBookings}>
-                          {selectedBookingIds.size === filteredBookings.length ? "Tout désélectionner" : "Tout sélectionner"}
-                        </Button>
-                      )}
-                    </div>
-
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
+                      Réservations ({filteredBookings.length})
+                    </Label>
                     {filteredBookings.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-3 text-center">Aucune réservation trouvée pour cette période</p>
+                      <p className="text-sm text-muted-foreground text-center py-3">Aucune réservation pour cette période</p>
                     ) : (
-                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      <div className="space-y-1 max-h-40 overflow-y-auto">
                         {filteredBookings.map(b => {
-                          const selected = selectedBookingIds.has(b.id);
-                          const pfs = propFinSettings[b.property_id];
-                          const gross = Number(b.gross_amount) || 0;
-                          const propName = getPropertyName(b.property_id);
+                          const imported = lines.some(l => l.booking_id === b.id);
+                          const propName = properties.find(p => p.id === b.property_id)?.name || "";
                           return (
                             <div
                               key={b.id}
-                              onClick={() => toggleBooking(b.id)}
-                              className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${
-                                selected ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
-                              }`}
+                              className={`flex items-center justify-between p-2 rounded-lg border text-sm ${imported ? "border-primary/30 bg-primary/5" : "border-border"}`}
                             >
-                              <Checkbox checked={selected} onCheckedChange={() => toggleBooking(b.id)} />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">
-                                  {propName} — {b.guest_name || "Voyageur"}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {format(new Date(b.check_in), "dd/MM")} → {format(new Date(b.check_out), "dd/MM")} · {b.source}
-                                </p>
+                              <div className="min-w-0">
+                                <span className="font-medium">{propName}</span>
+                                <span className="text-muted-foreground ml-2">{b.guest_name || "—"}</span>
+                                <span className="text-muted-foreground ml-2">{format(new Date(b.check_in), "dd/MM")} → {format(new Date(b.check_out), "dd/MM")}</span>
                               </div>
-                              <div className="text-right shrink-0">
-                                <p className="text-sm font-semibold">{gross.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
-                                {pfs && <p className="text-[10px] text-muted-foreground">Commission {pfs.commission_rate}%</p>}
-                                {b.financial_status === "invoiced" && <Badge variant="secondary" className="text-[10px] mt-0.5">Déjà facturée</Badge>}
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold">{formatEUR(Number(b.gross_amount) || 0)}</span>
+                                <Button
+                                  variant={imported ? "secondary" : "outline"}
+                                  size="sm" className="h-7 text-xs"
+                                  onClick={() => importBooking(b)}
+                                  disabled={imported}
+                                >
+                                  {imported ? "Importée" : "Importer"}
+                                </Button>
                               </div>
                             </div>
                           );
@@ -362,132 +368,132 @@ export function FinanceInvoicesTab() {
                     )}
                   </div>
 
-                  {/* Auto-calc summary for selected bookings */}
-                  {selectedCalcs.length > 0 && (
-                    <Card className="bg-muted/30">
-                      <CardContent className="p-3 text-xs space-y-1">
-                        <p className="font-semibold text-sm mb-1">Détail calcul automatique</p>
-                        {selectedCalcs.map(c => (
-                          <div key={c.booking.id} className="flex justify-between">
-                            <span className="text-muted-foreground truncate mr-2">
-                              {getPropertyName(c.booking.property_id)} — {c.booking.guest_name || "Voyageur"}
-                            </span>
-                            <span className="shrink-0">
-                              Brut {c.gross.toFixed(2)}€ → Net {c.ownerNet.toFixed(2)}€
-                              <span className="text-muted-foreground ml-1">(com. {c.commission.toFixed(0)}€ + mén. {c.cleaning.toFixed(0)}€ + CI {c.checkin.toFixed(0)}€)</span>
-                            </span>
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  )}
-
                   <Separator />
 
-                  {/* Step 3: Services / Prestations */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Prestations & Services
-                      </Label>
-                      <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={addServiceLine}>
-                        <Plus className="h-3 w-3" />Ajouter
-                      </Button>
-                    </div>
+                  {/* Add line buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => addLine("rental_manual")}>
+                      <Plus className="h-3 w-3" />Revenu locatif manuel
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => addLine("service")}>
+                      <Plus className="h-3 w-3" />Prestation
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => addLine("pass_through_cost")}>
+                      <Plus className="h-3 w-3" />Frais refacturés
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => addLine("adjustment")}>
+                      <Plus className="h-3 w-3" />Ajustement
+                    </Button>
+                  </div>
 
-                    {/* Suggested services */}
-                    {suggestedServices.length > 0 && (
-                      <div className="mb-3">
-                        <p className="text-[11px] text-muted-foreground mb-1">💡 Prestations réalisées ce mois :</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {suggestedServices.map(s => (
-                            <button
-                              key={s.id}
-                              onClick={() => addSuggestedService(s)}
-                              className="text-[11px] px-2 py-1 rounded-lg border border-dashed border-primary/30 text-primary hover:bg-primary/5 transition-colors"
-                            >
-                              + {s.mission_type === 'cleaning' ? 'Ménage' : s.mission_type} — {s.property?.name} ({Number(s.mission_amount || 0).toFixed(0)}€)
-                            </button>
-                          ))}
-                        </div>
+                  {/* Service catalog quick add */}
+                  {catalog.filter(s => s.active).length > 0 && (
+                    <div>
+                      <p className="text-[11px] text-muted-foreground mb-1">📋 Catalogue de services :</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {catalog.filter(s => s.active).map(svc => (
+                          <button
+                            key={svc.id}
+                            onClick={() => addCatalogService(svc)}
+                            className="text-[11px] px-2 py-1 rounded-lg border border-dashed border-primary/30 text-primary hover:bg-primary/5 transition-colors"
+                          >
+                            + {svc.name} ({formatEUR(svc.default_unit_price)})
+                          </button>
+                        ))}
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    {serviceLines.length > 0 && (
-                      <div className="space-y-2">
-                        {serviceLines.map(line => (
+                  {/* Lines editor */}
+                  {Object.entries(lineGroups).map(([type, groupLines]) => (
+                    <div key={type}>
+                      <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">
+                        {lineTypeLabels[type] || type}
+                      </Label>
+                      <div className="space-y-1.5">
+                        {groupLines.map(line => (
                           <div key={line.id} className="flex items-center gap-2">
                             <Input
                               placeholder="Description"
                               value={line.description}
-                              onChange={e => updateServiceLine(line.id, "description", e.target.value)}
+                              onChange={e => updateLine(line.id, "description", e.target.value)}
                               className="flex-1 h-8 text-xs"
                             />
                             <Input
-                              type="number"
+                              type="number" min={1}
                               value={line.quantity}
-                              onChange={e => updateServiceLine(line.id, "quantity", Number(e.target.value) || 0)}
-                              className="w-16 h-8 text-xs text-center"
-                              min={1}
+                              onChange={e => updateLine(line.id, "quantity", Number(e.target.value) || 0)}
+                              className="w-14 h-8 text-xs text-center"
                             />
                             <Input
-                              type="number"
+                              type="number" step="0.01"
                               value={line.unit_price}
-                              onChange={e => updateServiceLine(line.id, "unit_price", Number(e.target.value) || 0)}
+                              onChange={e => updateLine(line.id, "unit_price", Number(e.target.value) || 0)}
                               className="w-24 h-8 text-xs text-right"
-                              step="0.01"
-                              placeholder="P.U. €"
+                              placeholder="P.U."
                             />
-                            <span className="text-xs font-medium w-16 text-right shrink-0">
-                              {(line.quantity * line.unit_price).toFixed(2)}€
+                            <Input
+                              type="number" step="0.1"
+                              value={line.vat_rate}
+                              onChange={e => updateLine(line.id, "vat_rate", Number(e.target.value) || 0)}
+                              className="w-16 h-8 text-xs text-center"
+                              placeholder="TVA%"
+                            />
+                            <span className="text-xs font-medium w-20 text-right shrink-0">
+                              {formatEUR(line.quantity * line.unit_price)}
                             </span>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeServiceLine(line.id)}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeLine(line.id)}>
                               <X className="h-3 w-3" />
                             </Button>
                           </div>
                         ))}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ))}
 
                   <Separator />
 
                   {/* Totals */}
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Sous-total réservations</span>
-                      <span className="font-medium">{bookingsSubtotal.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</span>
-                    </div>
-                    {serviceLinesTotal > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Prestations</span>
-                        <span className="font-medium">{serviceLinesTotal.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
                       <span className="text-muted-foreground">Sous-total HT</span>
-                      <span className="font-medium">{subtotal.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</span>
+                      <span className="font-medium">{formatEUR(subtotalHT)}</span>
                     </div>
-                    {vatRate > 0 && (
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>TVA ({vatRate}%)</span>
-                        <span>{vatAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</span>
-                      </div>
-                    )}
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>TVA</span>
+                      <span>{formatEUR(totalVAT)}</span>
+                    </div>
                     <div className="flex justify-between text-base font-bold border-t pt-2 mt-1">
                       <span>Total TTC</span>
-                      <span>{totalTTC.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</span>
+                      <span>{formatEUR(totalTTC)}</span>
                     </div>
                   </div>
 
-                  <Button
-                    onClick={handleGenerate}
-                    disabled={generating || (selectedCalcs.length === 0 && serviceLines.length === 0)}
-                    className="w-full gap-2"
-                  >
-                    {generating && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {generating ? "Génération..." : "Générer la facture"}
-                  </Button>
+                  {/* Notes */}
+                  <div>
+                    <Label className="text-xs">Notes internes (optionnel)</Label>
+                    <Input value={invoiceNotes} onChange={e => setInvoiceNotes(e.target.value)} className="h-8 text-xs" placeholder="Notes..." />
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      disabled={creating || lines.length === 0}
+                      onClick={() => { setInvoiceStatus("draft"); handleCreate(); }}
+                    >
+                      Sauvegarder brouillon
+                    </Button>
+                    <Button
+                      className="flex-1 gap-2"
+                      disabled={creating || lines.length === 0}
+                      onClick={() => { setInvoiceStatus("sent"); handleCreate(); }}
+                    >
+                      {creating && <Loader2 className="h-4 w-4 animate-spin" />}
+                      <Send className="h-4 w-4" />Envoyer la facture
+                    </Button>
+                  </div>
                 </>
               )}
             </div>
@@ -497,43 +503,69 @@ export function FinanceInvoicesTab() {
 
       {/* Invoice list */}
       {loading ? (
-        <p className="text-sm text-muted-foreground">Chargement...</p>
-      ) : invoices.length === 0 ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : filteredInvoices.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center">
-            <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">Aucune facture générée</p>
+          <CardContent className="py-16 text-center">
+            <FileText className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
+            <p className="text-muted-foreground font-medium">Aucune facture</p>
+            <p className="text-sm text-muted-foreground mt-1">Créez votre première facture pour commencer</p>
+            <Button className="mt-4 gap-2" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4" />Nouvelle facture
+            </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-2">
-          {invoices.map(inv => (
-            <Card key={inv.id}>
+          {filteredInvoices.map(inv => (
+            <Card key={inv.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-4 min-w-0">
-                  <FileText className="h-5 w-5 text-[hsl(var(--gold))] shrink-0" />
+                  <FileText className={`h-5 w-5 shrink-0 ${inv.type === "credit_note" ? "text-red-400" : "text-primary"}`} />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold">{inv.invoice_number}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold">{inv.invoice_number}</p>
+                      {inv.type === "credit_note" && <Badge variant="outline" className="text-[9px]">Avoir</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
                       {inv.owner?.first_name} {inv.owner?.last_name} — {format(new Date(inv.period_start), "MMM yyyy", { locale: fr })}
+                      {inv.due_date && <span className="ml-2">· Éch. {format(new Date(inv.due_date), "dd/MM/yyyy")}</span>}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <p className="text-sm font-bold">{Number(inv.total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
-                  <Badge variant={inv.status === "paid" ? "default" : "secondary"} className={inv.status === "paid" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}>
-                    {inv.status === "paid" ? "Payée" : "En attente"}
+                  <div className="text-right">
+                    <p className="text-sm font-bold">{formatEUR(Number(inv.total))}</p>
+                    <p className="text-[10px] text-muted-foreground">HT: {formatEUR(Number(inv.subtotal))}</p>
+                  </div>
+                  <Badge className={`text-[10px] ${invoiceStatusColors[inv.status] || ""}`}>
+                    {invoiceStatusLabels[inv.status] || inv.status}
                   </Badge>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePreview(inv.id)}>
-                    <Printer className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8"
-                    onClick={() => updateInvoiceStatus(inv.id, inv.status === "paid" ? "pending" : "paid")}>
-                    {inv.status === "paid" ? <Clock className="h-4 w-4" /> : <CheckCircle className="h-4 w-4 text-emerald-600" />}
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteInvoice(inv.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePreview(inv.id)} title="Voir">
+                      <Printer className="h-4 w-4" />
+                    </Button>
+                    {inv.status === "draft" && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateInvoiceStatus(inv.id, "sent")} title="Envoyer">
+                        <Send className="h-4 w-4 text-primary" />
+                      </Button>
+                    )}
+                    {["sent", "overdue"].includes(inv.status) && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateInvoiceStatus(inv.id, "paid")} title="Marquer payée">
+                        <CheckCircle className="h-4 w-4 text-emerald-600" />
+                      </Button>
+                    )}
+                    {inv.status !== "canceled" && inv.status !== "paid" && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateInvoiceStatus(inv.id, "canceled")} title="Annuler">
+                        <Ban className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteInvoice(inv.id)} title="Supprimer">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -541,7 +573,7 @@ export function FinanceInvoicesTab() {
         </div>
       )}
 
-      {/* Print preview dialog */}
+      {/* Print preview */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
           <DialogHeader>
