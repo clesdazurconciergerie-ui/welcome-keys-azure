@@ -141,6 +141,8 @@ export function useInvoices() {
       billing_city: params.owner.billing_city,
     };
 
+    // Step 1: Insert invoice
+    console.log("[Invoice] Step 1: Inserting invoice...");
     const { data: invoice, error } = await supabase
       .from("invoices" as any)
       .insert({
@@ -164,11 +166,19 @@ export function useInvoices() {
       .select()
       .single();
 
-    if (error) { toast.error("Erreur génération facture"); return null; }
+    if (error) {
+      console.error("[Invoice] Step 1 FAILED - Insert invoice:", { message: error.message, details: error.details, hint: error.hint, code: error.code });
+      toast.error(`Erreur création facture: ${error.message}${error.details ? ` (${error.details})` : ""}${error.hint ? ` — ${error.hint}` : ""}`);
+      return null;
+    }
+    console.log("[Invoice] Step 1 OK - Invoice created:", (invoice as any).id);
 
+    // Step 2: Insert line items
     const invoiceId = (invoice as any).id;
-    for (const item of sanitizedItems) {
-      await supabase.from("invoice_items" as any).insert({
+    for (let i = 0; i < sanitizedItems.length; i++) {
+      const item = sanitizedItems[i];
+      console.log(`[Invoice] Step 2: Inserting item ${i + 1}/${sanitizedItems.length}...`);
+      const { error: itemError } = await supabase.from("invoice_items" as any).insert({
         invoice_id: invoiceId,
         booking_id: item.booking_id || null,
         description: item.description,
@@ -181,19 +191,26 @@ export function useInvoices() {
         property_id: item.property_id || null,
         metadata: item.metadata || {},
       });
+      if (itemError) {
+        console.error(`[Invoice] Step 2 FAILED - Insert item ${i + 1}:`, { message: itemError.message, details: itemError.details, hint: itemError.hint, code: itemError.code });
+        toast.error(`Erreur ligne ${i + 1}: ${itemError.message}`);
+      }
     }
+    console.log("[Invoice] Step 2 OK - All items inserted");
 
-    // Mark bookings as invoiced
+    // Step 3: Mark bookings as invoiced
     const bookingIds = params.items
       .filter(i => i.booking_id)
       .map(i => i.booking_id);
     for (const bid of bookingIds) {
-      await supabase.from("bookings" as any).update({ financial_status: "invoiced" }).eq("id", bid);
+      const { error: bkErr } = await supabase.from("bookings" as any).update({ financial_status: "invoiced" }).eq("id", bid);
+      if (bkErr) console.error("[Invoice] Step 3 - Booking update error:", bkErr);
     }
 
-    // Increment invoice number
+    // Step 4: Increment invoice number
     if (fs?.id) {
-      await supabase.from("financial_settings" as any).update({ next_invoice_number: nextNum + 1 }).eq("id", fs.id);
+      const { error: fsErr } = await supabase.from("financial_settings" as any).update({ next_invoice_number: nextNum + 1 }).eq("id", fs.id);
+      if (fsErr) console.error("[Invoice] Step 4 - Financial settings update error:", fsErr);
     }
 
     toast.success(`Facture ${invoiceNumber} créée`);
