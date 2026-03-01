@@ -91,6 +91,86 @@ export type Database = {
           },
         ]
       }
+      bookings: {
+        Row: {
+          calendar_event_id: string | null
+          check_in: string
+          check_out: string
+          checkin_amount: number | null
+          cleaning_amount: number | null
+          commission_amount: number | null
+          concierge_revenue: number | null
+          created_at: string | null
+          financial_status: string | null
+          gross_amount: number | null
+          guest_name: string | null
+          id: string
+          maintenance_amount: number | null
+          notes: string | null
+          other_deductions: number | null
+          owner_net: number | null
+          price_status: string | null
+          property_id: string
+          source: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          calendar_event_id?: string | null
+          check_in: string
+          check_out: string
+          checkin_amount?: number | null
+          cleaning_amount?: number | null
+          commission_amount?: number | null
+          concierge_revenue?: number | null
+          created_at?: string | null
+          financial_status?: string | null
+          gross_amount?: number | null
+          guest_name?: string | null
+          id?: string
+          maintenance_amount?: number | null
+          notes?: string | null
+          other_deductions?: number | null
+          owner_net?: number | null
+          price_status?: string | null
+          property_id: string
+          source?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          calendar_event_id?: string | null
+          check_in?: string
+          check_out?: string
+          checkin_amount?: number | null
+          cleaning_amount?: number | null
+          commission_amount?: number | null
+          concierge_revenue?: number | null
+          created_at?: string | null
+          financial_status?: string | null
+          gross_amount?: number | null
+          guest_name?: string | null
+          id?: string
+          maintenance_amount?: number | null
+          notes?: string | null
+          other_deductions?: number | null
+          owner_net?: number | null
+          price_status?: string | null
+          property_id?: string
+          source?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booklet_contacts: {
         Row: {
           booklet_id: string
@@ -644,6 +724,53 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string | null
+          description: string
+          expense_date: string | null
+          file_url: string | null
+          id: string
+          property_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string | null
+          description: string
+          expense_date?: string | null
+          file_url?: string | null
+          id?: string
+          property_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string | null
+          description?: string
+          expense_date?: string | null
+          file_url?: string | null
+          id?: string
+          property_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       faq: {
         Row: {
           answer: string
@@ -681,6 +808,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      financial_settings: {
+        Row: {
+          address: string | null
+          company_name: string | null
+          created_at: string | null
+          default_vat_rate: number | null
+          iban: string | null
+          id: string
+          invoice_prefix: string | null
+          legal_footer: string | null
+          logo_url: string | null
+          next_invoice_number: number | null
+          updated_at: string | null
+          user_id: string
+          vat_number: string | null
+        }
+        Insert: {
+          address?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          default_vat_rate?: number | null
+          iban?: string | null
+          id?: string
+          invoice_prefix?: string | null
+          legal_footer?: string | null
+          logo_url?: string | null
+          next_invoice_number?: number | null
+          updated_at?: string | null
+          user_id: string
+          vat_number?: string | null
+        }
+        Update: {
+          address?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          default_vat_rate?: number | null
+          iban?: string | null
+          id?: string
+          invoice_prefix?: string | null
+          legal_footer?: string | null
+          logo_url?: string | null
+          next_invoice_number?: number | null
+          updated_at?: string | null
+          user_id?: string
+          vat_number?: string | null
+        }
+        Relationships: []
       }
       highlights: {
         Row: {
@@ -822,6 +997,125 @@ export type Database = {
             columns: ["intervention_id"]
             isOneToOne: false
             referencedRelation: "cleaning_interventions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_items: {
+        Row: {
+          booking_id: string | null
+          created_at: string | null
+          description: string
+          id: string
+          invoice_id: string
+          item_type: string | null
+          quantity: number | null
+          total: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          invoice_id: string
+          item_type?: string | null
+          quantity?: number | null
+          total?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          invoice_id?: string
+          item_type?: string | null
+          quantity?: number | null
+          total?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          company_snapshot: Json | null
+          created_at: string | null
+          id: string
+          invoice_date: string | null
+          invoice_number: string
+          notes: string | null
+          owner_id: string
+          owner_snapshot: Json | null
+          period_end: string
+          period_start: string
+          status: string | null
+          subtotal: number | null
+          total: number | null
+          updated_at: string | null
+          user_id: string
+          vat_amount: number | null
+          vat_rate: number | null
+        }
+        Insert: {
+          company_snapshot?: Json | null
+          created_at?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number: string
+          notes?: string | null
+          owner_id: string
+          owner_snapshot?: Json | null
+          period_end: string
+          period_start: string
+          status?: string | null
+          subtotal?: number | null
+          total?: number | null
+          updated_at?: string | null
+          user_id: string
+          vat_amount?: number | null
+          vat_rate?: number | null
+        }
+        Update: {
+          company_snapshot?: Json | null
+          created_at?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string
+          notes?: string | null
+          owner_id?: string
+          owner_snapshot?: Json | null
+          period_end?: string
+          period_start?: string
+          status?: string | null
+          subtotal?: number | null
+          total?: number | null
+          updated_at?: string | null
+          user_id?: string
+          vat_amount?: number | null
+          vat_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
             referencedColumns: ["id"]
           },
         ]
@@ -1177,6 +1471,41 @@ export type Database = {
         }
         Relationships: []
       }
+      price_calendar: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          price: number
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          price: number
+          property_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          price?: number
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_calendar_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       properties: {
         Row: {
           address: string
@@ -1282,6 +1611,59 @@ export type Database = {
             foreignKeyName: "property_documents_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_financial_settings: {
+        Row: {
+          checkin_fee: number | null
+          cleaning_fee: number | null
+          commission_rate: number | null
+          compensation_model: string | null
+          created_at: string | null
+          id: string
+          maintenance_rate: number | null
+          ota_payout_recipient: string | null
+          pricing_source: string | null
+          property_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          checkin_fee?: number | null
+          cleaning_fee?: number | null
+          commission_rate?: number | null
+          compensation_model?: string | null
+          created_at?: string | null
+          id?: string
+          maintenance_rate?: number | null
+          ota_payout_recipient?: string | null
+          pricing_source?: string | null
+          property_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          checkin_fee?: number | null
+          cleaning_fee?: number | null
+          commission_rate?: number | null
+          compensation_model?: string | null
+          created_at?: string | null
+          id?: string
+          maintenance_rate?: number | null
+          ota_payout_recipient?: string | null
+          pricing_source?: string | null
+          property_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_financial_settings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: true
             referencedRelation: "properties"
             referencedColumns: ["id"]
           },

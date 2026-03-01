@@ -22,6 +22,7 @@ import {
   FileText,
   User,
   LogOut,
+  Euro,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -32,6 +33,7 @@ const ownerNav = [
   { title: "Livrets d'accueil", url: "/proprietaire/livrets", icon: BookOpen },
   { title: "Photos ménage", url: "/proprietaire/photos-menage", icon: Camera },
   { title: "Documents", url: "/proprietaire/documents", icon: FileText },
+  { title: "Finances", url: "/proprietaire/finances", icon: Euro },
   { title: "Mon compte", url: "/proprietaire/compte", icon: User },
 ];
 
