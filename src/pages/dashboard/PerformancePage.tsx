@@ -115,6 +115,14 @@ function buildAlerts(kpis: ReturnType<typeof usePerformanceKPIs>["kpis"]): Alert
     alerts.push({ severity: "warning", text: `Créances élevées (${formatEUR(kpis.receivables)}) — risque de trésorerie` });
   if (kpis.conversionRate > 0 && kpis.conversionRate < 10)
     alerts.push({ severity: "info", text: `Taux de conversion faible (${kpis.conversionRate}%) — revoir le pipeline` });
+  // Per-property vacancy alerts (next 30 days)
+  for (const pv of kpis.propertyVacancies) {
+    if (pv.bookedNights === 0) {
+      alerts.push({ severity: "critical", text: `${pv.propertyName} : aucune réservation dans les 30 prochains jours` });
+    } else if (pv.occupancyPct < 20) {
+      alerts.push({ severity: "warning", text: `${pv.propertyName} : occupation faible (${pv.occupancyPct}% — ${pv.bookedNights} nuits / 30)` });
+    }
+  }
   if (alerts.length === 0)
     alerts.push({ severity: "info", text: "Aucune alerte — tout semble en ordre 👍" });
   return alerts;

@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface PropertyVacancy {
+  propertyId: string;
+  propertyName: string;
+  bookedNights: number;
+  totalNights: number;
+  occupancyPct: number;
+  nextArrival: string | null;
+}
+
 export interface PerformanceKPIs {
   grossRevenue: number;
   expenses: number;
@@ -25,6 +34,8 @@ export interface PerformanceKPIs {
   // Overdue count for alerts/score
   overdueInvoicesCount: number;
   unpaidVendorsCount: number;
+  // Vacancy alerts per property
+  propertyVacancies: PropertyVacancy[];
 }
 
 const EMPTY: PerformanceKPIs = {
@@ -34,7 +45,20 @@ const EMPTY: PerformanceKPIs = {
   prevGrossRevenue: 0, prevExpenses: 0, prevNetProfit: 0, prevReceivables: 0,
   prevBookingsCount: 0, prevLeadsCount: 0, prevConversionRate: 0,
   monthlySeries: [], overdueInvoicesCount: 0, unpaidVendorsCount: 0,
+  propertyVacancies: [],
 };
+
+/** Count nights a booking overlaps with [start, end) */
+function overlapNights(checkIn: string, checkOut: string, periodStart: string, periodEnd: string): number {
+  const s = Math.max(new Date(checkIn).getTime(), new Date(periodStart).getTime());
+  const e = Math.min(new Date(checkOut).getTime(), new Date(periodEnd).getTime());
+  return Math.max(0, Math.round((e - s) / 86400000));
+}
+
+/** Does booking overlap period? check_in < periodEnd AND check_out > periodStart */
+function bookingOverlaps(checkIn: string, checkOut: string, periodStart: string, periodEnd: string): boolean {
+  return checkIn < periodEnd && checkOut > periodStart;
+}
 
 export function usePerformanceKPIs(monthsBack: number = 6) {
   const [kpis, setKpis] = useState<PerformanceKPIs>(EMPTY);
@@ -43,6 +67,19 @@ export function usePerformanceKPIs(monthsBack: number = 6) {
   const fetchKPIs = useCallback(async () => {
     setLoading(true);
     try {
+      const now = new Date();
+      const curMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const prevMonthKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
+
+      // Period bounds for bookings
+      const periodStart = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1).toISOString().slice(0, 10);
+      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+      const curMonthStart = `${curMonthKey}-01`;
+      const curMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+      const prevMonthStart = `${prevMonthKey}-01`;
+      const prevMonthEnd = new Date(prevDate.getFullYear(), prevDate.getMonth() + 1, 0).toISOString().slice(0, 10);
+
       // Invoices
       const { data: invoices } = await (supabase as any)
         .from("invoices")
@@ -50,11 +87,6 @@ export function usePerformanceKPIs(monthsBack: number = 6) {
 
       const inv = (invoices || []) as any[];
       const revenueStatuses = ["sent", "paid", "overdue"];
-
-      const now = new Date();
-      const curMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-      const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const prevMonthKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
 
       const sumByMonth = (items: any[], key: string, statusFilter: string[], monthKey: string) =>
         items.filter((i: any) => statusFilter.includes(i.status) && i[key]?.startsWith(monthKey))
@@ -67,7 +99,6 @@ export function usePerformanceKPIs(monthsBack: number = 6) {
       const overdueInvoicesCount = inv.filter((i: any) => i.status === "overdue").length;
 
       const prevGrossRevenue = sumByMonth(inv, "invoice_date", revenueStatuses, prevMonthKey);
-      const curGrossRevenue = sumByMonth(inv, "invoice_date", revenueStatuses, curMonthKey);
       const prevReceivables = sumByMonth(inv, "invoice_date", ["sent", "overdue"], prevMonthKey);
 
       // Payment delay
@@ -98,14 +129,22 @@ export function usePerformanceKPIs(monthsBack: number = 6) {
 
       const prevExpTotal = expArr.filter((e: any) => e.status === "paid" && e.expense_date?.startsWith(prevMonthKey))
         .reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
-      const curExpTotal = expArr.filter((e: any) => e.status === "paid" && e.expense_date?.startsWith(curMonthKey))
-        .reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
 
-      // Bookings
-      const { data: bookingsAll } = await (supabase as any).from("bookings").select("id, check_in");
+      // Bookings — fetch all with date overlap for the full period
+      const { data: bookingsAll } = await (supabase as any)
+        .from("bookings")
+        .select("id, check_in, check_out, property_id, guest_name, source, financial_status, property:properties(name)")
+        .lt("check_in", periodEnd)
+        .gt("check_out", periodStart);
       const bkAll = (bookingsAll || []) as any[];
+
+      // Count bookings overlapping with current period
       const bookingsCount = bkAll.length;
-      const prevBookingsCount = bkAll.filter((b: any) => b.check_in?.startsWith(prevMonthKey)).length;
+
+      // Previous month bookings count
+      const prevBookingsCount = bkAll.filter((b: any) =>
+        bookingOverlaps(b.check_in, b.check_out, prevMonthStart, prevMonthEnd)
+      ).length;
 
       // Interventions count
       const { count: interventionsCount } = await (supabase as any)
@@ -142,6 +181,33 @@ export function usePerformanceKPIs(monthsBack: number = 6) {
         monthlySeries.push({ month: monthLabel, revenue: mRev, expenses: mExp, receivables: mRec });
       }
 
+      // Per-property vacancy alerts (next 30 days)
+      const { data: propertiesData } = await (supabase as any).from("properties").select("id, name");
+      const props = (propertiesData || []) as any[];
+      const next30Start = now.toISOString().slice(0, 10);
+      const next30End = new Date(now.getTime() + 30 * 86400000).toISOString().slice(0, 10);
+      const totalNights = 30;
+
+      // Fetch bookings for next 30 days
+      const { data: next30Bookings } = await (supabase as any)
+        .from("bookings")
+        .select("check_in, check_out, property_id")
+        .lt("check_in", next30End)
+        .gt("check_out", next30Start);
+      const n30 = (next30Bookings || []) as any[];
+
+      const propertyVacancies: PropertyVacancy[] = props.map((p: any) => {
+        const propBookings = n30.filter((b: any) => b.property_id === p.id);
+        const bookedNights = propBookings.reduce((s: number, b: any) => s + overlapNights(b.check_in, b.check_out, next30Start, next30End), 0);
+        const occupancyPct = Math.round((bookedNights / totalNights) * 100);
+        // Next arrival
+        const futureArrivals = propBookings
+          .filter((b: any) => b.check_in >= next30Start)
+          .sort((a: any, b: any) => a.check_in.localeCompare(b.check_in));
+        const nextArrival = futureArrivals.length > 0 ? futureArrivals[0].check_in : null;
+        return { propertyId: p.id, propertyName: p.name, bookedNights, totalNights, occupancyPct, nextArrival };
+      });
+
       setKpis({
         grossRevenue, expenses: totalExpenses, netProfit: grossRevenue - totalExpenses, receivables,
         bookingsCount, interventionsCount: interventionsCount || 0, avgPaymentDelay: Math.round(avgDelay),
@@ -149,6 +215,7 @@ export function usePerformanceKPIs(monthsBack: number = 6) {
         prevGrossRevenue, prevExpenses: prevExpTotal, prevNetProfit: prevGrossRevenue - prevExpTotal,
         prevReceivables, prevBookingsCount, prevLeadsCount, prevConversionRate: Math.round(prevConversionRate * 10) / 10,
         monthlySeries, overdueInvoicesCount, unpaidVendorsCount,
+        propertyVacancies,
       });
     } catch (err) {
       console.error("[PerformanceKPIs] error:", err);
