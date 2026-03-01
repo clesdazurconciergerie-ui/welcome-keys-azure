@@ -30,6 +30,7 @@ import LogementsPage from "./pages/dashboard/LogementsPage";
 import PropertyDetailPage from "./pages/dashboard/PropertyDetailPage";
 import PrestatairesPage from "./pages/dashboard/PrestatairesPage";
 import InterventionsPage from "./pages/dashboard/InterventionsPage";
+import ProspectionPage from "./pages/dashboard/ProspectionPage";
 import PerformancePage from "./pages/dashboard/PerformancePage";
 import AbonnementPage from "./pages/dashboard/AbonnementPage";
 import ParametresPage from "./pages/dashboard/ParametresPage";
@@ -74,6 +75,7 @@ const App = () => (
             <Route path="logements/:id" element={<PropertyDetailPage />} />
             <Route path="prestataires" element={<PrestatairesPage />} />
             <Route path="interventions" element={<InterventionsPage />} />
+            <Route path="prospection" element={<ProspectionPage />} />
             <Route path="performance" element={<PerformancePage />} />
             <Route path="abonnement" element={<AbonnementPage />} />
             <Route path="parametres" element={<ParametresPage />} />
