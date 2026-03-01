@@ -11,7 +11,6 @@ export function validateInvoiceForGeneration(
 ): string[] {
   const errors: string[] = [];
 
-  // Check financial settings
   if (!financialSettings) {
     errors.push("Paramètres financiers manquants. Configurez-les dans Finance > Paramètres.");
   } else {
@@ -20,7 +19,6 @@ export function validateInvoiceForGeneration(
     if (!financialSettings.bic) errors.push("BIC manquant dans les paramètres financiers.");
   }
 
-  // Check owner info
   const owner = invoice?.owner_snapshot || invoice?.owner;
   if (!owner) {
     errors.push("Informations du propriétaire manquantes.");
@@ -28,12 +26,10 @@ export function validateInvoiceForGeneration(
     if (!owner.first_name && !owner.last_name) errors.push("Nom du propriétaire manquant.");
   }
 
-  // Check line items
   if (!items || items.length === 0) {
     errors.push("La facture ne contient aucune ligne.");
   }
 
-  // Check totals
   if (invoice) {
     const total = Number(invoice.total);
     const subtotal = Number(invoice.subtotal);
@@ -46,7 +42,40 @@ export function validateInvoiceForGeneration(
 }
 
 /**
- * Generate and upload invoice HTML to Supabase Storage.
+ * Download the invoice as PDF using html2pdf.js
+ */
+export async function downloadInvoiceAsPdf(invoiceNumber: string): Promise<void> {
+  const printEl = document.getElementById("invoice-print");
+  if (!printEl) {
+    toast.error("Prévisualisation introuvable. Ouvrez d'abord la facture.");
+    return;
+  }
+
+  const toastId = toast.loading("Génération du PDF en cours…");
+
+  try {
+    const html2pdf = (await import("html2pdf.js")).default;
+
+    await html2pdf()
+      .set({
+        margin: 0,
+        filename: `Facture-${invoiceNumber}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      })
+      .from(printEl)
+      .save();
+
+    toast.success("PDF téléchargé", { id: toastId });
+  } catch (e: any) {
+    console.error("[InvoicePDF] PDF generation error:", e);
+    toast.error(`Erreur PDF: ${e?.message || "Erreur inconnue"}`, { id: toastId });
+  }
+}
+
+/**
+ * Generate PDF blob and upload to Supabase Storage.
  */
 export async function generateAndUploadInvoicePdf(
   invoiceId: string,
@@ -54,8 +83,7 @@ export async function generateAndUploadInvoicePdf(
 ): Promise<string | null> {
   const printEl = document.getElementById("invoice-print");
   if (!printEl) {
-    toast.error("Impossible de trouver le contenu de la facture. Assurez-vous que la prévisualisation est visible.");
-    console.error("[InvoicePDF] #invoice-print element not found");
+    toast.error("Impossible de trouver le contenu de la facture.");
     return null;
   }
 
@@ -65,50 +93,51 @@ export async function generateAndUploadInvoicePdf(
     return null;
   }
 
-  // Create an HTML blob for the invoice
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Facture ${invoiceNumber}</title>
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; }
-      </style>
-    </head>
-    <body>${printEl.outerHTML}</body>
-    </html>
-  `;
+  try {
+    const html2pdf = (await import("html2pdf.js")).default;
 
-  const blob = new Blob([htmlContent], { type: "text/html" });
-  const filePath = `${user.id}/${invoiceId}.html`;
+    const pdfBlob: Blob = await html2pdf()
+      .set({
+        margin: 0,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      })
+      .from(printEl)
+      .outputPdf("blob");
 
-  const { error } = await supabase.storage
-    .from("invoices")
-    .upload(filePath, blob, {
-      contentType: "text/html",
-      upsert: true,
-    });
+    const filePath = `${user.id}/${invoiceId}.pdf`;
 
-  if (error) {
-    console.error("[InvoicePDF] Upload error:", error);
-    toast.error(`Erreur upload: ${error.message}. Vous pouvez toujours imprimer via le bouton "Imprimer".`);
+    const { error } = await supabase.storage
+      .from("invoices")
+      .upload(filePath, pdfBlob, {
+        contentType: "application/pdf",
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("[InvoicePDF] Upload error:", error);
+      toast.error(`Erreur upload: ${error.message}`);
+      return null;
+    }
+
+    return filePath;
+  } catch (e: any) {
+    console.error("[InvoicePDF] Generation error:", e);
+    toast.error(`Erreur génération PDF: ${e?.message || "Erreur inconnue"}`);
     return null;
   }
-
-  return filePath;
 }
 
 /**
- * Download the invoice as a printable document via window.print()
+ * Download the invoice via window.print()
  */
 export function printInvoice() {
   window.print();
 }
 
 /**
- * Get a download URL for a stored invoice
+ * Get a download URL for a stored invoice PDF
  */
 export async function getInvoiceDownloadUrl(pdfPath: string): Promise<string | null> {
   const { data, error } = await supabase.storage
