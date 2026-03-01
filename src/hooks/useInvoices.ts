@@ -8,6 +8,8 @@ export interface Invoice {
   owner_id: string;
   invoice_number: string;
   invoice_date: string;
+  issue_date: string;
+  due_date: string | null;
   period_start: string;
   period_end: string;
   subtotal: number;
@@ -15,6 +17,7 @@ export interface Invoice {
   vat_amount: number;
   total: number;
   status: string;
+  type: string;
   notes: string | null;
   company_snapshot: any;
   owner_snapshot: any;
@@ -32,6 +35,10 @@ export interface InvoiceItem {
   unit_price: number;
   total: number;
   item_type: string;
+  line_type: string;
+  vat_rate: number;
+  property_id: string | null;
+  metadata: any;
 }
 
 export function useInvoices() {
@@ -63,50 +70,33 @@ export function useInvoices() {
     return { invoice: invoice as any as Invoice, items: (items as any as InvoiceItem[]) || [] };
   };
 
-  const generateInvoice = async (params: {
+  const createInvoice = async (params: {
     owner_id: string;
     period_start: string;
     period_end: string;
-    bookings: any[];
+    due_date?: string;
+    type?: string;
+    status?: string;
+    vat_rate: number;
+    items: Omit<InvoiceItem, "id" | "invoice_id">[];
     financial_settings: any;
     owner: any;
-    vat_rate: number;
-    custom_items?: any[];
-    custom_subtotal?: number;
+    notes?: string;
   }) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) return null;
 
     const fs = params.financial_settings;
     const prefix = fs?.invoice_prefix || "FAC";
     const nextNum = fs?.next_invoice_number || 1;
     const invoiceNumber = `${prefix}-${String(nextNum).padStart(5, "0")}`;
 
-    // Use custom items/subtotal if provided, otherwise fall back to old logic
-    let subtotal: number;
-    let items: any[];
-
-    if (params.custom_items && params.custom_subtotal !== undefined) {
-      subtotal = params.custom_subtotal;
-      items = params.custom_items;
-    } else {
-      subtotal = 0;
-      items = [];
-      for (const b of params.bookings) {
-        const ownerNet = Number(b.owner_net) || 0;
-        subtotal += ownerNet;
-        items.push({
-          booking_id: b.id,
-          description: `Réservation ${b.check_in} → ${b.check_out}${b.guest_name ? ` (${b.guest_name})` : ""}`,
-          quantity: 1,
-          unit_price: ownerNet,
-          total: ownerNet,
-          item_type: "revenue",
-        });
-      }
-    }
-
-    const vatAmount = subtotal * (params.vat_rate / 100);
+    // Compute totals from items
+    const subtotal = params.items.reduce((s, item) => s + (item.quantity * item.unit_price), 0);
+    const vatAmount = params.items.reduce((s, item) => {
+      const lineTotal = item.quantity * item.unit_price;
+      return s + lineTotal * ((item.vat_rate || 0) / 100);
+    }, 0);
     const total = subtotal + vatAmount;
 
     const { data: invoice, error } = await supabase
@@ -115,15 +105,30 @@ export function useInvoices() {
         user_id: user.id,
         owner_id: params.owner_id,
         invoice_number: invoiceNumber,
+        issue_date: new Date().toISOString().split("T")[0],
+        due_date: params.due_date || null,
         period_start: params.period_start,
         period_end: params.period_end,
         subtotal,
         vat_rate: params.vat_rate,
         vat_amount: vatAmount,
         total,
-        status: "pending",
-        company_snapshot: fs ? { company_name: fs.company_name, address: fs.address, vat_number: fs.vat_number, iban: fs.iban, legal_footer: fs.legal_footer } : null,
-        owner_snapshot: { first_name: params.owner.first_name, last_name: params.owner.last_name, email: params.owner.email, phone: params.owner.phone },
+        type: params.type || "invoice",
+        status: params.status || "draft",
+        notes: params.notes || null,
+        company_snapshot: fs ? {
+          company_name: fs.company_name,
+          address: fs.address,
+          vat_number: fs.vat_number,
+          iban: fs.iban,
+          legal_footer: fs.legal_footer,
+        } : null,
+        owner_snapshot: {
+          first_name: params.owner.first_name,
+          last_name: params.owner.last_name,
+          email: params.owner.email,
+          phone: params.owner.phone,
+        },
       })
       .select()
       .single();
@@ -131,13 +136,28 @@ export function useInvoices() {
     if (error) { toast.error("Erreur génération facture"); return null; }
 
     const invoiceId = (invoice as any).id;
-    for (const item of items) {
-      await supabase.from("invoice_items" as any).insert({ ...item, invoice_id: invoiceId });
+    for (const item of params.items) {
+      await supabase.from("invoice_items" as any).insert({
+        invoice_id: invoiceId,
+        booking_id: item.booking_id || null,
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total: item.quantity * item.unit_price,
+        item_type: item.item_type || "revenue",
+        line_type: item.line_type || "rental_manual",
+        vat_rate: item.vat_rate || 0,
+        property_id: item.property_id || null,
+        metadata: item.metadata || {},
+      });
     }
 
-    // Update booking statuses
-    for (const b of params.bookings) {
-      await supabase.from("bookings" as any).update({ financial_status: "invoiced" }).eq("id", b.id);
+    // Mark bookings as invoiced
+    const bookingIds = params.items
+      .filter(i => i.booking_id)
+      .map(i => i.booking_id);
+    for (const bid of bookingIds) {
+      await supabase.from("bookings" as any).update({ financial_status: "invoiced" }).eq("id", bid);
     }
 
     // Increment invoice number
@@ -145,7 +165,7 @@ export function useInvoices() {
       await supabase.from("financial_settings" as any).update({ next_invoice_number: nextNum + 1 }).eq("id", fs.id);
     }
 
-    toast.success(`Facture ${invoiceNumber} générée`);
+    toast.success(`Facture ${invoiceNumber} créée`);
     await fetchInvoices();
     return invoice;
   };
@@ -161,6 +181,8 @@ export function useInvoices() {
   };
 
   const deleteInvoice = async (id: string) => {
+    // First delete items
+    await supabase.from("invoice_items" as any).delete().eq("invoice_id", id);
     const { error } = await supabase
       .from("invoices" as any)
       .delete()
@@ -170,5 +192,5 @@ export function useInvoices() {
     await fetchInvoices();
   };
 
-  return { invoices, loading, generateInvoice, updateInvoiceStatus, deleteInvoice, fetchInvoiceWithItems, refetch: fetchInvoices };
+  return { invoices, loading, createInvoice, updateInvoiceStatus, deleteInvoice, fetchInvoiceWithItems, refetch: fetchInvoices };
 }

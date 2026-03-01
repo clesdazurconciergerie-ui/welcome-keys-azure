@@ -6,9 +6,13 @@ export interface Expense {
   id: string;
   user_id: string;
   property_id: string | null;
+  owner_id: string | null;
   category: string;
   description: string;
   amount: number;
+  vat_rate: number;
+  vat_amount: number;
+  status: string;
   expense_date: string;
   file_url: string | null;
   created_at: string;
@@ -25,6 +29,7 @@ const expenseCategories = [
   { value: "insurance", label: "Assurance" },
   { value: "software", label: "Logiciel" },
   { value: "transport", label: "Transport" },
+  { value: "subscription", label: "Abonnement" },
   { value: "other", label: "Autre" },
 ];
 
@@ -48,11 +53,31 @@ export function useExpenses() {
   const createExpense = async (values: Partial<Expense>) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    const amount = Number(values.amount) || 0;
+    const vatRate = Number(values.vat_rate) || 0;
+    const vatAmount = amount * (vatRate / 100);
     const { error } = await supabase
       .from("expenses" as any)
-      .insert({ ...values, user_id: user.id });
+      .insert({
+        ...values,
+        user_id: user.id,
+        amount,
+        vat_rate: vatRate,
+        vat_amount: vatAmount,
+        status: values.status || "paid",
+      });
     if (error) { toast.error("Erreur création dépense"); return; }
     toast.success("Dépense ajoutée");
+    await fetchExpenses();
+  };
+
+  const updateExpenseStatus = async (id: string, status: string) => {
+    const { error } = await supabase
+      .from("expenses" as any)
+      .update({ status })
+      .eq("id", id);
+    if (error) { toast.error("Erreur"); return; }
+    toast.success("Statut mis à jour");
     await fetchExpenses();
   };
 
@@ -66,5 +91,5 @@ export function useExpenses() {
     await fetchExpenses();
   };
 
-  return { expenses, loading, createExpense, deleteExpense, refetch: fetchExpenses };
+  return { expenses, loading, createExpense, updateExpenseStatus, deleteExpense, refetch: fetchExpenses };
 }

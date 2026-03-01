@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart3, FileText, Receipt, Settings } from "lucide-react";
 import { FinanceDashboardTab } from "@/components/finance/FinanceDashboardTab";
