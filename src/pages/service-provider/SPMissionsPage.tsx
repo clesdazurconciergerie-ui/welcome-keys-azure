@@ -218,21 +218,32 @@ export default function SPMissionsPage() {
                         </div>
                       )}
 
+                      {/* Camera capture - direct photo */}
                       <label className="cursor-pointer block">
-                        <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleFileUpload(e, 'after_cleaning')} disabled={uploading} />
-                        <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">
-                          <Upload className="w-4 h-4 text-primary" />
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleFileUpload(e, 'after_cleaning')} disabled={uploading} />
+                        <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-primary/30 rounded-lg hover:bg-primary/5 transition-colors bg-primary/5">
+                          <Camera className="w-5 h-5 text-primary" />
                           <span className="text-sm font-medium text-primary">
-                            {uploading ? 'Upload en cours...' : 'Uploader photos ménage'}
+                            {uploading ? 'Upload en cours...' : '📷 Prendre une photo'}
                           </span>
                         </div>
                       </label>
 
+                      {/* File picker - gallery */}
                       <label className="cursor-pointer block mt-2">
-                        <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleFileUpload(e, 'incident')} disabled={uploading} />
+                        <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleFileUpload(e, 'after_cleaning')} disabled={uploading} />
+                        <div className="flex items-center justify-center gap-2 p-2 border border-dashed border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">
+                          <Upload className="w-4 h-4 text-primary" />
+                          <span className="text-xs font-medium text-primary">Importer depuis la galerie</span>
+                        </div>
+                      </label>
+
+                      {/* Incident photo */}
+                      <label className="cursor-pointer block mt-2">
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleFileUpload(e, 'incident')} disabled={uploading} />
                         <div className="flex items-center justify-center gap-2 p-2 border border-dashed border-destructive/30 rounded-lg hover:bg-destructive/5 transition-colors">
-                          <Camera className="w-4 h-4 text-destructive" />
-                          <span className="text-xs font-medium text-destructive">Signaler un incident (photo)</span>
+                          <AlertTriangle className="w-4 h-4 text-destructive" />
+                          <span className="text-xs font-medium text-destructive">📷 Signaler un incident (photo)</span>
                         </div>
                       </label>
 

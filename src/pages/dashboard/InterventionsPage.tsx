@@ -346,8 +346,8 @@ const InterventionsPage = () => {
                     <Badge variant={statusConfig[i.status]?.variant || "outline"}>
                       {statusConfig[i.status]?.label || i.status}
                     </Badge>
-                    {i.status === 'scheduled' && (
-                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteIntervention(i.id)}>
+                    {['scheduled', 'in_progress', 'redo'].includes(i.status) && (
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={(e) => { e.stopPropagation(); if (confirm('Supprimer cette intervention ?')) deleteIntervention(i.id); }}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     )}
