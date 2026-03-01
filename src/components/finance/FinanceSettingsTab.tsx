@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useFinancialSettings } from "@/hooks/useFinancialSettings";
 import { useServicesCatalog, type ServiceCatalogItem } from "@/hooks/useServicesCatalog";
 import { Switch } from "@/components/ui/switch";
-import { Save, Loader2, Plus, Trash2, Edit2, Check, X } from "lucide-react";
+import { Save, Loader2, Plus, Trash2, Edit2, Check, X, Upload, ImageIcon } from "lucide-react";
 import { formatEUR } from "@/lib/finance-utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export function FinanceSettingsTab() {
   const { settings, loading, saveSettings, refetch, cleanupVatData } = useFinancialSettings();
@@ -30,6 +32,10 @@ export function FinanceSettingsTab() {
     vat_enabled: true,
   });
   const [saving, setSaving] = useState(false);
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Service catalog form
   const [newSvcName, setNewSvcName] = useState("");
@@ -56,8 +62,53 @@ export function FinanceSettingsTab() {
         legal_footer: settings.legal_footer || "",
         vat_enabled: settings.vat_enabled ?? true,
       });
+      setLogoUrl(settings.logo_url || null);
     }
   }, [settings]);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Seules les images sont acceptées (PNG, JPG, SVG)");
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Non authentifié"); return; }
+
+      const ext = file.name.split(".").pop() || "png";
+      const filePath = `finance-logos/${user.id}/logo.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("booklet-assets")
+        .upload(filePath, file, { contentType: file.type, upsert: true });
+
+      if (uploadError) {
+        toast.error(`Erreur upload: ${uploadError.message}`);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage.from("booklet-assets").getPublicUrl(filePath);
+      const publicUrl = urlData.publicUrl + "?t=" + Date.now();
+
+      await saveSettings({ logo_url: publicUrl });
+      setLogoUrl(publicUrl);
+      toast.success("Logo mis à jour");
+    } catch (err: any) {
+      toast.error(`Erreur: ${err?.message || "Erreur inconnue"}`);
+    } finally {
+      setUploadingLogo(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    await saveSettings({ logo_url: null });
+    setLogoUrl(null);
+    toast.success("Logo supprimé");
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -128,7 +179,51 @@ export function FinanceSettingsTab() {
         </CardContent>
       </Card>
 
-      {/* Billing */}
+      {/* Logo */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Logo (factures)</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/svg+xml"
+            className="hidden"
+            onChange={handleLogoUpload}
+          />
+          {logoUrl ? (
+            <div className="flex items-center gap-4">
+              <div className="h-20 w-40 rounded border bg-muted/30 flex items-center justify-center overflow-hidden">
+                <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Button variant="outline" size="sm" className="gap-2 text-xs h-8" onClick={() => fileInputRef.current?.click()} disabled={uploadingLogo}>
+                  {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                  Remplacer
+                </Button>
+                <Button variant="ghost" size="sm" className="gap-2 text-xs h-8 text-destructive" onClick={handleRemoveLogo}>
+                  <Trash2 className="h-3.5 w-3.5" />Supprimer
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 py-8 cursor-pointer hover:border-primary/40 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {uploadingLogo ? (
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              ) : (
+                <>
+                  <ImageIcon className="h-8 w-8 text-muted-foreground/40 mb-2" />
+                  <p className="text-sm text-muted-foreground">Cliquez pour ajouter votre logo</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">PNG, JPG ou SVG</p>
+                </>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader><CardTitle className="text-base">Facturation</CardTitle></CardHeader>
         <CardContent className="space-y-4">
