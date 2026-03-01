@@ -631,7 +631,7 @@ export function FinanceInvoicesTab() {
                       setPreviewInvoice(invoice);
                       setPreviewItems(items);
                       setPreviewOpen(true);
-                      setTimeout(() => downloadInvoiceAsPdf(invoice.invoice_number), 600);
+                      setTimeout(() => printInvoice(), 600);
                     }} title="Télécharger PDF">
                       <Download className="h-4 w-4" />
                     </Button>
@@ -663,46 +663,38 @@ export function FinanceInvoicesTab() {
 
       {/* Print preview */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-[850px] max-h-[95vh] overflow-auto p-0">
-          <div className="sticky top-0 z-10 bg-background border-b px-6 py-3 flex items-center justify-between">
+        <DialogContent className="max-w-[860px] max-h-[95vh] overflow-auto p-0">
+          <div className="sticky top-0 z-10 bg-background border-b px-6 py-3 flex items-center justify-between no-print">
             <DialogTitle className="text-base">
               Facture {previewInvoice?.invoice_number}
             </DialogTitle>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" className="gap-2 h-8 text-xs" onClick={() => printInvoice()}>
-                <Printer className="h-3.5 w-3.5" />Imprimer
+                <Printer className="h-3.5 w-3.5" />Imprimer / PDF
               </Button>
               <Button size="sm" variant="outline" className="gap-2 h-8 text-xs" onClick={async () => {
                 if (!previewInvoice) return;
-                // Preflight validation
                 const errors = validateInvoiceForGeneration(previewInvoice, previewItems, fs);
                 if (errors.length > 0) {
                   errors.forEach(err => toast.error(err));
-                  console.error("[InvoiceGeneration] Preflight errors:", errors);
                   return;
                 }
                 try {
                   const path = await generateAndUploadInvoicePdf(previewInvoice.id, previewInvoice.invoice_number);
                   if (path) {
                     await updateInvoicePdf(previewInvoice.id, path);
-                    toast.success("Facture sauvegardée");
+                    toast.success("Facture sauvegardée sur le serveur");
                   }
                 } catch (e: any) {
                   console.error("[InvoiceGeneration] Error:", e);
-                  toast.error(`Erreur génération: ${e?.message || "Erreur inconnue"}`);
+                  toast.error(`Erreur: ${e?.message || "Erreur inconnue"}`);
                 }
               }}>
-                <Save className="h-3.5 w-3.5" />Générer
-              </Button>
-              <Button size="sm" className="gap-2 h-8 text-xs" onClick={() => {
-                if (!previewInvoice) return;
-                downloadInvoiceAsPdf(previewInvoice.invoice_number);
-              }}>
-                <Download className="h-3.5 w-3.5" />Télécharger PDF
+                <Save className="h-3.5 w-3.5" />Sauvegarder
               </Button>
             </div>
           </div>
-          <div className="p-6">
+          <div className="flex justify-center p-4 bg-muted/30">
             {previewInvoice && <InvoicePrintView invoice={previewInvoice} items={previewItems} financialSettings={fs} />}
           </div>
         </DialogContent>
