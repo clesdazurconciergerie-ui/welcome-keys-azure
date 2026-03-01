@@ -13,8 +13,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, MapPin, Bed, Bath, Users, Ruler, Euro, Upload, Trash2, FileText,
-  Download, Image as ImageIcon, Calendar, Loader2, User,
+  Download, Image as ImageIcon, Calendar, Loader2, User, Wrench, CheckCircle, Clock, AlertTriangle, XCircle,
 } from "lucide-react";
+import { useCleaningInterventions } from "@/hooks/useCleaningInterventions";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useProperties, type Property, type PropertyPhoto, type PropertyDocument } from "@/hooks/useProperties";
@@ -48,6 +49,7 @@ const PropertyDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { properties, isLoading, fetchPhotos, uploadPhoto, deletePhoto, fetchDocuments, uploadDocument, deleteDocument, fetchPropertyOwners, updateProperty } = useProperties();
+  const { interventions } = useCleaningInterventions('concierge');
 
   const [property, setProperty] = useState<Property | null>(null);
   const [photos, setPhotos] = useState<PropertyPhoto[]>([]);
@@ -175,6 +177,7 @@ const PropertyDetailPage = () => {
         <TabsList className="w-full justify-start">
           <TabsTrigger value="photos">Photos</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="interventions">Interventions</TabsTrigger>
           <TabsTrigger value="calendar">Calendrier</TabsTrigger>
           <TabsTrigger value="owners">Propriétaires</TabsTrigger>
         </TabsList>
@@ -273,6 +276,77 @@ const PropertyDetailPage = () => {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* INTERVENTIONS TAB */}
+        <TabsContent value="interventions" className="mt-4 space-y-3">
+          {(() => {
+            const propertyInterventions = interventions.filter(i => i.property_id === id).sort((a, b) => new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime());
+            const statusConfig: Record<string, { label: string; icon: any; color: string }> = {
+              scheduled: { label: "Planifiée", icon: Clock, color: "text-muted-foreground" },
+              in_progress: { label: "En cours", icon: Clock, color: "text-blue-600" },
+              completed: { label: "À valider", icon: AlertTriangle, color: "text-amber-600" },
+              validated: { label: "Validée", icon: CheckCircle, color: "text-emerald-600" },
+              refused: { label: "Refusée", icon: XCircle, color: "text-destructive" },
+            };
+            const missionTypeLabels: Record<string, string> = {
+              cleaning: "Ménage", checkin: "Check-in", checkout: "Check-out", intervention: "Intervention",
+            };
+            if (propertyInterventions.length === 0) return (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <Wrench className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                  <h3 className="font-semibold text-foreground mb-1">Aucune intervention</h3>
+                  <p className="text-sm text-muted-foreground">Les missions planifiées pour ce bien apparaîtront ici.</p>
+                </CardContent>
+              </Card>
+            );
+            return propertyInterventions.map(intervention => {
+              const sc = statusConfig[intervention.status] || statusConfig.scheduled;
+              const StatusIcon = sc.icon;
+              return (
+                <Card key={intervention.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${intervention.status === 'validated' ? 'bg-emerald-100' : intervention.status === 'in_progress' ? 'bg-blue-100' : intervention.status === 'completed' ? 'bg-amber-100' : intervention.status === 'refused' ? 'bg-red-100' : 'bg-muted'}`}>
+                          <StatusIcon className={`w-4 h-4 ${sc.color}`} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{missionTypeLabels[intervention.mission_type] || intervention.mission_type}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(intervention.scheduled_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            {intervention.service_provider && ` — ${intervention.service_provider.first_name} ${intervention.service_provider.last_name}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {intervention.mission_amount > 0 && (
+                          <span className="text-sm font-medium text-foreground">{intervention.mission_amount}€</span>
+                        )}
+                        <Badge variant={intervention.status === 'validated' ? 'default' : 'outline'} className="text-[10px]">
+                          {sc.label}
+                        </Badge>
+                        {intervention.payment_done && (
+                          <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border-emerald-200">Payé</Badge>
+                        )}
+                      </div>
+                    </div>
+                    {(intervention.photos?.length ?? 0) > 0 && (
+                      <div className="flex gap-2 mt-3 overflow-x-auto">
+                        {intervention.photos!.slice(0, 4).map(p => (
+                          <img key={p.id} src={p.url} className="w-16 h-16 rounded-md object-cover border" />
+                        ))}
+                        {(intervention.photos!.length > 4) && (
+                          <div className="w-16 h-16 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">+{intervention.photos!.length - 4}</div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            });
+          })()}
         </TabsContent>
 
         {/* CALENDAR TAB */}
