@@ -71,37 +71,44 @@ export function useInvoices() {
     financial_settings: any;
     owner: any;
     vat_rate: number;
+    custom_items?: any[];
+    custom_subtotal?: number;
   }) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Get next invoice number
     const fs = params.financial_settings;
     const prefix = fs?.invoice_prefix || "FAC";
     const nextNum = fs?.next_invoice_number || 1;
     const invoiceNumber = `${prefix}-${String(nextNum).padStart(5, "0")}`;
 
-    // Calculate totals from bookings
-    let subtotal = 0;
-    const items: Partial<InvoiceItem>[] = [];
+    // Use custom items/subtotal if provided, otherwise fall back to old logic
+    let subtotal: number;
+    let items: any[];
 
-    for (const b of params.bookings) {
-      const ownerNet = Number(b.owner_net) || 0;
-      subtotal += ownerNet;
-      items.push({
-        booking_id: b.id,
-        description: `Réservation ${b.check_in} → ${b.check_out}${b.guest_name ? ` (${b.guest_name})` : ""}`,
-        quantity: 1,
-        unit_price: ownerNet,
-        total: ownerNet,
-        item_type: "revenue",
-      });
+    if (params.custom_items && params.custom_subtotal !== undefined) {
+      subtotal = params.custom_subtotal;
+      items = params.custom_items;
+    } else {
+      subtotal = 0;
+      items = [];
+      for (const b of params.bookings) {
+        const ownerNet = Number(b.owner_net) || 0;
+        subtotal += ownerNet;
+        items.push({
+          booking_id: b.id,
+          description: `Réservation ${b.check_in} → ${b.check_out}${b.guest_name ? ` (${b.guest_name})` : ""}`,
+          quantity: 1,
+          unit_price: ownerNet,
+          total: ownerNet,
+          item_type: "revenue",
+        });
+      }
     }
 
     const vatAmount = subtotal * (params.vat_rate / 100);
     const total = subtotal + vatAmount;
 
-    // Create invoice
     const { data: invoice, error } = await supabase
       .from("invoices" as any)
       .insert({
@@ -123,7 +130,6 @@ export function useInvoices() {
 
     if (error) { toast.error("Erreur génération facture"); return null; }
 
-    // Create items
     const invoiceId = (invoice as any).id;
     for (const item of items) {
       await supabase.from("invoice_items" as any).insert({ ...item, invoice_id: invoiceId });
