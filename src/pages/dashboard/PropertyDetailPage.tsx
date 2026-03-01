@@ -52,6 +52,18 @@ const docCategories = [
   { value: "other", label: "Autre" },
 ];
 
+const contractDocCategories = [
+  { value: "carte_identite", label: "Carte d'identité" },
+  { value: "passeport", label: "Passeport" },
+  { value: "rib", label: "RIB" },
+  { value: "kbis", label: "KBIS" },
+  { value: "attestation_assurance", label: "Attestation assurance" },
+  { value: "contrat_gestion", label: "Contrat de gestion" },
+  { value: "bail", label: "Bail" },
+  { value: "etat_des_lieux", label: "État des lieux" },
+  { value: "autre_contrat", label: "Autre" },
+];
+
 const PropertyDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -75,6 +87,10 @@ const PropertyDetailPage = () => {
   const [deleteInterventionId, setDeleteInterventionId] = useState<string | null>(null);
   const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(undefined);
   const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined);
+  const [contractDocs, setContractDocs] = useState<PropertyDocument[]>([]);
+  const [contractDocCategory, setContractDocCategory] = useState("carte_identite");
+  const [contractDocName, setContractDocName] = useState("");
+  const contractDocInputRef = useRef<HTMLInputElement>(null);
 
   const filteredInterventions = useMemo(() => {
     return interventions
@@ -94,6 +110,9 @@ const PropertyDetailPage = () => {
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
+  const docInputId = "doc-file-upload-" + (id || "x");
+  const contractInputId = "contract-file-upload-" + (id || "x");
+  const photoInputId = "photo-file-upload-" + (id || "x");
 
   useEffect(() => {
     if (!isLoading && id) {
@@ -109,7 +128,11 @@ const PropertyDetailPage = () => {
   useEffect(() => {
     if (id) {
       fetchPhotos(id).then(setPhotos);
-      fetchDocuments(id).then(setDocuments);
+      fetchDocuments(id).then(docs => {
+        const contractCats = contractDocCategories.map(c => c.value);
+        setDocuments(docs.filter(d => !contractCats.includes(d.category)));
+        setContractDocs(docs.filter(d => contractCats.includes(d.category)));
+      });
       fetchPropertyOwners(id).then(setOwners);
       // Fetch linked booklets
       supabase.from("booklets").select("id, property_name, status, property_address, created_at").eq("property_id", id).then(({ data }) => setLinkedBooklets(data || []));
@@ -130,16 +153,36 @@ const PropertyDetailPage = () => {
     if (photoInputRef.current) photoInputRef.current.value = "";
   };
 
+  const refreshDocs = async () => {
+    if (!id) return;
+    const docs = await fetchDocuments(id);
+    const contractCats = contractDocCategories.map(c => c.value);
+    setDocuments(docs.filter(d => !contractCats.includes(d.category)));
+    setContractDocs(docs.filter(d => contractCats.includes(d.category)));
+  };
+
   const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !id) return;
     setUploading(true);
     const name = docName.trim() || file.name.replace(/\.[^.]+$/, "");
     await uploadDocument(id, file, docCategory, name);
-    setDocuments(await fetchDocuments(id));
+    await refreshDocs();
     setUploading(false);
     setDocName("");
     if (docInputRef.current) docInputRef.current.value = "";
+  };
+
+  const handleContractDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+    setUploading(true);
+    const name = contractDocName.trim() || file.name.replace(/\.[^.]+$/, "");
+    await uploadDocument(id, file, contractDocCategory, name);
+    await refreshDocs();
+    setUploading(false);
+    setContractDocName("");
+    if (contractDocInputRef.current) contractDocInputRef.current.value = "";
   };
 
   const handleDeletePhoto = async () => {
@@ -152,7 +195,7 @@ const PropertyDetailPage = () => {
   const handleDeleteDoc = async () => {
     if (!deleteDocId || !id) return;
     await deleteDocument(deleteDocId);
-    setDocuments(await fetchDocuments(id));
+    await refreshDocs();
     setDeleteDocId(null);
   };
 
@@ -210,6 +253,7 @@ const PropertyDetailPage = () => {
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="photos">Photos</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="contrat">Contrat</TabsTrigger>
           <TabsTrigger value="livrets">Livrets</TabsTrigger>
           <TabsTrigger value="interventions">Interventions</TabsTrigger>
           <TabsTrigger value="calendar">Calendrier</TabsTrigger>
@@ -225,12 +269,12 @@ const PropertyDetailPage = () => {
                 {photoCategories.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
               </SelectContent>
             </Select>
-            <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} />
-            <Button onClick={() => photoInputRef.current?.click()} disabled={uploading}
-              className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold">
+            <input id={photoInputId} ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} />
+            <label htmlFor={photoInputId}
+              className={cn("inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
               {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
               Ajouter des photos
-            </Button>
+            </label>
           </div>
 
           {photos.length === 0 ? (
@@ -267,12 +311,12 @@ const PropertyDetailPage = () => {
               </SelectContent>
             </Select>
             <Input value={docName} onChange={e => setDocName(e.target.value)} placeholder="Nom du document" className="w-52" maxLength={200} />
-            <input ref={docInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="hidden" onChange={handleDocUpload} />
-            <Button onClick={() => docInputRef.current?.click()} disabled={uploading}
-              className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold">
+            <input id={docInputId} ref={docInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="hidden" onChange={handleDocUpload} />
+            <label htmlFor={docInputId}
+              className={cn("inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
               {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
               Ajouter
-            </Button>
+            </label>
           </div>
 
           {documents.length === 0 ? (
@@ -292,6 +336,61 @@ const PropertyDetailPage = () => {
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                           <Badge variant="outline" className="text-[9px]">
                             {docCategories.find(c => c.value === doc.category)?.label || doc.category}
+                          </Badge>
+                          {doc.file_size && <span>{(doc.file_size / 1024).toFixed(0)} Ko</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="ghost" asChild className="h-8 w-8">
+                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4" /></a>
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteDocId(doc.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* CONTRAT TAB */}
+        <TabsContent value="contrat" className="space-y-4 mt-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <Select value={contractDocCategory} onValueChange={setContractDocCategory}>
+              <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {contractDocCategories.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Input value={contractDocName} onChange={e => setContractDocName(e.target.value)} placeholder="Nom du document" className="w-52" maxLength={200} />
+            <input id={contractInputId} ref={contractDocInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="hidden" onChange={handleContractDocUpload} />
+            <label htmlFor={contractInputId}
+              className={cn("inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
+              {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+              Ajouter
+            </label>
+          </div>
+
+          {contractDocs.length === 0 ? (
+            <div className="text-center py-12 border rounded-lg border-dashed">
+              <FileText className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">Aucun document contractuel. Ajoutez carte d'identité, RIB, contrat de gestion…</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {contractDocs.map(doc => (
+                <Card key={doc.id}>
+                  <CardContent className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText className="h-5 w-5 text-[hsl(var(--gold))] shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{doc.name}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <Badge variant="outline" className="text-[9px]">
+                            {contractDocCategories.find(c => c.value === doc.category)?.label || doc.category}
                           </Badge>
                           {doc.file_size && <span>{(doc.file_size / 1024).toFixed(0)} Ko</span>}
                         </div>
