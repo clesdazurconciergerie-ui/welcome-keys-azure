@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +35,7 @@ export function FinanceSettingsTab() {
 
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
 
   // Service catalog form
   const [newSvcName, setNewSvcName] = useState("");
@@ -100,7 +100,7 @@ export function FinanceSettingsTab() {
       toast.error(`Erreur: ${err?.message || "Erreur inconnue"}`);
     } finally {
       setUploadingLogo(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      // Reset handled by browser on label/input re-render
     }
   };
 
@@ -183,33 +183,42 @@ export function FinanceSettingsTab() {
       <Card>
         <CardHeader><CardTitle className="text-base">Logo (factures)</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/svg+xml"
-            className="hidden"
-            onChange={handleLogoUpload}
-          />
+          {/* Upload area with visible label wrapper */}
           {logoUrl ? (
             <div className="flex items-center gap-4">
               <div className="h-20 w-40 rounded border bg-muted/30 flex items-center justify-center overflow-hidden">
                 <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />
               </div>
               <div className="flex flex-col gap-2">
-                <Button variant="outline" size="sm" className="gap-2 text-xs h-8" onClick={() => fileInputRef.current?.click()} disabled={uploadingLogo}>
-                  {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                  Remplacer
-                </Button>
+                <label className="relative cursor-pointer inline-block">
+                  <Button variant="outline" size="sm" className="gap-2 text-xs h-8 pointer-events-none" tabIndex={-1} asChild>
+                    <span>
+                      {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                      Remplacer
+                    </span>
+                  </Button>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/svg+xml"
+                    onChange={handleLogoUpload}
+                    style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
+                  />
+                </label>
                 <Button variant="ghost" size="sm" className="gap-2 text-xs h-8 text-destructive" onClick={handleRemoveLogo}>
                   <Trash2 className="h-3.5 w-3.5" />Supprimer
                 </Button>
               </div>
             </div>
           ) : (
-            <div
-              className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 py-8 cursor-pointer hover:border-primary/40 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
+            <label
+              className="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 py-8 cursor-pointer hover:border-primary/40 transition-colors"
             >
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/svg+xml"
+                onChange={handleLogoUpload}
+                style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
+              />
               {uploadingLogo ? (
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               ) : (
@@ -219,7 +228,7 @@ export function FinanceSettingsTab() {
                   <p className="text-xs text-muted-foreground/60 mt-1">PNG, JPG ou SVG</p>
                 </>
               )}
-            </div>
+            </label>
           )}
         </CardContent>
       </Card>
