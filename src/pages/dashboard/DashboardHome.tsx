@@ -4,12 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Users, Home, Wrench, Plus, ArrowRight, Clock, CheckCircle, AlertTriangle, DollarSign } from "lucide-react";
+import { BookOpen, Users, Home, Wrench, Plus, ArrowRight, Clock, CheckCircle, AlertTriangle, DollarSign, Target, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useCleaningInterventions } from "@/hooks/useCleaningInterventions";
+import { useProspectFollowups } from "@/hooks/useProspects";
 import SubscriptionAlert from "@/components/SubscriptionAlert";
 import DemoExpirationBanner from "@/components/DemoExpirationBanner";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { toast } from "sonner";
 
 const DashboardHome = () => {
   const navigate = useNavigate();
@@ -17,6 +21,7 @@ const DashboardHome = () => {
   const [userName, setUserName] = useState("");
   const { primaryRole } = useUserRoles();
   const { interventions } = useCleaningInterventions('concierge');
+  const { followups, updateFollowup } = useProspectFollowups();
 
   useEffect(() => {
     const init = async () => {
@@ -203,6 +208,56 @@ const DashboardHome = () => {
         </Card>
       )}
 
+      {/* Prospect Followups Today */}
+      {(() => {
+        const todayFollowups = followups.filter(f => f.status === "todo" && f.scheduled_date === new Date().toISOString().split('T')[0]);
+        const overdueFollowups = followups.filter(f => f.status === "todo" && new Date(f.scheduled_date) < new Date() && f.scheduled_date !== new Date().toISOString().split('T')[0]);
+        return (
+          <>
+            {(todayFollowups.length > 0 || overdueFollowups.length > 0) && (
+              <Card className="border-violet-200">
+                <CardContent className="pt-6">
+                  <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Target className="w-5 h-5 text-violet-500" />
+                    Relances prospection
+                    {overdueFollowups.length > 0 && <Badge variant="destructive" className="text-xs">{overdueFollowups.length} en retard</Badge>}
+                  </h2>
+                  <div className="space-y-2">
+                    {overdueFollowups.slice(0, 3).map(f => (
+                      <div key={f.id} className="flex items-center justify-between p-3 rounded-lg bg-red-50">
+                        <div>
+                          <p className="font-medium text-sm">{f.prospect?.first_name} {f.prospect?.last_name}</p>
+                          <p className="text-xs text-red-600">⚠️ En retard — {format(new Date(f.scheduled_date), "dd MMM", { locale: fr })}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          {f.prospect?.phone && <Button size="sm" variant="ghost" asChild><a href={`tel:${f.prospect.phone}`}><Phone className="w-3.5 h-3.5" /></a></Button>}
+                          <Button size="sm" variant="outline" onClick={() => { updateFollowup.mutate({ id: f.id, status: "done", completed_date: new Date().toISOString().split('T')[0] }); toast.success("Relance marquée comme faite"); }}>Fait</Button>
+                        </div>
+                      </div>
+                    ))}
+                    {todayFollowups.slice(0, 3).map(f => (
+                      <div key={f.id} className="flex items-center justify-between p-3 rounded-lg bg-violet-50">
+                        <div>
+                          <p className="font-medium text-sm">{f.prospect?.first_name} {f.prospect?.last_name}</p>
+                          <p className="text-xs text-muted-foreground">📅 Aujourd'hui{f.comment ? ` — ${f.comment}` : ""}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          {f.prospect?.phone && <Button size="sm" variant="ghost" asChild><a href={`tel:${f.prospect.phone}`}><Phone className="w-3.5 h-3.5" /></a></Button>}
+                          <Button size="sm" variant="outline" onClick={() => { updateFollowup.mutate({ id: f.id, status: "done", completed_date: new Date().toISOString().split('T')[0] }); toast.success("Relance marquée comme faite"); }}>Fait</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <Button variant="link" onClick={() => navigate("/dashboard/prospection")} className="mt-2 text-violet-600 p-0 h-auto">
+                    Voir tous les prospects <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        );
+      })()}
+
       {/* Quick Actions */}
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-4">Actions rapides</h2>
@@ -214,6 +269,10 @@ const DashboardHome = () => {
           <Button onClick={() => navigate("/booklets/new")} variant="outline">
             <BookOpen className="w-4 h-4 mr-2" />
             Nouveau livret
+          </Button>
+          <Button onClick={() => navigate("/dashboard/prospection")} variant="outline" className="border-violet-200 text-violet-600 hover:bg-violet-50">
+            <Target className="w-4 h-4 mr-2" />
+            Prospecter
           </Button>
           <Button onClick={() => navigate("/dashboard/proprietaires")} variant="outline">
             <Users className="w-4 h-4 mr-2" />

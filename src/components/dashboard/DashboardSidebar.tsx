@@ -26,6 +26,7 @@ import {
   Settings,
   LogOut,
   CreditCard,
+  Target,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ const mainNav = [
   { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen },
   { title: "Prestataires", url: "/dashboard/prestataires", icon: Wrench },
   { title: "Interventions", url: "/dashboard/interventions", icon: ClipboardList },
+  { title: "Prospection", url: "/dashboard/prospection", icon: Target },
 ];
 
 const secondaryNav = [

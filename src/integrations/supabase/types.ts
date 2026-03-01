@@ -1218,6 +1218,168 @@ export type Database = {
           },
         ]
       }
+      prospect_followups: {
+        Row: {
+          comment: string | null
+          completed_date: string | null
+          created_at: string
+          id: string
+          prospect_id: string
+          scheduled_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          completed_date?: string | null
+          created_at?: string
+          id?: string
+          prospect_id: string
+          scheduled_date: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          completed_date?: string | null
+          created_at?: string
+          id?: string
+          prospect_id?: string
+          scheduled_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_followups_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospect_interactions: {
+        Row: {
+          created_at: string
+          id: string
+          interaction_date: string
+          interaction_type: string
+          prospect_id: string
+          result: string | null
+          summary: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interaction_date?: string
+          interaction_type?: string
+          prospect_id: string
+          result?: string | null
+          summary?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interaction_date?: string
+          interaction_type?: string
+          prospect_id?: string
+          result?: string | null
+          summary?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_interactions_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospects: {
+        Row: {
+          city: string | null
+          converted_owner_id: string | null
+          created_at: string
+          email: string | null
+          estimated_monthly_revenue: number | null
+          first_contact_date: string | null
+          first_name: string
+          id: string
+          internal_notes: string | null
+          last_contact_date: string | null
+          last_name: string
+          phone: string | null
+          pipeline_status: string
+          property_address: string | null
+          property_type: string | null
+          score: number | null
+          source: string | null
+          updated_at: string
+          user_id: string
+          warmth: string | null
+        }
+        Insert: {
+          city?: string | null
+          converted_owner_id?: string | null
+          created_at?: string
+          email?: string | null
+          estimated_monthly_revenue?: number | null
+          first_contact_date?: string | null
+          first_name: string
+          id?: string
+          internal_notes?: string | null
+          last_contact_date?: string | null
+          last_name: string
+          phone?: string | null
+          pipeline_status?: string
+          property_address?: string | null
+          property_type?: string | null
+          score?: number | null
+          source?: string | null
+          updated_at?: string
+          user_id: string
+          warmth?: string | null
+        }
+        Update: {
+          city?: string | null
+          converted_owner_id?: string | null
+          created_at?: string
+          email?: string | null
+          estimated_monthly_revenue?: number | null
+          first_contact_date?: string | null
+          first_name?: string
+          id?: string
+          internal_notes?: string | null
+          last_contact_date?: string | null
+          last_name?: string
+          phone?: string | null
+          pipeline_status?: string
+          property_address?: string | null
+          property_type?: string | null
+          score?: number | null
+          source?: string | null
+          updated_at?: string
+          user_id?: string
+          warmth?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospects_converted_owner_id_fkey"
+            columns: ["converted_owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurants: {
         Row: {
           address: string | null
