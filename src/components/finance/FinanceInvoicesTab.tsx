@@ -20,7 +20,7 @@ import { format, startOfMonth, endOfMonth, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { InvoicePrintView } from "./InvoicePrintView";
 import { formatEUR, invoiceStatusLabels, invoiceStatusColors } from "@/lib/finance-utils";
-import { generateAndUploadInvoicePdf, printInvoice, validateInvoiceForGeneration } from "@/lib/invoice-pdf";
+import { generateAndUploadInvoicePdf, printInvoice, downloadInvoiceAsPdf, validateInvoiceForGeneration } from "@/lib/invoice-pdf";
 import { toast } from "sonner";
 
 // ── Location row (commission-based) ──
@@ -668,29 +668,15 @@ export function FinanceInvoicesTab() {
             <DialogTitle className="text-base">
               Facture {previewInvoice?.invoice_number}
             </DialogTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <Button size="sm" variant="outline" className="gap-2 h-8 text-xs" onClick={() => printInvoice()}>
-                <Printer className="h-3.5 w-3.5" />Imprimer / PDF
+                <Printer className="h-3.5 w-3.5" />Imprimer
               </Button>
-              <Button size="sm" variant="outline" className="gap-2 h-8 text-xs" onClick={async () => {
+              <Button size="sm" className="gap-2 h-8 text-xs" onClick={() => {
                 if (!previewInvoice) return;
-                const errors = validateInvoiceForGeneration(previewInvoice, previewItems, fs);
-                if (errors.length > 0) {
-                  errors.forEach(err => toast.error(err));
-                  return;
-                }
-                try {
-                  const path = await generateAndUploadInvoicePdf(previewInvoice.id, previewInvoice.invoice_number);
-                  if (path) {
-                    await updateInvoicePdf(previewInvoice.id, path);
-                    toast.success("Facture sauvegardée sur le serveur");
-                  }
-                } catch (e: any) {
-                  console.error("[InvoiceGeneration] Error:", e);
-                  toast.error(`Erreur: ${e?.message || "Erreur inconnue"}`);
-                }
+                downloadInvoiceAsPdf(previewInvoice.invoice_number);
               }}>
-                <Save className="h-3.5 w-3.5" />Sauvegarder
+                <Download className="h-3.5 w-3.5" />Télécharger PDF
               </Button>
             </div>
           </div>
