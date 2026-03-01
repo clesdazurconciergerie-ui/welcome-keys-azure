@@ -1,8 +1,12 @@
+import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Loader2, Wand2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Wand2, Home, Link2, Unlink } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface GeneralSectionProps {
   data: {
@@ -18,9 +22,47 @@ interface GeneralSectionProps {
   onChange: (updates: Partial<GeneralSectionProps['data']>) => void;
   onGenerate?: (field: string) => Promise<void>;
   generating?: Record<string, boolean>;
+  bookletId?: string;
+  propertyId?: string | null;
+  onPropertyChange?: (propertyId: string | null) => void;
 }
 
-export default function GeneralSection({ data, onChange, onGenerate, generating = {} }: GeneralSectionProps) {
+export default function GeneralSection({ data, onChange, onGenerate, generating = {}, bookletId, propertyId, onPropertyChange }: GeneralSectionProps) {
+  const [properties, setProperties] = useState<{ id: string; name: string; address: string }[]>([]);
+  const [loadingProperties, setLoadingProperties] = useState(false);
+
+  useEffect(() => {
+    const loadProperties = async () => {
+      setLoadingProperties(true);
+      const { data: props } = await supabase
+        .from("properties")
+        .select("id, name, address")
+        .eq("status", "active")
+        .order("name");
+      setProperties(props || []);
+      setLoadingProperties(false);
+    };
+    loadProperties();
+  }, []);
+
+  const handleLinkProperty = async (propId: string) => {
+    if (!bookletId) return;
+    const { error } = await supabase.from("booklets").update({ property_id: propId }).eq("id", bookletId);
+    if (error) { toast.error("Erreur lors de l'association"); return; }
+    onPropertyChange?.(propId);
+    toast.success("Logement associé au livret");
+  };
+
+  const handleUnlinkProperty = async () => {
+    if (!bookletId) return;
+    const { error } = await supabase.from("booklets").update({ property_id: null }).eq("id", bookletId);
+    if (error) { toast.error("Erreur"); return; }
+    onPropertyChange?.(null);
+    toast.success("Logement dissocié");
+  };
+
+  const linkedProperty = properties.find(p => p.id === propertyId);
+
   return (
     <section className="bg-white border border-[#E6EDF2] rounded-2xl p-4 md:p-6 space-y-6">
       <div>
@@ -31,6 +73,42 @@ export default function GeneralSection({ data, onChange, onGenerate, generating 
       </div>
 
       <div className="space-y-4">
+        {/* Property linking */}
+        <div className="space-y-2">
+          <Label>Logement associé</Label>
+          {linkedProperty ? (
+            <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/50">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Home className="w-4 h-4 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{linkedProperty.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{linkedProperty.address}</p>
+              </div>
+              <Button size="sm" variant="ghost" className="text-destructive" onClick={handleUnlinkProperty}>
+                <Unlink className="w-4 h-4 mr-1" /> Dissocier
+              </Button>
+            </div>
+          ) : (
+            <Select onValueChange={handleLinkProperty} disabled={loadingProperties}>
+              <SelectTrigger>
+                <SelectValue placeholder={loadingProperties ? "Chargement…" : "Associer un logement…"} />
+              </SelectTrigger>
+              <SelectContent>
+                {properties.map(p => (
+                  <SelectItem key={p.id} value={p.id}>
+                    <div className="flex items-center gap-2">
+                      <Home className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span>{p.name}</span>
+                      <span className="text-xs text-muted-foreground">— {p.address}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="property-name">Nom de la propriété *</Label>
           <Input
