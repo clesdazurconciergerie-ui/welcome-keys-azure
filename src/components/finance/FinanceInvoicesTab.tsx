@@ -20,7 +20,7 @@ import { format, startOfMonth, endOfMonth, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { InvoicePrintView } from "./InvoicePrintView";
 import { formatEUR, invoiceStatusLabels, invoiceStatusColors } from "@/lib/finance-utils";
-import { generateAndUploadInvoicePdf, printInvoice, downloadInvoiceAsPdf, validateInvoiceForGeneration } from "@/lib/invoice-pdf";
+import { generateAndUploadInvoicePdf, printInvoice, validateInvoiceForGeneration } from "@/lib/invoice-pdf";
 import { toast } from "sonner";
 
 // ── Location row (commission-based) ──
