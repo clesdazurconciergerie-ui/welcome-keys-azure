@@ -97,6 +97,25 @@ export function useMissions(mode: 'concierge' | 'service_provider' | 'owner' = '
     }
   }, []);
 
+  // Realtime subscription for instant sync
+  useEffect(() => {
+    const channel = supabase
+      .channel('missions-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cleaning_interventions' },
+        () => { fetchMissions(); }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cleaning_photos' },
+        () => { fetchMissions(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchMissions]);
+
   const startMission = async (id: string) => {
     try {
       const { error } = await (supabase as any)
@@ -215,12 +234,25 @@ export function useMaterialRequests() {
     setIsLoading(false);
   }, []);
 
+  // Realtime for material requests
+  useEffect(() => {
+    const channel = supabase
+      .channel('material-requests-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'material_requests' },
+        () => { fetchRequests(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchRequests]);
+
   const createRequest = async (product: string, quantity: number) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non connecté');
 
-      // Get SP id and concierge_user_id
       const { data: sp } = await (supabase as any)
         .from('service_providers')
         .select('id, concierge_user_id')

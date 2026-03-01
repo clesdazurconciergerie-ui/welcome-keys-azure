@@ -13,6 +13,7 @@ export interface ServiceProvider {
   specialty: string;
   status: string;
   notes: string | null;
+  score_global: number;
   created_at: string;
   updated_at: string;
 }

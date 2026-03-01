@@ -8,16 +8,27 @@ export interface CleaningIntervention {
   service_provider_id: string | null;
   concierge_user_id: string;
   scheduled_date: string;
+  scheduled_start_time: string | null;
+  scheduled_end_time: string | null;
+  actual_start_time: string | null;
+  actual_end_time: string | null;
   completed_at: string | null;
   status: string;
   type: string;
+  mission_type: string;
   notes: string | null;
   concierge_notes: string | null;
+  admin_comment: string | null;
+  provider_comment: string | null;
+  checklist_validated: boolean;
+  internal_score: number | null;
+  punctuality_score: number | null;
+  mission_amount: number;
+  payment_done: boolean;
   created_at: string;
   updated_at: string;
-  // Joined
   property?: { name: string; address: string };
-  service_provider?: { first_name: string; last_name: string; email: string };
+  service_provider?: { first_name: string; last_name: string; email: string; score_global: number };
   photos?: CleaningPhoto[];
 }
 
@@ -42,7 +53,7 @@ export function useCleaningInterventions(mode: 'concierge' | 'service_provider' 
         .select(`
           *,
           property:property_id(name, address),
-          service_provider:service_provider_id(first_name, last_name, email),
+          service_provider:service_provider_id(first_name, last_name, email, score_global),
           photos:cleaning_photos(*)
         `)
         .order('scheduled_date', { ascending: false });
@@ -56,12 +67,36 @@ export function useCleaningInterventions(mode: 'concierge' | 'service_provider' 
     }
   }, []);
 
+  // Realtime subscription for instant sync between dashboards
+  useEffect(() => {
+    const channel = supabase
+      .channel('interventions-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cleaning_interventions' },
+        () => { fetchInterventions(); }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cleaning_photos' },
+        () => { fetchInterventions(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchInterventions]);
+
   const createIntervention = async (data: {
     property_id: string;
     service_provider_id: string;
     scheduled_date: string;
     type?: string;
+    mission_type?: string;
     notes?: string;
+    mission_amount?: number;
+    scheduled_start_time?: string;
+    scheduled_end_time?: string;
+    concierge_notes?: string;
   }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -70,13 +105,21 @@ export function useCleaningInterventions(mode: 'concierge' | 'service_provider' 
       const { error } = await (supabase as any)
         .from('cleaning_interventions')
         .insert({
-          ...data,
+          property_id: data.property_id,
+          service_provider_id: data.service_provider_id,
+          scheduled_date: data.scheduled_date,
           concierge_user_id: user.id,
           type: data.type || 'cleaning',
+          mission_type: data.mission_type || data.type || 'cleaning',
+          notes: data.notes || null,
+          mission_amount: data.mission_amount || 0,
+          scheduled_start_time: data.scheduled_start_time || null,
+          scheduled_end_time: data.scheduled_end_time || null,
+          concierge_notes: data.concierge_notes || null,
         });
 
       if (error) throw error;
-      toast.success('Intervention planifiée');
+      toast.success('Mission planifiée avec succès');
       await fetchInterventions();
       return true;
     } catch (err: any) {
@@ -86,10 +129,11 @@ export function useCleaningInterventions(mode: 'concierge' | 'service_provider' 
     }
   };
 
-  const updateStatus = async (id: string, status: string, concierge_notes?: string) => {
+  const updateStatus = async (id: string, status: string, adminComment?: string, internalScore?: number) => {
     try {
       const updateData: any = { status };
-      if (concierge_notes !== undefined) updateData.concierge_notes = concierge_notes;
+      if (adminComment !== undefined) updateData.admin_comment = adminComment;
+      if (internalScore !== undefined) updateData.internal_score = internalScore;
       if (status === 'completed') updateData.completed_at = new Date().toISOString();
 
       const { error } = await (supabase as any)
@@ -98,10 +142,54 @@ export function useCleaningInterventions(mode: 'concierge' | 'service_provider' 
         .eq('id', id);
 
       if (error) throw error;
+
+      // Update score_global on the service provider when validating/refusing
+      if (status === 'validated' || status === 'refused') {
+        const intervention = interventions.find(i => i.id === id);
+        if (intervention?.service_provider_id) {
+          const sp = intervention.service_provider;
+          if (sp) {
+            let delta = 0;
+            if (status === 'validated') {
+              delta += 10;
+              // Punctuality bonus
+              if (intervention.actual_start_time && intervention.scheduled_start_time) {
+                const actual = new Date(intervention.actual_start_time).getTime();
+                const scheduled = new Date(intervention.scheduled_start_time).getTime();
+                if (actual <= scheduled + 10 * 60 * 1000) delta += 5;
+              }
+              if (!adminComment) delta += 0; // no extra penalty
+            } else {
+              delta -= 10;
+            }
+            const newScore = Math.max(0, (sp.score_global || 0) + delta);
+            await (supabase as any)
+              .from('service_providers')
+              .update({ score_global: newScore })
+              .eq('id', intervention.service_provider_id);
+          }
+        }
+      }
+
       toast.success('Statut mis à jour');
       await fetchInterventions();
     } catch (err) {
       toast.error('Erreur lors de la mise à jour');
+    }
+  };
+
+  const markPaymentDone = async (id: string, done: boolean = true) => {
+    try {
+      const { error } = await (supabase as any)
+        .from('cleaning_interventions')
+        .update({ payment_done: done })
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success(done ? 'Paiement marqué comme effectué' : 'Paiement annulé');
+      await fetchInterventions();
+    } catch (err) {
+      toast.error('Erreur lors de la mise à jour du paiement');
     }
   };
 
@@ -138,16 +226,16 @@ export function useCleaningInterventions(mode: 'concierge' | 'service_provider' 
     }
   };
 
-  const completeIntervention = async (interventionId: string) => {
+  const completeIntervention = async (interventionId: string, providerComment?: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('complete-intervention', {
-        body: { intervention_id: interventionId },
+        body: { intervention_id: interventionId, provider_comment: providerComment },
       });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      toast.success('Intervention terminée ! Notifications envoyées.');
+      toast.success('Mission terminée ! En attente de validation.');
       await fetchInterventions();
       return data;
     } catch (err: any) {
@@ -180,6 +268,7 @@ export function useCleaningInterventions(mode: 'concierge' | 'service_provider' 
     isLoading,
     createIntervention,
     updateStatus,
+    markPaymentDone,
     uploadPhoto,
     completeIntervention,
     deleteIntervention,
