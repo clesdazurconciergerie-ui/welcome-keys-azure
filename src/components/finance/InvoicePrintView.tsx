@@ -137,32 +137,27 @@ export function InvoicePrintView({ invoice, items, financialSettings }: Props) {
           )}
         </div>
 
-        {/* Center — Key icon */}
-        <div
-          style={{
-            width: 70,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <svg
-            width="36"
-            height="36"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.65}
+        {/* Center — Logo or nothing */}
+        {co.logo_url ? (
+          <div
+            style={{
+              width: 90,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "8px",
+            }}
           >
-            <circle cx="8" cy="15" r="5" />
-            <path d="M12 12l7-7" />
-            <path d="M19 5l-2.5 2.5" />
-            <path d="M16.5 7.5L19 10" />
-          </svg>
-        </div>
+            <img
+              src={co.logo_url}
+              alt="Logo"
+              style={{ maxHeight: 70, maxWidth: 80, objectFit: "contain" }}
+              crossOrigin="anonymous"
+            />
+          </div>
+        ) : (
+          <div style={{ width: 20 }} />
+        )}
 
         {/* Right — Owner */}
         <div

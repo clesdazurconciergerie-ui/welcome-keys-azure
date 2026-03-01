@@ -128,6 +128,7 @@ export function useInvoices() {
       legal_footer: fs.legal_footer,
       default_due_days: fs.default_due_days,
       vat_enabled: fs.vat_enabled,
+      logo_url: fs.logo_url || null,
     } : null;
 
     // Build owner_snapshot with billing fields
