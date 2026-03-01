@@ -79,10 +79,10 @@ export function FinanceSettingsTab() {
       if (!user) { toast.error("Non authentifié"); return; }
 
       const ext = file.name.split(".").pop() || "png";
-      const filePath = `finance-logos/${user.id}/logo.${ext}`;
+      const filePath = `${user.id}/logo.${ext}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("booklet-assets")
+        .from("branding")
         .upload(filePath, file, { contentType: file.type, upsert: true });
 
       if (uploadError) {
@@ -90,7 +90,7 @@ export function FinanceSettingsTab() {
         return;
       }
 
-      const { data: urlData } = supabase.storage.from("booklet-assets").getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from("branding").getPublicUrl(filePath);
       const publicUrl = urlData.publicUrl + "?t=" + Date.now();
 
       await saveSettings({ logo_url: publicUrl });
