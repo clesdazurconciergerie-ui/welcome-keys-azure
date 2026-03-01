@@ -2,8 +2,51 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Generate a PDF from the invoice print view using the browser's print API,
- * then upload to Supabase Storage.
+ * Preflight validation for invoice generation
+ */
+export function validateInvoiceForGeneration(
+  invoice: any,
+  items: any[],
+  financialSettings: any
+): string[] {
+  const errors: string[] = [];
+
+  // Check financial settings
+  if (!financialSettings) {
+    errors.push("Paramètres financiers manquants. Configurez-les dans Finance > Paramètres.");
+  } else {
+    if (!financialSettings.company_name) errors.push("Nom de la société manquant dans les paramètres financiers.");
+    if (!financialSettings.iban) errors.push("IBAN manquant dans les paramètres financiers.");
+    if (!financialSettings.bic) errors.push("BIC manquant dans les paramètres financiers.");
+  }
+
+  // Check owner info
+  const owner = invoice?.owner_snapshot || invoice?.owner;
+  if (!owner) {
+    errors.push("Informations du propriétaire manquantes.");
+  } else {
+    if (!owner.first_name && !owner.last_name) errors.push("Nom du propriétaire manquant.");
+  }
+
+  // Check line items
+  if (!items || items.length === 0) {
+    errors.push("La facture ne contient aucune ligne.");
+  }
+
+  // Check totals
+  if (invoice) {
+    const total = Number(invoice.total);
+    const subtotal = Number(invoice.subtotal);
+    if (isNaN(total) || isNaN(subtotal)) {
+      errors.push("Les totaux de la facture sont invalides (NaN).");
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * Generate and upload invoice HTML to Supabase Storage.
  */
 export async function generateAndUploadInvoicePdf(
   invoiceId: string,
@@ -11,7 +54,8 @@ export async function generateAndUploadInvoicePdf(
 ): Promise<string | null> {
   const printEl = document.getElementById("invoice-print");
   if (!printEl) {
-    toast.error("Impossible de trouver le contenu de la facture");
+    toast.error("Impossible de trouver le contenu de la facture. Assurez-vous que la prévisualisation est visible.");
+    console.error("[InvoicePDF] #invoice-print element not found");
     return null;
   }
 
@@ -48,8 +92,8 @@ export async function generateAndUploadInvoicePdf(
     });
 
   if (error) {
-    toast.error("Erreur lors de l'upload du fichier");
-    console.error(error);
+    console.error("[InvoicePDF] Upload error:", error);
+    toast.error(`Erreur upload: ${error.message}. Vous pouvez toujours imprimer via le bouton "Imprimer".`);
     return null;
   }
 
@@ -69,10 +113,11 @@ export function printInvoice() {
 export async function getInvoiceDownloadUrl(pdfPath: string): Promise<string | null> {
   const { data, error } = await supabase.storage
     .from("invoices")
-    .createSignedUrl(pdfPath, 3600); // 1 hour expiry
+    .createSignedUrl(pdfPath, 3600);
 
   if (error) {
-    toast.error("Erreur téléchargement");
+    console.error("[InvoicePDF] Download URL error:", error);
+    toast.error(`Erreur téléchargement: ${error.message}`);
     return null;
   }
   return data.signedUrl;
