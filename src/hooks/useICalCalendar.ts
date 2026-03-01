@@ -74,7 +74,8 @@ export function useICalCalendar(propertyId: string | undefined) {
       platform,
     });
     if (error) {
-      toast.error("Erreur lors de l'ajout du calendrier");
+      console.error("addCalendar error:", error);
+      toast.error("Erreur lors de l'ajout du calendrier: " + error.message);
       return;
     }
     toast.success("Calendrier ajouté");
