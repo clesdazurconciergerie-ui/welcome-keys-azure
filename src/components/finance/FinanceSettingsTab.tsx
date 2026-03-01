@@ -11,7 +11,7 @@ import { Save, Loader2, Plus, Trash2, Edit2, Check, X } from "lucide-react";
 import { formatEUR } from "@/lib/finance-utils";
 
 export function FinanceSettingsTab() {
-  const { settings, loading, saveSettings, refetch } = useFinancialSettings();
+  const { settings, loading, saveSettings, refetch, cleanupVatData } = useFinancialSettings();
   const { services, loading: sLoading, create: createService, update: updateService, remove: removeService } = useServicesCatalog();
 
   const [form, setForm] = useState({
@@ -99,10 +99,17 @@ export function FinanceSettingsTab() {
             </div>
             <Switch checked={form.vat_enabled} onCheckedChange={v => setForm(f => ({ ...f, vat_enabled: v }))} />
           </div>
-          {form.vat_enabled && (
+          {form.vat_enabled ? (
             <div className="grid grid-cols-2 gap-4">
               <div><Label>N° TVA</Label><Input value={form.vat_number} onChange={e => setForm(f => ({ ...f, vat_number: e.target.value }))} placeholder="FR12345678901" /></div>
               <div><Label>Taux TVA par défaut (%)</Label><Input type="number" value={form.default_vat_rate} onChange={e => setForm(f => ({ ...f, default_vat_rate: parseFloat(e.target.value) || 0 }))} /></div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+              <p className="text-xs text-amber-800">TVA désactivée — les factures et dépenses existantes peuvent encore contenir des montants TVA.</p>
+              <Button variant="outline" size="sm" className="text-xs h-8" onClick={async () => { await cleanupVatData(); refetch(); }}>
+                Nettoyer les données TVA existantes
+              </Button>
             </div>
           )}
         </CardContent>
