@@ -49,6 +49,8 @@ import SPMaterialPage from "./pages/service-provider/SPMaterialPage";
 import SPSupportPage from "./pages/service-provider/SPSupportPage";
 import SPSettingsPage from "./pages/service-provider/SPSettingsPage";
 import SPAccountPage from "./pages/service-provider/SPAccountPage";
+import FinancePage from "./pages/dashboard/FinancePage";
+import OwnerFinancesPage from "./pages/owner/OwnerFinancesPage";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +78,7 @@ const App = () => (
             <Route path="prestataires" element={<PrestatairesPage />} />
             <Route path="interventions" element={<InterventionsPage />} />
             <Route path="prospection" element={<ProspectionPage />} />
+            <Route path="finance" element={<FinancePage />} />
             <Route path="performance" element={<PerformancePage />} />
             <Route path="abonnement" element={<AbonnementPage />} />
             <Route path="parametres" element={<ParametresPage />} />
@@ -88,6 +91,7 @@ const App = () => (
             <Route path="livrets" element={<OwnerBookletsPage />} />
             <Route path="photos-menage" element={<OwnerCleaningPhotosPage />} />
             <Route path="documents" element={<OwnerDocumentsPage />} />
+            <Route path="finances" element={<OwnerFinancesPage />} />
             <Route path="compte" element={<OwnerAccountPage />} />
           </Route>
 

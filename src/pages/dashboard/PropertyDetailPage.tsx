@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { useProperties, type Property, type PropertyPhoto, type PropertyDocument } from "@/hooks/useProperties";
 import { EditPropertyDialog } from "@/components/dashboard/properties/EditPropertyDialog";
 import { PropertyCalendar } from "@/components/dashboard/properties/PropertyCalendar";
+import { PropertyFinanceSettings } from "@/components/finance/PropertyFinanceSettings";
 
 const typeLabels: Record<string, string> = {
   apartment: "Appartement", house: "Maison", villa: "Villa",
@@ -258,6 +259,7 @@ const PropertyDetailPage = () => {
           <TabsTrigger value="interventions">Interventions</TabsTrigger>
           <TabsTrigger value="calendar">Calendrier</TabsTrigger>
           <TabsTrigger value="owners">Propriétaires</TabsTrigger>
+          <TabsTrigger value="finance">Finance</TabsTrigger>
         </TabsList>
 
         {/* PHOTOS TAB */}
@@ -651,6 +653,11 @@ const PropertyDetailPage = () => {
               </Card>
             ))
           )}
+        </TabsContent>
+
+        {/* FINANCE TAB */}
+        <TabsContent value="finance">
+          {id && <PropertyFinanceSettings propertyId={id} />}
         </TabsContent>
       </Tabs>
 
