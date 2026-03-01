@@ -270,10 +270,11 @@ const PropertyDetailPage = () => {
               </SelectContent>
             </Select>
             <label
-              className={cn("inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
-              <input ref={photoInputRef} type="file" accept="image/*" multiple className="absolute w-0 h-0 opacity-0 overflow-hidden" onChange={handlePhotoUpload} />
+              className={cn("relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               Ajouter des photos
+              <input ref={photoInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload}
+                style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
             </label>
           </div>
 
@@ -312,10 +313,11 @@ const PropertyDetailPage = () => {
             </Select>
             <Input value={docName} onChange={e => setDocName(e.target.value)} placeholder="Nom du document" className="w-52" maxLength={200} />
             <label
-              className={cn("inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
-              <input ref={docInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="absolute w-0 h-0 opacity-0 overflow-hidden" onChange={handleDocUpload} />
+              className={cn("relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               Ajouter
+              <input ref={docInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" onChange={handleDocUpload}
+                style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
             </label>
           </div>
 
@@ -367,10 +369,11 @@ const PropertyDetailPage = () => {
             </Select>
             <Input value={contractDocName} onChange={e => setContractDocName(e.target.value)} placeholder="Nom du document" className="w-52" maxLength={200} />
             <label
-              className={cn("inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
-              <input ref={contractDocInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="absolute w-0 h-0 opacity-0 overflow-hidden" onChange={handleContractDocUpload} />
+              className={cn("relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               Ajouter
+              <input ref={contractDocInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" onChange={handleContractDocUpload}
+                style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
             </label>
           </div>
 
