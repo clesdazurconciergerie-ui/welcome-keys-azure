@@ -21,6 +21,8 @@ export interface Invoice {
   notes: string | null;
   company_snapshot: any;
   owner_snapshot: any;
+  pdf_path: string | null;
+  generated_at: string | null;
   created_at: string;
   owner?: { first_name: string; last_name: string; email: string };
   items?: InvoiceItem[];
@@ -39,6 +41,12 @@ export interface InvoiceItem {
   vat_rate: number;
   property_id: string | null;
   metadata: any;
+}
+
+/** Generate invoice number as YYYY-NNN based on year + next_invoice_number */
+function generateInvoiceNumber(nextNum: number): string {
+  const year = new Date().getFullYear();
+  return `${year}-${String(nextNum).padStart(3, "0")}`;
 }
 
 export function useInvoices() {
@@ -88,9 +96,8 @@ export function useInvoices() {
     if (!user) return null;
 
     const fs = params.financial_settings;
-    const prefix = fs?.invoice_prefix || "FAC";
     const nextNum = fs?.next_invoice_number || 1;
-    const invoiceNumber = `${prefix}-${String(nextNum).padStart(5, "0")}`;
+    const invoiceNumber = generateInvoiceNumber(nextNum);
     const vatEnabled = params.vatEnabled ?? true;
 
     // Sanitize items: force vat to 0 when disabled
@@ -99,7 +106,6 @@ export function useInvoices() {
       vat_rate: vatEnabled ? (item.vat_rate || 0) : 0,
     }));
 
-    // Compute totals from sanitized items
     const subtotal = sanitizedItems.reduce((s, item) => s + (item.quantity * item.unit_price), 0);
     const vatAmount = vatEnabled
       ? sanitizedItems.reduce((s, item) => {
@@ -108,6 +114,32 @@ export function useInvoices() {
         }, 0)
       : 0;
     const total = subtotal + vatAmount;
+
+    // Build company_snapshot with all new fields
+    const companySnapshot = fs ? {
+      company_name: fs.company_name,
+      address: fs.address,
+      org_phone: fs.org_phone,
+      org_postal_code: fs.org_postal_code,
+      org_city: fs.org_city,
+      vat_number: fs.vat_number,
+      iban: fs.iban,
+      bic: fs.bic,
+      legal_footer: fs.legal_footer,
+      default_due_days: fs.default_due_days,
+      vat_enabled: fs.vat_enabled,
+    } : null;
+
+    // Build owner_snapshot with billing fields
+    const ownerSnapshot = {
+      first_name: params.owner.first_name,
+      last_name: params.owner.last_name,
+      email: params.owner.email,
+      phone: params.owner.phone,
+      billing_street: params.owner.billing_street,
+      billing_postal_code: params.owner.billing_postal_code,
+      billing_city: params.owner.billing_city,
+    };
 
     const { data: invoice, error } = await supabase
       .from("invoices" as any)
@@ -126,19 +158,8 @@ export function useInvoices() {
         type: params.type || "invoice",
         status: params.status || "draft",
         notes: params.notes || null,
-        company_snapshot: fs ? {
-          company_name: fs.company_name,
-          address: fs.address,
-          vat_number: fs.vat_number,
-          iban: fs.iban,
-          legal_footer: fs.legal_footer,
-        } : null,
-        owner_snapshot: {
-          first_name: params.owner.first_name,
-          last_name: params.owner.last_name,
-          email: params.owner.email,
-          phone: params.owner.phone,
-        },
+        company_snapshot: companySnapshot,
+        owner_snapshot: ownerSnapshot,
       })
       .select()
       .single();
@@ -190,8 +211,15 @@ export function useInvoices() {
     await fetchInvoices();
   };
 
+  const updateInvoicePdf = async (id: string, pdfPath: string) => {
+    await supabase
+      .from("invoices" as any)
+      .update({ pdf_path: pdfPath, generated_at: new Date().toISOString() })
+      .eq("id", id);
+    await fetchInvoices();
+  };
+
   const deleteInvoice = async (id: string) => {
-    // First delete items
     await supabase.from("invoice_items" as any).delete().eq("invoice_id", id);
     const { error } = await supabase
       .from("invoices" as any)
@@ -202,5 +230,5 @@ export function useInvoices() {
     await fetchInvoices();
   };
 
-  return { invoices, loading, createInvoice, updateInvoiceStatus, deleteInvoice, fetchInvoiceWithItems, refetch: fetchInvoices };
+  return { invoices, loading, createInvoice, updateInvoiceStatus, updateInvoicePdf, deleteInvoice, fetchInvoiceWithItems, refetch: fetchInvoices };
 }

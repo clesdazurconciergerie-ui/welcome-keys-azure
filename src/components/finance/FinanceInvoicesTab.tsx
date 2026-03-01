@@ -15,11 +15,13 @@ import { useFinancialSettings } from "@/hooks/useFinancialSettings";
 import { useOwners } from "@/hooks/useOwners";
 import { useProperties } from "@/hooks/useProperties";
 import { useServicesCatalog } from "@/hooks/useServicesCatalog";
-import { Plus, FileText, Printer, Trash2, CheckCircle, X, Loader2, Send, Ban, ChevronDown, Wrench, ArrowUpDown, Receipt, Home } from "lucide-react";
+import { Plus, FileText, Printer, Trash2, CheckCircle, X, Loader2, Send, Ban, ChevronDown, Wrench, ArrowUpDown, Receipt, Home, Download, Eye, Save } from "lucide-react";
 import { format, startOfMonth, endOfMonth, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { InvoicePrintView } from "./InvoicePrintView";
 import { formatEUR, invoiceStatusLabels, invoiceStatusColors } from "@/lib/finance-utils";
+import { generateAndUploadInvoicePdf, printInvoice, getInvoiceDownloadUrl } from "@/lib/invoice-pdf";
+import { toast } from "sonner";
 
 // ── Location row (commission-based) ──
 interface LocationRow {
@@ -54,7 +56,7 @@ const extraTypeIcons: Record<string, React.ReactNode> = {
 };
 
 export function FinanceInvoicesTab() {
-  const { invoices, loading, createInvoice, updateInvoiceStatus, deleteInvoice, fetchInvoiceWithItems } = useInvoices();
+  const { invoices, loading, createInvoice, updateInvoiceStatus, updateInvoicePdf, deleteInvoice, fetchInvoiceWithItems } = useInvoices();
   const { settings: fs } = useFinancialSettings();
   const { owners } = useOwners();
   const { properties } = useProperties();
@@ -163,9 +165,11 @@ export function FinanceInvoicesTab() {
     const end = endOfMonth(new Date(y, m - 1));
 
     const items = [
-      ...locations.map(l => ({
+      ...locations.map(l => {
+        const propName = properties.find(p => p.id === l.property_id)?.name || "";
+        return {
         booking_id: null,
-        description: `Location ${l.check_in || "—"} → ${l.check_out || "—"}${l.platform ? ` (${l.platform})` : ""}`,
+        description: `Commission location ${l.check_in || "—"} → ${l.check_out || "—"}${propName ? ` - ${propName}` : ""}${l.platform ? ` (${l.platform})` : ""}`,
         quantity: 1,
         unit_price: l.rental_amount * l.commission_rate / 100,
         total: l.rental_amount * l.commission_rate / 100,
@@ -174,10 +178,15 @@ export function FinanceInvoicesTab() {
         vat_rate: vatEnabled ? (fs?.default_vat_rate || 20) : 0,
         property_id: l.property_id || null,
         metadata: { rental_amount: l.rental_amount, commission_rate: l.commission_rate, platform: l.platform },
-      })),
-      ...extras.map(e => ({
+      };
+      }),
+      ...extras.map(e => {
+        let desc = e.description;
+        if (e.type === "pass_through_cost") desc = `Frais refacturés - ${e.description}`;
+        else if (e.type === "adjustment") desc = `Ajustement - ${e.description}`;
+        return {
         booking_id: null,
-        description: e.description,
+        description: desc,
         quantity: e.quantity,
         unit_price: e.unit_price,
         total: e.quantity * e.unit_price,
@@ -186,7 +195,8 @@ export function FinanceInvoicesTab() {
         vat_rate: vatEnabled ? e.vat_rate : 0,
         property_id: null,
         metadata: {},
-      })),
+        };
+      }),
     ];
 
     setCreating(true);
@@ -644,16 +654,38 @@ export function FinanceInvoicesTab() {
 
       {/* Print preview */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>Facture {previewInvoice?.invoice_number}</span>
-              <Button size="sm" variant="outline" className="gap-2" onClick={() => window.print()}>
-                <Printer className="h-4 w-4" />Imprimer / PDF
-              </Button>
+        <DialogContent className="max-w-[850px] max-h-[95vh] overflow-auto p-0">
+          <div className="sticky top-0 z-10 bg-background border-b px-6 py-3 flex items-center justify-between">
+            <DialogTitle className="text-base">
+              Facture {previewInvoice?.invoice_number}
             </DialogTitle>
-          </DialogHeader>
-          {previewInvoice && <InvoicePrintView invoice={previewInvoice} items={previewItems} />}
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="gap-2 h-8 text-xs" onClick={() => printInvoice()}>
+                <Printer className="h-3.5 w-3.5" />Imprimer
+              </Button>
+              <Button size="sm" variant="outline" className="gap-2 h-8 text-xs" onClick={async () => {
+                if (!previewInvoice) return;
+                const path = await generateAndUploadInvoicePdf(previewInvoice.id, previewInvoice.invoice_number);
+                if (path) {
+                  await updateInvoicePdf(previewInvoice.id, path);
+                  toast.success("Facture sauvegardée");
+                }
+              }}>
+                <Save className="h-3.5 w-3.5" />Générer
+              </Button>
+              {previewInvoice?.pdf_path && (
+                <Button size="sm" className="gap-2 h-8 text-xs" onClick={async () => {
+                  const url = await getInvoiceDownloadUrl(previewInvoice.pdf_path!);
+                  if (url) window.open(url, "_blank");
+                }}>
+                  <Download className="h-3.5 w-3.5" />Télécharger
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="p-6">
+            {previewInvoice && <InvoicePrintView invoice={previewInvoice} items={previewItems} financialSettings={fs} />}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -17,11 +17,15 @@ export function FinanceSettingsTab() {
   const [form, setForm] = useState({
     company_name: "",
     address: "",
+    org_phone: "",
+    org_postal_code: "",
+    org_city: "",
     vat_number: "",
     default_vat_rate: 20,
     invoice_prefix: "FAC",
-    default_due_days: 30,
+    default_due_days: 7,
     iban: "",
+    bic: "",
     legal_footer: "",
     vat_enabled: true,
   });
@@ -40,13 +44,17 @@ export function FinanceSettingsTab() {
       setForm({
         company_name: settings.company_name || "",
         address: settings.address || "",
+        org_phone: (settings as any).org_phone || "",
+        org_postal_code: (settings as any).org_postal_code || "",
+        org_city: (settings as any).org_city || "",
         vat_number: settings.vat_number || "",
         default_vat_rate: settings.default_vat_rate || 20,
         invoice_prefix: settings.invoice_prefix || "FAC",
-        default_due_days: (settings as any).default_due_days || 30,
+        default_due_days: settings.default_due_days || 7,
         iban: settings.iban || "",
+        bic: (settings as any).bic || "",
         legal_footer: settings.legal_footer || "",
-        vat_enabled: (settings as any).vat_enabled ?? true,
+        vat_enabled: settings.vat_enabled ?? true,
       });
     }
   }, [settings]);
@@ -90,8 +98,13 @@ export function FinanceSettingsTab() {
       <Card>
         <CardHeader><CardTitle className="text-base">Informations de la société</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div><Label>Nom de la société</Label><Input value={form.company_name} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} placeholder="Ma Conciergerie SAS" /></div>
-          <div><Label>Adresse</Label><Textarea value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Rue Example&#10;06000 Nice" rows={3} /></div>
+          <div><Label>Nom de la société</Label><Input value={form.company_name} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} placeholder="Azur Keys" /></div>
+          <div><Label>Adresse (rue)</Label><Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="35 chemin du castellas" /></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><Label>Code postal</Label><Input value={form.org_postal_code} onChange={e => setForm(f => ({ ...f, org_postal_code: e.target.value }))} placeholder="83700" /></div>
+            <div><Label>Ville</Label><Input value={form.org_city} onChange={e => setForm(f => ({ ...f, org_city: e.target.value }))} placeholder="Saint-Raphaël" /></div>
+          </div>
+          <div><Label>Téléphone</Label><Input value={form.org_phone} onChange={e => setForm(f => ({ ...f, org_phone: e.target.value }))} placeholder="06.03.70.97.77" /></div>
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <Label>Assujetti à la TVA</Label>
@@ -106,7 +119,7 @@ export function FinanceSettingsTab() {
             </div>
           ) : (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
-              <p className="text-xs text-amber-800">TVA désactivée — les factures et dépenses existantes peuvent encore contenir des montants TVA.</p>
+              <p className="text-xs text-amber-800">TVA non applicable — mention légale « TVA non applicable - article 293 B du CGI. » ajoutée automatiquement sur les factures.</p>
               <Button variant="outline" size="sm" className="text-xs h-8" onClick={async () => { await cleanupVatData(); refetch(); }}>
                 Nettoyer les données TVA existantes
               </Button>
@@ -119,16 +132,18 @@ export function FinanceSettingsTab() {
       <Card>
         <CardHeader><CardTitle className="text-base">Facturation</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
-            <div><Label>Préfixe facture</Label><Input value={form.invoice_prefix} onChange={e => setForm(f => ({ ...f, invoice_prefix: e.target.value }))} placeholder="FAC" /></div>
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Prochain numéro</Label>
               <Input value={settings?.next_invoice_number || 1} disabled className="bg-muted" />
-              <p className="text-[10px] text-muted-foreground mt-1">Auto-incrémenté</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Format: {new Date().getFullYear()}-{String(settings?.next_invoice_number || 1).padStart(3, "0")}</p>
             </div>
-            <div><Label>Délai paiement (jours)</Label><Input type="number" value={form.default_due_days} onChange={e => setForm(f => ({ ...f, default_due_days: parseInt(e.target.value) || 30 }))} /></div>
+            <div><Label>Délai paiement (jours)</Label><Input type="number" value={form.default_due_days} onChange={e => setForm(f => ({ ...f, default_due_days: parseInt(e.target.value) || 7 }))} /></div>
           </div>
-          <div><Label>IBAN</Label><Input value={form.iban} onChange={e => setForm(f => ({ ...f, iban: e.target.value }))} placeholder="FR76 1234 5678 9012 3456 7890 123" /></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><Label>IBAN</Label><Input value={form.iban} onChange={e => setForm(f => ({ ...f, iban: e.target.value }))} placeholder="FR76 1234 5678 ..." /></div>
+            <div><Label>BIC</Label><Input value={form.bic} onChange={e => setForm(f => ({ ...f, bic: e.target.value }))} placeholder="REVOFRP" /></div>
+          </div>
           <div><Label>Devise</Label><Input value="EUR (€)" disabled className="bg-muted" /></div>
         </CardContent>
       </Card>
@@ -153,20 +168,21 @@ export function FinanceSettingsTab() {
           <p className="text-xs text-muted-foreground">Définissez vos prestations récurrentes pour les ajouter rapidement aux factures</p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Add form */}
           <div className="flex items-end gap-2">
             <div className="flex-1">
               <Label className="text-xs">Nom</Label>
               <Input value={newSvcName} onChange={e => setNewSvcName(e.target.value)} placeholder="Ménage standard" className="h-9" />
             </div>
             <div className="w-24">
-              <Label className="text-xs">Prix HT (€)</Label>
+              <Label className="text-xs">Prix (€)</Label>
               <Input type="number" step="0.01" value={newSvcPrice} onChange={e => setNewSvcPrice(e.target.value)} className="h-9" />
             </div>
-            <div className="w-20">
-              <Label className="text-xs">TVA %</Label>
-              <Input type="number" value={newSvcVat} onChange={e => setNewSvcVat(e.target.value)} className="h-9" />
-            </div>
+            {form.vat_enabled && (
+              <div className="w-20">
+                <Label className="text-xs">TVA %</Label>
+                <Input type="number" value={newSvcVat} onChange={e => setNewSvcVat(e.target.value)} className="h-9" />
+              </div>
+            )}
             <div className="w-24">
               <Label className="text-xs">Unité</Label>
               <Input value={newSvcUnit} onChange={e => setNewSvcUnit(e.target.value)} className="h-9" placeholder="unité" />
@@ -176,7 +192,6 @@ export function FinanceSettingsTab() {
             </Button>
           </div>
 
-          {/* List */}
           {sLoading ? (
             <p className="text-sm text-muted-foreground">Chargement...</p>
           ) : services.length === 0 ? (
@@ -189,7 +204,6 @@ export function FinanceSettingsTab() {
                     <div className="flex items-center gap-2 flex-1">
                       <Input value={editForm.name || ""} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} className="h-8 text-sm flex-1" />
                       <Input type="number" step="0.01" value={editForm.default_unit_price || 0} onChange={e => setEditForm(f => ({ ...f, default_unit_price: parseFloat(e.target.value) }))} className="h-8 text-sm w-24" />
-                      <Input type="number" value={editForm.default_vat_rate || 0} onChange={e => setEditForm(f => ({ ...f, default_vat_rate: parseFloat(e.target.value) }))} className="h-8 text-sm w-16" />
                       <Button size="icon" className="h-7 w-7" onClick={saveEditSvc}><Check className="h-3 w-3" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingSvc(null)}><X className="h-3 w-3" /></Button>
                     </div>
@@ -198,7 +212,8 @@ export function FinanceSettingsTab() {
                       <div>
                         <p className="text-sm font-medium">{svc.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {formatEUR(svc.default_unit_price)} / {svc.unit_label} · TVA {svc.default_vat_rate}%
+                          {formatEUR(svc.default_unit_price)} / {svc.unit_label}
+                          {form.vat_enabled && ` · TVA ${svc.default_vat_rate}%`}
                         </p>
                       </div>
                       <div className="flex items-center gap-1">
