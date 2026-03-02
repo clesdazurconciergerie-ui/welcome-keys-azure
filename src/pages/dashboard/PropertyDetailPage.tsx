@@ -66,6 +66,19 @@ const contractDocCategories = [
   { value: "autre_contrat", label: "Autre" },
 ];
 
+interface OwnerDoc {
+  id: string;
+  name: string;
+  type: string;
+  file_url: string;
+  uploaded_at: string;
+}
+
+const ownerDocTypeLabels: Record<string, string> = {
+  id_card: "Carte d'identité", passport: "Passeport", proof_of_address: "Justificatif",
+  insurance: "Assurance", rib: "RIB", kbis: "KBIS", lease: "Bail", diagnostic: "Diagnostic", other: "Autre",
+};
+
 const PropertyDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -79,6 +92,7 @@ const PropertyDetailPage = () => {
   const [photos, setPhotos] = useState<PropertyPhoto[]>([]);
   const [documents, setDocuments] = useState<PropertyDocument[]>([]);
   const [owners, setOwners] = useState<any[]>([]);
+  const [ownerDocs, setOwnerDocs] = useState<OwnerDoc[]>([]);
   const [editOpen, setEditOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [photoCategory, setPhotoCategory] = useState("general");
@@ -140,6 +154,8 @@ const PropertyDetailPage = () => {
       supabase.from("booklets").select("id, property_name, status, property_address, created_at").eq("property_id", id).then(({ data }) => setLinkedBooklets(data || []));
       // Fetch all user booklets for linking
       supabase.from("booklets").select("id, property_name, property_id").then(({ data }) => setAllBooklets(data || []));
+      // Fetch owner-uploaded documents for this property
+      (supabase as any).from("owner_documents").select("id, name, type, file_url, uploaded_at").eq("property_id", id).order("uploaded_at", { ascending: false }).then(({ data }: any) => setOwnerDocs(data || []));
     }
   }, [id]);
 
@@ -355,6 +371,37 @@ const PropertyDetailPage = () => {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Owner-uploaded documents */}
+          {ownerDocs.length > 0 && (
+            <div className="space-y-2 mt-6">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <User className="h-4 w-4 text-[hsl(var(--gold))]" />
+                Documents propriétaire
+              </h3>
+              {ownerDocs.map(doc => (
+                <Card key={doc.id}>
+                  <CardContent className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{doc.name}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <Badge variant="outline" className="text-[9px]">
+                            {ownerDocTypeLabels[doc.type] || doc.type}
+                          </Badge>
+                          <span>{new Date(doc.uploaded_at).toLocaleDateString("fr-FR")}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Button size="icon" variant="ghost" asChild className="h-8 w-8">
+                      <a href={doc.file_url} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4" /></a>
+                    </Button>
                   </CardContent>
                 </Card>
               ))}

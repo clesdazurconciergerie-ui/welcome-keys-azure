@@ -34,12 +34,23 @@ interface Document {
 export default function OwnerDocumentsPage() {
   const { ownerId, conciergeUserId } = useIsOwner();
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [propertyIds, setPropertyIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [docType, setDocType] = useState("other");
   const [docName, setDocName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Load owner's property IDs
+  useEffect(() => {
+    if (!ownerId) return;
+    (async () => {
+      const { data: links } = await (supabase as any)
+        .from("owner_properties").select("property_id").eq("owner_id", ownerId);
+      setPropertyIds((links || []).map((l: any) => l.property_id));
+    })();
+  }, [ownerId]);
 
   const loadDocs = async () => {
     if (!ownerId) return;
@@ -59,7 +70,8 @@ export default function OwnerDocumentsPage() {
     setUploading(true);
 
     const ext = file.name.split(".").pop();
-    const path = `${ownerId}/${Date.now()}.${ext}`;
+    // Use concierge user_id scope in path for tenant isolation
+    const path = `${conciergeUserId}/${ownerId}/${Date.now()}.${ext}`;
 
     const { error: uploadErr } = await supabase.storage
       .from("owner-documents").upload(path, file);
@@ -73,10 +85,12 @@ export default function OwnerDocumentsPage() {
     const { data: urlData } = supabase.storage
       .from("owner-documents").getPublicUrl(path);
 
+    // Include property_id (first property) so concierge can see it in property docs
     const { error: dbErr } = await (supabase as any)
       .from("owner_documents").insert({
         owner_id: ownerId,
         concierge_user_id: conciergeUserId,
+        property_id: propertyIds[0] || null,
         name: docName.trim() || file.name,
         type: docType,
         file_url: urlData.publicUrl,

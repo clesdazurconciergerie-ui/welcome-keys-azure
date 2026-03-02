@@ -1722,6 +1722,7 @@ export type Database = {
           id: string
           name: string
           owner_id: string
+          property_id: string | null
           type: string
           uploaded_at: string
         }
@@ -1731,6 +1732,7 @@ export type Database = {
           id?: string
           name: string
           owner_id: string
+          property_id?: string | null
           type?: string
           uploaded_at?: string
         }
@@ -1740,6 +1742,7 @@ export type Database = {
           id?: string
           name?: string
           owner_id?: string
+          property_id?: string | null
           type?: string
           uploaded_at?: string
         }
@@ -1749,6 +1752,13 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_documents_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
