@@ -18,7 +18,7 @@ export interface NewMission {
   created_at: string;
   updated_at: string;
   property?: { name: string; address: string; property_photos?: Array<{ url: string; is_main: boolean | null; order_index: number | null }> };
-  selected_provider?: { first_name: string; last_name: string; email: string };
+  selected_provider?: { first_name: string; last_name: string; email: string; phone: string | null };
   applications?: MissionApplication[];
 }
 
@@ -29,7 +29,7 @@ export interface MissionApplication {
   message: string | null;
   status: string;
   created_at: string;
-  provider?: { first_name: string; last_name: string; email: string; score_global: number };
+  provider?: { first_name: string; last_name: string; email: string; phone: string | null; score_global: number };
 }
 
 export interface CreateMissionData {
@@ -57,8 +57,8 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
         .select(`
           *,
           property:property_id(name, address, property_photos(url, is_main, order_index)),
-          selected_provider:selected_provider_id(first_name, last_name, email),
-          applications:mission_applications(*, provider:provider_id(first_name, last_name, email, score_global))
+          selected_provider:selected_provider_id(first_name, last_name, email, phone),
+          applications:mission_applications(*, provider:provider_id(first_name, last_name, email, phone, score_global))
         `)
         .order('start_at', { ascending: false });
 
