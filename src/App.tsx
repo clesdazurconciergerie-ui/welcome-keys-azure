@@ -42,8 +42,7 @@ import OwnerCleaningPhotosPage from "./pages/owner/OwnerCleaningPhotosPage";
 import OwnerDocumentsPage from "./pages/owner/OwnerDocumentsPage";
 import OwnerAccountPage from "./pages/owner/OwnerAccountPage";
 import SPDashboardHome from "./pages/service-provider/SPDashboardHome";
-import SPMissionsPage from "./pages/service-provider/SPMissionsPage";
-import SPOpenMissionsPage from "./pages/service-provider/SPOpenMissionsPage";
+import SPMissionsUnifiedPage from "./pages/service-provider/SPMissionsUnifiedPage";
 import SPPlanningPage from "./pages/service-provider/SPPlanningPage";
 import SPHistoryPage from "./pages/service-provider/SPHistoryPage";
 import SPPaymentsPage from "./pages/service-provider/SPPaymentsPage";
@@ -101,9 +100,7 @@ const App = () => (
           {/* Service provider dashboard */}
           <Route path="/prestataire" element={<ServiceProviderDashboardLayout />}>
             <Route index element={<SPDashboardHome />} />
-            <Route path="missions" element={<SPMissionsPage />} />
-            <Route path="missions-ouvertes" element={<SPOpenMissionsPage />} />
-            <Route path="planning" element={<SPPlanningPage />} />
+            <Route path="missions" element={<SPMissionsUnifiedPage />} />
             <Route path="historique" element={<SPHistoryPage />} />
             <Route path="paiements" element={<SPPaymentsPage />} />
             <Route path="materiel" element={<SPMaterialPage />} />
