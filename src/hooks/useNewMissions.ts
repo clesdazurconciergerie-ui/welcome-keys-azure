@@ -41,6 +41,8 @@ export interface CreateMissionData {
   end_at?: string;
   duration_minutes?: number;
   payout_amount?: number;
+  is_open_to_all?: boolean;
+  selected_provider_id?: string | null;
 }
 
 export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
@@ -88,6 +90,7 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non connecté');
 
+      const isOpen = data.is_open_to_all ?? false;
       const { error } = await (supabase as any)
         .from('missions')
         .insert({
@@ -100,7 +103,9 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
           end_at: data.end_at || null,
           duration_minutes: data.duration_minutes || null,
           payout_amount: data.payout_amount || 0,
-          status: 'draft',
+          is_open_to_all: isOpen,
+          selected_provider_id: isOpen ? null : (data.selected_provider_id || null),
+          status: isOpen ? 'open' : (data.selected_provider_id ? 'assigned' : 'draft'),
         });
 
       if (error) throw error;

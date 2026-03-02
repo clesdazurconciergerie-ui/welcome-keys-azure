@@ -8,10 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Plus, Send, Eye, CheckCircle, XCircle, Loader2, Star, Ban } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNewMissions, type CreateMissionData, type NewMission } from "@/hooks/useNewMissions";
 import { useProperties } from "@/hooks/useProperties";
+import { useServiceProviders } from "@/hooks/useServiceProviders";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   draft: { label: "Brouillon", color: "bg-muted text-muted-foreground" },
@@ -33,20 +35,28 @@ const missionTypeLabels: Record<string, string> = {
 export default function MissionsPage() {
   const { missions, isLoading, createMission, publishMission, cancelMission, acceptApplication, rejectApplication, approveMission } = useNewMissions('concierge');
   const { properties } = useProperties();
+  const { providers } = useServiceProviders();
   const [createOpen, setCreateOpen] = useState(false);
   const [detailMission, setDetailMission] = useState<NewMission | null>(null);
   const [creating, setCreating] = useState(false);
+  const [assignMode, setAssignMode] = useState<'open' | 'direct'>('open');
   const [form, setForm] = useState<CreateMissionData>({
     property_id: '', mission_type: 'cleaning', title: '', instructions: '', start_at: '', payout_amount: 0,
   });
 
   const handleCreate = async () => {
     if (!form.property_id || !form.title || !form.start_at) return;
+    if (assignMode === 'direct' && !form.selected_provider_id) return;
     setCreating(true);
-    await createMission(form);
+    await createMission({
+      ...form,
+      is_open_to_all: assignMode === 'open',
+      selected_provider_id: assignMode === 'open' ? null : form.selected_provider_id,
+    });
     setCreating(false);
     setCreateOpen(false);
-    setForm({ property_id: '', mission_type: 'cleaning', title: '', instructions: '', start_at: '', payout_amount: 0 });
+    setAssignMode('open');
+    setForm({ property_id: '', mission_type: 'cleaning', title: '', instructions: '', start_at: '', payout_amount: 0, selected_provider_id: null });
   };
 
   const activeMissions = useMemo(() => missions.filter(m => !['canceled', 'approved'].includes(m.status)), [missions]);
@@ -111,9 +121,39 @@ export default function MissionsPage() {
                   <Label>Instructions</Label>
                   <Textarea value={form.instructions} onChange={e => setForm(p => ({ ...p, instructions: e.target.value }))} placeholder="Détails pour le prestataire..." />
                 </div>
+
+                {/* Assignment mode toggle */}
+                <div className="p-3 border rounded-lg space-y-3">
+                  <Label className="font-semibold">Choisir un prestataire maintenant ?</Label>
+                  <RadioGroup value={assignMode} onValueChange={(v) => { setAssignMode(v as 'open' | 'direct'); if (v === 'open') setForm(p => ({ ...p, selected_provider_id: null })); }}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="open" id="mode-open" />
+                      <Label htmlFor="mode-open" className="font-normal cursor-pointer">Non — mission ouverte (les prestataires postulent)</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="direct" id="mode-direct" />
+                      <Label htmlFor="mode-direct" className="font-normal cursor-pointer">Oui — assigner directement</Label>
+                    </div>
+                  </RadioGroup>
+
+                  {assignMode === 'direct' && (
+                    <div>
+                      <Label>Prestataire *</Label>
+                      <Select value={form.selected_provider_id || ''} onValueChange={v => setForm(p => ({ ...p, selected_provider_id: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Choisir un prestataire" /></SelectTrigger>
+                        <SelectContent>
+                          {providers.filter(p => p.status === 'active').map(p => (
+                            <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+
                 <Button onClick={handleCreate} disabled={creating} className="w-full">
                   {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                  Créer la mission
+                  {assignMode === 'open' ? 'Créer & publier la mission' : 'Créer & assigner'}
                 </Button>
               </div>
             </DialogContent>

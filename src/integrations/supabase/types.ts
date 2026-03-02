@@ -1501,6 +1501,7 @@ export type Database = {
           end_at: string | null
           id: string
           instructions: string | null
+          is_open_to_all: boolean
           mission_type: string
           payout_amount: number | null
           property_id: string
@@ -1517,6 +1518,7 @@ export type Database = {
           end_at?: string | null
           id?: string
           instructions?: string | null
+          is_open_to_all?: boolean
           mission_type?: string
           payout_amount?: number | null
           property_id: string
@@ -1533,6 +1535,7 @@ export type Database = {
           end_at?: string | null
           id?: string
           instructions?: string | null
+          is_open_to_all?: boolean
           mission_type?: string
           payout_amount?: number | null
           property_id?: string
