@@ -28,6 +28,7 @@ import { useProperties, type Property, type PropertyPhoto, type PropertyDocument
 import { EditPropertyDialog } from "@/components/dashboard/properties/EditPropertyDialog";
 import { PropertyCalendar } from "@/components/dashboard/properties/PropertyCalendar";
 import { PropertyFinanceSettings } from "@/components/finance/PropertyFinanceSettings";
+import { CleaningAutomationSection } from "@/components/property/CleaningAutomationSection";
 
 const typeLabels: Record<string, string> = {
   apartment: "Appartement", house: "Maison", villa: "Villa",
@@ -260,6 +261,7 @@ const PropertyDetailPage = () => {
           <TabsTrigger value="calendar">Calendrier</TabsTrigger>
           <TabsTrigger value="owners">Propriétaires</TabsTrigger>
           <TabsTrigger value="finance">Finance</TabsTrigger>
+          <TabsTrigger value="cleaning">Ménage auto</TabsTrigger>
         </TabsList>
 
         {/* PHOTOS TAB */}
@@ -658,6 +660,11 @@ const PropertyDetailPage = () => {
         {/* FINANCE TAB */}
         <TabsContent value="finance">
           {id && <PropertyFinanceSettings propertyId={id} />}
+        </TabsContent>
+
+        {/* CLEANING AUTOMATION TAB */}
+        <TabsContent value="cleaning">
+          {id && <CleaningAutomationSection propertyId={id} />}
         </TabsContent>
       </Tabs>
 

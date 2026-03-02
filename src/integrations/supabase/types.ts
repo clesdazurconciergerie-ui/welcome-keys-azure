@@ -1506,6 +1506,8 @@ export type Database = {
           payout_amount: number | null
           property_id: string
           selected_provider_id: string | null
+          source_id: string | null
+          source_type: string | null
           start_at: string
           status: string
           title: string
@@ -1523,6 +1525,8 @@ export type Database = {
           payout_amount?: number | null
           property_id: string
           selected_provider_id?: string | null
+          source_id?: string | null
+          source_type?: string | null
           start_at: string
           status?: string
           title: string
@@ -1540,6 +1544,8 @@ export type Database = {
           payout_amount?: number | null
           property_id?: string
           selected_provider_id?: string | null
+          source_id?: string | null
+          source_type?: string | null
           start_at?: string
           status?: string
           title?: string
@@ -1923,6 +1929,13 @@ export type Database = {
           bedrooms: number | null
           capacity: number | null
           city: string | null
+          cleaning_default_start_time: string | null
+          cleaning_duration_minutes: number | null
+          cleaning_enabled: boolean
+          cleaning_instructions_template: string | null
+          cleaning_lead_time_hours: number | null
+          cleaning_open_mode: boolean
+          cleaning_payout_amount: number | null
           country: string | null
           created_at: string
           id: string
@@ -1945,6 +1958,13 @@ export type Database = {
           bedrooms?: number | null
           capacity?: number | null
           city?: string | null
+          cleaning_default_start_time?: string | null
+          cleaning_duration_minutes?: number | null
+          cleaning_enabled?: boolean
+          cleaning_instructions_template?: string | null
+          cleaning_lead_time_hours?: number | null
+          cleaning_open_mode?: boolean
+          cleaning_payout_amount?: number | null
           country?: string | null
           created_at?: string
           id?: string
@@ -1967,6 +1987,13 @@ export type Database = {
           bedrooms?: number | null
           capacity?: number | null
           city?: string | null
+          cleaning_default_start_time?: string | null
+          cleaning_duration_minutes?: number | null
+          cleaning_enabled?: boolean
+          cleaning_instructions_template?: string | null
+          cleaning_lead_time_hours?: number | null
+          cleaning_open_mode?: boolean
+          cleaning_payout_amount?: number | null
           country?: string | null
           created_at?: string
           id?: string
