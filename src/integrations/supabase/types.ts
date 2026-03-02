@@ -1551,6 +1551,54 @@ export type Database = {
           },
         ]
       }
+      mission_photos: {
+        Row: {
+          created_at: string
+          file_path: string
+          id: string
+          kind: string
+          mission_id: string
+          provider_id: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          id?: string
+          kind?: string
+          mission_id: string
+          provider_id: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          id?: string
+          kind?: string
+          mission_id?: string
+          provider_id?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_photos_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_photos_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       missions: {
         Row: {
           created_at: string
