@@ -137,12 +137,11 @@ export function CleaningAutomationSection({ propertyId }: Props) {
                     Actif
                   </Badge>
                   <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                    Une tâche automatique quotidienne (03h00) génère les missions ménage pour les 30 prochains jours.
+                    Utilisez le bouton "Sync ménage" sur la page Missions pour générer les missions ménage des 30 prochains jours.
                     Chaque checkout créera une mission à{" "}
                     <strong>{form.cleaning_default_start_time}</strong>
                     {form.cleaning_lead_time_hours > 0 && ` (+${form.cleaning_lead_time_hours}h)`}
                     {" "}pour <strong>{form.cleaning_payout_amount}€</strong>.
-                    Aucune action manuelle requise.
                   </p>
                 </div>
               </div>

@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { RadioCardGroup } from "@/components/ui/radio-card-group";
-import { Plus, Send, Eye, CheckCircle, XCircle, Loader2, Star, Ban, CalendarIcon, Users, UserCheck } from "lucide-react";
+import { Plus, Send, Eye, CheckCircle, XCircle, Loader2, Star, Ban, CalendarIcon, Users, UserCheck, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNewMissions, type CreateMissionData, type NewMission } from "@/hooks/useNewMissions";
 import { useProperties } from "@/hooks/useProperties";
@@ -20,6 +20,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   draft: { label: "Brouillon", color: "bg-muted text-muted-foreground" },
@@ -47,10 +48,33 @@ export default function MissionsPage() {
   const { providers } = useServiceProviders();
   const [createOpen, setCreateOpen] = useState(false);
   const [detailMission, setDetailMission] = useState<NewMission | null>(null);
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [syncPropertyId, setSyncPropertyId] = useState("all");
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ created: number; updated: number; skipped: number; ignored: number; errors: number } | null>(null);
 
   const activeMissions = useMemo(() => missions.filter(m => !['canceled', 'approved'].includes(m.status)), [missions]);
   const archivedMissions = useMemo(() => missions.filter(m => ['canceled', 'approved'].includes(m.status)), [missions]);
   const currentDetail = detailMission ? missions.find(m => m.id === detailMission.id) || detailMission : null;
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const body: any = { window_days: 31 };
+      if (syncPropertyId !== "all") body.property_id = syncPropertyId;
+      const { data, error } = await supabase.functions.invoke("sync-cleaning-missions", { body });
+      if (error) throw error;
+      setSyncResult(data);
+      toast.success(`${data.created} mission(s) créée(s), ${data.updated} mise(s) à jour`);
+      // Refresh missions list
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.message || "Erreur de synchronisation");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -60,24 +84,68 @@ export default function MissionsPage() {
             <h1 className="text-3xl font-bold text-foreground">Missions</h1>
             <p className="text-muted-foreground mt-1">Publiez des missions — vos prestataires postulent</p>
           </div>
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
-                <Plus className="w-4 h-4 mr-2" /> Nouvelle mission
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>Créer une mission</DialogTitle></DialogHeader>
-              <CreateMissionForm
-                properties={properties}
-                providers={providers.filter(p => p.status === 'active')}
-                onSubmit={async (data) => {
-                  await createMission(data);
-                  setCreateOpen(false);
-                }}
-              />
-            </DialogContent>
-          </Dialog>
+          <div className="flex items-center gap-2">
+            <Dialog open={syncOpen} onOpenChange={(v) => { setSyncOpen(v); if (!v) setSyncResult(null); }}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <RefreshCw className="w-4 h-4" /> Sync ménage (1 mois)
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader><DialogTitle>Synchroniser les missions ménage</DialogTitle></DialogHeader>
+                <p className="text-sm text-muted-foreground">
+                  Génère automatiquement les missions ménage pour tous les checkouts des 30 prochains jours,
+                  selon les paramètres de chaque logement.
+                </p>
+                <div className="space-y-3 mt-2">
+                  <div>
+                    <Label>Logement</Label>
+                    <Select value={syncPropertyId} onValueChange={setSyncPropertyId}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous les logements</SelectItem>
+                        {properties.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={handleSync} disabled={syncing} className="w-full gap-2">
+                    {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                    Lancer la synchronisation
+                  </Button>
+                  {syncResult && (
+                    <div className="p-3 rounded-lg border bg-muted/50 space-y-1 text-sm">
+                      <p className="font-medium">Résultat :</p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                        <span>✅ Créées :</span><span className="font-semibold">{syncResult.created}</span>
+                        <span>🔄 Mises à jour :</span><span className="font-semibold">{syncResult.updated}</span>
+                        <span>⏭️ Ignorées (assignées) :</span><span className="font-semibold">{syncResult.skipped}</span>
+                        <span>🚫 Non éligibles :</span><span className="font-semibold">{syncResult.ignored}</span>
+                        {syncResult.errors > 0 && <><span>❌ Erreurs :</span><span className="font-semibold text-destructive">{syncResult.errors}</span></>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+                  <Plus className="w-4 h-4 mr-2" /> Nouvelle mission
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogHeader><DialogTitle>Créer une mission</DialogTitle></DialogHeader>
+                <CreateMissionForm
+                  properties={properties}
+                  providers={providers.filter(p => p.status === 'active')}
+                  onSubmit={async (data) => {
+                    await createMission(data);
+                    setCreateOpen(false);
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </motion.div>
 
