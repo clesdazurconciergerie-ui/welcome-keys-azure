@@ -1,0 +1,1 @@
+ALTER TABLE public.missions ADD COLUMN is_open_to_all boolean NOT NULL DEFAULT false;
