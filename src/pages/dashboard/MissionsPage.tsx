@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { RadioCardGroup } from "@/components/ui/radio-card-group";
-import { Plus, Send, Eye, CheckCircle, XCircle, Loader2, Star, Ban, CalendarIcon, Users, UserCheck, RefreshCw } from "lucide-react";
+import { Plus, Send, Eye, CheckCircle, XCircle, Loader2, Star, Ban, CalendarIcon, Users, UserCheck, RefreshCw, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNewMissions, type CreateMissionData, type NewMission } from "@/hooks/useNewMissions";
 import { useProperties } from "@/hooks/useProperties";
@@ -43,7 +44,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = ["00", "15", "30", "45"];
 
 export default function MissionsPage() {
-  const { missions, isLoading, createMission, publishMission, cancelMission, acceptApplication, rejectApplication, approveMission, refetch } = useNewMissions('concierge');
+  const { missions, isLoading, createMission, publishMission, cancelMission, deleteMission, acceptApplication, rejectApplication, approveMission, refetch } = useNewMissions('concierge');
   const { properties } = useProperties();
   const { providers } = useServiceProviders();
   const [createOpen, setCreateOpen] = useState(false);
@@ -215,12 +216,12 @@ export default function MissionsPage() {
                 <CardContent><p className="text-muted-foreground">Aucune mission active. Créez-en une !</p></CardContent>
               </Card>
             ) : activeMissions.map((m, i) => (
-              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onApprove={approveMission} />
+              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onApprove={approveMission} />
             ))}
           </TabsContent>
           <TabsContent value="archived" className="space-y-3 mt-4">
             {archivedMissions.map((m, i) => (
-              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onApprove={approveMission} />
+              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onApprove={approveMission} />
             ))}
           </TabsContent>
         </Tabs>
@@ -229,7 +230,7 @@ export default function MissionsPage() {
       <Dialog open={!!detailMission} onOpenChange={open => { if (!open) setDetailMission(null); }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-auto">
           {currentDetail && (
-            <MissionDetail mission={currentDetail} onAccept={acceptApplication} onReject={rejectApplication} onPublish={publishMission} onCancel={cancelMission} onApprove={approveMission} />
+            <MissionDetail mission={currentDetail} onAccept={acceptApplication} onReject={rejectApplication} onPublish={publishMission} onCancel={cancelMission} onDelete={async (id) => { await deleteMission(id); setDetailMission(null); }} onApprove={approveMission} />
           )}
         </DialogContent>
       </Dialog>
@@ -438,9 +439,9 @@ function CreateMissionForm({ properties, providers, onSubmit }: CreateMissionFor
 
 /* ─── Mission Card ─── */
 
-function MissionCard({ mission: m, index, onView, onPublish, onCancel, onApprove }: {
+function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete, onApprove }: {
   mission: NewMission; index: number;
-  onView: () => void; onPublish: (id: string) => void; onCancel: (id: string) => void; onApprove: (id: string) => void;
+  onView: () => void; onPublish: (id: string) => void; onCancel: (id: string) => void; onDelete: (id: string) => void; onApprove: (id: string) => void;
 }) {
   const cfg = statusConfig[m.status] || statusConfig.draft;
   const appCount = m.applications?.filter(a => a.status === 'pending').length || 0;
@@ -479,6 +480,23 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onApprove
                   <CheckCircle className="w-3 h-3 mr-1" /> Approuver
                 </Button>
               )}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Supprimer cette mission ?</AlertDialogTitle>
+                    <AlertDialogDescription>Cette action est irréversible. La mission et ses candidatures seront supprimées.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => onDelete(m.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               <Button size="sm" variant="ghost" onClick={onView}>
                 <Eye className="w-4 h-4" />
               </Button>
@@ -492,12 +510,13 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onApprove
 
 /* ─── Mission Detail ─── */
 
-function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, onApprove }: {
+function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, onDelete, onApprove }: {
   mission: NewMission;
   onAccept: (missionId: string, appId: string, providerId: string) => void;
   onReject: (appId: string) => void;
   onPublish: (id: string) => void;
   onCancel: (id: string) => void;
+  onDelete: (id: string) => void;
   onApprove: (id: string) => void;
 }) {
   const cfg = statusConfig[m.status] || statusConfig.draft;
@@ -550,6 +569,23 @@ function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, on
               <Ban className="w-4 h-4 mr-2" /> Annuler
             </Button>
           )}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="w-4 h-4 mr-2" /> Supprimer
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Supprimer cette mission ?</AlertDialogTitle>
+                <AlertDialogDescription>Cette action est irréversible. La mission et ses candidatures seront supprimées.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onDelete(m.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         {allApps.length > 0 && (
