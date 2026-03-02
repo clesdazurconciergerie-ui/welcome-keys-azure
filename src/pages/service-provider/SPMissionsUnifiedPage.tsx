@@ -1,0 +1,597 @@
+import { useState, useMemo } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  ClipboardList, Play, CheckCircle, Upload, Camera, AlertTriangle,
+  Send, MapPin, Calendar, Euro, Loader2, List, CalendarDays, ChevronLeft, ChevronRight,
+  AlertCircle,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { useNewMissions, type NewMission } from "@/hooks/useNewMissions";
+import { useMissions, useChecklistItems, type Mission } from "@/hooks/useMissions";
+import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
+
+/* ── Config ───────────────────────────────────────────────────── */
+
+const missionTypeLabels: Record<string, string> = {
+  cleaning: "🧹 Ménage",
+  checkin: "🔑 Check-in",
+  checkout: "🚪 Check-out",
+  maintenance: "🔧 Maintenance",
+};
+
+const statusConfig: Record<string, { label: string; color: string }> = {
+  open: { label: "Ouverte", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  assigned: { label: "Assignée", color: "bg-blue-100 text-blue-800 border-blue-200" },
+  confirmed: { label: "Confirmée", color: "bg-blue-100 text-blue-800 border-blue-200" },
+  scheduled: { label: "Assignée", color: "bg-blue-100 text-blue-800 border-blue-200" },
+  in_progress: { label: "En cours", color: "bg-amber-100 text-amber-800 border-amber-200" },
+  done: { label: "Terminée", color: "bg-muted text-muted-foreground border-border" },
+  approved: { label: "Approuvée ✅", color: "bg-muted text-muted-foreground border-border" },
+  completed: { label: "En attente", color: "bg-amber-100 text-amber-800 border-amber-200" },
+  validated: { label: "Validée ✅", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  redo: { label: "À refaire", color: "bg-orange-100 text-orange-800 border-orange-200" },
+  refused: { label: "Refusée", color: "bg-red-100 text-red-800 border-red-200" },
+};
+
+/* ── Mission Card ─────────────────────────────────────────────── */
+
+interface MissionCardProps {
+  title: string;
+  propertyName?: string;
+  propertyAddress?: string;
+  dateStr: string;
+  missionType: string;
+  payoutAmount: number;
+  instructions?: string | null;
+  status: string;
+  photoCount?: number;
+  actions?: React.ReactNode;
+  onClick?: () => void;
+  applied?: boolean;
+  conflictWarning?: string | null;
+}
+
+function MissionCard({
+  title, propertyName, propertyAddress, dateStr, missionType, payoutAmount,
+  instructions, status, photoCount, actions, onClick, applied, conflictWarning,
+}: MissionCardProps) {
+  const cfg = statusConfig[status] || { label: status, color: "bg-muted text-muted-foreground border-border" };
+
+  return (
+    <Card
+      className={`hover:shadow-md transition-all cursor-pointer border ${applied ? "border-primary/30 bg-primary/5" : "border-border"}`}
+      onClick={onClick}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="font-semibold text-foreground truncate">{title}</p>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{missionTypeLabels[missionType] || missionType}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+              {propertyName && (
+                <span className="flex items-center gap-1"><MapPin className="w-3 h-3 shrink-0" />{propertyName}</span>
+              )}
+              <span className="flex items-center gap-1"><Calendar className="w-3 h-3 shrink-0" />{dateStr}</span>
+              {payoutAmount > 0 && (
+                <span className="flex items-center gap-1 font-semibold text-emerald-600"><Euro className="w-3 h-3" />{payoutAmount}€</span>
+              )}
+              {photoCount !== undefined && (
+                <span className="text-xs">📸 {photoCount}</span>
+              )}
+            </div>
+            {instructions && (
+              <p className="text-sm text-muted-foreground mt-2 bg-muted/50 p-2 rounded line-clamp-2">{instructions}</p>
+            )}
+            {conflictWarning && (
+              <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                <AlertCircle className="w-3 h-3 shrink-0" />
+                {conflictWarning}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <Badge className={`${cfg.color} border text-[11px]`} variant="outline">{cfg.label}</Badge>
+            {actions}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ── Calendar View ────────────────────────────────────────────── */
+
+function MiniCalendar({ missions, onSelect }: { missions: NewMission[]; onSelect: (m: NewMission) => void }) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startOffset = (firstDay.getDay() + 6) % 7;
+
+  const days: (Date | null)[] = [];
+  for (let i = 0; i < startOffset; i++) days.push(null);
+  for (let d = 1; d <= lastDay.getDate(); d++) days.push(new Date(year, month, d));
+
+  const getMissionsForDay = (date: Date) =>
+    missions.filter(m => {
+      const d = new Date(m.start_at);
+      return d.getFullYear() === date.getFullYear() && d.getMonth() === date.getMonth() && d.getDate() === date.getDate();
+    });
+
+  const today = new Date();
+  const isToday = (d: Date) => d.toDateString() === today.toDateString();
+  const monthName = currentDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex items-center justify-between mb-4">
+          <Button variant="ghost" size="icon" onClick={() => setCurrentDate(new Date(year, month - 1))}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <h3 className="font-semibold capitalize">{monthName}</h3>
+          <Button variant="ghost" size="icon" onClick={() => setCurrentDate(new Date(year, month + 1))}>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+        <div className="grid grid-cols-7 gap-1 mb-1">
+          {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map(d => (
+            <div key={d} className="text-center text-[10px] font-medium text-muted-foreground py-1">{d}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {days.map((date, i) => {
+            if (!date) return <div key={`e-${i}`} className="min-h-[72px]" />;
+            const dayMissions = getMissionsForDay(date);
+            return (
+              <div
+                key={date.toISOString()}
+                className={`min-h-[72px] p-1 rounded-lg border transition-colors hover:bg-muted/30 ${isToday(date) ? "ring-2 ring-primary border-primary/30" : "border-border/50"}`}
+              >
+                <p className={`text-[11px] font-medium mb-0.5 ${isToday(date) ? "text-primary font-bold" : "text-muted-foreground"}`}>{date.getDate()}</p>
+                {dayMissions.slice(0, 2).map(m => {
+                  const cfg = statusConfig[m.status];
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => onSelect(m)}
+                      className={`text-[10px] px-1 py-0.5 rounded truncate cursor-pointer mb-0.5 ${cfg?.color || "bg-muted"}`}
+                      title={m.title}
+                    >
+                      {missionTypeLabels[m.mission_type]?.charAt(0) || "📋"} {m.property?.name?.substring(0, 8) || "…"}
+                    </div>
+                  );
+                })}
+                {dayMissions.length > 2 && <p className="text-[10px] text-muted-foreground text-center">+{dayMissions.length - 2}</p>}
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ── Main Page ────────────────────────────────────────────────── */
+
+export default function SPMissionsUnifiedPage() {
+  const { missions: newMissions, isLoading: loadingNew, applyToMission, confirmMission, markDone } = useNewMissions("provider");
+  const { missions: legacyMissions, isLoading: loadingLegacy, startMission, completeMission, uploadPhoto, refetch } = useMissions("service_provider");
+  const { spId } = useIsServiceProvider();
+
+  const [myView, setMyView] = useState<"list" | "calendar">("list");
+  const [applyTarget, setApplyTarget] = useState<NewMission | null>(null);
+  const [applyMessage, setApplyMessage] = useState("");
+  const [applying, setApplying] = useState(false);
+
+  // Legacy mission detail
+  const [legacySelected, setLegacySelected] = useState<Mission | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [providerComment, setProviderComment] = useState("");
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const { items: checklistItems } = useChecklistItems(legacySelected?.property_id);
+
+  const isLoading = loadingNew || loadingLegacy;
+
+  // Open missions
+  const openMissions = newMissions.filter(m => m.status === "open");
+
+  // My missions (new system)
+  const myNewMissions = newMissions.filter(
+    m => m.selected_provider_id && spId && ["assigned", "confirmed", "done", "approved"].includes(m.status)
+  );
+
+  // My missions (legacy)
+  const myLegacyMissions = legacyMissions.filter(m =>
+    ["scheduled", "in_progress", "redo", "completed", "validated"].includes(m.status)
+  );
+
+  const hasApplied = (m: NewMission) => m.applications?.some(a => a.provider_id === spId) || false;
+
+  // Conflict detection
+  const getConflict = (mission: NewMission): string | null => {
+    const mStart = new Date(mission.start_at);
+    const mEnd = mission.end_at ? new Date(mission.end_at) : new Date(mStart.getTime() + (mission.duration_minutes || 120) * 60000);
+
+    for (const my of myNewMissions) {
+      if (["assigned", "confirmed"].includes(my.status)) {
+        const s = new Date(my.start_at);
+        const e = my.end_at ? new Date(my.end_at) : new Date(s.getTime() + (my.duration_minutes || 120) * 60000);
+        if (mStart < e && mEnd > s) {
+          return `Conflit avec "${my.title}" le ${s.toLocaleDateString("fr-FR")}`;
+        }
+      }
+    }
+    return null;
+  };
+
+  const handleApply = async () => {
+    if (!applyTarget) return;
+    setApplying(true);
+    await applyToMission(applyTarget.id, applyMessage);
+    setApplying(false);
+    setApplyMessage("");
+    setApplyTarget(null);
+  };
+
+  // Legacy handlers
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: string = "after_cleaning") => {
+    if (!legacySelected || !e.target.files?.length) return;
+    setUploading(true);
+    for (const file of Array.from(e.target.files)) {
+      await uploadPhoto(legacySelected.id, file, type);
+    }
+    setUploading(false);
+    await refetch();
+  };
+
+  const handleLegacyStart = async () => {
+    if (!legacySelected) return;
+    await startMission(legacySelected.id);
+    await refetch();
+    setLegacySelected(null);
+  };
+
+  const handleLegacyComplete = async () => {
+    if (!legacySelected) return;
+    const mandatoryItems = checklistItems.filter(i => i.is_mandatory);
+    if (mandatoryItems.length > 0 && !mandatoryItems.every(i => checkedItems[i.id])) return;
+    if (!legacySelected.photos || legacySelected.photos.length < 4) return;
+    setCompleting(true);
+    const result = await completeMission(legacySelected.id, providerComment || undefined);
+    setCompleting(false);
+    if (result?.success) {
+      setLegacySelected(null);
+      setProviderComment("");
+      setCheckedItems({});
+    }
+  };
+
+  const photoCount = legacySelected?.photos?.length || 0;
+  const mandatoryItems = checklistItems.filter(i => i.is_mandatory);
+  const allMandatoryChecked = mandatoryItems.length === 0 || mandatoryItems.every(i => checkedItems[i.id]);
+  const canComplete = legacySelected?.status === "in_progress" && photoCount >= 4 && allMandatoryChecked;
+
+  const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+  if (isLoading) {
+    return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  }
+
+  return (
+    <div className="space-y-6 max-w-6xl">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <h1 className="text-3xl font-bold text-foreground">Missions</h1>
+        <p className="text-muted-foreground mt-1">Postulez aux missions ouvertes ou gérez vos missions en cours</p>
+      </motion.div>
+
+      <Tabs defaultValue="ouvertes" className="w-full">
+        <TabsList className="w-full max-w-md h-11 p-1 bg-muted">
+          <TabsTrigger value="ouvertes" className="flex-1 data-[state=active]:bg-emerald-600 data-[state=active]:text-white gap-1.5">
+            <Send className="w-3.5 h-3.5" />
+            Ouvertes
+            {openMissions.length > 0 && (
+              <span className="ml-1 bg-white/20 text-[11px] px-1.5 py-0.5 rounded-full">{openMissions.length}</span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="mes-missions" className="flex-1 data-[state=active]:bg-[hsl(var(--brand-blue))] data-[state=active]:text-white gap-1.5">
+            <ClipboardList className="w-3.5 h-3.5" />
+            Mes missions
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ── Tab: Ouvertes ────────────────────────────────────── */}
+        <TabsContent value="ouvertes" className="mt-4">
+          {openMissions.length === 0 ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <Send className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                <h3 className="font-semibold text-lg">Aucune mission disponible</h3>
+                <p className="text-muted-foreground text-sm">Les nouvelles missions apparaîtront ici en temps réel</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {openMissions.map((m, i) => {
+                const applied = hasApplied(m);
+                const conflict = getConflict(m);
+                return (
+                  <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+                    <MissionCard
+                      title={m.title}
+                      propertyName={m.property?.name}
+                      dateStr={fmtDate(m.start_at)}
+                      missionType={m.mission_type}
+                      payoutAmount={m.payout_amount}
+                      instructions={m.instructions}
+                      status={m.status}
+                      applied={applied}
+                      conflictWarning={conflict}
+                      actions={
+                        applied ? (
+                          <Badge className="bg-primary/10 text-primary border-primary/20 text-[11px]" variant="outline">✓ Postulé</Badge>
+                        ) : (
+                          <Button size="sm" onClick={(e) => { e.stopPropagation(); setApplyTarget(m); setApplyMessage(""); }}>
+                            <Send className="w-3 h-3 mr-1" /> Postuler
+                          </Button>
+                        )
+                      }
+                    />
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ── Tab: Mes missions ────────────────────────────────── */}
+        <TabsContent value="mes-missions" className="mt-4 space-y-4">
+          {/* View toggle */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant={myView === "list" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setMyView("list")}
+              className={myView === "list" ? "bg-[hsl(var(--brand-blue))] text-white" : ""}
+            >
+              <List className="w-3.5 h-3.5 mr-1" /> Liste
+            </Button>
+            <Button
+              variant={myView === "calendar" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setMyView("calendar")}
+              className={myView === "calendar" ? "bg-[hsl(var(--brand-blue))] text-white" : ""}
+            >
+              <CalendarDays className="w-3.5 h-3.5 mr-1" /> Calendrier
+            </Button>
+          </div>
+
+          {myView === "calendar" ? (
+            <MiniCalendar
+              missions={myNewMissions}
+              onSelect={(m) => {
+                // For calendar click, could open detail — for now just show info
+              }}
+            />
+          ) : (
+            <>
+              {/* New system missions */}
+              {myNewMissions.length > 0 && (
+                <div className="space-y-3">
+                  {myNewMissions.map((m, i) => (
+                    <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+                      <MissionCard
+                        title={m.title}
+                        propertyName={m.property?.name}
+                        dateStr={fmtDate(m.start_at)}
+                        missionType={m.mission_type}
+                        payoutAmount={m.payout_amount}
+                        instructions={m.instructions}
+                        status={m.status}
+                        actions={
+                          <>
+                            {m.status === "assigned" && (
+                              <Button size="sm" onClick={(e) => { e.stopPropagation(); confirmMission(m.id); }}>
+                                <CheckCircle className="w-3 h-3 mr-1" /> Confirmer
+                              </Button>
+                            )}
+                            {m.status === "confirmed" && (
+                              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={(e) => { e.stopPropagation(); markDone(m.id); }}>
+                                <CheckCircle className="w-3 h-3 mr-1" /> Terminée
+                              </Button>
+                            )}
+                          </>
+                        }
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
+              {/* Legacy missions */}
+              {myLegacyMissions.length > 0 && (
+                <div className="space-y-3">
+                  {myNewMissions.length > 0 && (
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest pt-2">Interventions (ancien système)</p>
+                  )}
+                  {myLegacyMissions.map((m, i) => (
+                    <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+                      <MissionCard
+                        title={m.property?.name || "Mission"}
+                        propertyName={m.property?.address}
+                        dateStr={new Date(m.scheduled_date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
+                        missionType={m.mission_type}
+                        payoutAmount={m.mission_amount}
+                        instructions={m.notes}
+                        status={m.status}
+                        photoCount={m.photos?.length || 0}
+                        onClick={() => { setLegacySelected(m); setCheckedItems({}); setProviderComment(""); }}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
+              {myNewMissions.length === 0 && myLegacyMissions.length === 0 && (
+                <Card className="text-center py-12">
+                  <CardContent>
+                    <ClipboardList className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                    <h3 className="font-semibold text-lg">Aucune mission en cours</h3>
+                    <p className="text-muted-foreground text-sm">Postulez aux missions ouvertes pour recevoir du travail</p>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* ── Apply Dialog ──────────────────────────────────────── */}
+      <Dialog open={!!applyTarget} onOpenChange={open => { if (!open) setApplyTarget(null); }}>
+        <DialogContent>
+          {applyTarget && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Postuler : {applyTarget.title}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="text-sm space-y-1">
+                  <p><span className="text-muted-foreground">Logement :</span> {applyTarget.property?.name}</p>
+                  <p><span className="text-muted-foreground">Date :</span> {fmtDate(applyTarget.start_at)}</p>
+                  <p><span className="text-muted-foreground">Montant :</span> {applyTarget.payout_amount}€</p>
+                </div>
+                {applyTarget.instructions && (
+                  <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                    <p className="font-medium mb-1">Instructions :</p>
+                    <p className="whitespace-pre-wrap">{applyTarget.instructions}</p>
+                  </div>
+                )}
+                {getConflict(applyTarget) && (
+                  <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{getConflict(applyTarget)}</span>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-medium mb-2">Message (optionnel)</p>
+                  <Textarea value={applyMessage} onChange={e => setApplyMessage(e.target.value)} placeholder="Précisez vos disponibilités…" rows={3} />
+                </div>
+                <Button onClick={handleApply} disabled={applying} className="w-full">
+                  {applying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                  Envoyer ma candidature
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Legacy Mission Detail Dialog ──────────────────────── */}
+      <Dialog open={!!legacySelected} onOpenChange={open => { if (!open) { setLegacySelected(null); setCheckedItems({}); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
+          {legacySelected && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{legacySelected.property?.name || "Mission"}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-muted-foreground">Date :</span> {new Date(legacySelected.scheduled_date).toLocaleDateString("fr-FR")}</div>
+                  <div><span className="text-muted-foreground">Type :</span> {missionTypeLabels[legacySelected.mission_type] || legacySelected.mission_type}</div>
+                  <div><span className="text-muted-foreground">Statut :</span> <Badge className={statusConfig[legacySelected.status]?.color}>{statusConfig[legacySelected.status]?.label || legacySelected.status}</Badge></div>
+                  <div><span className="text-muted-foreground">Montant :</span> {legacySelected.mission_amount}€</div>
+                </div>
+
+                {legacySelected.notes && (
+                  <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                    <p className="font-medium mb-1">Instructions :</p>
+                    <p>{legacySelected.notes}</p>
+                  </div>
+                )}
+
+                {legacySelected.status === "scheduled" && (
+                  <Button onClick={handleLegacyStart} className="w-full bg-[hsl(var(--brand-blue))]">
+                    <Play className="w-4 h-4 mr-2" /> Démarrer la mission
+                  </Button>
+                )}
+
+                {(legacySelected.status === "in_progress" || legacySelected.status === "redo") && (
+                  <>
+                    {checklistItems.length > 0 && (
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-sm">✅ Checklist</h3>
+                        {checklistItems.map(item => (
+                          <label key={item.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer">
+                            <Checkbox checked={!!checkedItems[item.id]} onCheckedChange={checked => setCheckedItems(prev => ({ ...prev, [item.id]: !!checked }))} />
+                            <span className="text-sm flex-1">{item.task_text}</span>
+                            {item.is_mandatory && <span className="text-[10px] text-destructive font-medium">Obligatoire</span>}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+
+                    <div>
+                      <h3 className="font-semibold text-sm mb-2">📸 Photos ({photoCount}/4 minimum)</h3>
+                      {legacySelected.photos && legacySelected.photos.length > 0 && (
+                        <div className="grid grid-cols-4 gap-2 mb-3">
+                          {legacySelected.photos.map(p => (
+                            <div key={p.id} className="relative aspect-square rounded-lg overflow-hidden">
+                              <img src={p.url} alt="" className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <label className="cursor-pointer block">
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleFileUpload(e, "after_cleaning")} disabled={uploading} />
+                        <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-primary/30 rounded-lg hover:bg-primary/5 bg-primary/5">
+                          <Camera className="w-5 h-5 text-primary" />
+                          <span className="text-sm font-medium text-primary">{uploading ? "Upload…" : "📷 Prendre une photo"}</span>
+                        </div>
+                      </label>
+                      <label className="cursor-pointer block mt-2">
+                        <input type="file" accept="image/*" multiple className="hidden" onChange={e => handleFileUpload(e, "after_cleaning")} disabled={uploading} />
+                        <div className="flex items-center justify-center gap-2 p-2 border border-dashed border-primary/30 rounded-lg hover:bg-primary/5">
+                          <Upload className="w-4 h-4 text-primary" />
+                          <span className="text-xs font-medium text-primary">Importer depuis la galerie</span>
+                        </div>
+                      </label>
+                      <label className="cursor-pointer block mt-2">
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleFileUpload(e, "incident")} disabled={uploading} />
+                        <div className="flex items-center justify-center gap-2 p-2 border border-dashed border-destructive/30 rounded-lg hover:bg-destructive/5">
+                          <AlertTriangle className="w-4 h-4 text-destructive" />
+                          <span className="text-xs font-medium text-destructive">📷 Signaler un incident</span>
+                        </div>
+                      </label>
+                      {photoCount < 4 && <p className="text-xs text-destructive mt-2">⚠️ Minimum 4 photos requises</p>}
+                    </div>
+
+                    <div>
+                      <h3 className="font-semibold text-sm mb-2">💬 Commentaire (optionnel)</h3>
+                      <Textarea value={providerComment} onChange={e => setProviderComment(e.target.value)} placeholder="Observations…" rows={3} />
+                    </div>
+
+                    <Button onClick={handleLegacyComplete} disabled={completing || !canComplete} className="w-full bg-emerald-600 hover:bg-emerald-700">
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      {completing ? "Validation…" : "Mission terminée"}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
