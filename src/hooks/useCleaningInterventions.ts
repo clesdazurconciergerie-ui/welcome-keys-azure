@@ -28,7 +28,7 @@ export interface CleaningIntervention {
   created_at: string;
   updated_at: string;
   property?: { name: string; address: string };
-  service_provider?: { first_name: string; last_name: string; email: string; score_global: number };
+  service_provider?: { first_name: string; last_name: string; email: string; phone: string | null; score_global: number };
   photos?: CleaningPhoto[];
 }
 
@@ -53,7 +53,7 @@ export function useCleaningInterventions(mode: 'concierge' | 'service_provider' 
         .select(`
           *,
           property:property_id(name, address),
-          service_provider:service_provider_id(first_name, last_name, email, score_global),
+          service_provider:service_provider_id(first_name, last_name, email, phone, score_global),
           photos:cleaning_photos(*)
         `)
         .order('scheduled_date', { ascending: false });
