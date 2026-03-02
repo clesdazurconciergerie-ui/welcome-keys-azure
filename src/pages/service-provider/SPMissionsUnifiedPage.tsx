@@ -11,10 +11,12 @@ import {
   Send, MapPin, Calendar, Euro, Loader2, List, CalendarDays, ChevronLeft, ChevronRight,
   AlertCircle,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import { useNewMissions, type NewMission } from "@/hooks/useNewMissions";
 import { useMissions, useChecklistItems, type Mission } from "@/hooks/useMissions";
 import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
+import { useMissionPhotos } from "@/hooks/useMissionPhotos";
 
 function getPropertyPhoto(mission: NewMission): string | null {
   const photos = mission.property?.property_photos;
@@ -226,6 +228,9 @@ export default function SPMissionsUnifiedPage() {
   const [applyMessage, setApplyMessage] = useState("");
   const [applying, setApplying] = useState(false);
 
+  // New mission detail
+  const [selectedNewMission, setSelectedNewMission] = useState<NewMission | null>(null);
+
   // Legacy mission detail
   const [legacySelected, setLegacySelected] = useState<Mission | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -233,6 +238,9 @@ export default function SPMissionsUnifiedPage() {
   const [providerComment, setProviderComment] = useState("");
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const { items: checklistItems } = useChecklistItems(legacySelected?.property_id);
+
+  // Mission photos for new missions
+  const { photos: missionPhotos, uploading: uploadingNewPhoto, uploadProgress, uploadPhoto: uploadMissionPhoto } = useMissionPhotos(selectedNewMission?.id || null);
 
   const isLoading = loadingNew || loadingLegacy;
 
@@ -275,6 +283,13 @@ export default function SPMissionsUnifiedPage() {
     setApplying(false);
     setApplyMessage("");
     setApplyTarget(null);
+  };
+
+  const handleNewMissionPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, kind: string = 'after') => {
+    if (!selectedNewMission || !spId || !e.target.files?.length) return;
+    for (const file of Array.from(e.target.files)) {
+      await uploadMissionPhoto(file, selectedNewMission.user_id, spId, kind);
+    }
   };
 
   // Legacy handlers
@@ -433,6 +448,7 @@ export default function SPMissionsUnifiedPage() {
                         instructions={m.instructions}
                         status={m.status}
                         propertyPhotoUrl={getPropertyPhoto(m)}
+                        onClick={() => setSelectedNewMission(m)}
                         actions={
                           <>
                             {m.status === "assigned" && (
@@ -441,8 +457,8 @@ export default function SPMissionsUnifiedPage() {
                               </Button>
                             )}
                             {m.status === "confirmed" && (
-                              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={(e) => { e.stopPropagation(); markDone(m.id); }}>
-                                <CheckCircle className="w-3 h-3 mr-1" /> Terminée
+                              <Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedNewMission(m); }}>
+                                <Camera className="w-3 h-3 mr-1" /> Détail & Photos
                               </Button>
                             )}
                           </>
@@ -619,6 +635,112 @@ export default function SPMissionsUnifiedPage() {
                       <CheckCircle className="w-4 h-4 mr-2" />
                       {completing ? "Validation…" : "Mission terminée"}
                     </Button>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── New Mission Detail Dialog (with photo upload) ────── */}
+      <Dialog open={!!selectedNewMission} onOpenChange={open => { if (!open) setSelectedNewMission(null); }}>
+        <DialogContent className="max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-auto w-[calc(100vw-2rem)] sm:w-auto">
+          {selectedNewMission && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedNewMission.title}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-muted-foreground">Logement :</span> {selectedNewMission.property?.name}</div>
+                  <div><span className="text-muted-foreground">Date :</span> {fmtDate(selectedNewMission.start_at)}</div>
+                  <div><span className="text-muted-foreground">Type :</span> {missionTypeLabels[selectedNewMission.mission_type] || selectedNewMission.mission_type}</div>
+                  <div><span className="text-muted-foreground">Montant :</span> {selectedNewMission.payout_amount}€</div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Statut : </span>
+                    <Badge className={statusConfig[selectedNewMission.status]?.color} variant="outline">
+                      {statusConfig[selectedNewMission.status]?.label || selectedNewMission.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                {selectedNewMission.instructions && (
+                  <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                    <p className="font-medium mb-1">Instructions :</p>
+                    <p className="whitespace-pre-wrap">{selectedNewMission.instructions}</p>
+                  </div>
+                )}
+
+                {/* Actions based on status */}
+                {selectedNewMission.status === "assigned" && (
+                  <Button
+                    onClick={() => { confirmMission(selectedNewMission.id); setSelectedNewMission(null); }}
+                    className="w-full"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" /> Confirmer la mission
+                  </Button>
+                )}
+
+                {/* Photo upload section — for confirmed missions */}
+                {(selectedNewMission.status === "confirmed" || selectedNewMission.status === "done") && (
+                  <>
+                    <div>
+                      <h3 className="font-semibold text-sm mb-2">📸 Photos de preuve ({missionPhotos.length})</h3>
+                      {missionPhotos.length > 0 && (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+                          {missionPhotos.map(p => (
+                            <div key={p.id} className="relative aspect-square rounded-lg overflow-hidden border border-border">
+                              <img src={p.url} alt="" className="w-full h-full object-cover" />
+                              <span className="absolute bottom-0 left-0 right-0 text-[10px] bg-black/60 text-white text-center py-0.5">
+                                {p.kind === 'before' ? 'Avant' : p.kind === 'incident' ? '⚠️ Incident' : 'Après'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {uploadingNewPhoto && (
+                        <div className="mb-3">
+                          <Progress value={uploadProgress} className="h-2" />
+                          <p className="text-xs text-muted-foreground mt-1">Upload en cours…</p>
+                        </div>
+                      )}
+
+                      <label className="cursor-pointer block">
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleNewMissionPhotoUpload(e, 'after')} disabled={uploadingNewPhoto} />
+                        <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-primary/30 rounded-lg hover:bg-primary/5 bg-primary/5 min-h-[48px]">
+                          <Camera className="w-5 h-5 text-primary" />
+                          <span className="text-sm font-medium text-primary">{uploadingNewPhoto ? "Upload…" : "📷 Prendre une photo"}</span>
+                        </div>
+                      </label>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <label className="cursor-pointer block">
+                          <input type="file" accept="image/*" multiple className="hidden" onChange={e => handleNewMissionPhotoUpload(e, 'after')} disabled={uploadingNewPhoto} />
+                          <div className="flex items-center justify-center gap-2 p-2.5 border border-dashed border-primary/30 rounded-lg hover:bg-primary/5 min-h-[44px]">
+                            <Upload className="w-4 h-4 text-primary" />
+                            <span className="text-xs font-medium text-primary">Galerie</span>
+                          </div>
+                        </label>
+                        <label className="cursor-pointer block">
+                          <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleNewMissionPhotoUpload(e, 'incident')} disabled={uploadingNewPhoto} />
+                          <div className="flex items-center justify-center gap-2 p-2.5 border border-dashed border-destructive/30 rounded-lg hover:bg-destructive/5 min-h-[44px]">
+                            <AlertTriangle className="w-4 h-4 text-destructive" />
+                            <span className="text-xs font-medium text-destructive">Incident</span>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
+                    {selectedNewMission.status === "confirmed" && (
+                      <Button
+                        onClick={() => { markDone(selectedNewMission.id); setSelectedNewMission(null); }}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                        disabled={missionPhotos.length < 1}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" /> Mission terminée
+                      </Button>
+                    )}
                   </>
                 )}
               </div>
