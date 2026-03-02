@@ -1,6 +1,5 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -22,34 +21,53 @@ import {
   Home,
   Wrench,
   ClipboardList,
-  BarChart3,
   Settings,
   LogOut,
-  CreditCard,
   Target,
   Euro,
   MessageCircle,
+  Briefcase,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const mainNav = [
-  { title: "Tableau de bord", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Biens / Logements", url: "/dashboard/logements", icon: Home },
-  { title: "Propriétaires", url: "/dashboard/proprietaires", icon: Users },
-  { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen },
-  { title: "Prestataires", url: "/dashboard/prestataires", icon: Wrench },
-  { title: "Interventions", url: "/dashboard/interventions", icon: ClipboardList },
-  { title: "Missions", url: "/dashboard/missions", icon: ClipboardList },
-  { title: "Prospection", url: "/dashboard/prospection", icon: Target },
-  { title: "Finance", url: "/dashboard/finance", icon: Euro },
-  { title: "Demandes", url: "/dashboard/demandes-proprietaires", icon: MessageCircle },
-];
-
-const secondaryNav = [
-  { title: "Performance", url: "/dashboard/performance", icon: BarChart3 },
-  { title: "Abonnement", url: "/dashboard/abonnement", icon: CreditCard },
-  { title: "Paramètres", url: "/dashboard/parametres", icon: Settings },
+const navGroups = [
+  {
+    label: "Pilotage",
+    items: [
+      { title: "Tableau de bord", url: "/dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Exploitation",
+    items: [
+      { title: "Biens / Logements", url: "/dashboard/logements", icon: Home },
+      { title: "Propriétaires", url: "/dashboard/proprietaires", icon: Users },
+      { title: "Prestataires", url: "/dashboard/prestataires", icon: Wrench },
+      { title: "Interventions", url: "/dashboard/interventions", icon: ClipboardList },
+      { title: "Missions", url: "/dashboard/missions", icon: Briefcase },
+      { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen },
+    ],
+  },
+  {
+    label: "Commercial",
+    items: [
+      { title: "Prospection", url: "/dashboard/prospection", icon: Target },
+      { title: "Demandes", url: "/dashboard/demandes-proprietaires", icon: MessageCircle },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { title: "Finance", url: "/dashboard/finance", icon: Euro },
+    ],
+  },
+  {
+    label: "Paramètres",
+    items: [
+      { title: "Paramètres", url: "/dashboard/parametres", icon: Settings },
+    ],
+  },
 ];
 
 export function DashboardSidebar() {
@@ -83,66 +101,38 @@ export function DashboardSidebar() {
           )}
         </div>
 
-        <SidebarContent className="flex-1 px-2 py-4">
-          {/* Main Navigation */}
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-white/40 text-[10px] uppercase tracking-widest px-3 mb-2">
-              {!collapsed && "Gestion"}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {mainNav.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        end={item.url === "/dashboard"}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                          isActive(item.url)
-                            ? "bg-[hsl(var(--gold))] text-[hsl(var(--brand-blue))] shadow-lg shadow-[hsl(var(--gold))]/20"
-                            : "text-white/70 hover:text-white hover:bg-white/10"
-                        }`}
-                        activeClassName=""
-                      >
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-
-          {/* Secondary Navigation */}
-          <SidebarGroup className="mt-6">
-            <SidebarGroupLabel className="text-white/40 text-[10px] uppercase tracking-widest px-3 mb-2">
-              {!collapsed && "Configuration"}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {secondaryNav.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        end
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                          isActive(item.url)
-                            ? "bg-[hsl(var(--gold))] text-[hsl(var(--brand-blue))] shadow-lg shadow-[hsl(var(--gold))]/20"
-                            : "text-white/70 hover:text-white hover:bg-white/10"
-                        }`}
-                        activeClassName=""
-                      >
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+        <SidebarContent className="flex-1 px-2 py-3 overflow-y-auto">
+          {navGroups.map((group, idx) => (
+            <SidebarGroup key={group.label} className={idx > 0 ? "mt-1" : ""}>
+              {idx > 0 && <div className="mx-3 mb-2 border-t border-white/[0.07]" />}
+              <SidebarGroupLabel className="text-white/40 text-[10px] uppercase tracking-[0.15em] px-3 mb-1 font-semibold">
+                {!collapsed && group.label}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map((item) => (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton asChild>
+                        <NavLink
+                          to={item.url}
+                          end={item.url === "/dashboard"}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            isActive(item.url)
+                              ? "bg-[hsl(var(--gold))] text-[hsl(var(--brand-blue))] shadow-lg shadow-[hsl(var(--gold))]/20"
+                              : "text-white/70 hover:text-white hover:bg-white/10"
+                          }`}
+                          activeClassName=""
+                        >
+                          <item.icon className="h-4 w-4 shrink-0" />
+                          {!collapsed && <span>{item.title}</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
         </SidebarContent>
 
         {/* Footer */}
