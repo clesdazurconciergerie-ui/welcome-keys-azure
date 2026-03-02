@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { RadioCardGroup } from "@/components/ui/radio-card-group";
-import { Plus, Send, Eye, CheckCircle, XCircle, Loader2, Star, Ban, CalendarIcon, Users, UserCheck, RefreshCw, Trash2 } from "lucide-react";
+import { Plus, Send, Eye, CheckCircle, XCircle, Loader2, Star, Ban, CalendarIcon, Users, UserCheck, RefreshCw, Trash2, Home } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNewMissions, type CreateMissionData, type NewMission } from "@/hooks/useNewMissions";
 import { useProperties } from "@/hooks/useProperties";
@@ -437,6 +437,17 @@ function CreateMissionForm({ properties, providers, onSubmit }: CreateMissionFor
   );
 }
 
+/* ─── Helpers ─── */
+
+function getPropertyPhoto(mission: NewMission): string | null {
+  const photos = mission.property?.property_photos;
+  if (!photos || photos.length === 0) return null;
+  const main = photos.find(p => p.is_main);
+  if (main) return main.url;
+  const sorted = [...photos].sort((a, b) => (a.order_index ?? 999) - (b.order_index ?? 999));
+  return sorted[0]?.url || null;
+}
+
 /* ─── Mission Card ─── */
 
 function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete, onApprove }: {
@@ -445,14 +456,27 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
 }) {
   const cfg = statusConfig[m.status] || statusConfig.draft;
   const appCount = m.applications?.filter(a => a.status === 'pending').length || 0;
+  const photoUrl = getPropertyPhoto(m);
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
-      <Card className="hover:shadow-md transition-shadow">
+      <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={onView}>
         <CardContent className="p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {/* Property thumbnail */}
+            <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border border-border shadow-sm bg-muted">
+              {photoUrl ? (
+                <img src={photoUrl} alt={m.property?.name || 'Logement'} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Home className="w-6 h-6 text-muted-foreground/50" />
+                </div>
+              )}
+            </div>
+
+            {/* Center info */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className="font-semibold truncate">{m.title}</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.color}`}>{cfg.label}</span>
                 {appCount > 0 && (
@@ -461,7 +485,7 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
                 <span>{m.property?.name}</span>
                 <span>{missionTypeLabels[m.mission_type] || m.mission_type}</span>
                 <span>📅 {new Date(m.start_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
@@ -469,14 +493,16 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
                 {m.selected_provider && <span>👤 {m.selected_provider.first_name} {m.selected_provider.last_name}</span>}
               </div>
             </div>
-            <div className="flex items-center gap-2 ml-4">
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 ml-auto shrink-0" onClick={e => e.stopPropagation()}>
               {m.status === 'draft' && (
-                <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onPublish(m.id); }}>
+                <Button size="sm" variant="outline" onClick={() => onPublish(m.id)}>
                   <Send className="w-3 h-3 mr-1" /> Publier
                 </Button>
               )}
               {m.status === 'done' && (
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={(e) => { e.stopPropagation(); onApprove(m.id); }}>
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => onApprove(m.id)}>
                   <CheckCircle className="w-3 h-3 mr-1" /> Approuver
                 </Button>
               )}
@@ -497,7 +523,7 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-              <Button size="sm" variant="ghost" onClick={onView}>
+              <Button size="sm" variant="ghost">
                 <Eye className="w-4 h-4" />
               </Button>
             </div>
