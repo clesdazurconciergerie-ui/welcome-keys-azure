@@ -29,6 +29,7 @@ import ProprietairesPage from "./pages/dashboard/ProprietairesPage";
 import LogementsPage from "./pages/dashboard/LogementsPage";
 import PropertyDetailPage from "./pages/dashboard/PropertyDetailPage";
 import PrestatairesPage from "./pages/dashboard/PrestatairesPage";
+import MissionsPage from "./pages/dashboard/MissionsPage";
 import InterventionsPage from "./pages/dashboard/InterventionsPage";
 import ProspectionPage from "./pages/dashboard/ProspectionPage";
 import PerformancePage from "./pages/dashboard/PerformancePage";
@@ -42,6 +43,7 @@ import OwnerDocumentsPage from "./pages/owner/OwnerDocumentsPage";
 import OwnerAccountPage from "./pages/owner/OwnerAccountPage";
 import SPDashboardHome from "./pages/service-provider/SPDashboardHome";
 import SPMissionsPage from "./pages/service-provider/SPMissionsPage";
+import SPOpenMissionsPage from "./pages/service-provider/SPOpenMissionsPage";
 import SPPlanningPage from "./pages/service-provider/SPPlanningPage";
 import SPHistoryPage from "./pages/service-provider/SPHistoryPage";
 import SPPaymentsPage from "./pages/service-provider/SPPaymentsPage";
@@ -77,6 +79,7 @@ const App = () => (
             <Route path="logements/:id" element={<PropertyDetailPage />} />
             <Route path="prestataires" element={<PrestatairesPage />} />
             <Route path="interventions" element={<InterventionsPage />} />
+            <Route path="missions" element={<MissionsPage />} />
             <Route path="prospection" element={<ProspectionPage />} />
             <Route path="finance" element={<FinancePage />} />
             <Route path="performance" element={<PerformancePage />} />
@@ -99,6 +102,7 @@ const App = () => (
           <Route path="/prestataire" element={<ServiceProviderDashboardLayout />}>
             <Route index element={<SPDashboardHome />} />
             <Route path="missions" element={<SPMissionsPage />} />
+            <Route path="missions-ouvertes" element={<SPOpenMissionsPage />} />
             <Route path="planning" element={<SPPlanningPage />} />
             <Route path="historique" element={<SPHistoryPage />} />
             <Route path="paiements" element={<SPPaymentsPage />} />

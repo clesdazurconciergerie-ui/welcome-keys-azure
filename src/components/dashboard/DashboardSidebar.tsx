@@ -39,6 +39,7 @@ const mainNav = [
   { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen },
   { title: "Prestataires", url: "/dashboard/prestataires", icon: Wrench },
   { title: "Interventions", url: "/dashboard/interventions", icon: ClipboardList },
+  { title: "Missions", url: "/dashboard/missions", icon: ClipboardList },
   { title: "Prospection", url: "/dashboard/prospection", icon: Target },
   { title: "Finance", url: "/dashboard/finance", icon: Euro },
 ];

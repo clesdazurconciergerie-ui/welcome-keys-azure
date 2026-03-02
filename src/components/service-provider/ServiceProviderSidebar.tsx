@@ -6,13 +6,14 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import BrandMark from "@/components/BrandMark";
-import { LayoutDashboard, ClipboardList, CalendarDays, History, CreditCard, Package, LifeBuoy, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, ClipboardList, CalendarDays, History, CreditCard, Package, LifeBuoy, Settings, LogOut, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const mainNav = [
   { title: "Tableau de bord", url: "/prestataire", icon: LayoutDashboard },
   { title: "Mes missions", url: "/prestataire/missions", icon: ClipboardList },
+  { title: "Missions ouvertes", url: "/prestataire/missions-ouvertes", icon: Send },
   { title: "Planning", url: "/prestataire/planning", icon: CalendarDays },
   { title: "Historique", url: "/prestataire/historique", icon: History },
 ];
