@@ -96,14 +96,25 @@ export default function GlobalCalendar() {
       .gt("end_date", rangeStartStr)
       .neq("status", "cancelled");
 
-    // Fetch missions with provider engagement
+    // Fetch missions with provider engagement (no join to avoid RLS filtering)
     const { data: missions } = await (supabase as any)
       .from("missions")
-      .select("id, property_id, title, mission_type, start_at, end_at, payout_amount, instructions, status, selected_provider_id, service_providers:selected_provider_id(name)")
+      .select("id, property_id, title, mission_type, start_at, end_at, payout_amount, instructions, status, selected_provider_id")
       .in("property_id", propIds)
-      .gte("start_at", rangeStartStr)
-      .lte("start_at", rangeEndStr)
+      .gte("start_at", rangeStartStr + "T00:00:00")
+      .lte("start_at", rangeEndStr + "T23:59:59")
       .in("status", ["assigned", "confirmed", "in_progress", "done", "approved"]);
+
+    // Fetch provider names separately
+    const providerIds = (missions || []).map((m: any) => m.selected_provider_id).filter(Boolean);
+    let providerMap: Record<string, string> = {};
+    if (providerIds.length) {
+      const { data: providers } = await (supabase as any)
+        .from("service_providers")
+        .select("id, name")
+        .in("id", providerIds);
+      providerMap = Object.fromEntries((providers || []).map((p: any) => [p.id, p.name]));
+    }
 
     const merged: CalendarEvent[] = [];
     const seen = new Set<string>();
@@ -145,7 +156,7 @@ export default function GlobalCalendar() {
 
     // Add missions
     for (const m of (missions || [])) {
-      const providerName = m.service_providers?.name || null;
+      const providerName = providerMap[m.selected_provider_id] || null;
       const startDay = format(new Date(m.start_at), "yyyy-MM-dd");
       const endDay = m.end_at ? format(new Date(m.end_at), "yyyy-MM-dd") : startDay;
       merged.push({
