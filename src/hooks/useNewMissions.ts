@@ -140,6 +140,27 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
     } catch { toast.error('Erreur annulation'); }
   };
 
+  const deleteMission = async (id: string) => {
+    try {
+      // Delete related applications first
+      const { error: appError } = await (supabase as any)
+        .from('mission_applications')
+        .delete()
+        .eq('mission_id', id);
+      if (appError) throw appError;
+
+      const { error } = await (supabase as any)
+        .from('missions')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      toast.success('Mission supprimée');
+      await fetchMissions();
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur suppression');
+    }
+  };
+
   const acceptApplication = async (missionId: string, applicationId: string, providerId: string) => {
     try {
       // Accept the selected application
@@ -284,6 +305,7 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
     createMission,
     publishMission,
     cancelMission,
+    deleteMission,
     acceptApplication,
     rejectApplication,
     applyToMission,
