@@ -66,7 +66,7 @@ const DashboardHome = () => {
   ];
 
   return (
-    <div className="space-y-8 max-w-6xl">
+    <div className="space-y-5 sm:space-y-8 max-w-6xl">
       <SubscriptionAlert />
       <DemoExpirationBanner />
 
@@ -78,7 +78,7 @@ const DashboardHome = () => {
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
             <Card className="cursor-pointer hover:shadow-md transition-shadow border-border" onClick={() => navigate(stat.link)}>
@@ -98,7 +98,7 @@ const DashboardHome = () => {
       </div>
 
       {/* Mission Blocks */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/dashboard/interventions')}>
           <CardContent className="p-5">
             <div className="flex items-center gap-3 mb-2">
@@ -264,8 +264,8 @@ const DashboardHome = () => {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-lg font-semibold text-foreground mb-4">Actions rapides</h2>
-        <div className="flex flex-wrap gap-3">
+        <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">Actions rapides</h2>
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
           <Button onClick={() => navigate("/dashboard/interventions")} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             <Plus className="w-4 h-4 mr-2" />
             Nouvelle mission

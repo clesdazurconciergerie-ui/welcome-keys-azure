@@ -11,6 +11,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, su
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type EventKind = "booking" | "mission" | "followup";
 
@@ -60,7 +61,8 @@ const FILTER_OPTIONS: { value: FilterMode; label: string; icon: string }[] = [
 
 export default function GlobalCalendar() {
   const navigate = useNavigate();
-  const [view, setView] = useState<"month" | "week" | "list">("month");
+  const isMobile = useIsMobile();
+  const [view, setView] = useState<"month" | "week" | "list">(isMobile ? "list" : "month");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [properties, setProperties] = useState<PropertyOption[]>([]);
@@ -233,27 +235,27 @@ export default function GlobalCalendar() {
 
   return (
     <Card className="overflow-hidden">
-      <CardContent className="pt-6">
+      <CardContent className="p-4 sm:pt-6 sm:px-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 mb-5">
+        <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
                 <CalendarIcon className="w-4.5 h-4.5 text-primary" />
               </div>
-              <h2 className="text-lg font-bold text-foreground">Calendrier global</h2>
+              <h2 className="text-base sm:text-lg font-bold text-foreground">Calendrier global</h2>
             </div>
             {/* View toggle */}
             <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5">
               {[
                 { v: "month" as const, icon: LayoutGrid, label: "Mois" },
-                { v: "week" as const, icon: CalendarIcon, label: "Semaine" },
+                { v: "week" as const, icon: CalendarIcon, label: "Sem." },
                 { v: "list" as const, icon: List, label: "Liste" },
               ].map(({ v, icon: Icon, label }) => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === v ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-all min-h-[36px] sm:min-h-0 ${view === v ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">{label}</span>
@@ -262,15 +264,15 @@ export default function GlobalCalendar() {
             </div>
           </div>
 
-          {/* Filters row */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Filters row — scrollable on mobile */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
             {/* Kind filter pills */}
-            <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5">
+            <div className="flex items-center bg-muted/50 rounded-lg p-0.5 gap-0.5 overflow-x-auto w-full sm:w-auto">
               {FILTER_OPTIONS.map(f => (
                 <button
                   key={f.value}
                   onClick={() => setFilterMode(f.value)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${filterMode === f.value ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap min-h-[36px] sm:min-h-0 ${filterMode === f.value ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
                 >
                   {f.icon && <span className="mr-1">{f.icon}</span>}{f.label}
                 </button>
@@ -279,7 +281,7 @@ export default function GlobalCalendar() {
 
             {/* Property filter */}
             <Select value={selectedProperty} onValueChange={setSelectedProperty}>
-              <SelectTrigger className="w-[180px] h-8 text-xs border-border/50">
+              <SelectTrigger className="w-full sm:w-[180px] h-10 sm:h-8 text-xs border-border/50">
                 <Home className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
                 {selectedProperty === "all" ? "Tous les biens" : properties.find(p => p.id === selectedProperty)?.name || "—"}
               </SelectTrigger>
@@ -293,7 +295,7 @@ export default function GlobalCalendar() {
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-3 sm:gap-4 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Réservation</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#C8A24D]" /> Mission</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-violet-500" /> Relance</span>
@@ -301,9 +303,9 @@ export default function GlobalCalendar() {
         </div>
 
         {/* Navigation */}
-        <div className="flex items-center justify-between mb-4">
-          <Button variant="ghost" size="sm" onClick={() => nav(-1)} className="h-8 w-8 p-0">
-            <ChevronLeft className="w-4 h-4" />
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <Button variant="ghost" size="sm" onClick={() => nav(-1)} className="h-10 w-10 sm:h-8 sm:w-8 p-0">
+            <ChevronLeft className="w-5 h-5 sm:w-4 sm:h-4" />
           </Button>
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold capitalize">
@@ -313,12 +315,12 @@ export default function GlobalCalendar() {
                 ? "Prochains 14 jours"
                 : format(currentDate, "MMMM yyyy", { locale: fr })}
             </span>
-            <Button variant="ghost" size="sm" className="text-xs h-6 px-2" onClick={() => setCurrentDate(new Date())}>
+            <Button variant="ghost" size="sm" className="text-xs h-8 sm:h-6 px-2" onClick={() => setCurrentDate(new Date())}>
               Aujourd'hui
             </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => nav(1)} className="h-8 w-8 p-0">
-            <ChevronRight className="w-4 h-4" />
+          <Button variant="ghost" size="sm" onClick={() => nav(1)} className="h-10 w-10 sm:h-8 sm:w-8 p-0">
+            <ChevronRight className="w-5 h-5 sm:w-4 sm:h-4" />
           </Button>
         </div>
 

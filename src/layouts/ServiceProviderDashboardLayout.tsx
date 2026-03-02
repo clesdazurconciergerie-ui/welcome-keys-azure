@@ -51,7 +51,7 @@ export default function ServiceProviderDashboardLayout() {
             <div className="flex-1" />
             <span className="text-xs text-muted-foreground">{userEmail}</span>
           </header>
-          <main className="flex-1 p-6 md:p-8 overflow-auto">
+          <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto pb-24 sm:pb-8">
             <Outlet />
           </main>
         </div>

@@ -75,54 +75,63 @@ function MissionCard({
 
   return (
     <Card
-      className={`hover:shadow-md transition-all cursor-pointer border ${applied ? "border-primary/30 bg-primary/5" : "border-border"}`}
+      className={`hover:shadow-md transition-all cursor-pointer border active:scale-[0.98] ${applied ? "border-primary/30 bg-primary/5" : "border-border"}`}
       onClick={onClick}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          {/* Property thumbnail */}
-          <div className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border border-border shadow-sm bg-muted">
+      <CardContent className="p-0 sm:p-4">
+        {/* Mobile: stacked layout */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:gap-3">
+          {/* Property image — full width mobile, thumbnail desktop */}
+          <div className="shrink-0 w-full sm:w-16 h-32 sm:h-16 overflow-hidden sm:rounded-lg bg-muted sm:border sm:border-border sm:shadow-sm">
             {propertyPhotoUrl ? (
               <img src={propertyPhotoUrl} alt={propertyName || 'Logement'} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <MapPin className="w-5 h-5 text-muted-foreground/50" />
+                <MapPin className="w-6 h-6 sm:w-5 sm:h-5 text-muted-foreground/50" />
               </div>
             )}
           </div>
 
-          <div className="flex-1 min-w-0 flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <p className="font-semibold text-foreground truncate">{title}</p>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">{missionTypeLabels[missionType] || missionType}</span>
+          <div className="flex-1 min-w-0 p-4 sm:p-0">
+            {/* Header: title + badge */}
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="min-w-0">
+                <p className="font-semibold text-foreground text-sm sm:text-base truncate">{title}</p>
+                <span className="text-xs text-muted-foreground">{missionTypeLabels[missionType] || missionType}</span>
+              </div>
+              <Badge className={`${cfg.color} border text-[11px] shrink-0`} variant="outline">{cfg.label}</Badge>
             </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+
+            {/* Details — stacked on mobile */}
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1.5 sm:gap-x-4 sm:gap-y-1 text-sm text-muted-foreground mb-2">
               {propertyName && (
-                <span className="flex items-center gap-1"><MapPin className="w-3 h-3 shrink-0" />{propertyName}</span>
+                <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 sm:w-3 sm:h-3 shrink-0" />{propertyName}</span>
               )}
-              <span className="flex items-center gap-1"><Calendar className="w-3 h-3 shrink-0" />{dateStr}</span>
+              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 sm:w-3 sm:h-3 shrink-0" />{dateStr}</span>
               {payoutAmount > 0 && (
-                <span className="flex items-center gap-1 font-semibold text-emerald-600"><Euro className="w-3 h-3" />{payoutAmount}€</span>
+                <span className="flex items-center gap-1.5 font-semibold text-emerald-600"><Euro className="w-3.5 h-3.5 sm:w-3 sm:h-3" />{payoutAmount}€</span>
               )}
               {photoCount !== undefined && (
                 <span className="text-xs">📸 {photoCount}</span>
               )}
             </div>
+
             {instructions && (
-              <p className="text-sm text-muted-foreground mt-2 bg-muted/50 p-2 rounded line-clamp-2">{instructions}</p>
+              <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded-lg line-clamp-2 mb-2">{instructions}</p>
             )}
             {conflictWarning && (
-              <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
-                <AlertCircle className="w-3 h-3 shrink-0" />
+              <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mb-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 {conflictWarning}
               </div>
             )}
-          </div>
-          <div className="flex flex-col items-end gap-2 shrink-0">
-            <Badge className={`${cfg.color} border text-[11px]`} variant="outline">{cfg.label}</Badge>
-            {actions}
-          </div>
+
+            {/* Actions — full width on mobile */}
+            {actions && (
+              <div className="mt-1 [&>*]:w-full sm:[&>*]:w-auto [&>*]:h-11 sm:[&>*]:h-9">
+                {actions}
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
@@ -313,23 +322,23 @@ export default function SPMissionsUnifiedPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl">
+    <div className="space-y-5 sm:space-y-6 max-w-6xl">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold text-foreground">Missions</h1>
-        <p className="text-muted-foreground mt-1">Postulez aux missions ouvertes ou gérez vos missions en cours</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Missions</h1>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">Postulez aux missions ouvertes ou gérez vos missions en cours</p>
       </motion.div>
 
       <Tabs defaultValue="ouvertes" className="w-full">
-        <TabsList className="w-full max-w-md h-11 p-1 bg-muted">
-          <TabsTrigger value="ouvertes" className="flex-1 data-[state=active]:bg-emerald-600 data-[state=active]:text-white gap-1.5">
-            <Send className="w-3.5 h-3.5" />
+        <TabsList className="w-full h-12 sm:h-11 sm:max-w-md p-1 bg-muted">
+          <TabsTrigger value="ouvertes" className="flex-1 h-10 sm:h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white gap-1.5 text-sm">
+            <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
             Ouvertes
             {openMissions.length > 0 && (
               <span className="ml-1 bg-white/20 text-[11px] px-1.5 py-0.5 rounded-full">{openMissions.length}</span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="mes-missions" className="flex-1 data-[state=active]:bg-[hsl(var(--brand-blue))] data-[state=active]:text-white gap-1.5">
-            <ClipboardList className="w-3.5 h-3.5" />
+          <TabsTrigger value="mes-missions" className="flex-1 h-10 sm:h-9 data-[state=active]:bg-[hsl(var(--brand-blue))] data-[state=active]:text-white gap-1.5 text-sm">
+            <ClipboardList className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
             Mes missions
           </TabsTrigger>
         </TabsList>
@@ -524,7 +533,7 @@ export default function SPMissionsUnifiedPage() {
 
       {/* ── Legacy Mission Detail Dialog ──────────────────────── */}
       <Dialog open={!!legacySelected} onOpenChange={open => { if (!open) { setLegacySelected(null); setCheckedItems({}); } }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
+        <DialogContent className="max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-auto w-[calc(100vw-2rem)] sm:w-auto">
           {legacySelected && (
             <>
               <DialogHeader>
