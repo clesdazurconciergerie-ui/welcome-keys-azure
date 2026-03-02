@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,12 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Send, Eye, CheckCircle, XCircle, Loader2, Star, Ban } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { RadioCardGroup } from "@/components/ui/radio-card-group";
+import { Plus, Send, Eye, CheckCircle, XCircle, Loader2, Star, Ban, CalendarIcon, Users, UserCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNewMissions, type CreateMissionData, type NewMission } from "@/hooks/useNewMissions";
 import { useProperties } from "@/hooks/useProperties";
 import { useServiceProviders } from "@/hooks/useServiceProviders";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   draft: { label: "Brouillon", color: "bg-muted text-muted-foreground" },
@@ -32,37 +38,18 @@ const missionTypeLabels: Record<string, string> = {
   maintenance: "🔧 Maintenance",
 };
 
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+const MINUTES = ["00", "15", "30", "45"];
+
 export default function MissionsPage() {
   const { missions, isLoading, createMission, publishMission, cancelMission, acceptApplication, rejectApplication, approveMission } = useNewMissions('concierge');
   const { properties } = useProperties();
   const { providers } = useServiceProviders();
   const [createOpen, setCreateOpen] = useState(false);
   const [detailMission, setDetailMission] = useState<NewMission | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [assignMode, setAssignMode] = useState<'open' | 'direct'>('open');
-  const [form, setForm] = useState<CreateMissionData>({
-    property_id: '', mission_type: 'cleaning', title: '', instructions: '', start_at: '', payout_amount: 0,
-  });
-
-  const handleCreate = async () => {
-    if (!form.property_id || !form.title || !form.start_at) return;
-    if (assignMode === 'direct' && !form.selected_provider_id) return;
-    setCreating(true);
-    await createMission({
-      ...form,
-      is_open_to_all: assignMode === 'open',
-      selected_provider_id: assignMode === 'open' ? null : form.selected_provider_id,
-    });
-    setCreating(false);
-    setCreateOpen(false);
-    setAssignMode('open');
-    setForm({ property_id: '', mission_type: 'cleaning', title: '', instructions: '', start_at: '', payout_amount: 0, selected_provider_id: null });
-  };
 
   const activeMissions = useMemo(() => missions.filter(m => !['canceled', 'approved'].includes(m.status)), [missions]);
   const archivedMissions = useMemo(() => missions.filter(m => ['canceled', 'approved'].includes(m.status)), [missions]);
-
-  // Sync detail view with realtime data
   const currentDetail = detailMission ? missions.find(m => m.id === detailMission.id) || detailMission : null;
 
   return (
@@ -79,83 +66,16 @@ export default function MissionsPage() {
                 <Plus className="w-4 h-4 mr-2" /> Nouvelle mission
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>Créer une mission</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>Logement *</Label>
-                  <Select value={form.property_id} onValueChange={v => setForm(p => ({ ...p, property_id: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Choisir un logement" /></SelectTrigger>
-                    <SelectContent>
-                      {properties.map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Type</Label>
-                  <Select value={form.mission_type} onValueChange={v => setForm(p => ({ ...p, mission_type: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cleaning">Ménage</SelectItem>
-                      <SelectItem value="checkin">Check-in</SelectItem>
-                      <SelectItem value="checkout">Check-out</SelectItem>
-                      <SelectItem value="maintenance">Maintenance</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Titre *</Label>
-                  <Input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Ex: Ménage après départ" />
-                </div>
-                <div>
-                  <Label>Date & heure *</Label>
-                  <Input type="datetime-local" value={form.start_at} onChange={e => setForm(p => ({ ...p, start_at: e.target.value }))} />
-                </div>
-                <div>
-                  <Label>Montant prestataire (€)</Label>
-                  <Input type="number" value={form.payout_amount} onChange={e => setForm(p => ({ ...p, payout_amount: parseFloat(e.target.value) || 0 }))} />
-                </div>
-                <div>
-                  <Label>Instructions</Label>
-                  <Textarea value={form.instructions} onChange={e => setForm(p => ({ ...p, instructions: e.target.value }))} placeholder="Détails pour le prestataire..." />
-                </div>
-
-                {/* Assignment mode toggle */}
-                <div className="p-3 border rounded-lg space-y-3">
-                  <Label className="font-semibold">Choisir un prestataire maintenant ?</Label>
-                  <RadioGroup value={assignMode} onValueChange={(v) => { setAssignMode(v as 'open' | 'direct'); if (v === 'open') setForm(p => ({ ...p, selected_provider_id: null })); }}>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="open" id="mode-open" />
-                      <Label htmlFor="mode-open" className="font-normal cursor-pointer">Non — mission ouverte (les prestataires postulent)</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="direct" id="mode-direct" />
-                      <Label htmlFor="mode-direct" className="font-normal cursor-pointer">Oui — assigner directement</Label>
-                    </div>
-                  </RadioGroup>
-
-                  {assignMode === 'direct' && (
-                    <div>
-                      <Label>Prestataire *</Label>
-                      <Select value={form.selected_provider_id || ''} onValueChange={v => setForm(p => ({ ...p, selected_provider_id: v }))}>
-                        <SelectTrigger><SelectValue placeholder="Choisir un prestataire" /></SelectTrigger>
-                        <SelectContent>
-                          {providers.filter(p => p.status === 'active').map(p => (
-                            <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </div>
-
-                <Button onClick={handleCreate} disabled={creating} className="w-full">
-                  {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                  {assignMode === 'open' ? 'Créer & publier la mission' : 'Créer & assigner'}
-                </Button>
-              </div>
+              <CreateMissionForm
+                properties={properties}
+                providers={providers.filter(p => p.status === 'active')}
+                onSubmit={async (data) => {
+                  await createMission(data);
+                  setCreateOpen(false);
+                }}
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -169,7 +89,6 @@ export default function MissionsPage() {
             <TabsTrigger value="active">Actives ({activeMissions.length})</TabsTrigger>
             <TabsTrigger value="archived">Archivées ({archivedMissions.length})</TabsTrigger>
           </TabsList>
-
           <TabsContent value="active" className="space-y-3 mt-4">
             {activeMissions.length === 0 ? (
               <Card className="text-center py-12">
@@ -179,7 +98,6 @@ export default function MissionsPage() {
               <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onApprove={approveMission} />
             ))}
           </TabsContent>
-
           <TabsContent value="archived" className="space-y-3 mt-4">
             {archivedMissions.map((m, i) => (
               <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onApprove={approveMission} />
@@ -188,7 +106,6 @@ export default function MissionsPage() {
         </Tabs>
       )}
 
-      {/* Detail dialog */}
       <Dialog open={!!detailMission} onOpenChange={open => { if (!open) setDetailMission(null); }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-auto">
           {currentDetail && (
@@ -199,6 +116,207 @@ export default function MissionsPage() {
     </div>
   );
 }
+
+/* ─── Create Mission Form ─── */
+
+interface CreateMissionFormProps {
+  properties: Array<{ id: string; name: string }>;
+  providers: Array<{ id: string; first_name: string; last_name: string }>;
+  onSubmit: (data: CreateMissionData) => Promise<void>;
+}
+
+function CreateMissionForm({ properties, providers, onSubmit }: CreateMissionFormProps) {
+  const [propertyId, setPropertyId] = useState("");
+  const [missionType, setMissionType] = useState("cleaning");
+  const [title, setTitle] = useState("");
+  const [instructions, setInstructions] = useState("");
+  const [date, setDate] = useState<Date | undefined>();
+  const [hour, setHour] = useState("10");
+  const [minute, setMinute] = useState("00");
+  const [payoutAmount, setPayoutAmount] = useState(0);
+  const [assignMode, setAssignMode] = useState<"open" | "direct">("open");
+  const [selectedProviderId, setSelectedProviderId] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  const errors = useMemo(() => {
+    const e: Record<string, string> = {};
+    if (!propertyId) e.property = "Logement requis";
+    if (!title.trim()) e.title = "Titre requis";
+    if (!date) e.date = "Date requise";
+    if (assignMode === "direct" && !selectedProviderId) e.provider = "Prestataire requis";
+    return e;
+  }, [propertyId, title, date, assignMode, selectedProviderId]);
+
+  const isValid = Object.keys(errors).length === 0;
+
+  const handleSubmit = useCallback(async () => {
+    setTouched(true);
+    if (!isValid || !date) return;
+
+    const dateObj = new Date(date);
+    dateObj.setHours(parseInt(hour), parseInt(minute), 0, 0);
+
+    setSubmitting(true);
+    try {
+      await onSubmit({
+        property_id: propertyId,
+        mission_type: missionType,
+        title: title.trim(),
+        instructions: instructions.trim(),
+        start_at: dateObj.toISOString(),
+        payout_amount: payoutAmount,
+        is_open_to_all: assignMode === "open",
+        selected_provider_id: assignMode === "direct" ? selectedProviderId : null,
+      });
+      toast.success("Mission créée avec succès");
+    } catch (err: any) {
+      toast.error(err?.message || "Erreur lors de la création de la mission");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [isValid, date, hour, minute, propertyId, missionType, title, instructions, payoutAmount, assignMode, selectedProviderId, onSubmit]);
+
+  return (
+    <div className="space-y-4">
+      {/* Property */}
+      <div>
+        <Label>Logement *</Label>
+        <Select value={propertyId} onValueChange={setPropertyId}>
+          <SelectTrigger><SelectValue placeholder="Choisir un logement" /></SelectTrigger>
+          <SelectContent>
+            {properties.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {touched && errors.property && <p className="text-xs text-destructive mt-1">{errors.property}</p>}
+      </div>
+
+      {/* Type */}
+      <div>
+        <Label>Type</Label>
+        <Select value={missionType} onValueChange={setMissionType}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cleaning">Ménage</SelectItem>
+            <SelectItem value="checkin">Check-in</SelectItem>
+            <SelectItem value="checkout">Check-out</SelectItem>
+            <SelectItem value="maintenance">Maintenance</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Title */}
+      <div>
+        <Label>Titre *</Label>
+        <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Ménage après départ" />
+        {touched && errors.title && <p className="text-xs text-destructive mt-1">{errors.title}</p>}
+      </div>
+
+      {/* Date + Time */}
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-3 items-end">
+        <div>
+          <Label>Date *</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? format(date, "d MMMM yyyy", { locale: fr }) : "Choisir une date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={setDate}
+                disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+          {touched && errors.date && <p className="text-xs text-destructive mt-1">{errors.date}</p>}
+        </div>
+        <div>
+          <Label>Heure</Label>
+          <Select value={hour} onValueChange={setHour}>
+            <SelectTrigger className="w-[72px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {HOURS.map(h => <SelectItem key={h} value={h}>{h}h</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Min</Label>
+          <Select value={minute} onValueChange={setMinute}>
+            <SelectTrigger className="w-[72px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {MINUTES.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Payout */}
+      <div>
+        <Label>Montant prestataire (€)</Label>
+        <Input type="number" value={payoutAmount} onChange={e => setPayoutAmount(parseFloat(e.target.value) || 0)} />
+      </div>
+
+      {/* Instructions */}
+      <div>
+        <Label>Instructions</Label>
+        <Textarea value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Détails pour le prestataire..." />
+      </div>
+
+      {/* Assignment mode */}
+      <div className="space-y-2">
+        <Label className="font-semibold">Choisir un prestataire maintenant ?</Label>
+        <RadioCardGroup
+          value={assignMode}
+          onValueChange={(v) => {
+            setAssignMode(v as "open" | "direct");
+            if (v === "open") setSelectedProviderId("");
+          }}
+          options={[
+            {
+              value: "open",
+              icon: <Users className="w-4 h-4" />,
+              title: "Mission ouverte",
+              subtitle: "Les prestataires voient la mission et postulent",
+            },
+            {
+              value: "direct",
+              icon: <UserCheck className="w-4 h-4" />,
+              title: "Assigner directement",
+              subtitle: "Choisissez un prestataire maintenant",
+            },
+          ]}
+        />
+      </div>
+
+      {assignMode === "direct" && (
+        <div>
+          <Label>Prestataire *</Label>
+          <Select value={selectedProviderId} onValueChange={setSelectedProviderId}>
+            <SelectTrigger><SelectValue placeholder="Choisir un prestataire" /></SelectTrigger>
+            <SelectContent>
+              {providers.map(p => <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {touched && errors.provider && <p className="text-xs text-destructive mt-1">{errors.provider}</p>}
+        </div>
+      )}
+
+      {/* Submit */}
+      <Button onClick={handleSubmit} disabled={submitting || (touched && !isValid)} className="w-full">
+        {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+        {assignMode === "open" ? "Créer & publier la mission" : "Créer & assigner"}
+      </Button>
+    </div>
+  );
+}
+
+/* ─── Mission Card ─── */
 
 function MissionCard({ mission: m, index, onView, onPublish, onCancel, onApprove }: {
   mission: NewMission; index: number;
@@ -252,6 +370,8 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onApprove
   );
 }
 
+/* ─── Mission Detail ─── */
+
 function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, onApprove }: {
   mission: NewMission;
   onAccept: (missionId: string, appId: string, providerId: string) => void;
@@ -274,7 +394,6 @@ function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, on
       </DialogHeader>
 
       <div className="space-y-5">
-        {/* Info */}
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div><span className="text-muted-foreground">Logement :</span> {m.property?.name}</div>
           <div><span className="text-muted-foreground">Type :</span> {missionTypeLabels[m.mission_type]}</div>
@@ -295,7 +414,6 @@ function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, on
           </div>
         )}
 
-        {/* Actions */}
         <div className="flex gap-2">
           {m.status === 'draft' && (
             <Button onClick={() => onPublish(m.id)} className="flex-1">
@@ -314,7 +432,6 @@ function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, on
           )}
         </div>
 
-        {/* Applications */}
         {allApps.length > 0 && (
           <div>
             <h3 className="font-semibold mb-3">Candidatures ({allApps.length})</h3>
