@@ -1,10 +1,27 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsOwner } from "@/hooks/useIsOwner";
-import { Loader2, FileText, Download } from "lucide-react";
+import { Loader2, FileText, Download, Upload, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { motion } from "framer-motion";
+
+const documentTypes: Record<string, string> = {
+  id_card: "Carte d'identité",
+  passport: "Passeport",
+  proof_of_address: "Justificatif de domicile",
+  insurance: "Attestation d'assurance",
+  rib: "RIB / IBAN",
+  kbis: "Extrait KBIS",
+  lease: "Bail / Contrat",
+  diagnostic: "Diagnostic",
+  other: "Autre",
+};
 
 interface Document {
   id: string;
@@ -15,37 +32,93 @@ interface Document {
 }
 
 export default function OwnerDocumentsPage() {
-  const { ownerId } = useIsOwner();
+  const { ownerId, conciergeUserId } = useIsOwner();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [docType, setDocType] = useState("other");
+  const [docName, setDocName] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
+  const loadDocs = async () => {
     if (!ownerId) return;
-    const load = async () => {
-      const { data } = await (supabase as any)
-        .from('owner_documents')
-        .select('id, name, type, file_url, uploaded_at')
-        .eq('owner_id', ownerId)
-        .order('uploaded_at', { ascending: false });
-      setDocuments(data || []);
-      setLoading(false);
-    };
-    load();
-  }, [ownerId]);
+    const { data } = await (supabase as any)
+      .from("owner_documents")
+      .select("id, name, type, file_url, uploaded_at")
+      .eq("owner_id", ownerId)
+      .order("uploaded_at", { ascending: false });
+    setDocuments(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadDocs(); }, [ownerId]);
+
+  const handleUpload = async () => {
+    if (!file || !ownerId || !conciergeUserId) return;
+    setUploading(true);
+
+    const ext = file.name.split(".").pop();
+    const path = `${ownerId}/${Date.now()}.${ext}`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from("owner-documents").upload(path, file);
+
+    if (uploadErr) {
+      toast.error("Erreur d'upload: " + uploadErr.message);
+      setUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("owner-documents").getPublicUrl(path);
+
+    const { error: dbErr } = await (supabase as any)
+      .from("owner_documents").insert({
+        owner_id: ownerId,
+        concierge_user_id: conciergeUserId,
+        name: docName.trim() || file.name,
+        type: docType,
+        file_url: urlData.publicUrl,
+      });
+
+    if (dbErr) {
+      toast.error("Erreur: " + dbErr.message);
+    } else {
+      toast.success("Document ajouté");
+      setUploadOpen(false);
+      setDocType("other"); setDocName(""); setFile(null);
+      loadDocs();
+    }
+    setUploading(false);
+  };
+
+  const handleDelete = async (doc: Document) => {
+    const { error } = await (supabase as any)
+      .from("owner_documents").delete().eq("id", doc.id);
+    if (error) { toast.error("Erreur"); return; }
+    toast.success("Document supprimé");
+    loadDocs();
+  };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
 
   return (
     <div className="space-y-6 max-w-6xl">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold text-foreground">Documents</h1>
-        <p className="text-muted-foreground mt-1">Documents partagés par votre conciergerie</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Documents</h1>
+            <p className="text-muted-foreground mt-1">Vos documents personnels et partagés</p>
+          </div>
+          <Button onClick={() => setUploadOpen(true)}
+            className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold gap-2">
+            <Upload className="h-4 w-4" />
+            Ajouter un document
+          </Button>
+        </div>
       </motion.div>
 
       {documents.length === 0 ? (
@@ -55,7 +128,7 @@ export default function OwnerDocumentsPage() {
               <FileText className="w-8 h-8 text-[hsl(var(--gold))]" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">Aucun document</h3>
-            <p className="text-muted-foreground">Aucun document n'a encore été partagé.</p>
+            <p className="text-muted-foreground">Ajoutez vos documents pour les partager avec votre conciergerie.</p>
           </CardContent>
         </Card>
       ) : (
@@ -71,19 +144,66 @@ export default function OwnerDocumentsPage() {
                     <div>
                       <p className="font-medium text-foreground text-sm">{doc.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {doc.type} • {new Date(doc.uploaded_at).toLocaleDateString('fr-FR')}
+                        {documentTypes[doc.type] || doc.type} • {new Date(doc.uploaded_at).toLocaleDateString("fr-FR")}
                       </p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => window.open(doc.file_url, '_blank')}>
-                    <Download className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => window.open(doc.file_url, "_blank")}>
+                      <Download className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(doc)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
           ))}
         </div>
       )}
+
+      {/* Upload dialog */}
+      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Ajouter un document</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Type de document</Label>
+              <Select value={docType} onValueChange={setDocType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(documentTypes).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Nom du document (optionnel)</Label>
+              <Input value={docName} onChange={e => setDocName(e.target.value)} placeholder="Ex: CNI recto-verso" />
+            </div>
+            <div>
+              <Label>Fichier</Label>
+              <div className="relative mt-1">
+                <label className="flex items-center justify-center gap-2 p-6 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/40 transition-colors">
+                  <Upload className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">{file ? file.name : "Choisir un fichier"}</span>
+                  <input type="file" className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={e => setFile(e.target.files?.[0] || null)}
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" />
+                </label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadOpen(false)}>Annuler</Button>
+            <Button onClick={handleUpload} disabled={!file || uploading}
+              className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]">
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+              Envoyer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
