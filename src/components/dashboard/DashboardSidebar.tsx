@@ -28,6 +28,7 @@ import {
   CreditCard,
   Target,
   Euro,
+  MessageCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -42,6 +43,7 @@ const mainNav = [
   { title: "Missions", url: "/dashboard/missions", icon: ClipboardList },
   { title: "Prospection", url: "/dashboard/prospection", icon: Target },
   { title: "Finance", url: "/dashboard/finance", icon: Euro },
+  { title: "Demandes", url: "/dashboard/demandes-proprietaires", icon: MessageCircle },
 ];
 
 const secondaryNav = [

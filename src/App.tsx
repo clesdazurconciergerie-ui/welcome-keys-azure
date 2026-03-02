@@ -41,6 +41,9 @@ import OwnerBookletsPage from "./pages/owner/OwnerBookletsPage";
 import OwnerCleaningPhotosPage from "./pages/owner/OwnerCleaningPhotosPage";
 import OwnerDocumentsPage from "./pages/owner/OwnerDocumentsPage";
 import OwnerAccountPage from "./pages/owner/OwnerAccountPage";
+import OwnerCalendarPage from "./pages/owner/OwnerCalendarPage";
+import OwnerRequestsPage from "./pages/owner/OwnerRequestsPage";
+import OwnerRequestsAdminPage from "./pages/dashboard/OwnerRequestsAdminPage";
 import SPDashboardHome from "./pages/service-provider/SPDashboardHome";
 import SPMissionsUnifiedPage from "./pages/service-provider/SPMissionsUnifiedPage";
 import SPPlanningPage from "./pages/service-provider/SPPlanningPage";
@@ -81,6 +84,7 @@ const App = () => (
             <Route path="missions" element={<MissionsPage />} />
             <Route path="prospection" element={<ProspectionPage />} />
             <Route path="finance" element={<FinancePage />} />
+            <Route path="demandes-proprietaires" element={<OwnerRequestsAdminPage />} />
             <Route path="performance" element={<PerformancePage />} />
             <Route path="abonnement" element={<AbonnementPage />} />
             <Route path="parametres" element={<ParametresPage />} />
@@ -90,9 +94,11 @@ const App = () => (
           <Route path="/proprietaire" element={<OwnerDashboardLayout />}>
             <Route index element={<OwnerDashboardHome />} />
             <Route path="biens" element={<OwnerPropertiesPage />} />
+            <Route path="calendrier" element={<OwnerCalendarPage />} />
             <Route path="livrets" element={<OwnerBookletsPage />} />
             <Route path="photos-menage" element={<OwnerCleaningPhotosPage />} />
             <Route path="documents" element={<OwnerDocumentsPage />} />
+            <Route path="demandes" element={<OwnerRequestsPage />} />
             <Route path="finances" element={<OwnerFinancesPage />} />
             <Route path="compte" element={<OwnerAccountPage />} />
           </Route>
