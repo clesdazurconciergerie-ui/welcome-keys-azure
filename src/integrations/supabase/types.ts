@@ -1449,6 +1449,117 @@ export type Database = {
           },
         ]
       }
+      mission_applications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          mission_id: string
+          provider_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          mission_id: string
+          provider_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          mission_id?: string
+          provider_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_applications_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_applications_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      missions: {
+        Row: {
+          created_at: string
+          duration_minutes: number | null
+          end_at: string | null
+          id: string
+          instructions: string | null
+          mission_type: string
+          payout_amount: number | null
+          property_id: string
+          selected_provider_id: string | null
+          start_at: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number | null
+          end_at?: string | null
+          id?: string
+          instructions?: string | null
+          mission_type?: string
+          payout_amount?: number | null
+          property_id: string
+          selected_provider_id?: string | null
+          start_at: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number | null
+          end_at?: string | null
+          id?: string
+          instructions?: string | null
+          mission_type?: string
+          payout_amount?: number | null
+          property_id?: string
+          selected_provider_id?: string | null
+          start_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "missions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "missions_selected_provider_id_fkey"
+            columns: ["selected_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nearby_places: {
         Row: {
           booklet_id: string
@@ -2662,6 +2773,7 @@ export type Database = {
       expire_demo_trials: { Args: never; Returns: undefined }
       generate_pin_code: { Args: never; Returns: string }
       generate_unique_pin: { Args: never; Returns: string }
+      get_provider_concierge_id: { Args: { _user_id: string }; Returns: string }
       get_service_provider_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
