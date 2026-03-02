@@ -1,8 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsOwner } from "@/hooks/useIsOwner";
-import { Loader2, Home, Calendar, ClipboardList, Percent } from "lucide-react";
+import { Loader2, Home, ClipboardList, Percent, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface PropertySummary {
@@ -12,12 +15,37 @@ interface PropertySummary {
   status: string;
 }
 
+interface CalEvent {
+  id: string;
+  start_date: string;
+  end_date: string;
+  guest_name: string | null;
+  summary: string | null;
+  platform: string;
+  event_type: string;
+}
+
+const platformColors: Record<string, string> = {
+  airbnb: "bg-[#FF5A5F]/10 text-[#FF5A5F] border-[#FF5A5F]/20",
+  booking: "bg-[#003580]/10 text-[#003580] border-[#003580]/20",
+  vrbo: "bg-[#3B5998]/10 text-[#3B5998] border-[#3B5998]/20",
+  manual: "bg-muted text-muted-foreground border-border",
+  other: "bg-accent/50 text-accent-foreground border-accent",
+  bookings_table: "bg-primary/10 text-primary border-primary/20",
+};
+
 export default function OwnerDashboardHome() {
   const { ownerId } = useIsOwner();
+  const navigate = useNavigate();
   const [properties, setProperties] = useState<PropertySummary[]>([]);
   const [interventionsCount, setInterventionsCount] = useState(0);
   const [bookings, setBookings] = useState<any[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
 
   useEffect(() => {
     if (!ownerId) return;
@@ -31,11 +59,15 @@ export default function OwnerDashboardHome() {
           .from("properties").select("id, name, address, status").in("id", propertyIds);
         setProperties(props || []);
 
-        // Get bookings for occupancy
         const { data: bk } = await (supabase as any)
-          .from("bookings").select("check_in, check_out")
+          .from("bookings").select("id, check_in, check_out, guest_name, source")
           .in("property_id", propertyIds);
         setBookings(bk || []);
+
+        const { data: ce } = await (supabase as any)
+          .from("calendar_events").select("id, start_date, end_date, guest_name, summary, platform, event_type")
+          .in("property_id", propertyIds);
+        setCalendarEvents(ce || []);
       }
 
       const { count } = await (supabase as any)
@@ -47,11 +79,25 @@ export default function OwnerDashboardHome() {
     load();
   }, [ownerId]);
 
-  // Compute occupancy for current month
-  const occupancyPct = useMemo(() => {
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  // Merge all events (same logic as OwnerCalendarPage)
+  const allEvents: CalEvent[] = useMemo(() => {
+    const bkEvents = bookings.map((b: any) => ({
+      id: `bk-${b.id}`, start_date: b.check_in, end_date: b.check_out,
+      guest_name: b.guest_name, summary: b.guest_name || "Réservation",
+      platform: "bookings_table", event_type: "booking",
+    }));
+    const ceEvents = calendarEvents.map((e: any) => ({
+      id: e.id, start_date: e.start_date, end_date: e.end_date,
+      guest_name: e.guest_name, summary: e.summary,
+      platform: e.platform, event_type: e.event_type || "unknown",
+    }));
+    return [...bkEvents, ...ceEvents];
+  }, [bookings, calendarEvents]);
+
+  // Occupancy stats — SAME logic as OwnerCalendarPage
+  const occupancyStats = useMemo(() => {
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
     const totalNights = lastDay.getDate();
     let bookedNights = 0;
     for (const b of bookings) {
@@ -59,9 +105,40 @@ export default function OwnerDashboardHome() {
       const e = Math.min(new Date(b.check_out).getTime(), lastDay.getTime() + 86400000);
       bookedNights += Math.max(0, Math.round((e - s) / 86400000));
     }
+    for (const ev of calendarEvents) {
+      if (ev.event_type === "reservation") {
+        const s = Math.max(new Date(ev.start_date).getTime(), firstDay.getTime());
+        const e = Math.min(new Date(ev.end_date).getTime(), lastDay.getTime() + 86400000);
+        bookedNights += Math.max(0, Math.round((e - s) / 86400000));
+      }
+    }
     bookedNights = Math.min(bookedNights, totalNights);
-    return totalNights > 0 ? Math.round((bookedNights / totalNights) * 100) : 0;
-  }, [bookings]);
+    return {
+      bookedNights,
+      totalNights,
+      occupancyPct: totalNights > 0 ? Math.round((bookedNights / totalNights) * 100) : 0,
+    };
+  }, [bookings, calendarEvents, year, month]);
+
+  // Mini calendar grid
+  const calendarDays = useMemo(() => {
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startOffset = (firstDay.getDay() + 6) % 7;
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < startOffset; i++) days.push(null);
+    for (let d = 1; d <= lastDay.getDate(); d++) days.push(new Date(year, month, d));
+    return days;
+  }, [year, month]);
+
+  const getEventsForDay = (date: Date) => {
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    return allEvents.filter(e => e.start_date <= dateStr && e.end_date > dateStr);
+  };
+
+  const today = new Date();
+  const isToday = (d: Date) => d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+  const monthName = currentDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
@@ -74,6 +151,7 @@ export default function OwnerDashboardHome() {
         <p className="text-muted-foreground mt-1">Votre espace propriétaire MyWelkom</p>
       </motion.div>
 
+      {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
           <Card className="border-border">
@@ -95,11 +173,11 @@ export default function OwnerDashboardHome() {
           <Card className="border-border">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${occupancyPct >= 50 ? "bg-emerald-100" : occupancyPct >= 20 ? "bg-amber-100" : "bg-red-100"}`}>
-                  <Percent className={`w-5 h-5 ${occupancyPct >= 50 ? "text-emerald-600" : occupancyPct >= 20 ? "text-amber-600" : "text-red-600"}`} />
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${occupancyStats.occupancyPct >= 50 ? "bg-emerald-100" : occupancyStats.occupancyPct >= 20 ? "bg-amber-100" : "bg-red-100"}`}>
+                  <Percent className={`w-5 h-5 ${occupancyStats.occupancyPct >= 50 ? "text-emerald-600" : occupancyStats.occupancyPct >= 20 ? "text-amber-600" : "text-red-600"}`} />
                 </div>
                 <div>
-                  <p className={`text-2xl font-bold ${occupancyPct >= 50 ? "text-emerald-600" : occupancyPct >= 20 ? "text-amber-600" : "text-red-600"}`}>{occupancyPct}%</p>
+                  <p className={`text-2xl font-bold ${occupancyStats.occupancyPct >= 50 ? "text-emerald-600" : occupancyStats.occupancyPct >= 20 ? "text-amber-600" : "text-red-600"}`}>{occupancyStats.occupancyPct}%</p>
                   <p className="text-xs text-muted-foreground">Taux d'occupation</p>
                 </div>
               </div>
@@ -124,8 +202,73 @@ export default function OwnerDashboardHome() {
         </motion.div>
       </div>
 
-      {/* Properties list */}
+      {/* Mini calendar */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+        <Card className="border-border">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CalendarDays className="w-5 h-5 text-[hsl(var(--gold))]" />
+                Calendrier
+              </CardTitle>
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => navigate("/proprietaire/calendrier")}>
+                Voir tout →
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between mb-3">
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCurrentDate(new Date(year, month - 1, 1))}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-semibold capitalize">{monthName}</span>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCurrentDate(new Date(year, month + 1, 1))}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-7 gap-0.5 mb-0.5">
+              {["L", "M", "M", "J", "V", "S", "D"].map((d, i) => (
+                <div key={i} className="text-center text-[10px] font-medium text-muted-foreground py-1">{d}</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-0.5">
+              {calendarDays.map((date, i) => {
+                if (!date) return <div key={`e-${i}`} className="h-8" />;
+                const dayEvents = getEventsForDay(date);
+                const hasBooking = dayEvents.some(e => e.event_type === "reservation" || e.event_type === "booking");
+                const hasBlocked = dayEvents.some(e => e.event_type !== "reservation" && e.event_type !== "booking");
+                const todayCls = isToday(date) ? "ring-1 ring-primary" : "";
+
+                return (
+                  <button
+                    key={date.toISOString()}
+                    onClick={() => navigate("/proprietaire/calendrier")}
+                    className={`h-8 rounded-md text-[11px] font-medium transition-colors relative ${todayCls} ${
+                      hasBooking ? "bg-primary/15 text-primary font-bold" : hasBlocked ? "bg-amber-100 text-amber-700" : "hover:bg-muted/40 text-muted-foreground"
+                    }`}
+                  >
+                    {date.getDate()}
+                    {hasBooking && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Stats summary */}
+            <div className="flex items-center justify-between mt-3 pt-3 border-t text-xs text-muted-foreground">
+              <span>{occupancyStats.bookedNights} nuits réservées / {occupancyStats.totalNights}</span>
+              <Badge variant="outline" className={`text-[10px] ${occupancyStats.occupancyPct >= 50 ? "border-emerald-300 text-emerald-700" : "border-amber-300 text-amber-700"}`}>
+                {occupancyStats.occupancyPct}% occupation
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Properties list */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
         <Card className="border-border">
           <CardHeader><CardTitle className="text-lg">Mes biens</CardTitle></CardHeader>
           <CardContent>

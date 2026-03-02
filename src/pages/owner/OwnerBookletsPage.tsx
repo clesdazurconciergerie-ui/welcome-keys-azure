@@ -11,12 +11,19 @@ interface Booklet {
   property_name: string;
   property_address: string;
   status: string;
-  access_code: string | null;
+  property_id: string | null;
+}
+
+interface Pin {
+  booklet_id: string;
+  pin_code: string;
+  status: string;
 }
 
 export default function OwnerBookletsPage() {
   const { ownerId } = useIsOwner();
   const [booklets, setBooklets] = useState<Booklet[]>([]);
+  const [pins, setPins] = useState<Record<string, Pin>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,9 +40,25 @@ export default function OwnerBookletsPage() {
       if (propertyIds.length > 0) {
         const { data } = await (supabase as any)
           .from('booklets')
-          .select('id, property_name, property_address, status, access_code')
+          .select('id, property_name, property_address, status, property_id')
           .in('property_id', propertyIds);
-        setBooklets(data || []);
+        const bookletsList = data || [];
+        setBooklets(bookletsList);
+
+        // Fetch PINs for published booklets
+        const publishedIds = bookletsList.filter((b: Booklet) => b.status === 'published').map((b: Booklet) => b.id);
+        if (publishedIds.length > 0) {
+          const { data: pinsData } = await (supabase as any)
+            .from("pins")
+            .select("booklet_id, pin_code, status")
+            .in("booklet_id", publishedIds)
+            .eq("status", "active");
+          if (pinsData) {
+            const pinsMap: Record<string, Pin> = {};
+            pinsData.forEach((pin: Pin) => { pinsMap[pin.booklet_id] = pin; });
+            setPins(pinsMap);
+          }
+        }
       }
       setLoading(false);
     };
@@ -69,34 +92,39 @@ export default function OwnerBookletsPage() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {booklets.map((b, i) => (
-            <motion.div key={b.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <Card className="border-border">
-                <CardContent className="p-5 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-foreground">{b.property_name}</h3>
-                    <p className="text-sm text-muted-foreground">{b.property_address}</p>
-                    <span className={`text-xs mt-1 inline-block px-2 py-0.5 rounded-full font-medium ${
-                      b.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                    }`}>
-                      {b.status === 'published' ? 'Publié' : 'Brouillon'}
-                    </span>
-                  </div>
-                  {b.status === 'published' && b.access_code && (
+          {booklets.map((b, i) => {
+            const pin = pins[b.id];
+            const canView = b.status === 'published' && pin;
+            return (
+              <motion.div key={b.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                <Card className="border-border">
+                  <CardContent className="p-5 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-foreground">{b.property_name}</h3>
+                      <p className="text-sm text-muted-foreground">{b.property_address}</p>
+                      <span className={`text-xs mt-1 inline-block px-2 py-0.5 rounded-full font-medium ${
+                        b.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {b.status === 'published' ? 'Publié' : 'Brouillon'}
+                      </span>
+                    </div>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(`/view/${b.access_code}`, '_blank')}
+                      disabled={!canView}
+                      onClick={() => {
+                        if (pin) window.open(`/view/${pin.pin_code}`, '_blank');
+                      }}
                       className="gap-1.5"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       Consulter
                     </Button>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </div>
