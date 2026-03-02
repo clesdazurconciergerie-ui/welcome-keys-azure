@@ -1,10 +1,14 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ClipboardList, CheckCircle, Clock, AlertTriangle, DollarSign, Star, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { useMissions } from "@/hooks/useMissions";
+import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
 export default function SPDashboardHome() {
   const { missions, isLoading } = useMissions('service_provider');
+  const navigate = useNavigate();
 
   const today = missions.filter(i => {
     const d = new Date(i.scheduled_date);
@@ -52,22 +56,23 @@ export default function SPDashboardHome() {
   const todayMissions = today.filter(t => ['scheduled', 'in_progress'].includes(t.status));
 
   return (
-    <div className="space-y-6 max-w-6xl">
+    <div className="space-y-5 sm:space-y-6 max-w-6xl">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold text-foreground">Tableau de bord</h1>
-        <p className="text-muted-foreground mt-1">Bienvenue dans votre espace prestataire</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Tableau de bord</h1>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">Bienvenue dans votre espace prestataire</p>
       </motion.div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats — 1 col mobile, 2 col tablet, 4 col desktop */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((s, i) => (
-          <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+          <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
             <Card className="border-border hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center`}>
+              <CardContent className="p-4 sm:pt-6">
+                <div className="flex items-center gap-3">
+                  <div className={`w-11 h-11 sm:w-10 sm:h-10 rounded-xl ${s.bg} flex items-center justify-center shrink-0`}>
                     <s.icon className={`h-5 w-5 ${s.color}`} />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="text-2xl font-bold">{isLoading ? '—' : s.value}</p>
                     <p className="text-xs text-muted-foreground">{s.label}</p>
                     <p className="text-[10px] text-muted-foreground/70 mt-0.5">{s.sub}</p>
@@ -82,17 +87,21 @@ export default function SPDashboardHome() {
       {/* Today's missions */}
       {todayMissions.length > 0 && (
         <Card>
-          <CardContent className="pt-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <CardContent className="p-4 sm:pt-6">
+            <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
               Missions du jour
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {todayMissions.map(m => (
-                <div key={m.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                  <div>
-                    <p className="font-medium">{m.property?.name || 'Bien'}</p>
-                    <p className="text-sm text-muted-foreground">{m.property?.address}</p>
+                <div
+                  key={m.id}
+                  onClick={() => navigate('/prestataire/missions')}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer gap-2 sm:gap-3 active:scale-[0.98]"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm sm:text-base truncate">{m.property?.name || 'Bien'}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{m.property?.address}</p>
                     {m.scheduled_start_time && (
                       <p className="text-xs text-muted-foreground mt-0.5">
                         🕐 {new Date(m.scheduled_start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
@@ -100,14 +109,24 @@ export default function SPDashboardHome() {
                       </p>
                     )}
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    m.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {m.status === 'in_progress' ? 'En cours' : 'À faire'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {m.mission_amount > 0 && <Badge variant="secondary" className="text-xs">{m.mission_amount}€</Badge>}
+                    <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${
+                      m.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {m.status === 'in_progress' ? 'En cours' : 'À faire'}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto mt-3 h-11 sm:h-9"
+              onClick={() => navigate('/prestataire/missions')}
+            >
+              <ClipboardList className="w-4 h-4 mr-2" /> Voir toutes les missions
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -115,19 +134,30 @@ export default function SPDashboardHome() {
       {/* Pending validation */}
       {pendingValidation.length > 0 && (
         <Card className="border-amber-200">
-          <CardContent className="pt-6">
-            <h2 className="text-lg font-semibold mb-3 text-amber-700">⏳ En attente de validation ({pendingValidation.length})</h2>
+          <CardContent className="p-4 sm:pt-6">
+            <h2 className="text-base sm:text-lg font-semibold mb-3 text-amber-700">⏳ En attente de validation ({pendingValidation.length})</h2>
             <div className="space-y-2">
               {pendingValidation.slice(0, 5).map(m => (
-                <div key={m.id} className="flex items-center justify-between p-2 rounded bg-amber-50">
-                  <span className="text-sm">{m.property?.name} — {new Date(m.scheduled_date).toLocaleDateString('fr-FR')}</span>
-                  <span className="text-xs text-amber-600">{m.mission_amount}€</span>
+                <div key={m.id} className="flex items-center justify-between p-3 rounded-xl bg-amber-50 gap-2">
+                  <span className="text-sm truncate min-w-0">{m.property?.name} — {new Date(m.scheduled_date).toLocaleDateString('fr-FR')}</span>
+                  <span className="text-xs text-amber-600 shrink-0 font-semibold">{m.mission_amount}€</span>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Mobile CTA */}
+      <div className="fixed bottom-6 right-6 sm:hidden z-50">
+        <Button
+          size="lg"
+          className="rounded-full w-14 h-14 shadow-lg bg-primary hover:bg-primary/90 p-0"
+          onClick={() => navigate('/prestataire/missions')}
+        >
+          <ClipboardList className="w-6 h-6" />
+        </Button>
+      </div>
     </div>
   );
 }

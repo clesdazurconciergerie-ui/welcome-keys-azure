@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsOwner } from "@/hooks/useIsOwner";
-import { Loader2, Home, ClipboardList, Percent, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { Loader2, Home, ClipboardList, Percent, ChevronLeft, ChevronRight, CalendarDays, MessageCircle, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface PropertySummary {
@@ -79,7 +79,6 @@ export default function OwnerDashboardHome() {
     load();
   }, [ownerId]);
 
-  // Merge all events (same logic as OwnerCalendarPage)
   const allEvents: CalEvent[] = useMemo(() => {
     const bkEvents = bookings.map((b: any) => ({
       id: `bk-${b.id}`, start_date: b.check_in, end_date: b.check_out,
@@ -94,7 +93,6 @@ export default function OwnerDashboardHome() {
     return [...bkEvents, ...ceEvents];
   }, [bookings, calendarEvents]);
 
-  // Occupancy stats — SAME logic as OwnerCalendarPage
   const occupancyStats = useMemo(() => {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
@@ -120,7 +118,6 @@ export default function OwnerDashboardHome() {
     };
   }, [bookings, calendarEvents, year, month]);
 
-  // Mini calendar grid
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
@@ -145,22 +142,22 @@ export default function OwnerDashboardHome() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl">
+    <div className="space-y-5 sm:space-y-6 max-w-6xl">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold text-foreground">Bienvenue</h1>
-        <p className="text-muted-foreground mt-1">Votre espace propriétaire MyWelkom</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Bienvenue</h1>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">Votre espace propriétaire MyWelkom</p>
       </motion.div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* KPI cards — 1 col mobile, 3 col desktop */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
           <Card className="border-border">
-            <CardContent className="pt-6">
+            <CardContent className="p-4 sm:pt-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
+                <div className="w-11 h-11 sm:w-10 sm:h-10 rounded-xl bg-[hsl(var(--gold))]/10 flex items-center justify-center shrink-0">
                   <Home className="w-5 h-5 text-[hsl(var(--gold))]" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-2xl font-bold text-foreground">{properties.length}</p>
                   <p className="text-xs text-muted-foreground">Bien{properties.length !== 1 ? "s" : ""}</p>
                 </div>
@@ -171,12 +168,12 @@ export default function OwnerDashboardHome() {
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <Card className="border-border">
-            <CardContent className="pt-6">
+            <CardContent className="p-4 sm:pt-6">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${occupancyStats.occupancyPct >= 50 ? "bg-emerald-100" : occupancyStats.occupancyPct >= 20 ? "bg-amber-100" : "bg-red-100"}`}>
+                <div className={`w-11 h-11 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${occupancyStats.occupancyPct >= 50 ? "bg-emerald-100" : occupancyStats.occupancyPct >= 20 ? "bg-amber-100" : "bg-red-100"}`}>
                   <Percent className={`w-5 h-5 ${occupancyStats.occupancyPct >= 50 ? "text-emerald-600" : occupancyStats.occupancyPct >= 20 ? "text-amber-600" : "text-red-600"}`} />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className={`text-2xl font-bold ${occupancyStats.occupancyPct >= 50 ? "text-emerald-600" : occupancyStats.occupancyPct >= 20 ? "text-amber-600" : "text-red-600"}`}>{occupancyStats.occupancyPct}%</p>
                   <p className="text-xs text-muted-foreground">Taux d'occupation</p>
                 </div>
@@ -187,12 +184,12 @@ export default function OwnerDashboardHome() {
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
           <Card className="border-border">
-            <CardContent className="pt-6">
+            <CardContent className="p-4 sm:pt-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                <div className="w-11 h-11 sm:w-10 sm:h-10 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
                   <ClipboardList className="w-5 h-5 text-orange-600" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-2xl font-bold text-foreground">{interventionsCount}</p>
                   <p className="text-xs text-muted-foreground">Interventions</p>
                 </div>
@@ -205,52 +202,52 @@ export default function OwnerDashboardHome() {
       {/* Mini calendar */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
         <Card className="border-border">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 px-4 sm:px-6">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <CalendarDays className="w-5 h-5 text-[hsl(var(--gold))]" />
                 Calendrier
               </CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => navigate("/proprietaire/calendrier")}>
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-9" onClick={() => navigate("/proprietaire/calendrier")}>
                 Voir tout →
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 sm:px-6">
             <div className="flex items-center justify-between mb-3">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCurrentDate(new Date(year, month - 1, 1))}>
+              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setCurrentDate(new Date(year, month - 1, 1))}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <span className="text-sm font-semibold capitalize">{monthName}</span>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCurrentDate(new Date(year, month + 1, 1))}>
+              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setCurrentDate(new Date(year, month + 1, 1))}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
 
             <div className="grid grid-cols-7 gap-0.5 mb-0.5">
               {["L", "M", "M", "J", "V", "S", "D"].map((d, i) => (
-                <div key={i} className="text-center text-[10px] font-medium text-muted-foreground py-1">{d}</div>
+                <div key={i} className="text-center text-[10px] sm:text-[11px] font-medium text-muted-foreground py-1">{d}</div>
               ))}
             </div>
 
             <div className="grid grid-cols-7 gap-0.5">
               {calendarDays.map((date, i) => {
-                if (!date) return <div key={`e-${i}`} className="h-8" />;
+                if (!date) return <div key={`e-${i}`} className="h-10 sm:h-8" />;
                 const dayEvents = getEventsForDay(date);
                 const hasBooking = dayEvents.some(e => e.event_type === "reservation" || e.event_type === "booking");
                 const hasBlocked = dayEvents.some(e => e.event_type !== "reservation" && e.event_type !== "booking");
-                const todayCls = isToday(date) ? "ring-1 ring-primary" : "";
+                const todayCls = isToday(date) ? "ring-2 ring-primary" : "";
 
                 return (
                   <button
                     key={date.toISOString()}
                     onClick={() => navigate("/proprietaire/calendrier")}
-                    className={`h-8 rounded-md text-[11px] font-medium transition-colors relative ${todayCls} ${
+                    className={`h-10 sm:h-8 rounded-md text-xs sm:text-[11px] font-medium transition-colors relative ${todayCls} ${
                       hasBooking ? "bg-primary/15 text-primary font-bold" : hasBlocked ? "bg-amber-100 text-amber-700" : "hover:bg-muted/40 text-muted-foreground"
                     }`}
                   >
                     {date.getDate()}
-                    {hasBooking && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />}
+                    {hasBooking && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 sm:w-1 sm:h-1 rounded-full bg-primary" />}
                   </button>
                 );
               })}
@@ -270,19 +267,19 @@ export default function OwnerDashboardHome() {
       {/* Properties list */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
         <Card className="border-border">
-          <CardHeader><CardTitle className="text-lg">Mes biens</CardTitle></CardHeader>
-          <CardContent>
+          <CardHeader className="px-4 sm:px-6"><CardTitle className="text-base sm:text-lg">Mes biens</CardTitle></CardHeader>
+          <CardContent className="px-4 sm:px-6">
             {properties.length === 0 ? (
               <p className="text-muted-foreground text-sm">Aucun bien associé à votre compte.</p>
             ) : (
               <div className="space-y-3">
                 {properties.map(p => (
-                  <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
-                    <div>
-                      <p className="font-medium text-foreground">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">{p.address}</p>
+                  <div key={p.id} className="flex items-center justify-between p-3 sm:p-3 rounded-lg bg-muted/50 border border-border gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground truncate">{p.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{p.address}</p>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${p.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${p.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>
                       {p.status === "active" ? "Actif" : p.status}
                     </span>
                   </div>
@@ -292,6 +289,17 @@ export default function OwnerDashboardHome() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Mobile floating action button */}
+      <div className="fixed bottom-6 right-6 sm:hidden z-50">
+        <Button
+          size="lg"
+          className="rounded-full w-14 h-14 shadow-lg bg-primary hover:bg-primary/90 p-0"
+          onClick={() => navigate("/proprietaire/demandes")}
+        >
+          <MessageCircle className="w-6 h-6" />
+        </Button>
+      </div>
     </div>
   );
 }
