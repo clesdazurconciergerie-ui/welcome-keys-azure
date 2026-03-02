@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Users, Home, Wrench, Plus, ArrowRight, Clock, CheckCircle, AlertTriangle, DollarSign, Target, Phone } from "lucide-react";
+import { BookOpen, Users, Home, Wrench, Plus, ArrowRight, Clock, CheckCircle, AlertTriangle, DollarSign, Target, Phone, Calendar } from "lucide-react";
+import GlobalCalendar from "@/components/dashboard/GlobalCalendar";
 import { motion } from "framer-motion";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useCleaningInterventions } from "@/hooks/useCleaningInterventions";
@@ -149,6 +150,9 @@ const DashboardHome = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Global Calendar */}
+      <GlobalCalendar />
 
       {/* Pending validation list */}
       {pendingValidation.length > 0 && (
