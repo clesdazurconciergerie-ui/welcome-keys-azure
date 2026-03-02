@@ -43,7 +43,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = ["00", "15", "30", "45"];
 
 export default function MissionsPage() {
-  const { missions, isLoading, createMission, publishMission, cancelMission, acceptApplication, rejectApplication, approveMission } = useNewMissions('concierge');
+  const { missions, isLoading, createMission, publishMission, cancelMission, acceptApplication, rejectApplication, approveMission, refetch } = useNewMissions('concierge');
   const { properties } = useProperties();
   const { providers } = useServiceProviders();
   const [createOpen, setCreateOpen] = useState(false);
@@ -51,7 +51,27 @@ export default function MissionsPage() {
   const [syncOpen, setSyncOpen] = useState(false);
   const [syncPropertyId, setSyncPropertyId] = useState("all");
   const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<{ created: number; updated: number; skipped: number; ignored: number; errors: number } | null>(null);
+  const [syncResult, setSyncResult] = useState<{
+    total_events_found: number;
+    eligible_count: number;
+    created: number;
+    updated: number;
+    skipped: number;
+    ignored: number;
+    errors: number;
+    errors_list: string[];
+    ignored_items: Array<{
+      id: string;
+      property_name: string;
+      start_date: string;
+      end_date: string;
+      event_type: string | null;
+      status: string;
+      platform: string;
+      reason: string;
+    }>;
+    window: { start: string; end: string };
+  } | null>(null);
 
   const activeMissions = useMemo(() => missions.filter(m => !['canceled', 'approved'].includes(m.status)), [missions]);
   const archivedMissions = useMemo(() => missions.filter(m => ['canceled', 'approved'].includes(m.status)), [missions]);
@@ -67,8 +87,7 @@ export default function MissionsPage() {
       if (error) throw error;
       setSyncResult(data);
       toast.success(`${data.created} mission(s) créée(s), ${data.updated} mise(s) à jour`);
-      // Refresh missions list
-      window.location.reload();
+      if (refetch) refetch();
     } catch (err: any) {
       toast.error(err.message || "Erreur de synchronisation");
     } finally {
@@ -91,11 +110,11 @@ export default function MissionsPage() {
                   <RefreshCw className="w-4 h-4" /> Sync ménage (1 mois)
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md">
+              <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>Synchroniser les missions ménage</DialogTitle></DialogHeader>
                 <p className="text-sm text-muted-foreground">
-                  Génère automatiquement les missions ménage pour tous les checkouts des 30 prochains jours,
-                  selon les paramètres de chaque logement.
+                  Scanne les événements calendrier (réservations iCal) des 30 prochains jours
+                  et crée une mission ménage pour chaque checkout éligible.
                 </p>
                 <div className="space-y-3 mt-2">
                   <div>
@@ -113,15 +132,48 @@ export default function MissionsPage() {
                     Lancer la synchronisation
                   </Button>
                   {syncResult && (
-                    <div className="p-3 rounded-lg border bg-muted/50 space-y-1 text-sm">
-                      <p className="font-medium">Résultat :</p>
+                    <div className="p-3 rounded-lg border bg-muted/50 space-y-2 text-sm">
+                      <p className="font-medium">📊 Rapport de synchronisation</p>
+                      <p className="text-xs text-muted-foreground">
+                        Fenêtre : {syncResult.window.start} → {syncResult.window.end}
+                      </p>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                        <span>✅ Créées :</span><span className="font-semibold">{syncResult.created}</span>
+                        <span>📅 Événements trouvés :</span><span className="font-semibold">{syncResult.total_events_found}</span>
+                        <span>✅ Éligibles :</span><span className="font-semibold">{syncResult.eligible_count}</span>
+                        <span>🆕 Créées :</span><span className="font-semibold text-green-700">{syncResult.created}</span>
                         <span>🔄 Mises à jour :</span><span className="font-semibold">{syncResult.updated}</span>
-                        <span>⏭️ Ignorées (assignées) :</span><span className="font-semibold">{syncResult.skipped}</span>
+                        <span>⏭️ Déjà assignées :</span><span className="font-semibold">{syncResult.skipped}</span>
                         <span>🚫 Non éligibles :</span><span className="font-semibold">{syncResult.ignored}</span>
                         {syncResult.errors > 0 && <><span>❌ Erreurs :</span><span className="font-semibold text-destructive">{syncResult.errors}</span></>}
                       </div>
+
+                      {syncResult.errors_list.length > 0 && (
+                        <div className="mt-2">
+                          <p className="font-medium text-destructive">Erreurs :</p>
+                          <ul className="text-xs space-y-1 mt-1">
+                            {syncResult.errors_list.map((e, i) => (
+                              <li key={i} className="text-destructive">• {e}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {syncResult.ignored_items.length > 0 && (
+                        <div className="mt-2">
+                          <p className="font-medium">Détail des ignorés ({syncResult.ignored} total) :</p>
+                          <div className="max-h-48 overflow-y-auto mt-1 space-y-1">
+                            {syncResult.ignored_items.map((item, i) => (
+                              <div key={i} className="text-xs p-2 rounded border bg-background">
+                                <span className="font-medium">{item.property_name}</span>
+                                {" "}{item.start_date} → {item.end_date}
+                                {" "}({item.platform})
+                                <br />
+                                <span className="text-muted-foreground">Raison : {item.reason}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
