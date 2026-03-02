@@ -17,7 +17,7 @@ export interface NewMission {
   selected_provider_id: string | null;
   created_at: string;
   updated_at: string;
-  property?: { name: string; address: string };
+  property?: { name: string; address: string; property_photos?: Array<{ url: string; is_main: boolean | null; order_index: number | null }> };
   selected_provider?: { first_name: string; last_name: string; email: string };
   applications?: MissionApplication[];
 }
@@ -56,7 +56,7 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
         .from('missions')
         .select(`
           *,
-          property:property_id(name, address),
+          property:property_id(name, address, property_photos(url, is_main, order_index)),
           selected_provider:selected_provider_id(first_name, last_name, email),
           applications:mission_applications(*, provider:provider_id(first_name, last_name, email, score_global))
         `)

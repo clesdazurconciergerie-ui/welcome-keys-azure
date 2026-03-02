@@ -16,6 +16,15 @@ import { useNewMissions, type NewMission } from "@/hooks/useNewMissions";
 import { useMissions, useChecklistItems, type Mission } from "@/hooks/useMissions";
 import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
 
+function getPropertyPhoto(mission: NewMission): string | null {
+  const photos = mission.property?.property_photos;
+  if (!photos || photos.length === 0) return null;
+  const main = photos.find(p => p.is_main);
+  if (main) return main.url;
+  const sorted = [...photos].sort((a, b) => (a.order_index ?? 999) - (b.order_index ?? 999));
+  return sorted[0]?.url || null;
+}
+
 /* ── Config ───────────────────────────────────────────────────── */
 
 const missionTypeLabels: Record<string, string> = {
@@ -55,11 +64,12 @@ interface MissionCardProps {
   onClick?: () => void;
   applied?: boolean;
   conflictWarning?: string | null;
+  propertyPhotoUrl?: string | null;
 }
 
 function MissionCard({
   title, propertyName, propertyAddress, dateStr, missionType, payoutAmount,
-  instructions, status, photoCount, actions, onClick, applied, conflictWarning,
+  instructions, status, photoCount, actions, onClick, applied, conflictWarning, propertyPhotoUrl,
 }: MissionCardProps) {
   const cfg = statusConfig[status] || { label: status, color: "bg-muted text-muted-foreground border-border" };
 
@@ -69,7 +79,19 @@ function MissionCard({
       onClick={onClick}
     >
       <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          {/* Property thumbnail */}
+          <div className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border border-border shadow-sm bg-muted">
+            {propertyPhotoUrl ? (
+              <img src={propertyPhotoUrl} alt={propertyName || 'Logement'} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <MapPin className="w-5 h-5 text-muted-foreground/50" />
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0 flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <p className="font-semibold text-foreground truncate">{title}</p>
@@ -100,6 +122,7 @@ function MissionCard({
           <div className="flex flex-col items-end gap-2 shrink-0">
             <Badge className={`${cfg.color} border text-[11px]`} variant="outline">{cfg.label}</Badge>
             {actions}
+          </div>
           </div>
         </div>
       </CardContent>
@@ -336,6 +359,7 @@ export default function SPMissionsUnifiedPage() {
                       payoutAmount={m.payout_amount}
                       instructions={m.instructions}
                       status={m.status}
+                      propertyPhotoUrl={getPropertyPhoto(m)}
                       applied={applied}
                       conflictWarning={conflict}
                       actions={
@@ -399,6 +423,7 @@ export default function SPMissionsUnifiedPage() {
                         payoutAmount={m.payout_amount}
                         instructions={m.instructions}
                         status={m.status}
+                        propertyPhotoUrl={getPropertyPhoto(m)}
                         actions={
                           <>
                             {m.status === "assigned" && (
