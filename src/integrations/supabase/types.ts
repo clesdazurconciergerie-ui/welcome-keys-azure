@@ -841,6 +841,63 @@ export type Database = {
           },
         ]
       }
+      email_outbox: {
+        Row: {
+          body_html: string
+          created_at: string
+          error: string | null
+          id: string
+          mission_id: string
+          provider_id: string
+          sent_at: string | null
+          status: string
+          subject: string
+          to_email: string
+          user_id: string
+        }
+        Insert: {
+          body_html: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          mission_id: string
+          provider_id: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          to_email: string
+          user_id: string
+        }
+        Update: {
+          body_html?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          mission_id?: string
+          provider_id?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          to_email?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_outbox_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_outbox_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment: {
         Row: {
           booklet_id: string
@@ -1615,6 +1672,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notification_settings: {
+        Row: {
+          created_at: string
+          email_notifications_enabled: boolean | null
+          id: string
+          smtp_from_email: string | null
+          smtp_from_name: string | null
+          smtp_host: string | null
+          smtp_port: number | null
+          smtp_secure: boolean | null
+          smtp_user: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_notifications_enabled?: boolean | null
+          id?: string
+          smtp_from_email?: string | null
+          smtp_from_name?: string | null
+          smtp_host?: string | null
+          smtp_port?: number | null
+          smtp_secure?: boolean | null
+          smtp_user?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_notifications_enabled?: boolean | null
+          id?: string
+          smtp_from_email?: string | null
+          smtp_from_name?: string | null
+          smtp_host?: string | null
+          smtp_port?: number | null
+          smtp_secure?: boolean | null
+          smtp_user?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       owner_documents: {
         Row: {
