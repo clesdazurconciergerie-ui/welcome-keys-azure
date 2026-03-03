@@ -20,13 +20,13 @@ import { formatEUR, expenseStatusLabels, expenseStatusColors } from "@/lib/finan
 const typeLabels: Record<string, string> = {
   expense: "Dépense",
   vendor_payment: "Prestataire",
-  intervention: "Intervention",
+  mission: "Mission",
 };
 
 const typeIcons: Record<string, React.ReactNode> = {
   expense: <Receipt className="h-4 w-4 text-red-400" />,
   vendor_payment: <Users className="h-4 w-4 text-primary" />,
-  intervention: <HardHat className="h-4 w-4 text-amber-500" />,
+  mission: <HardHat className="h-4 w-4 text-amber-500" />,
 };
 
 export function FinanceExpensesTab() {
@@ -156,8 +156,8 @@ export function FinanceExpensesTab() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Interventions</p>
-            <p className="text-xl font-bold text-red-500 mt-1">{formatEUR(paidByType.intervention)}</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Missions</p>
+            <p className="text-xl font-bold text-red-500 mt-1">{formatEUR(paidByType.mission || 0)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -180,7 +180,7 @@ export function FinanceExpensesTab() {
               <SelectItem value="all">Tous les types</SelectItem>
               <SelectItem value="expense">Dépenses</SelectItem>
               <SelectItem value="vendor_payment">Prestataires</SelectItem>
-              <SelectItem value="intervention">Interventions</SelectItem>
+              <SelectItem value="mission">Missions</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -352,12 +352,12 @@ export function FinanceExpensesTab() {
                   <Badge className={`text-[10px] ${expenseStatusColors[item.status] || ""}`}>
                     {expenseStatusLabels[item.status] || item.status}
                   </Badge>
-                  {item.status === "to_pay" && item.type !== "intervention" && (
+                  {item.status === "to_pay" && item.type !== "mission" && (
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleStatusChange(item)} title="Marquer payé">
                       <CheckCircle className="h-4 w-4 text-emerald-600" />
                     </Button>
                   )}
-                  {item.type !== "intervention" && (
+                  {item.type !== "mission" && (
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(item)} title="Supprimer">
                       <Trash2 className="h-4 w-4" />
                     </Button>

@@ -2,14 +2,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, DollarSign, CheckCircle, Clock } from "lucide-react";
 import { motion } from "framer-motion";
-import { useMissions } from "@/hooks/useMissions";
+import { useNewMissions } from "@/hooks/useNewMissions";
 
 export default function SPPaymentsPage() {
-  const { missions, isLoading } = useMissions('service_provider');
+  const { missions, isLoading } = useNewMissions('provider');
 
-  const validatedMissions = missions.filter(m => m.status === 'validated');
-  const totalPaid = validatedMissions.filter(m => m.payment_done).reduce((s, m) => s + (m.mission_amount || 0), 0);
-  const totalPending = validatedMissions.filter(m => !m.payment_done).reduce((s, m) => s + (m.mission_amount || 0), 0);
+  // Financial missions: validated or paid
+  const financialMissions = missions.filter(m => ['validated', 'paid'].includes(m.status));
+  const totalPaid = financialMissions.filter(m => m.status === 'paid').reduce((s, m) => s + (m.payout_amount || 0), 0);
+  const totalPending = financialMissions.filter(m => m.status === 'validated').reduce((s, m) => s + (m.payout_amount || 0), 0);
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -52,7 +53,7 @@ export default function SPPaymentsPage() {
                 <CheckCircle className="w-5 h-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{validatedMissions.length}</p>
+                <p className="text-2xl font-bold">{financialMissions.length}</p>
                 <p className="text-xs text-muted-foreground">Missions validées</p>
               </div>
             </div>
@@ -60,7 +61,7 @@ export default function SPPaymentsPage() {
         </Card>
       </div>
 
-      {validatedMissions.length === 0 && !isLoading ? (
+      {financialMissions.length === 0 && !isLoading ? (
         <Card className="text-center py-12">
           <CardContent>
             <CreditCard className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
@@ -73,17 +74,17 @@ export default function SPPaymentsPage() {
           <CardContent className="pt-6">
             <h2 className="font-semibold mb-4">Détail des missions</h2>
             <div className="space-y-2">
-              {validatedMissions.map(m => (
+              {financialMissions.map(m => (
                 <div key={m.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div>
-                    <p className="font-medium text-sm">{m.property?.name}</p>
+                    <p className="font-medium text-sm">{m.property?.name || m.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(m.scheduled_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {new Date(m.start_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-semibold">{m.mission_amount}€</span>
-                    {m.payment_done ? (
+                    <span className="font-semibold">{m.payout_amount}€</span>
+                    {m.status === 'paid' ? (
                       <Badge className="bg-emerald-100 text-emerald-800 border-0">Payé ✅</Badge>
                     ) : (
                       <Badge className="bg-amber-100 text-amber-800 border-0">En attente</Badge>

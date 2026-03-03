@@ -30,7 +30,7 @@ import LogementsPage from "./pages/dashboard/LogementsPage";
 import PropertyDetailPage from "./pages/dashboard/PropertyDetailPage";
 import PrestatairesPage from "./pages/dashboard/PrestatairesPage";
 import MissionsPage from "./pages/dashboard/MissionsPage";
-import InterventionsPage from "./pages/dashboard/InterventionsPage";
+// InterventionsPage removed — missions is the single source
 import ProspectionPage from "./pages/dashboard/ProspectionPage";
 import PerformancePage from "./pages/dashboard/PerformancePage";
 import AbonnementPage from "./pages/dashboard/AbonnementPage";
@@ -80,7 +80,7 @@ const App = () => (
             <Route path="logements" element={<LogementsPage />} />
             <Route path="logements/:id" element={<PropertyDetailPage />} />
             <Route path="prestataires" element={<PrestatairesPage />} />
-            <Route path="interventions" element={<InterventionsPage />} />
+            {/* Interventions removed — missions is the single source */}
             <Route path="missions" element={<MissionsPage />} />
             <Route path="prospection" element={<ProspectionPage />} />
             <Route path="finance" element={<FinancePage />} />

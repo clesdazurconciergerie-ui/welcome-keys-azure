@@ -28,12 +28,16 @@ export const invoiceStatusColors: Record<string, string> = {
 
 export const expenseStatusLabels: Record<string, string> = {
   to_pay: "À payer",
+  pending: "En attente",
+  pending_payment: "En attente",
   paid: "Payé",
   canceled: "Annulé",
 };
 
 export const expenseStatusColors: Record<string, string> = {
   to_pay: "bg-amber-100 text-amber-700",
+  pending: "bg-amber-100 text-amber-700",
+  pending_payment: "bg-amber-100 text-amber-700",
   paid: "bg-emerald-100 text-emerald-700",
   canceled: "bg-muted text-muted-foreground",
 };

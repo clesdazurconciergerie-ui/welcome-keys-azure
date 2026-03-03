@@ -72,7 +72,7 @@ export function FinanceDashboardTab() {
     const totalExpenses = filteredUnified.reduce((s, u) => s + u.amount, 0);
     const expensesTotal = filteredUnified.filter(u => u.type === "expense").reduce((s, u) => s + u.amount, 0);
     const vpTotal = filteredUnified.filter(u => u.type === "vendor_payment").reduce((s, u) => s + u.amount, 0);
-    const interventionTotal = filteredUnified.filter(u => u.type === "intervention").reduce((s, u) => s + u.amount, 0);
+    const missionTotal = filteredUnified.filter(u => u.type === "mission").reduce((s, u) => s + u.amount, 0);
 
     // Profit
     const netProfit = grossRevenue - totalExpenses;
@@ -86,7 +86,7 @@ export function FinanceDashboardTab() {
 
     return {
       grossRevenue, paidRevenue, pendingRevenue,
-      expensesTotal, vpTotal, interventionTotal, totalExpenses,
+      expensesTotal, vpTotal, missionTotal, totalExpenses,
       netProfit, receivable, sentTotal, overdueTotal,
     };
   }, [invoices, allExpenses, dateRange, effectiveDisplayMode, cashOnly]);
@@ -207,7 +207,7 @@ export function FinanceDashboardTab() {
               <div className="flex gap-3 mt-1.5 text-[11px] text-muted-foreground flex-wrap">
                 <span>Dépenses: {formatEUR(stats.expensesTotal)}</span>
                 <span>Prestataires: {formatEUR(stats.vpTotal)}</span>
-                <span>Interventions: {formatEUR(stats.interventionTotal)}</span>
+                <span>Missions: {formatEUR(stats.missionTotal)}</span>
               </div>
             )}
           </CardContent>
