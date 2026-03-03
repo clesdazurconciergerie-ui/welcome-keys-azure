@@ -71,9 +71,7 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
     }
   }, []);
 
-  useEffect(() => {
-    fetchMissions();
-  }, [fetchMissions]);
+  useEffect(() => { fetchMissions(); }, [fetchMissions]);
 
   // Realtime
   useEffect(() => {
@@ -142,7 +140,6 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
 
   const deleteMission = async (id: string) => {
     try {
-      // Delete related applications first
       const { error: appError } = await (supabase as any)
         .from('mission_applications')
         .delete()
@@ -163,14 +160,12 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
 
   const acceptApplication = async (missionId: string, applicationId: string, providerId: string) => {
     try {
-      // Accept the selected application
       const { error: e1 } = await (supabase as any)
         .from('mission_applications')
         .update({ status: 'accepted' })
         .eq('id', applicationId);
       if (e1) throw e1;
 
-      // Reject others
       const { error: e2 } = await (supabase as any)
         .from('mission_applications')
         .update({ status: 'rejected' })
@@ -178,7 +173,6 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
         .neq('id', applicationId);
       if (e2) throw e2;
 
-      // Assign provider to mission
       const { error: e3 } = await (supabase as any)
         .from('missions')
         .update({ status: 'assigned', selected_provider_id: providerId })
@@ -263,41 +257,34 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
     } catch { toast.error('Erreur'); }
   };
 
-  const approveMission = async (id: string) => {
+  /** Admin validates a completed mission — financial impact starts here */
+  const validateMission = async (id: string) => {
     try {
-      const mission = missions.find(m => m.id === id);
-      
-      // Update mission status
       const { error } = await (supabase as any)
         .from('missions')
-        .update({ status: 'approved' })
+        .update({ status: 'validated' })
         .eq('id', id);
       if (error) throw error;
-
-      // Create vendor payment if there's a payout amount
-      if (mission && mission.payout_amount > 0 && mission.selected_provider_id) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await (supabase as any)
-            .from('vendor_payments')
-            .insert({
-              user_id: user.id,
-              provider_id: mission.selected_provider_id,
-              property_id: mission.property_id,
-              date: new Date().toISOString().split('T')[0],
-              description: `Mission: ${mission.title}`,
-              amount: mission.payout_amount,
-              vat_rate: 0,
-              vat_amount: 0,
-              status: 'pending',
-            });
-        }
-      }
-
-      toast.success('Mission approuvée — paiement créé');
+      toast.success('Mission validée — en attente de paiement');
       await fetchMissions();
-    } catch { toast.error('Erreur approbation'); }
+    } catch { toast.error('Erreur validation'); }
   };
+
+  /** Admin marks mission as paid to provider */
+  const markAsPaid = async (id: string) => {
+    try {
+      const { error } = await (supabase as any)
+        .from('missions')
+        .update({ status: 'paid' })
+        .eq('id', id);
+      if (error) throw error;
+      toast.success('Mission marquée comme payée');
+      await fetchMissions();
+    } catch { toast.error('Erreur paiement'); }
+  };
+
+  /** Legacy alias — now splits into validate */
+  const approveMission = validateMission;
 
   return {
     missions,
@@ -312,6 +299,8 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
     confirmMission,
     markDone,
     approveMission,
+    validateMission,
+    markAsPaid,
     refetch: fetchMissions,
   };
 }

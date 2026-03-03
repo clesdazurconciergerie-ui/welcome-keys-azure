@@ -28,7 +28,10 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   open: { label: "Ouverte", color: "bg-blue-100 text-blue-800" },
   assigned: { label: "Assignée", color: "bg-amber-100 text-amber-800" },
   confirmed: { label: "Confirmée", color: "bg-emerald-100 text-emerald-800" },
+  in_progress: { label: "En cours", color: "bg-cyan-100 text-cyan-800" },
   done: { label: "Terminée", color: "bg-purple-100 text-purple-800" },
+  validated: { label: "Validée ✅", color: "bg-green-100 text-green-800" },
+  paid: { label: "Payée 💰", color: "bg-emerald-200 text-emerald-900" },
   approved: { label: "Approuvée ✅", color: "bg-green-100 text-green-800" },
   canceled: { label: "Annulée", color: "bg-red-100 text-red-800" },
 };
@@ -44,7 +47,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = ["00", "15", "30", "45"];
 
 export default function MissionsPage() {
-  const { missions, isLoading, createMission, publishMission, cancelMission, deleteMission, acceptApplication, rejectApplication, approveMission, refetch } = useNewMissions('concierge');
+  const { missions, isLoading, createMission, publishMission, cancelMission, deleteMission, acceptApplication, rejectApplication, validateMission, markAsPaid, refetch } = useNewMissions('concierge');
   const { properties } = useProperties();
   const { providers } = useServiceProviders();
   const [createOpen, setCreateOpen] = useState(false);
@@ -74,8 +77,8 @@ export default function MissionsPage() {
     window: { start: string; end: string };
   } | null>(null);
 
-  const activeMissions = useMemo(() => missions.filter(m => !['canceled', 'approved'].includes(m.status)), [missions]);
-  const archivedMissions = useMemo(() => missions.filter(m => ['canceled', 'approved'].includes(m.status)), [missions]);
+  const activeMissions = useMemo(() => missions.filter(m => !['canceled', 'paid'].includes(m.status)), [missions]);
+  const archivedMissions = useMemo(() => missions.filter(m => ['canceled', 'paid'].includes(m.status)), [missions]);
   const currentDetail = detailMission ? missions.find(m => m.id === detailMission.id) || detailMission : null;
 
   const handleSync = async () => {
@@ -216,12 +219,12 @@ export default function MissionsPage() {
                 <CardContent><p className="text-muted-foreground">Aucune mission active. Créez-en une !</p></CardContent>
               </Card>
             ) : activeMissions.map((m, i) => (
-              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onApprove={approveMission} />
+              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} />
             ))}
           </TabsContent>
           <TabsContent value="archived" className="space-y-3 mt-4">
             {archivedMissions.map((m, i) => (
-              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onApprove={approveMission} />
+              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} />
             ))}
           </TabsContent>
         </Tabs>
@@ -230,7 +233,7 @@ export default function MissionsPage() {
       <Dialog open={!!detailMission} onOpenChange={open => { if (!open) setDetailMission(null); }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-auto">
           {currentDetail && (
-            <MissionDetail mission={currentDetail} onAccept={acceptApplication} onReject={rejectApplication} onPublish={publishMission} onCancel={cancelMission} onDelete={async (id) => { await deleteMission(id); setDetailMission(null); }} onApprove={approveMission} />
+            <MissionDetail mission={currentDetail} onAccept={acceptApplication} onReject={rejectApplication} onPublish={publishMission} onCancel={cancelMission} onDelete={async (id) => { await deleteMission(id); setDetailMission(null); }} onValidate={validateMission} onMarkPaid={markAsPaid} />
           )}
         </DialogContent>
       </Dialog>
@@ -450,9 +453,9 @@ function getPropertyPhoto(mission: NewMission): string | null {
 
 /* ─── Mission Card ─── */
 
-function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete, onApprove }: {
+function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete, onValidate, onMarkPaid }: {
   mission: NewMission; index: number;
-  onView: () => void; onPublish: (id: string) => void; onCancel: (id: string) => void; onDelete: (id: string) => void; onApprove: (id: string) => void;
+  onView: () => void; onPublish: (id: string) => void; onCancel: (id: string) => void; onDelete: (id: string) => void; onValidate: (id: string) => void; onMarkPaid: (id: string) => void;
 }) {
   const cfg = statusConfig[m.status] || statusConfig.draft;
   const appCount = m.applications?.filter(a => a.status === 'pending').length || 0;
@@ -502,8 +505,13 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
                 </Button>
               )}
               {m.status === 'done' && (
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => onApprove(m.id)}>
-                  <CheckCircle className="w-3 h-3 mr-1" /> Approuver
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => onValidate(m.id)}>
+                  <CheckCircle className="w-3 h-3 mr-1" /> Valider
+                </Button>
+              )}
+              {m.status === 'validated' && (
+                <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => onMarkPaid(m.id)}>
+                  💰 Marquer payée
                 </Button>
               )}
               <AlertDialog>
@@ -536,14 +544,15 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
 
 /* ─── Mission Detail ─── */
 
-function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, onDelete, onApprove }: {
+function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, onDelete, onValidate, onMarkPaid }: {
   mission: NewMission;
   onAccept: (missionId: string, appId: string, providerId: string) => void;
   onReject: (appId: string) => void;
   onPublish: (id: string) => void;
   onCancel: (id: string) => void;
   onDelete: (id: string) => void;
-  onApprove: (id: string) => void;
+  onValidate: (id: string) => void;
+  onMarkPaid: (id: string) => void;
 }) {
   const cfg = statusConfig[m.status] || statusConfig.draft;
   const pendingApps = m.applications?.filter(a => a.status === 'pending') || [];
@@ -586,11 +595,16 @@ function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, on
             </Button>
           )}
           {m.status === 'done' && (
-            <Button onClick={() => onApprove(m.id)} className="flex-1 bg-emerald-600 hover:bg-emerald-700">
-              <CheckCircle className="w-4 h-4 mr-2" /> Approuver & créer paiement
+            <Button onClick={() => onValidate(m.id)} className="flex-1 bg-emerald-600 hover:bg-emerald-700">
+              <CheckCircle className="w-4 h-4 mr-2" /> Valider la mission
             </Button>
           )}
-          {!['canceled', 'approved'].includes(m.status) && (
+          {m.status === 'validated' && (
+            <Button onClick={() => onMarkPaid(m.id)} className="flex-1">
+              💰 Marquer comme payée
+            </Button>
+          )}
+          {!['canceled', 'validated', 'paid'].includes(m.status) && (
             <Button variant="outline" onClick={() => onCancel(m.id)} className="text-destructive">
               <Ban className="w-4 h-4 mr-2" /> Annuler
             </Button>

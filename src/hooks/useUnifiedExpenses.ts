@@ -1,9 +1,21 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useExpenses, type Expense } from "@/hooks/useExpenses";
 import { useVendorPayments, type VendorPayment } from "@/hooks/useVendorPayments";
-import { useCleaningInterventions, type CleaningIntervention } from "@/hooks/useCleaningInterventions";
+import { supabase } from "@/integrations/supabase/client";
 
-export type UnifiedExpenseType = "expense" | "vendor_payment" | "intervention";
+export type UnifiedExpenseType = "expense" | "vendor_payment" | "mission";
+
+interface MissionExpense {
+  id: string;
+  title: string;
+  payout_amount: number;
+  status: string;
+  start_at: string;
+  property_id: string;
+  selected_provider_id: string | null;
+  property?: { name: string };
+  selected_provider?: { first_name: string; last_name: string };
+}
 
 export interface UnifiedExpense {
   id: string;
@@ -11,22 +23,47 @@ export interface UnifiedExpense {
   date: string;
   description: string;
   amount: number;
-  status: string; // "paid" | "to_pay"
+  status: string; // "paid" | "to_pay" | "pending_payment"
   category: string | null;
   property_name: string | null;
   property_id: string | null;
   provider_name: string | null;
   owner_id: string | null;
-  // Original source for actions
-  _source: Expense | VendorPayment | CleaningIntervention;
+  _source: Expense | VendorPayment | MissionExpense;
 }
 
 export function useUnifiedExpenses() {
   const { expenses, loading: eLoading, createExpense, updateExpenseStatus, deleteExpense, refetch: refetchExpenses } = useExpenses();
   const { payments: vendorPayments, loading: vpLoading, create: createVP, updateStatus: updateVPStatus, remove: removeVP, refetch: refetchVP } = useVendorPayments();
-  const { interventions, isLoading: ciLoading, markPaymentDone, refetch: refetchCI } = useCleaningInterventions();
 
-  const loading = eLoading || vpLoading || ciLoading;
+  // Fetch validated/paid missions as expense source
+  const [missionExpenses, setMissionExpenses] = useState<MissionExpense[]>([]);
+  const [mLoading, setMLoading] = useState(true);
+
+  const fetchMissionExpenses = useCallback(async () => {
+    setMLoading(true);
+    const { data } = await (supabase as any)
+      .from('missions')
+      .select('id, title, payout_amount, status, start_at, property_id, selected_provider_id, property:property_id(name), selected_provider:selected_provider_id(first_name, last_name)')
+      .in('status', ['validated', 'paid'])
+      .gt('payout_amount', 0)
+      .order('start_at', { ascending: false });
+    setMissionExpenses(data || []);
+    setMLoading(false);
+  }, []);
+
+  useEffect(() => { fetchMissionExpenses(); }, [fetchMissionExpenses]);
+
+  // Realtime for missions
+  useEffect(() => {
+    const channel = supabase
+      .channel('unified-missions-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'missions' }, () => fetchMissionExpenses())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchMissionExpenses]);
+
+  const loading = eLoading || vpLoading || mLoading;
 
   const unified = useMemo<UnifiedExpense[]>(() => {
     const items: UnifiedExpense[] = [];
@@ -67,42 +104,38 @@ export function useUnifiedExpenses() {
       });
     }
 
-    // Paid interventions (payment_done = true AND mission_amount > 0)
-    for (const ci of interventions) {
-      if (!ci.payment_done || !ci.mission_amount || Number(ci.mission_amount) <= 0) continue;
-      const provName = ci.service_provider
-        ? `${ci.service_provider.first_name} ${ci.service_provider.last_name}`
+    // Missions (validated = pending_payment, paid = paid)
+    for (const m of missionExpenses) {
+      const provName = m.selected_provider
+        ? `${m.selected_provider.first_name} ${m.selected_provider.last_name}`
         : null;
       items.push({
-        id: `ci-${ci.id}`,
-        type: "intervention",
-        date: ci.scheduled_date,
-        description: `${ci.mission_type === "cleaning" ? "Ménage" : ci.mission_type} — ${(ci.property as any)?.name || "Bien"}`,
-        amount: Number(ci.mission_amount),
-        status: "paid",
-        category: ci.mission_type || "cleaning",
-        property_name: (ci.property as any)?.name || null,
-        property_id: ci.property_id,
+        id: `mission-${m.id}`,
+        type: "mission",
+        date: m.start_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+        description: `Mission: ${m.title}`,
+        amount: Number(m.payout_amount),
+        status: m.status === 'paid' ? 'paid' : 'pending_payment',
+        category: "mission",
+        property_name: (m.property as any)?.name || null,
+        property_id: m.property_id,
         provider_name: provName,
-        owner_id: null, // Could be derived via property->owner if needed
-        _source: ci,
+        owner_id: null,
+        _source: m,
       });
     }
 
-    // Sort by date descending
     items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return items;
-  }, [expenses, vendorPayments, interventions]);
+  }, [expenses, vendorPayments, missionExpenses]);
 
-  // Totals
   const totalPaid = useMemo(() => unified.filter(u => u.status === "paid").reduce((s, u) => s + u.amount, 0), [unified]);
-  const totalToPay = useMemo(() => unified.filter(u => u.status === "to_pay").reduce((s, u) => s + u.amount, 0), [unified]);
+  const totalToPay = useMemo(() => unified.filter(u => ["to_pay", "pending_payment", "pending"].includes(u.status)).reduce((s, u) => s + u.amount, 0), [unified]);
 
-  // Breakdown by type (paid only)
   const paidByType = useMemo(() => {
-    const result = { expense: 0, vendor_payment: 0, intervention: 0 };
+    const result: Record<string, number> = { expense: 0, vendor_payment: 0, mission: 0 };
     for (const u of unified) {
-      if (u.status === "paid") result[u.type] += u.amount;
+      if (u.status === "paid") result[u.type] = (result[u.type] || 0) + u.amount;
     }
     return result;
   }, [unified]);
@@ -113,14 +146,12 @@ export function useUnifiedExpenses() {
     totalPaid,
     totalToPay,
     paidByType,
-    // Pass through action functions
     createExpense,
     updateExpenseStatus,
     deleteExpense,
     createVP,
     updateVPStatus,
     removeVP,
-    markPaymentDone,
-    refetch: () => { refetchExpenses(); refetchVP(); refetchCI(); },
+    refetch: () => { refetchExpenses(); refetchVP(); fetchMissionExpenses(); },
   };
 }
