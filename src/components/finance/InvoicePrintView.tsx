@@ -15,10 +15,23 @@ function fmtEUR(n: number): string {
   }).format(n);
 }
 
-const NAVY = "#061452";
-const GOLD = "#C4A45B";
-const GOLD_LIGHT = "#d4bb7a";
-const GRAY_STRIP = "#eef0f7";
+function contrastColor(hex: string): string {
+  const c = hex.replace("#", "");
+  const r = parseInt(c.substring(0, 2), 16);
+  const g = parseInt(c.substring(2, 4), 16);
+  const b = parseInt(c.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? "#1a1a1a" : "#ffffff";
+}
+
+function lighten(hex: string, amount: number): string {
+  const c = hex.replace("#", "");
+  const r = Math.min(255, parseInt(c.substring(0, 2), 16) + amount);
+  const g = Math.min(255, parseInt(c.substring(2, 4), 16) + amount);
+  const b = Math.min(255, parseInt(c.substring(4, 6), 16) + amount);
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
+
 const FONT = "'Inter', 'Helvetica Neue', Arial, sans-serif";
 
 export function InvoicePrintView({ invoice, items, financialSettings }: Props) {
@@ -29,6 +42,13 @@ export function InvoicePrintView({ invoice, items, financialSettings }: Props) {
     new Date(invoice.issue_date || invoice.invoice_date),
     "dd/MM/yyyy"
   );
+
+  // Custom colors with fallbacks
+  const NAVY = co.invoice_primary_color || "#061452";
+  const GOLD = co.invoice_accent_color || "#C4A45B";
+  const GOLD_LIGHT = lighten(GOLD, 40);
+  const GRAY_STRIP = lighten(NAVY, 210);
+  const headerTextColor = co.invoice_text_color || contrastColor(NAVY);
 
   return (
     <div
@@ -72,11 +92,11 @@ export function InvoicePrintView({ invoice, items, financialSettings }: Props) {
         }
       `}</style>
 
-      {/* ═══ A) TOP NAVY BAND ═══ */}
+      {/* ═══ A) TOP BAND ═══ */}
       <div
         style={{
           backgroundColor: NAVY,
-          color: "#fff",
+          color: headerTextColor,
           display: "flex",
           alignItems: "stretch",
           minHeight: 105,
@@ -137,7 +157,7 @@ export function InvoicePrintView({ invoice, items, financialSettings }: Props) {
           )}
         </div>
 
-        {/* Center — Logo or nothing */}
+        {/* Center — Logo */}
         {co.logo_url ? (
           <div
             style={{
@@ -226,7 +246,7 @@ export function InvoicePrintView({ invoice, items, financialSettings }: Props) {
         <div
           style={{
             width: 3,
-            backgroundColor: "#c0392b",
+            backgroundColor: GOLD,
             borderRadius: 1,
             marginRight: 14,
             minHeight: 42,
@@ -281,7 +301,7 @@ export function InvoicePrintView({ invoice, items, financialSettings }: Props) {
                   key={col.label}
                   style={{
                     backgroundColor: NAVY,
-                    color: "#fff",
+                    color: headerTextColor,
                     fontFamily: FONT,
                     fontSize: 10.5,
                     fontWeight: 600,
@@ -289,7 +309,7 @@ export function InvoicePrintView({ invoice, items, financialSettings }: Props) {
                     textAlign: col.align,
                     padding: "9px 12px",
                     borderRight:
-                      i < 3 ? "1px solid rgba(255,255,255,0.2)" : "none",
+                      i < 3 ? `1px solid ${headerTextColor}33` : "none",
                     width: col.w,
                   }}
                 >
@@ -515,7 +535,7 @@ export function InvoicePrintView({ invoice, items, financialSettings }: Props) {
             bottom: "10mm",
             left: "14mm",
             right: "14mm",
-            borderTop: "1px solid #ddd",
+            borderTop: `1px solid ${GOLD_LIGHT}`,
             paddingTop: 5,
           }}
         >
