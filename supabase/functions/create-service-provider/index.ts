@@ -48,12 +48,19 @@ Deno.serve(async (req) => {
     });
 
     // Create auth user
+    const trimmedEmail = email.trim().toLowerCase();
+    console.log(`Creating auth user for: ${trimmedEmail}, password length: ${password.length}`);
+    
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-      email: email.trim().toLowerCase(),
+      email: trimmedEmail,
       password,
       email_confirm: true,
       user_metadata: { full_name: `${first_name} ${last_name}`, role: 'service_provider' },
     });
+    
+    if (newUser?.user) {
+      console.log(`Auth user created successfully: ${newUser.user.id} for ${trimmedEmail}`);
+    }
 
     if (createError) {
       if (createError.message?.includes('already been registered')) {
