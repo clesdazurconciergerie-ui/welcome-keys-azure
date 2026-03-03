@@ -20,6 +20,9 @@ export interface FinancialSettings {
   legal_footer: string | null;
   default_due_days: number;
   vat_enabled: boolean;
+  invoice_primary_color: string | null;
+  invoice_accent_color: string | null;
+  invoice_text_color: string | null;
 }
 
 export interface PropertyFinancialSettings {

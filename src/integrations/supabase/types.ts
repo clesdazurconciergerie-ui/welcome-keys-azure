@@ -1109,7 +1109,10 @@ export type Database = {
           default_vat_rate: number | null
           iban: string | null
           id: string
+          invoice_accent_color: string | null
           invoice_prefix: string | null
+          invoice_primary_color: string | null
+          invoice_text_color: string | null
           legal_footer: string | null
           logo_url: string | null
           next_invoice_number: number | null
@@ -1130,7 +1133,10 @@ export type Database = {
           default_vat_rate?: number | null
           iban?: string | null
           id?: string
+          invoice_accent_color?: string | null
           invoice_prefix?: string | null
+          invoice_primary_color?: string | null
+          invoice_text_color?: string | null
           legal_footer?: string | null
           logo_url?: string | null
           next_invoice_number?: number | null
@@ -1151,7 +1157,10 @@ export type Database = {
           default_vat_rate?: number | null
           iban?: string | null
           id?: string
+          invoice_accent_color?: string | null
           invoice_prefix?: string | null
+          invoice_primary_color?: string | null
+          invoice_text_color?: string | null
           legal_footer?: string | null
           logo_url?: string | null
           next_invoice_number?: number | null
