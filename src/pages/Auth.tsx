@@ -188,7 +188,7 @@ const Auth = () => {
     setLoading(true);
     try {
       const { error, data } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim().toLowerCase(),
         password,
       });
 
@@ -197,6 +197,15 @@ const Auth = () => {
         if (error.message.includes('Email not confirmed') || error.message.includes('not confirmed')) {
           toast.error(
             "Votre email n'est pas encore vérifié. Vérifiez votre boîte mail ou cliquez ci-dessous pour renvoyer l'email.",
+            { duration: 5000 }
+          );
+          setLoading(false);
+          return;
+        }
+        // Show clearer error for invalid credentials
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error(
+            "Email ou mot de passe incorrect. Vérifiez vos identifiants et réessayez.",
             { duration: 5000 }
           );
           setLoading(false);

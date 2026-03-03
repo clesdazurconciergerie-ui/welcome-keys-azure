@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Wrench, Plus, Trash2, UserCheck, UserX, Loader2 } from "lucide-react";
+import { Wrench, Plus, Trash2, UserCheck, UserX, Loader2, Eye, EyeOff, Copy, Check, KeyRound } from "lucide-react";
 import { motion } from "framer-motion";
 import { useServiceProviders, type ServiceProviderFormData } from "@/hooks/useServiceProviders";
+import { toast } from "sonner";
 
 const PrestatairesPage = () => {
   const { providers, isLoading, createProvider, deleteProvider, toggleStatus } = useServiceProviders();
@@ -19,16 +20,42 @@ const PrestatairesPage = () => {
     first_name: '', last_name: '', email: '', password: '', phone: '', specialty: 'cleaning', notes: '',
   });
   const [creating, setCreating] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Credentials confirmation state
+  const [credentialsDialog, setCredentialsDialog] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string; name: string } | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const handleCreate = async () => {
     if (!formData.first_name || !formData.last_name || !formData.email || !formData.password) return;
+    if (formData.password.length < 6) {
+      toast.error("Le mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
     setCreating(true);
+    // Save credentials before creating (in case form resets)
+    const creds = {
+      email: formData.email.trim().toLowerCase(),
+      password: formData.password,
+      name: `${formData.first_name.trim()} ${formData.last_name.trim()}`,
+    };
     const result = await createProvider(formData);
     setCreating(false);
     if (result) {
       setCreateOpen(false);
       setFormData({ first_name: '', last_name: '', email: '', password: '', phone: '', specialty: 'cleaning', notes: '' });
+      // Show credentials confirmation
+      setCreatedCredentials(creds);
+      setCredentialsDialog(true);
     }
+  };
+
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    toast.success("Copié !");
+    setTimeout(() => setCopiedField(null), 2000);
   };
 
   return (
@@ -63,11 +90,30 @@ const PrestatairesPage = () => {
                 </div>
                 <div>
                   <Label>Email *</Label>
-                  <Input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} />
+                  <Input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} placeholder="prestataire@email.com" />
                 </div>
                 <div>
-                  <Label>Mot de passe *</Label>
-                  <Input type="password" value={formData.password} onChange={e => setFormData(p => ({ ...p, password: e.target.value }))} />
+                  <Label>Mot de passe * <span className="text-xs text-muted-foreground">(min. 6 caractères)</span></Label>
+                  <div className="relative">
+                    <Input 
+                      type={showPassword ? "text" : "password"} 
+                      value={formData.password} 
+                      onChange={e => setFormData(p => ({ ...p, password: e.target.value }))}
+                      placeholder="Mot de passe du prestataire"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={showPassword ? "Masquer" : "Afficher"}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Ce mot de passe sera utilisé par le prestataire pour se connecter sur la page /auth
+                  </p>
                 </div>
                 <div>
                   <Label>Téléphone</Label>
@@ -97,6 +143,60 @@ const PrestatairesPage = () => {
           </Dialog>
         </div>
       </motion.div>
+
+      {/* Credentials confirmation dialog */}
+      <Dialog open={credentialsDialog} onOpenChange={setCredentialsDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-primary" />
+              Compte créé avec succès
+            </DialogTitle>
+          </DialogHeader>
+          {createdCredentials && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Transmettez ces identifiants au prestataire <strong>{createdCredentials.name}</strong> pour qu'il puisse se connecter :
+              </p>
+              
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3 border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className="font-mono text-sm font-medium">{createdCredentials.email}</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => copyToClipboard(createdCredentials.email, 'email')}>
+                    {copiedField === 'email' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Mot de passe</p>
+                    <p className="font-mono text-sm font-medium">{createdCredentials.password}</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => copyToClipboard(createdCredentials.password, 'password')}>
+                    {copiedField === 'password' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-xs text-amber-800">
+                  ⚠️ Le prestataire doit se connecter sur <strong>{window.location.origin}/auth</strong> avec ces identifiants. Il sera automatiquement redirigé vers son espace.
+                </p>
+              </div>
+
+              <Button onClick={() => {
+                const text = `Identifiants MyWelkom :\nEmail : ${createdCredentials.email}\nMot de passe : ${createdCredentials.password}\nConnexion : ${window.location.origin}/auth`;
+                copyToClipboard(text, 'all');
+              }} variant="outline" className="w-full">
+                <Copy className="w-4 h-4 mr-2" />
+                {copiedField === 'all' ? 'Copié !' : 'Copier tout (email + mot de passe + lien)'}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
