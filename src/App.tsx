@@ -106,7 +106,6 @@ const App = () => (
           {/* Service provider dashboard */}
           <Route path="/prestataire" element={<ServiceProviderDashboardLayout />}>
             <Route index element={<SPDashboardHome />} />
-            <Route path="planning" element={<SPPlanningPage />} />
             <Route path="missions" element={<SPMissionsUnifiedPage />} />
             <Route path="historique" element={<SPHistoryPage />} />
             <Route path="paiements" element={<SPPaymentsPage />} />
