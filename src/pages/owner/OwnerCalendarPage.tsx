@@ -38,6 +38,7 @@ export default function OwnerCalendarPage() {
   const [selectedProperty, setSelectedProperty] = useState<string>("");
   const [bookings, setBookings] = useState<any[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -62,7 +63,7 @@ export default function OwnerCalendarPage() {
     load();
   }, [ownerId]);
 
-  // Load bookings + calendar events for selected property
+  // Load bookings + calendar events + overrides for selected property
   useEffect(() => {
     if (!selectedProperty) return;
     const load = async () => {
@@ -75,11 +76,18 @@ export default function OwnerCalendarPage() {
         .from("calendar_events").select("id, start_date, end_date, guest_name, summary, platform, event_type")
         .eq("property_id", selectedProperty).order("start_date", { ascending: false });
       setCalendarEvents(ce || []);
+
+      // Load overrides to filter hidden events
+      const { data: overrides } = await (supabase as any)
+        .from("calendar_overrides").select("source_event_id")
+        .eq("property_id", selectedProperty)
+        .eq("override_type", "hide");
+      setHiddenIds(new Set((overrides || []).map((o: any) => o.source_event_id)));
     };
     load();
   }, [selectedProperty]);
 
-  // Merge all events
+  // Merge all events, filtering out hidden ones
   const allEvents: CalEvent[] = useMemo(() => {
     const bkEvents = bookings.map((b: any) => ({
       id: `bk-${b.id}`, start_date: b.check_in, end_date: b.check_out,
@@ -91,8 +99,8 @@ export default function OwnerCalendarPage() {
       guest_name: e.guest_name, summary: e.summary,
       platform: e.platform, event_type: e.event_type || "unknown",
     }));
-    return [...bkEvents, ...ceEvents];
-  }, [bookings, calendarEvents]);
+    return [...bkEvents, ...ceEvents].filter(e => !hiddenIds.has(e.id));
+  }, [bookings, calendarEvents, hiddenIds]);
 
   // Calendar grid
   const calendarDays = useMemo(() => {
