@@ -13,10 +13,14 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  ChevronLeft, ChevronRight, Plus, RefreshCw, Trash2, Link2, Loader2, Calendar, CalendarCheck, Moon,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ChevronLeft, ChevronRight, Plus, RefreshCw, Trash2, Link2, Loader2, Calendar, CalendarCheck, Moon, MoreHorizontal, EyeOff, Eye,
 } from "lucide-react";
 import { useICalCalendar, type CalendarEvent } from "@/hooks/useICalCalendar";
 import { useBookings, type Booking } from "@/hooks/useBookings";
+import { useCalendarOverrides } from "@/hooks/useCalendarOverrides";
 import { supabase } from "@/integrations/supabase/client";
 
 const platformColors: Record<string, string> = {
@@ -53,6 +57,7 @@ export function PropertyCalendar({ propertyId }: Props) {
     calendars, events, isSyncing, addCalendar, removeCalendar, syncAll, deleteEvent,
   } = useICalCalendar(propertyId);
   const { bookings } = useBookings(propertyId);
+  const { hiddenEventIds, hideEvent, restoreEvent } = useCalendarOverrides(propertyId);
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
@@ -61,6 +66,8 @@ export function PropertyCalendar({ propertyId }: Props) {
   const [calUrl, setCalUrl] = useState("");
   const [calPlatform, setCalPlatform] = useState("airbnb");
   const [deleteCalId, setDeleteCalId] = useState<string | null>(null);
+  const [hideConfirm, setHideConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [restoreConfirm, setRestoreConfirm] = useState<{ id: string; name: string } | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -369,32 +376,96 @@ export function PropertyCalendar({ propertyId }: Props) {
                 .filter(e => e.end_date >= new Date().toISOString().substring(0, 10) && (e.event_type === "reservation" || e.event_type === "booking"))
                 .sort((a, b) => a.start_date.localeCompare(b.start_date))
                 .slice(0, 10)
-                .map(ev => (
-                  <div key={ev.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/40">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Badge variant="outline" className={`shrink-0 text-[9px] ${platformColors[ev.platform] || platformColors.other}`}>
-                        {platformLabels[ev.platform] || ev.platform}
-                      </Badge>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{ev.guest_name || ev.summary || "Réservation"}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {new Date(ev.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-                          {" → "}
-                          {new Date(ev.end_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-                        </p>
+                .map(ev => {
+                  const isHidden = hiddenEventIds.has(ev.id);
+                  return (
+                    <div key={ev.id} className={`flex items-center justify-between p-2.5 rounded-lg border border-border/40 ${isHidden ? "bg-muted/60 opacity-60" : "bg-muted/30"}`}>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Badge variant="outline" className={`shrink-0 text-[9px] ${platformColors[ev.platform] || platformColors.other}`}>
+                          {platformLabels[ev.platform] || ev.platform}
+                        </Badge>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-medium truncate">{ev.guest_name || ev.summary || "Réservation"}</p>
+                            {isHidden && <Badge variant="outline" className="text-[9px] border-dashed">Masquée</Badge>}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            {new Date(ev.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                            {" → "}
+                            {new Date(ev.end_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {ev.platform === "manual" && (
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteEvent(ev.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7">
+                              <MoreHorizontal className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {isHidden ? (
+                              <DropdownMenuItem onClick={() => setRestoreConfirm({ id: ev.id, name: ev.guest_name || ev.summary || "Réservation" })}>
+                                <Eye className="h-3.5 w-3.5 mr-2" />
+                                Rétablir pour le propriétaire
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onClick={() => setHideConfirm({ id: ev.id, name: ev.guest_name || ev.summary || "Réservation" })}>
+                                <EyeOff className="h-3.5 w-3.5 mr-2" />
+                                Masquer pour le propriétaire
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
-                    {ev.platform === "manual" && (
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteEvent(ev.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Hide confirmation */}
+      <AlertDialog open={!!hideConfirm} onOpenChange={() => setHideConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Masquer cette réservation ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              La réservation « {hideConfirm?.name} » ne sera plus visible dans le calendrier du propriétaire ni comptabilisée dans ses KPIs. Elle restera visible ici.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (hideConfirm) hideEvent(hideConfirm.id); setHideConfirm(null); }}>
+              Masquer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Restore confirmation */}
+      <AlertDialog open={!!restoreConfirm} onOpenChange={() => setRestoreConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rétablir cette réservation ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              La réservation « {restoreConfirm?.name} » sera de nouveau visible pour le propriétaire.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (restoreConfirm) restoreEvent(restoreConfirm.id); setRestoreConfirm(null); }}>
+              Rétablir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Add calendar dialog */}
       <Dialog open={addCalOpen} onOpenChange={setAddCalOpen}>

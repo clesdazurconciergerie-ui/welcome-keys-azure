@@ -675,6 +675,91 @@ export type Database = {
           },
         ]
       }
+      calendar_overrides: {
+        Row: {
+          created_at: string
+          id: string
+          override_type: string
+          property_id: string
+          reason: string | null
+          source_event_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          override_type?: string
+          property_id: string
+          reason?: string | null
+          source_event_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          override_type?: string
+          property_id?: string
+          reason?: string | null
+          source_event_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_overrides_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_incomes: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          description: string
+          id: string
+          income_date: string
+          notes: string | null
+          property_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          income_date?: string
+          notes?: string | null
+          property_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          income_date?: string
+          notes?: string | null
+          property_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_incomes_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checklist_items: {
         Row: {
           created_at: string
