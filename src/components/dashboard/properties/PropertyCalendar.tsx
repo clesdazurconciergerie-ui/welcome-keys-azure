@@ -366,16 +366,16 @@ export function PropertyCalendar({ propertyId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Upcoming events list */}
+      {/* All reservations list */}
       {allEvents.length > 0 && (
         <Card>
           <CardContent className="pt-5">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Réservations à venir</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Toutes les réservations</h3>
             <div className="space-y-2">
               {allEvents
-                .filter(e => e.end_date >= new Date().toISOString().substring(0, 10) && (e.event_type === "reservation" || e.event_type === "booking"))
-                .sort((a, b) => a.start_date.localeCompare(b.start_date))
-                .slice(0, 10)
+                .filter(e => e.event_type === "reservation" || e.event_type === "booking")
+                .sort((a, b) => b.start_date.localeCompare(a.start_date))
+                .slice(0, 30)
                 .map(ev => {
                   const isHidden = hiddenEventIds.has(ev.id);
                   return (
