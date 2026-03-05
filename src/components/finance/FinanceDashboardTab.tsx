@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useInvoices } from "@/hooks/useInvoices";
 import { useUnifiedExpenses } from "@/hooks/useUnifiedExpenses";
 import { useFinancialSettings } from "@/hooks/useFinancialSettings";
+import { useCashIncomes } from "@/hooks/useCashIncomes";
 import {
   TrendingUp, TrendingDown, Euro, AlertCircle, FileText, Receipt,
   CheckCircle, Clock, ArrowUpRight
@@ -23,11 +24,12 @@ export function FinanceDashboardTab() {
   const { invoices, loading: iLoading } = useInvoices();
   const { unified: allExpenses, loading: uLoading, paidByType } = useUnifiedExpenses();
   const { settings: fs } = useFinancialSettings();
+  const { incomes: cashIncomes, loading: cLoading } = useCashIncomes();
 
   const vatEnabled = fs?.vat_enabled ?? true;
   const effectiveDisplayMode = vatEnabled ? displayMode : "ht";
 
-  const loading = iLoading || uLoading;
+  const loading = iLoading || uLoading || cLoading;
 
   const dateRange = useMemo(() => {
     const now = new Date();
@@ -59,10 +61,17 @@ export function FinanceDashboardTab() {
     const invoiceRevenue = activeInvoices.reduce((s, inv) => s + Number(inv[amountField] || 0), 0);
     const creditNoteTotal = creditNotes.reduce((s, inv) => s + Math.abs(Number(inv[amountField] || 0)), 0);
     
-    const paidRevenue = activeInvoices.filter(i => i.status === "paid").reduce((s, i) => s + Number(i[amountField] || 0), 0);
+     const paidRevenue = activeInvoices.filter(i => i.status === "paid").reduce((s, i) => s + Number(i[amountField] || 0), 0);
     const pendingRevenue = activeInvoices.filter(i => ["sent", "overdue"].includes(i.status)).reduce((s, i) => s + Number(i[amountField] || 0), 0);
 
-    const grossRevenue = cashOnly ? paidRevenue - creditNoteTotal : invoiceRevenue - creditNoteTotal;
+    // Cash incomes in period
+    const cashInPeriod = cashIncomes.filter(ci => {
+      const d = new Date(ci.income_date);
+      return d >= dateRange.start && d <= dateRange.end;
+    });
+    const cashTotal = cashInPeriod.reduce((s, ci) => s + Number(ci.amount), 0);
+
+    const grossRevenue = (cashOnly ? paidRevenue - creditNoteTotal : invoiceRevenue - creditNoteTotal) + cashTotal;
 
     // Expenses (unified: manual expenses + vendor payments + paid interventions)
     const filteredUnified = allExpenses.filter(u => {
@@ -85,11 +94,11 @@ export function FinanceDashboardTab() {
     const receivable = sentTotal + overdueTotal;
 
     return {
-      grossRevenue, paidRevenue, pendingRevenue,
+      grossRevenue, paidRevenue, pendingRevenue, cashTotal,
       expensesTotal, vpTotal, missionTotal, totalExpenses,
       netProfit, receivable, sentTotal, overdueTotal,
     };
-  }, [invoices, allExpenses, dateRange, effectiveDisplayMode, cashOnly]);
+  }, [invoices, allExpenses, cashIncomes, dateRange, effectiveDisplayMode, cashOnly]);
 
   // Chart data
   const chartData = useMemo(() => {
