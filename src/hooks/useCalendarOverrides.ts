@@ -36,6 +36,7 @@ export function useCalendarOverrides(propertyId: string | undefined) {
   const hideEvent = async (sourceEventId: string, reason?: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || !propertyId) return;
+    setLoading(true);
     const { error } = await (supabase as any).from("calendar_overrides").insert({
       user_id: user.id,
       property_id: propertyId,
@@ -44,7 +45,9 @@ export function useCalendarOverrides(propertyId: string | undefined) {
       reason: reason || null,
     });
     if (error) {
-      toast.error("Erreur lors du masquage");
+      console.error("calendar_overrides insert error:", error);
+      toast.error(`Erreur lors du masquage: ${error.message}`);
+      setLoading(false);
       return;
     }
     toast.success("Réservation masquée pour le propriétaire");
@@ -54,6 +57,7 @@ export function useCalendarOverrides(propertyId: string | undefined) {
   const restoreEvent = async (sourceEventId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || !propertyId) return;
+    setLoading(true);
     const { error } = await (supabase as any)
       .from("calendar_overrides")
       .delete()
@@ -61,7 +65,9 @@ export function useCalendarOverrides(propertyId: string | undefined) {
       .eq("source_event_id", sourceEventId)
       .eq("user_id", user.id);
     if (error) {
-      toast.error("Erreur lors de la restauration");
+      console.error("calendar_overrides delete error:", error);
+      toast.error(`Erreur lors de la restauration: ${error.message}`);
+      setLoading(false);
       return;
     }
     toast.success("Réservation rétablie");
