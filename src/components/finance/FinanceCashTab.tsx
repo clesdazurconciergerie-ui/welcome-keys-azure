@@ -34,12 +34,12 @@ export function FinanceCashTab() {
   const [description, setDescription] = useState("");
   const [incomeDate, setIncomeDate] = useState(new Date().toISOString().slice(0, 10));
   const [category, setCategory] = useState("other");
-  const [propertyId, setPropertyId] = useState("");
+  const [propertyId, setPropertyId] = useState("none");
   const [notes, setNotes] = useState("");
 
   const resetForm = () => {
     setAmount(""); setDescription(""); setIncomeDate(new Date().toISOString().slice(0, 10));
-    setCategory("other"); setPropertyId(""); setNotes("");
+    setCategory("other"); setPropertyId("none"); setNotes("");
   };
 
   const handleAdd = async () => {
@@ -50,7 +50,7 @@ export function FinanceCashTab() {
       description: description.trim(),
       income_date: incomeDate,
       category,
-      property_id: propertyId || undefined,
+      property_id: propertyId !== "none" ? propertyId : undefined,
       notes: notes || undefined,
     });
     resetForm();
@@ -158,7 +158,7 @@ export function FinanceCashTab() {
                 <Select value={propertyId} onValueChange={setPropertyId}>
                   <SelectTrigger><SelectValue placeholder="Aucun" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Aucun</SelectItem>
+                    <SelectItem value="none">Aucun</SelectItem>
                     {properties.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
