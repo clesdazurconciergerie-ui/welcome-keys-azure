@@ -21,6 +21,7 @@ import Pricing from "./pages/Pricing";
 import BillingSuccess from "./pages/BillingSuccess";
 import ExpiredDemoPage from "./components/ExpiredDemoPage";
 import DashboardLayout from "./layouts/DashboardLayout";
+import { DashboardErrorBoundary } from "./components/DashboardErrorBoundary";
 import OwnerDashboardLayout from "./layouts/OwnerDashboardLayout";
 import ServiceProviderDashboardLayout from "./layouts/ServiceProviderDashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
@@ -73,7 +74,7 @@ const App = () => (
           <Route path="/reset-password" element={<ResetPassword />} />
           
           {/* Dashboard with sidebar layout */}
-          <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route path="/dashboard" element={<DashboardErrorBoundary><DashboardLayout /></DashboardErrorBoundary>}>
             <Route index element={<DashboardHome />} />
             <Route path="livrets" element={<LivretsPage />} />
             <Route path="proprietaires" element={<ProprietairesPage />} />
