@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsOwner } from "@/hooks/useIsOwner";
-import { Loader2, Home, ClipboardList, Percent, ChevronLeft, ChevronRight, CalendarDays, MessageCircle, Plus } from "lucide-react";
+import { useOwnerVisibleBookings } from "@/hooks/useOwnerVisibleBookings";
+import { Loader2, Home, ClipboardList, Percent, ChevronLeft, ChevronRight, CalendarDays, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface PropertySummary {
@@ -13,16 +14,6 @@ interface PropertySummary {
   name: string;
   address: string;
   status: string;
-}
-
-interface CalEvent {
-  id: string;
-  start_date: string;
-  end_date: string;
-  guest_name: string | null;
-  summary: string | null;
-  platform: string;
-  event_type: string;
 }
 
 const platformColors: Record<string, string> = {
@@ -38,10 +29,9 @@ export default function OwnerDashboardHome() {
   const { ownerId } = useIsOwner();
   const navigate = useNavigate();
   const [properties, setProperties] = useState<PropertySummary[]>([]);
+  const [propertyIds, setPropertyIds] = useState<string[]>([]);
   const [interventionsCount, setInterventionsCount] = useState(0);
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [propertiesLoading, setPropertiesLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const year = currentDate.getFullYear();
@@ -52,58 +42,40 @@ export default function OwnerDashboardHome() {
     const load = async () => {
       const { data: links } = await (supabase as any)
         .from("owner_properties").select("property_id").eq("owner_id", ownerId);
-      const propertyIds = (links || []).map((l: any) => l.property_id);
+      const ids = (links || []).map((l: any) => l.property_id);
+      setPropertyIds(ids);
 
-      if (propertyIds.length > 0) {
+      if (ids.length > 0) {
         const { data: props } = await (supabase as any)
-          .from("properties").select("id, name, address, status").in("id", propertyIds);
+          .from("properties").select("id, name, address, status").in("id", ids);
         setProperties(props || []);
-
-        const { data: bk } = await (supabase as any)
-          .from("bookings").select("id, check_in, check_out, guest_name, source")
-          .in("property_id", propertyIds);
-        setBookings(bk || []);
-
-        const { data: ce } = await (supabase as any)
-          .from("calendar_events").select("id, start_date, end_date, guest_name, summary, platform, event_type")
-          .in("property_id", propertyIds);
-        setCalendarEvents(ce || []);
       }
 
       const { count } = await (supabase as any)
         .from("owner_interventions").select("id", { count: "exact", head: true })
         .eq("owner_id", ownerId);
       setInterventionsCount(count || 0);
-      setLoading(false);
+      setPropertiesLoading(false);
     };
     load();
   }, [ownerId]);
 
-  const allEvents: CalEvent[] = useMemo(() => {
-    const bkEvents = bookings.map((b: any) => ({
-      id: `bk-${b.id}`, start_date: b.check_in, end_date: b.check_out,
-      guest_name: b.guest_name, summary: b.guest_name || "Réservation",
-      platform: "bookings_table", event_type: "booking",
-    }));
-    const ceEvents = calendarEvents.map((e: any) => ({
-      id: e.id, start_date: e.start_date, end_date: e.end_date,
-      guest_name: e.guest_name, summary: e.summary,
-      platform: e.platform, event_type: e.event_type || "unknown",
-    }));
-    return [...bkEvents, ...ceEvents];
-  }, [bookings, calendarEvents]);
+  // Use the shared hook — automatically excludes hidden reservations
+  const { visibleEvents: allEvents, visibleBookingsRaw, visibleCalendarEventsRaw, loading: dataLoading } = useOwnerVisibleBookings(propertyIds);
+
+  const loading = propertiesLoading || dataLoading;
 
   const occupancyStats = useMemo(() => {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const totalNights = lastDay.getDate();
     let bookedNights = 0;
-    for (const b of bookings) {
+    for (const b of visibleBookingsRaw) {
       const s = Math.max(new Date(b.check_in).getTime(), firstDay.getTime());
       const e = Math.min(new Date(b.check_out).getTime(), lastDay.getTime() + 86400000);
       bookedNights += Math.max(0, Math.round((e - s) / 86400000));
     }
-    for (const ev of calendarEvents) {
+    for (const ev of visibleCalendarEventsRaw) {
       if (ev.event_type === "reservation") {
         const s = Math.max(new Date(ev.start_date).getTime(), firstDay.getTime());
         const e = Math.min(new Date(ev.end_date).getTime(), lastDay.getTime() + 86400000);
@@ -116,7 +88,7 @@ export default function OwnerDashboardHome() {
       totalNights,
       occupancyPct: totalNights > 0 ? Math.round((bookedNights / totalNights) * 100) : 0,
     };
-  }, [bookings, calendarEvents, year, month]);
+  }, [visibleBookingsRaw, visibleCalendarEventsRaw, year, month]);
 
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1);
@@ -148,7 +120,7 @@ export default function OwnerDashboardHome() {
         <p className="text-muted-foreground mt-1 text-sm sm:text-base">Votre espace propriétaire MyWelkom</p>
       </motion.div>
 
-      {/* KPI cards — 1 col mobile, 3 col desktop */}
+      {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
           <Card className="border-border">
