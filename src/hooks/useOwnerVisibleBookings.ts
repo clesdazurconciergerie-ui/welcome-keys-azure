@@ -87,7 +87,9 @@ export function useOwnerVisibleBookings(propertyIds: string[]) {
   const visibleEvents: OwnerCalEvent[] = useMemo(() => {
     const bkEvents: OwnerCalEvent[] = bookings
       .filter((b: any) => {
+        // Check raw id, prefixed id, and linked calendar_event_id
         if (hiddenSourceIds.has(b.id)) return false;
+        if (hiddenSourceIds.has(`bk-${b.id}`)) return false;
         if (b.calendar_event_id && hiddenSourceIds.has(b.calendar_event_id)) return false;
         return true;
       })
@@ -131,6 +133,7 @@ export function useOwnerVisibleBookings(propertyIds: string[]) {
   const visibleBookingsRaw = useMemo(() => {
     return bookings.filter((b: any) => {
       if (hiddenSourceIds.has(b.id)) return false;
+      if (hiddenSourceIds.has(`bk-${b.id}`)) return false;
       if (b.calendar_event_id && hiddenSourceIds.has(b.calendar_event_id)) return false;
       return true;
     });
