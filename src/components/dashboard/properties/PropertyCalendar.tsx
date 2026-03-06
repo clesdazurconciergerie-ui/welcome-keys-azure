@@ -375,7 +375,6 @@ export function PropertyCalendar({ propertyId }: Props) {
               {allEvents
                 .filter(e => e.event_type === "reservation" || e.event_type === "booking")
                 .sort((a, b) => b.start_date.localeCompare(a.start_date))
-                .slice(0, 30)
                 .map(ev => {
                   const isHidden = hiddenEventIds.has(ev.id);
                   return (
