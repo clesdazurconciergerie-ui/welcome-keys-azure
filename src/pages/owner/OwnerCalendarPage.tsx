@@ -5,19 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsOwner } from "@/hooks/useIsOwner";
+import { useOwnerVisibleBookings, OwnerCalEvent } from "@/hooks/useOwnerVisibleBookings";
 import { Loader2, ChevronLeft, ChevronRight, CalendarCheck, Moon, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
-
-interface CalEvent {
-  id: string;
-  start_date: string;
-  end_date: string;
-  guest_name: string | null;
-  summary: string | null;
-  platform: string;
-  event_type: string;
-  source?: string | null;
-}
 
 const platformColors: Record<string, string> = {
   airbnb: "bg-[#FF5A5F]/10 text-[#FF5A5F] border-[#FF5A5F]/20",
@@ -36,10 +26,7 @@ export default function OwnerCalendarPage() {
   const { ownerId } = useIsOwner();
   const [properties, setProperties] = useState<{ id: string; name: string }[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<string>("");
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
-  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
+  const [propertiesLoading, setPropertiesLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const year = currentDate.getFullYear();
@@ -58,49 +45,16 @@ export default function OwnerCalendarPage() {
         setProperties(data || []);
         if (data?.length) setSelectedProperty(data[0].id);
       }
-      setLoading(false);
+      setPropertiesLoading(false);
     };
     load();
   }, [ownerId]);
 
-  // Load bookings + calendar events + overrides for selected property
-  useEffect(() => {
-    if (!selectedProperty) return;
-    const load = async () => {
-      const { data: bk } = await (supabase as any)
-        .from("bookings").select("id, check_in, check_out, guest_name, source")
-        .eq("property_id", selectedProperty).order("check_in", { ascending: false });
-      setBookings(bk || []);
+  // Use the shared hook — filters out hidden reservations automatically
+  const propertyIds = useMemo(() => selectedProperty ? [selectedProperty] : [], [selectedProperty]);
+  const { visibleEvents: allEvents, visibleBookingsRaw, visibleCalendarEventsRaw, loading: dataLoading } = useOwnerVisibleBookings(propertyIds);
 
-      const { data: ce } = await (supabase as any)
-        .from("calendar_events").select("id, start_date, end_date, guest_name, summary, platform, event_type")
-        .eq("property_id", selectedProperty).order("start_date", { ascending: false });
-      setCalendarEvents(ce || []);
-
-      // Load overrides to filter hidden events
-      const { data: overrides } = await (supabase as any)
-        .from("calendar_overrides").select("source_event_id")
-        .eq("property_id", selectedProperty)
-        .eq("override_type", "hide");
-      setHiddenIds(new Set((overrides || []).map((o: any) => o.source_event_id)));
-    };
-    load();
-  }, [selectedProperty]);
-
-  // Merge all events, filtering out hidden ones
-  const allEvents: CalEvent[] = useMemo(() => {
-    const bkEvents = bookings.map((b: any) => ({
-      id: `bk-${b.id}`, start_date: b.check_in, end_date: b.check_out,
-      guest_name: b.guest_name, summary: b.guest_name || "Réservation",
-      platform: "bookings_table", event_type: "booking", source: b.source,
-    }));
-    const ceEvents = calendarEvents.map((e: any) => ({
-      id: e.id, start_date: e.start_date, end_date: e.end_date,
-      guest_name: e.guest_name, summary: e.summary,
-      platform: e.platform, event_type: e.event_type || "unknown",
-    }));
-    return [...bkEvents, ...ceEvents].filter(e => !hiddenIds.has(e.id));
-  }, [bookings, calendarEvents, hiddenIds]);
+  const loading = propertiesLoading || dataLoading;
 
   // Calendar grid
   const calendarDays = useMemo(() => {
@@ -122,18 +76,18 @@ export default function OwnerCalendarPage() {
     return blocked.length > 0 ? [blocked[0]] : [];
   };
 
-  // Occupancy stats
+  // Occupancy stats — uses ONLY visible bookings
   const occupancyStats = useMemo(() => {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const totalNights = lastDay.getDate();
     let bookedNights = 0;
-    for (const b of bookings) {
+    for (const b of visibleBookingsRaw) {
       const s = Math.max(new Date(b.check_in).getTime(), firstDay.getTime());
       const e = Math.min(new Date(b.check_out).getTime(), lastDay.getTime() + 86400000);
       bookedNights += Math.max(0, Math.round((e - s) / 86400000));
     }
-    for (const ev of calendarEvents) {
+    for (const ev of visibleCalendarEventsRaw) {
       if (ev.event_type === "reservation") {
         const s = Math.max(new Date(ev.start_date).getTime(), firstDay.getTime());
         const e = Math.min(new Date(ev.end_date).getTime(), lastDay.getTime() + 86400000);
@@ -142,7 +96,7 @@ export default function OwnerCalendarPage() {
     }
     bookedNights = Math.min(bookedNights, totalNights);
     return { bookedNights, emptyDays: totalNights - bookedNights, occupancyPct: Math.round((bookedNights / totalNights) * 100), totalNights };
-  }, [bookings, calendarEvents, year, month]);
+  }, [visibleBookingsRaw, visibleCalendarEventsRaw, year, month]);
 
   const today = new Date();
   const isToday = (d: Date) => d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
