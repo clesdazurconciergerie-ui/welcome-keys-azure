@@ -65,11 +65,29 @@ export function useBookings(propertyId?: string) {
   };
 
   const deleteBooking = async (id: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Find the booking to check for linked calendar_event
+    const target = bookings.find(b => b.id === id);
+
     const { error } = await supabase
       .from("bookings" as any)
       .delete()
       .eq("id", id);
     if (error) { toast.error("Erreur suppression"); return; }
+
+    // Hide linked calendar_event from owner portal so it doesn't reappear
+    if (target?.calendar_event_id && target.property_id) {
+      await (supabase as any).from("calendar_overrides").upsert({
+        user_id: user.id,
+        property_id: target.property_id,
+        source_event_id: target.calendar_event_id,
+        override_type: "hide",
+        reason: "booking_deleted",
+      }, { onConflict: "user_id,property_id,source_event_id" }).then(() => {});
+    }
+
     toast.success("Réservation supprimée");
     await fetchBookings();
   };
