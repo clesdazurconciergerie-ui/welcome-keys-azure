@@ -82,10 +82,7 @@ export default function OwnerDocumentsPage() {
       return;
     }
 
-    const { data: urlData } = supabase.storage
-      .from("owner-documents").getPublicUrl(path);
-
-    // Include property_id (first property) so concierge can see it in property docs
+    // Store the file path (not public URL) — bucket is private, we'll use signed URLs
     const { error: dbErr } = await (supabase as any)
       .from("owner_documents").insert({
         owner_id: ownerId,
@@ -93,7 +90,7 @@ export default function OwnerDocumentsPage() {
         property_id: propertyIds[0] || null,
         name: docName.trim() || file.name,
         type: docType,
-        file_url: urlData.publicUrl,
+        file_url: path,
       });
 
     if (dbErr) {
@@ -162,8 +159,12 @@ export default function OwnerDocumentsPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => window.open(doc.file_url, "_blank")}>
+                    <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" onClick={async () => {
+                      const { data, error } = await supabase.storage.from("owner-documents").createSignedUrl(doc.file_url, 300);
+                      if (error || !data?.signedUrl) { toast.error("Impossible d'ouvrir le fichier : " + (error?.message || "URL introuvable")); return; }
+                      window.open(data.signedUrl, "_blank");
+                    }}>
                       <Download className="w-4 h-4" />
                     </Button>
                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(doc)}>
