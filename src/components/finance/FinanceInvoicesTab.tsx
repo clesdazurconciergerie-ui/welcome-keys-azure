@@ -640,9 +640,10 @@ export function FinanceInvoicesTab() {
                         <Send className="h-4 w-4 text-primary" />
                       </Button>
                     )}
-                    {["sent", "overdue"].includes(inv.status) && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateInvoiceStatus(inv.id, "paid")} title="Marquer payée">
-                        <CheckCircle className="h-4 w-4 text-emerald-600" />
+                    {inv.status !== "paid" && inv.status !== "canceled" && (
+                      <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => updateInvoiceStatus(inv.id, "paid")} title="Marquer payée">
+                        <CheckCircle className="h-4 w-4" />
+                        <span className="text-xs hidden sm:inline">Payée</span>
                       </Button>
                     )}
                     {inv.status !== "canceled" && inv.status !== "paid" && (
