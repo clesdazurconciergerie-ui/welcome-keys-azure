@@ -400,15 +400,14 @@ const PropertyDetailPage = () => {
                       </div>
                     </div>
                     <Button size="icon" variant="ghost" className="h-8 w-8" onClick={async () => {
-                      // file_url may be a path (new) or a full URL (legacy)
-                      const isPath = !doc.file_url.startsWith("http");
-                      if (isPath) {
-                        const { data, error } = await supabase.storage.from("owner-documents").createSignedUrl(doc.file_url, 300);
-                        if (error || !data?.signedUrl) { toast.error("Impossible d'ouvrir : " + (error?.message || "URL introuvable")); return; }
-                        window.open(data.signedUrl, "_blank");
-                      } else {
-                        window.open(doc.file_url, "_blank");
-                      }
+                      // Extract storage path from file_url (may be full URL or just path)
+                      let storagePath = doc.file_url;
+                      const marker = "/object/public/owner-documents/";
+                      const idx = storagePath.indexOf(marker);
+                      if (idx !== -1) storagePath = storagePath.substring(idx + marker.length);
+                      const { data, error } = await supabase.storage.from("owner-documents").createSignedUrl(storagePath, 300);
+                      if (error || !data?.signedUrl) { toast.error("Impossible d'ouvrir : " + (error?.message || "URL introuvable")); return; }
+                      window.open(data.signedUrl, "_blank");
                     }}>
                       <Download className="h-4 w-4" />
                     </Button>
