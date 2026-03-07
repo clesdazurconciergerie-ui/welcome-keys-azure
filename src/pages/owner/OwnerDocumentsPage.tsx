@@ -161,7 +161,11 @@ export default function OwnerDocumentsPage() {
                   </div>
                     <div className="flex items-center gap-1">
                     <Button variant="ghost" size="icon" onClick={async () => {
-                      const { data, error } = await supabase.storage.from("owner-documents").createSignedUrl(doc.file_url, 300);
+                      let storagePath = doc.file_url;
+                      const marker = "/object/public/owner-documents/";
+                      const idx = storagePath.indexOf(marker);
+                      if (idx !== -1) storagePath = storagePath.substring(idx + marker.length);
+                      const { data, error } = await supabase.storage.from("owner-documents").createSignedUrl(storagePath, 300);
                       if (error || !data?.signedUrl) { toast.error("Impossible d'ouvrir le fichier : " + (error?.message || "URL introuvable")); return; }
                       window.open(data.signedUrl, "_blank");
                     }}>
