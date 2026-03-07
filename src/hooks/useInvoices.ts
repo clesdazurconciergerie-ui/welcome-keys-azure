@@ -220,12 +220,19 @@ export function useInvoices() {
   };
 
   const updateInvoiceStatus = async (id: string, status: string) => {
+    const updatePayload: Record<string, any> = { status };
+    if (status === "paid") {
+      updatePayload.paid_at = new Date().toISOString();
+    }
+    if (status !== "paid") {
+      updatePayload.paid_at = null;
+    }
     const { error } = await supabase
       .from("invoices" as any)
-      .update({ status })
+      .update(updatePayload)
       .eq("id", id);
-    if (error) { toast.error("Erreur"); return; }
-    toast.success("Statut mis à jour");
+    if (error) { toast.error(`Erreur: ${error.message}`); return; }
+    toast.success(status === "paid" ? "Facture marquée comme payée" : "Statut mis à jour");
     await fetchInvoices();
   };
 

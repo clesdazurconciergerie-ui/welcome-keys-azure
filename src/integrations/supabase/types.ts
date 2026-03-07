@@ -1486,6 +1486,7 @@ export type Database = {
           notes: string | null
           owner_id: string
           owner_snapshot: Json | null
+          paid_at: string | null
           pdf_path: string | null
           period_end: string
           period_start: string
@@ -1510,6 +1511,7 @@ export type Database = {
           notes?: string | null
           owner_id: string
           owner_snapshot?: Json | null
+          paid_at?: string | null
           pdf_path?: string | null
           period_end: string
           period_start: string
@@ -1534,6 +1536,7 @@ export type Database = {
           notes?: string | null
           owner_id?: string
           owner_snapshot?: Json | null
+          paid_at?: string | null
           pdf_path?: string | null
           period_end?: string
           period_start?: string
