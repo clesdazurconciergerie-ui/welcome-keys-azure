@@ -397,6 +397,15 @@ export default function SPMissionsUnifiedPage() {
     return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
 
+  // Today's missions for alert banner
+  const todayMissions = useMemo(() => {
+    const today = new Date();
+    const todayStr = today.toDateString();
+    const fromNew = myNewMissions.filter(m => new Date(m.start_at).toDateString() === todayStr);
+    const fromLegacy = myLegacyMissions.filter(m => new Date(m.scheduled_date).toDateString() === todayStr);
+    return { count: fromNew.length + fromLegacy.length, firstNew: fromNew[0], firstLegacy: fromLegacy[0] };
+  }, [myNewMissions, myLegacyMissions]);
+
   return (
     <div className="space-y-5 sm:space-y-6 max-w-6xl">
       {/* ── Header ─────────────────────────────────────────────── */}
@@ -419,9 +428,45 @@ export default function SPMissionsUnifiedPage() {
         <StatCard icon={TrendingUp} label="Revenus estimés" value={`${estimatedRevenue}€`} accent="bg-[hsl(var(--gold-dark))]" />
       </motion.div>
 
-      {/* ── Tabs ───────────────────────────────────────────────── */}
-      <Tabs defaultValue="ouvertes" className="w-full">
+      {/* ── Today alert banner ─────────────────────────────────── */}
+      {todayMissions.count > 0 && (
+        <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
+          <Card className="border-amber-200 bg-amber-50/60">
+            <CardContent className="p-3 sm:p-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                </div>
+                <p className="text-sm font-medium text-amber-800">
+                  Vous avez {todayMissions.count} mission{todayMissions.count > 1 ? 's' : ''} aujourd'hui.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-amber-300 text-amber-700 hover:bg-amber-100 shrink-0"
+                onClick={() => {
+                  if (todayMissions.firstNew) setSelectedNewMission(todayMissions.firstNew);
+                  else if (todayMissions.firstLegacy) { setLegacySelected(todayMissions.firstLegacy); setCheckedItems({}); setProviderComment(""); }
+                }}
+              >
+                Voir ma mission
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* ── Tabs (Mes missions first) ──────────────────────────── */}
+      <Tabs defaultValue="mes-missions" className="w-full">
         <TabsList className="w-full h-12 sm:h-11 sm:max-w-md p-1 bg-muted">
+          <TabsTrigger value="mes-missions" className="flex-1 h-10 sm:h-9 data-[state=active]:bg-[hsl(var(--brand-blue))] data-[state=active]:text-white gap-1.5 text-sm relative">
+            <ClipboardList className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+            Mes missions
+            {myMissionsCount > 0 && (
+              <span className="ml-1 bg-white/20 data-[state=active]:bg-white/30 text-[11px] px-1.5 py-0.5 rounded-full font-semibold">{myMissionsCount}</span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="ouvertes" className="flex-1 h-10 sm:h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white gap-1.5 text-sm">
             <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
             Ouvertes
@@ -429,11 +474,113 @@ export default function SPMissionsUnifiedPage() {
               <span className="ml-1 bg-white/20 text-[11px] px-1.5 py-0.5 rounded-full">{openMissions.length}</span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="mes-missions" className="flex-1 h-10 sm:h-9 data-[state=active]:bg-[hsl(var(--brand-blue))] data-[state=active]:text-white gap-1.5 text-sm">
-            <ClipboardList className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-            Mes missions
-          </TabsTrigger>
         </TabsList>
+
+        {/* ── Tab: Mes missions (now first) ─────────────────────── */}
+        <TabsContent value="mes-missions" className="mt-4 space-y-4">
+          <div className="flex items-center gap-2">
+            <Button
+              variant={myView === "list" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setMyView("list")}
+              className={myView === "list" ? "bg-[hsl(var(--brand-blue))] text-white" : ""}
+            >
+              <List className="w-3.5 h-3.5 mr-1" /> Liste
+            </Button>
+            <Button
+              variant={myView === "calendar" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setMyView("calendar")}
+              className={myView === "calendar" ? "bg-[hsl(var(--brand-blue))] text-white" : ""}
+            >
+              <CalendarDays className="w-3.5 h-3.5 mr-1" /> Calendrier
+            </Button>
+          </div>
+
+          {myView === "calendar" ? (
+            <MiniCalendar missions={myNewMissions} onSelect={() => {}} />
+          ) : (
+            <>
+              {myNewMissions.length > 0 && (
+                <div className="space-y-3">
+                  {myNewMissions.map((m, i) => (
+                    <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+                      <MissionCard
+                        title={m.title}
+                        propertyName={m.property?.name}
+                        dateStr={fmtDate(m.start_at)}
+                        rawDate={m.start_at}
+                        missionType={m.mission_type}
+                        payoutAmount={m.payout_amount}
+                        instructions={m.instructions}
+                        status={m.status}
+                        propertyPhotoUrl={getPropertyPhoto(m)}
+                        onClick={() => setSelectedNewMission(m)}
+                        actions={
+                          <>
+                            {m.status === "assigned" && (
+                              <Button size="sm" onClick={(e) => { e.stopPropagation(); confirmMission(m.id); }}>
+                                <CheckCircle className="w-3.5 h-3.5 mr-1" /> Confirmer
+                              </Button>
+                            )}
+                            {m.status === "confirmed" && (
+                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedNewMission(m); }}>
+                                <Camera className="w-3.5 h-3.5 mr-1" /> Détail & Photos
+                              </Button>
+                            )}
+                            {["done", "approved"].includes(m.status) && (
+                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedNewMission(m); }}>
+                                Voir la mission
+                              </Button>
+                            )}
+                          </>
+                        }
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
+              {myLegacyMissions.length > 0 && (
+                <div className="space-y-3">
+                  {myNewMissions.length > 0 && (
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest pt-2">Interventions (ancien système)</p>
+                  )}
+                  {myLegacyMissions.map((m, i) => (
+                    <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+                      <MissionCard
+                        title={m.property?.name || "Mission"}
+                        propertyName={m.property?.address}
+                        dateStr={new Date(m.scheduled_date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
+                        rawDate={m.scheduled_date}
+                        missionType={m.mission_type}
+                        payoutAmount={m.mission_amount}
+                        instructions={m.notes}
+                        status={m.status}
+                        photoCount={m.photos?.length || 0}
+                        onClick={() => { setLegacySelected(m); setCheckedItems({}); setProviderComment(""); }}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
+              {myNewMissions.length === 0 && myLegacyMissions.length === 0 && (
+                <Card className="border-dashed border-2 border-border">
+                  <CardContent className="py-16 text-center">
+                    <div className="w-16 h-16 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">
+                      <ClipboardList className="w-7 h-7 text-muted-foreground" />
+                    </div>
+                    <h3 className="font-semibold text-lg text-foreground mb-1">Aucune mission acceptée pour le moment</h3>
+                    <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+                      Postulez aux missions ouvertes pour recevoir du travail.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+        </TabsContent>
 
         {/* ── Tab: Ouvertes ────────────────────────────────────── */}
         <TabsContent value="ouvertes" className="mt-4">
@@ -489,107 +636,6 @@ export default function SPMissionsUnifiedPage() {
                 );
               })}
             </div>
-          )}
-        </TabsContent>
-
-        {/* ── Tab: Mes missions ────────────────────────────────── */}
-        <TabsContent value="mes-missions" className="mt-4 space-y-4">
-          <div className="flex items-center gap-2">
-            <Button
-              variant={myView === "list" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setMyView("list")}
-              className={myView === "list" ? "bg-[hsl(var(--brand-blue))] text-white" : ""}
-            >
-              <List className="w-3.5 h-3.5 mr-1" /> Liste
-            </Button>
-            <Button
-              variant={myView === "calendar" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setMyView("calendar")}
-              className={myView === "calendar" ? "bg-[hsl(var(--brand-blue))] text-white" : ""}
-            >
-              <CalendarDays className="w-3.5 h-3.5 mr-1" /> Calendrier
-            </Button>
-          </div>
-
-          {myView === "calendar" ? (
-            <MiniCalendar missions={myNewMissions} onSelect={() => {}} />
-          ) : (
-            <>
-              {myNewMissions.length > 0 && (
-                <div className="space-y-3">
-                  {myNewMissions.map((m, i) => (
-                    <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-                      <MissionCard
-                        title={m.title}
-                        propertyName={m.property?.name}
-                        dateStr={fmtDate(m.start_at)}
-                        rawDate={m.start_at}
-                        missionType={m.mission_type}
-                        payoutAmount={m.payout_amount}
-                        instructions={m.instructions}
-                        status={m.status}
-                        propertyPhotoUrl={getPropertyPhoto(m)}
-                        onClick={() => setSelectedNewMission(m)}
-                        actions={
-                          <>
-                            {m.status === "assigned" && (
-                              <Button size="sm" onClick={(e) => { e.stopPropagation(); confirmMission(m.id); }}>
-                                <CheckCircle className="w-3.5 h-3.5 mr-1" /> Confirmer
-                              </Button>
-                            )}
-                            {m.status === "confirmed" && (
-                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedNewMission(m); }}>
-                                <Camera className="w-3.5 h-3.5 mr-1" /> Détail & Photos
-                              </Button>
-                            )}
-                          </>
-                        }
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-
-              {myLegacyMissions.length > 0 && (
-                <div className="space-y-3">
-                  {myNewMissions.length > 0 && (
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest pt-2">Interventions (ancien système)</p>
-                  )}
-                  {myLegacyMissions.map((m, i) => (
-                    <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-                      <MissionCard
-                        title={m.property?.name || "Mission"}
-                        propertyName={m.property?.address}
-                        dateStr={new Date(m.scheduled_date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
-                        rawDate={m.scheduled_date}
-                        missionType={m.mission_type}
-                        payoutAmount={m.mission_amount}
-                        instructions={m.notes}
-                        status={m.status}
-                        photoCount={m.photos?.length || 0}
-                        onClick={() => { setLegacySelected(m); setCheckedItems({}); setProviderComment(""); }}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-
-              {myNewMissions.length === 0 && myLegacyMissions.length === 0 && (
-                <Card className="border-dashed border-2 border-border">
-                  <CardContent className="py-16 text-center">
-                    <div className="w-16 h-16 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">
-                      <ClipboardList className="w-7 h-7 text-muted-foreground" />
-                    </div>
-                    <h3 className="font-semibold text-lg text-foreground mb-1">Aucune mission en cours</h3>
-                    <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-                      Postulez aux missions ouvertes pour recevoir du travail.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </>
           )}
         </TabsContent>
       </Tabs>
