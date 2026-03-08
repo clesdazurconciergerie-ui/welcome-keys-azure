@@ -14,8 +14,17 @@ export function NotificationsBell() {
 
   const handleNotificationClick = (notif: any) => {
     markAsRead(notif.id);
-    if (notif.link) {
-      navigate(notif.link);
+    if (notif.related_id && notif.related_type) {
+      // Navigate based on notification type
+      const routes: Record<string, string> = {
+        mission: "/dashboard/missions",
+        inspection: "/dashboard/etats-des-lieux",
+        owner_request: "/dashboard/demandes-proprietaires",
+        prospect: "/dashboard/prospection",
+      };
+      if (routes[notif.related_type]) {
+        navigate(routes[notif.related_type]);
+      }
     }
   };
 
