@@ -60,7 +60,7 @@ export function InspectionPdfGenerator({ inspection }: { inspection: Inspection 
         filename: `etat-des-lieux-${inspection.inspection_date}.pdf`,
         image: { type: 'jpeg', quality: 0.92 },
         html2canvas: { scale: 2, useCORS: true, width: elW, height: elH, scrollY: 0, scrollX: 0 },
-        jsPDF: { unit: 'px', format: [elW * 2, elH * 2], orientation: 'portrait', hotfixes: ['px_scaling'] },
+        jsPDF: { unit: 'px', format: [elW * 2, elH * 2] as any, orientation: 'portrait', hotfixes: ['px_scaling'] },
         pagebreak: { mode: ['avoid-all'] },
       }).from(el).save();
       el.style.display = 'none';
