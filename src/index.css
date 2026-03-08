@@ -2,126 +2,122 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* MyWelkom Premium Design System v2 — Linear / Stripe / Vercel inspired */
 
 @layer base {
   :root {
-    /* MyWelkom Premium Design System - Brand #061452 + Gold #C4A45B */
-    --background: 0 0% 100%;
-    --foreground: 230 60% 10%;
+    /* Core palette — Deep Navy + Warm Gold */
+    --background: 225 20% 98%;
+    --foreground: 232 45% 12%;
 
-    /* Brand - Deep Blue #061452 */
+    /* Brand Navy #061452 */
     --brand-blue: 232 85% 17%;
-    --brand-blue-hover: 232 85% 12%;
+    --brand-blue-hover: 232 85% 14%;
     
-    /* Gold accent #C4A45B */
+    /* Gold #C4A45B */
     --gold: 42 46% 56%;
-    --gold-light: 42 50% 72%;
+    --gold-light: 42 55% 75%;
     --gold-dark: 42 46% 42%;
     
-    /* Card */
+    /* Card — clean white with subtle warmth */
     --card: 0 0% 100%;
-    --card-foreground: 230 60% 10%;
+    --card-foreground: 232 45% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 230 60% 10%;
+    --popover-foreground: 232 45% 12%;
 
-    /* Primary = Deep Blue #061452 */
+    /* Primary = Deep Navy */
     --primary: 232 85% 17%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Soft background */
-    --secondary: 220 30% 97%;
-    --secondary-foreground: 230 60% 10%;
+    /* Secondary — ultra soft */
+    --secondary: 225 25% 95%;
+    --secondary-foreground: 232 45% 12%;
 
     /* Muted */
-    --muted: 220 20% 96%;
-    --muted-foreground: 220 15% 46%;
+    --muted: 225 18% 94%;
+    --muted-foreground: 225 12% 50%;
 
-    /* Accent - Gold #C4A45B */
+    /* Accent = Gold */
     --accent: 42 46% 56%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders */
-    --border: 220 20% 92%;
-    --input: 220 20% 92%;
+    /* Borders — very subtle */
+    --border: 225 18% 90%;
+    --input: 225 18% 88%;
     --ring: 232 85% 17%;
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
 
-    /* Premium shadows */
-    --shadow-sm: 0 1px 2px 0 rgba(6, 20, 82, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(6, 20, 82, 0.1), 0 2px 4px -1px rgba(6, 20, 82, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(6, 20, 82, 0.12), 0 4px 6px -2px rgba(6, 20, 82, 0.08);
-    --shadow-xl: 0 20px 25px -5px rgba(6, 20, 82, 0.15), 0 10px 10px -5px rgba(6, 20, 82, 0.08);
+    /* Elevation system */
+    --shadow-xs: 0 1px 2px rgba(6, 20, 82, 0.04);
+    --shadow-sm: 0 1px 3px rgba(6, 20, 82, 0.06), 0 1px 2px rgba(6, 20, 82, 0.04);
+    --shadow-md: 0 4px 12px rgba(6, 20, 82, 0.08), 0 1px 3px rgba(6, 20, 82, 0.04);
+    --shadow-lg: 0 8px 24px rgba(6, 20, 82, 0.1), 0 2px 8px rgba(6, 20, 82, 0.04);
+    --shadow-xl: 0 16px 48px rgba(6, 20, 82, 0.12), 0 4px 12px rgba(6, 20, 82, 0.06);
     
-    /* Glass effect */
-    --glass-bg: rgba(255, 255, 255, 0.8);
-    --glass-border: rgba(255, 255, 255, 0.3);
+    /* Glass */
+    --glass-bg: rgba(255, 255, 255, 0.82);
+    --glass-border: rgba(255, 255, 255, 0.4);
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(232, 85%, 17%) 0%, hsl(232, 85%, 27%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(232, 85%, 17%) 0%, hsl(232, 85%, 22%) 50%, hsl(232, 85%, 30%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(42, 46%, 56%) 0%, hsl(42, 50%, 65%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(232, 85%, 17%) 0%, hsl(232, 70%, 25%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(232, 85%, 10%) 0%, hsl(232, 80%, 18%) 50%, hsl(232, 70%, 25%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(42, 46%, 52%) 0%, hsl(42, 55%, 62%) 100%);
+    --gradient-subtle: linear-gradient(135deg, hsl(225, 20%, 98%) 0%, hsl(225, 25%, 95%) 100%);
 
+    /* Sidebar */
     --sidebar-background: 232 85% 10%;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 42 46% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 232 60% 18%;
     --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 232 40% 22%;
+    --sidebar-border: 232 40% 20%;
     --sidebar-ring: 42 46% 56%;
+
+    /* Status colors */
+    --success: 152 60% 42%;
+    --success-light: 152 55% 95%;
+    --warning: 38 92% 50%;
+    --warning-light: 38 90% 95%;
+    --info: 213 90% 55%;
+    --info-light: 213 85% 95%;
   }
 
   .dark {
-    --background: 230 35% 8%;
+    --background: 232 35% 7%;
     --foreground: 0 0% 95%;
-
     --brand-blue: 230 85% 18%;
-    --brand-blue-light: 230 70% 28%;
-    --brand-blue-dark: 230 95% 12%;
-
-    --card: 230 35% 10%;
+    --card: 232 30% 10%;
     --card-foreground: 0 0% 95%;
-
-    --popover: 230 35% 10%;
+    --popover: 232 30% 10%;
     --popover-foreground: 0 0% 95%;
-
     --primary: 230 70% 38%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 230 25% 15%;
+    --secondary: 232 25% 14%;
     --secondary-foreground: 0 0% 95%;
-
-    --muted: 230 25% 15%;
+    --muted: 232 25% 14%;
     --muted-foreground: 0 0% 60%;
-
     --accent: 44 40% 66%;
     --accent-foreground: 230 85% 18%;
-
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 230 25% 20%;
-    --input: 230 25% 20%;
+    --border: 232 25% 18%;
+    --input: 232 25% 18%;
     --ring: 230 70% 38%;
-
-    --glass-bg: rgba(7, 15, 35, 0.8);
-    --glass-border: rgba(255, 255, 255, 0.1);
-
-    --sidebar-background: 230 35% 8%;
+    --glass-bg: rgba(7, 15, 35, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --sidebar-background: 232 35% 6%;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 230 70% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 230 25% 15%;
+    --sidebar-accent: 232 25% 14%;
     --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 230 25% 20%;
+    --sidebar-border: 232 25% 18%;
     --sidebar-ring: 230 70% 38%;
   }
 }
@@ -133,42 +129,60 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   html {
     scroll-behavior: smooth;
   }
 
-  /* Fluid typography - mobile-first responsive */
-  h1, .text-4xl, .text-5xl, .text-6xl, .text-7xl {
-    font-size: clamp(1.75rem, 4.2vw, 2.75rem);
+  /* Typography scale — precise, not clamp-heavy */
+  h1 { @apply text-3xl md:text-4xl font-bold tracking-tight; }
+  h2 { @apply text-2xl md:text-3xl font-semibold tracking-tight; }
+  h3 { @apply text-xl md:text-2xl font-semibold; }
+  p { line-height: 1.65; }
+}
+
+@layer components {
+  /* KPI / Stat cards */
+  .kpi-card {
+    @apply bg-card rounded-xl border border-border p-5 shadow-xs;
+    box-shadow: var(--shadow-xs);
+  }
+  .kpi-card:hover {
+    box-shadow: var(--shadow-sm);
   }
 
-  h2, .text-3xl {
-    font-size: clamp(1.375rem, 3vw, 2rem);
+  /* Premium elevation card */
+  .card-elevated {
+    @apply bg-card rounded-xl border border-border;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .card-elevated:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
   }
 
-  h3, .text-2xl {
-    font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+  /* Section label (sidebar, form groups) */
+  .section-label {
+    @apply text-[10px] uppercase tracking-[0.14em] font-semibold text-muted-foreground;
   }
 
-  p, .text-base, .text-lg {
-    font-size: clamp(0.9375rem, 1.6vw, 1.125rem);
-    line-height: 1.6;
-  }
-
-  /* Minimum touch target */
-  button, a {
-    min-height: 44px;
+  /* Status dot */
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
   }
 }
 
 @layer utilities {
-  /* Glass effect utility */
+  /* Glass effect */
   .glass {
     background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--glass-border);
   }
 
@@ -180,77 +194,44 @@ All colors MUST be HSL.
     background-clip: text;
   }
 
-  /* Premium shadow */
-  .shadow-premium {
-    box-shadow: var(--shadow-xl);
-  }
+  /* Shadow utilities */
+  .shadow-premium { box-shadow: var(--shadow-xl); }
+  .shadow-elevated { box-shadow: var(--shadow-md); }
+  .shadow-subtle { box-shadow: var(--shadow-sm); }
+  .shadow-xs { box-shadow: var(--shadow-xs); }
 
   /* Smooth transitions */
   .transition-smooth {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Animation for floating elements */
+  /* Float animation */
   @keyframes float {
-    0%, 100% {
-      transform: translateY(0px);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
   }
+  .animate-float { animation: float 3s ease-in-out infinite; }
 
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-
-  /* Pulse animation for new items */
   @keyframes pulse-subtle {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.8;
-    }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
   }
+  .animate-pulse-subtle { animation: pulse-subtle 2s ease-in-out infinite; }
 
-  .animate-pulse-subtle {
-    animation: pulse-subtle 2s ease-in-out infinite;
-  }
+  /* AI text formatting */
+  .ai-description { white-space: pre-line; line-height: 1.6; }
+  .ai-description p { margin-bottom: 1.2em; }
+  textarea.ai-generated { white-space: pre-line; line-height: 1.5; }
 
-  /* Styles pour textes générés par IA */
-  .ai-description {
-    white-space: pre-line;
-    line-height: 1.6;
-  }
-
-  .ai-description p {
-    margin-bottom: 1.2em;
-  }
-
-  /* Textarea pour affichage propre */
-  textarea.ai-generated {
-    white-space: pre-line;
-    line-height: 1.5;
-  }
-
-  /* Smooth transitions for theme changes */
-  * {
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-  }
-
-  /* Carousel utilities for mobile scroll-snap */
+  /* Carousel */
   .carousel-container {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
+  .carousel-container::-webkit-scrollbar { display: none; }
 
-  .carousel-container::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Respect motion preferences */
+  /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
     * {
       animation-duration: 0.01ms !important;
@@ -259,16 +240,10 @@ All colors MUST be HSL.
     }
   }
 
-  /* Animation chatbot */
+  /* Chatbot animation */
   @keyframes chatbot-slide-up {
-    from {
-      transform: translateY(50px);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
 
   /* Theme scope for booklet theming */
@@ -278,58 +253,25 @@ All colors MUST be HSL.
     font-family: var(--theme-font-family, var(--font-sans));
     font-size: var(--theme-font-size, 16px);
   }
-
   .theme-scope .btn-primary,
   .theme-scope button[data-theme="primary"] {
     background-color: var(--theme-primary) !important;
     color: #ffffff !important;
   }
-
   .theme-scope .text-accent,
-  .theme-scope [data-theme="accent"] {
-    color: var(--theme-accent) !important;
-  }
-
-  .theme-scope .bg-accent {
-    background-color: var(--theme-accent) !important;
-  }
-
-  .theme-scope .text-primary {
-    color: var(--theme-primary) !important;
-  }
-
-  .theme-scope .bg-primary {
-    background-color: var(--theme-primary) !important;
-  }
-
-  .theme-scope .border-primary {
-    border-color: var(--theme-primary) !important;
-  }
-
-  /* Hero gradient with theme primary */
+  .theme-scope [data-theme="accent"] { color: var(--theme-accent) !important; }
+  .theme-scope .bg-accent { background-color: var(--theme-accent) !important; }
+  .theme-scope .text-primary { color: var(--theme-primary) !important; }
+  .theme-scope .bg-primary { background-color: var(--theme-primary) !important; }
+  .theme-scope .border-primary { border-color: var(--theme-primary) !important; }
   .theme-scope .hero-bg-primary {
     background: linear-gradient(135deg, var(--theme-primary) 0%, color-mix(in srgb, var(--theme-primary) 80%, black) 100%);
   }
-
-  /* Card accents with theme colors */
-  .theme-scope .card-accent-border {
-    border-left: 3px solid var(--theme-accent);
-  }
-
-  .theme-scope .icon-primary {
-    color: var(--theme-primary);
-  }
-
-  /* Interactive elements */
+  .theme-scope .card-accent-border { border-left: 3px solid var(--theme-accent); }
+  .theme-scope .icon-primary { color: var(--theme-primary); }
   .theme-scope button.primary-btn:hover {
     background-color: color-mix(in srgb, var(--theme-primary) 90%, black);
   }
-
-  .theme-scope a.primary-link {
-    color: var(--theme-primary);
-  }
-
-  .theme-scope a.primary-link:hover {
-    color: color-mix(in srgb, var(--theme-primary) 80%, black);
-  }
+  .theme-scope a.primary-link { color: var(--theme-primary); }
+  .theme-scope a.primary-link:hover { color: color-mix(in srgb, var(--theme-primary) 80%, black); }
 }

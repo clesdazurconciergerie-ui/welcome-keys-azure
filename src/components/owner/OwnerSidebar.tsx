@@ -1,30 +1,14 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import BrandMark from "@/components/BrandMark";
 import {
-  LayoutDashboard,
-  Home,
-  BookOpen,
-  ClipboardCheck,
-  FileText,
-  User,
-  LogOut,
-  Euro,
-  CalendarDays,
-  MessageCircle,
+  LayoutDashboard, Home, BookOpen, ClipboardCheck, FileText, User, LogOut,
+  Euro, CalendarDays, MessageCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -60,16 +44,15 @@ export function OwnerSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
-      <div className="h-full flex flex-col bg-[hsl(var(--brand-blue))] text-white">
-        {/* Logo */}
-        <div className="p-4 border-b border-white/10">
+      <div className="h-full flex flex-col bg-[hsl(var(--sidebar-background))] text-white">
+        <div className="px-4 py-5 border-b border-white/[0.08]">
           {!collapsed ? (
             <div>
               <BrandMark variant="compact" />
-              <p className="text-[10px] text-white/40 mt-1 uppercase tracking-widest">Espace Propriétaire</p>
+              <p className="section-label text-white/30 mt-2">Espace Propriétaire</p>
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-[hsl(var(--gold))] flex items-center justify-center font-bold text-[hsl(var(--brand-blue))] text-sm">
+            <div className="w-8 h-8 rounded-lg bg-gold flex items-center justify-center font-bold text-primary text-sm">
               P
             </div>
           )}
@@ -77,7 +60,7 @@ export function OwnerSidebar() {
 
         <SidebarContent className="flex-1 px-2 py-4">
           <SidebarGroup>
-            <SidebarGroupLabel className="text-white/40 text-[10px] uppercase tracking-widest px-3 mb-2">
+            <SidebarGroupLabel className="section-label text-white/35 px-3 mb-1.5">
               {!collapsed && "Mon espace"}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -88,14 +71,14 @@ export function OwnerSidebar() {
                       <NavLink
                         to={item.url}
                         end={item.url === "/proprietaire"}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ${
                           isActive(item.url)
-                            ? "bg-[hsl(var(--gold))] text-[hsl(var(--brand-blue))] shadow-lg shadow-[hsl(var(--gold))]/20"
-                            : "text-white/70 hover:text-white hover:bg-white/10"
+                            ? "bg-gold/90 text-primary shadow-md shadow-gold/15"
+                            : "text-white/60 hover:text-white/90 hover:bg-white/[0.06]"
                         }`}
                         activeClassName=""
                       >
-                        <item.icon className="h-4 w-4 shrink-0" />
+                        <item.icon className="h-[18px] w-[18px] shrink-0" />
                         {!collapsed && <span>{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
@@ -106,14 +89,14 @@ export function OwnerSidebar() {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="p-3 border-t border-white/10">
+        <SidebarFooter className="p-3 border-t border-white/[0.06]">
           <Button
             variant="ghost"
             onClick={handleSignOut}
-            className="w-full justify-start gap-3 text-white/60 hover:text-white hover:bg-white/10 px-3"
+            className="w-full justify-start gap-3 text-white/40 hover:text-white/80 hover:bg-white/[0.06] px-3 h-9"
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            {!collapsed && <span className="text-sm">Déconnexion</span>}
+            {!collapsed && <span className="text-[13px]">Déconnexion</span>}
           </Button>
         </SidebarFooter>
       </div>
