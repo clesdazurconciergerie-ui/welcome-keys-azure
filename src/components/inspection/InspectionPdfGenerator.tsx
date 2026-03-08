@@ -37,7 +37,6 @@ export function InspectionPdfGenerator({ inspection }: { inspection: Inspection 
   const label = inspection.inspection_type === 'exit' ? "État des lieux de sortie" : "État des lieux d'entrée";
   const refN = `EDL-${new Date(inspection.inspection_date).getFullYear()}-${(inspection.id || '001').substring(0, 3).toUpperCase()}`;
 
-  // Collect max 4 photos in priority order
   const all = [
     ...(inspection.cleaning_photos_json || []),
     ...((inspection as any).meter_photos_json || []),
@@ -53,7 +52,7 @@ export function InspectionPdfGenerator({ inspection }: { inspection: Inspection 
       const html2pdf = (await import('html2pdf.js')).default;
       const el = ref.current;
       if (!el) return;
-      el.style.display = 'block';
+      el.style.display = 'flex';
       await html2pdf().set({
         margin: 0,
         filename: `etat-des-lieux-${inspection.inspection_date}.pdf`,
@@ -66,12 +65,6 @@ export function InspectionPdfGenerator({ inspection }: { inspection: Inspection 
     finally { setBusy(false); }
   };
 
-  /*
-   * FIXED COMPOSITION — all heights hardcoded in the 210×297mm box.
-   * Using inline dangerouslySetInnerHTML to avoid React hydration
-   * adding extra wrapper divs that break the height budget.
-   */
-
   const infoRows = [
     ['Bien', inspection.property?.name || '—'],
     ['Adresse', inspection.property?.address || '—'],
@@ -82,97 +75,104 @@ export function InspectionPdfGenerator({ inspection }: { inspection: Inspection 
   ];
 
   const rowsHtml = infoRows.map(([l, v]) =>
-    `<tr><td style="padding:4px 10px;font-weight:600;border-bottom:1px solid ${NAVY}12;border-right:1px solid ${NAVY}12;width:38%">${l}</td><td style="padding:4px 10px;border-bottom:1px solid ${NAVY}12">${v}</td></tr>`
+    `<tr><td style="padding:6px 12px;font-weight:600;border-bottom:1px solid ${NAVY}15;border-right:1px solid ${NAVY}15;width:35%">${l}</td><td style="padding:6px 12px;border-bottom:1px solid ${NAVY}15">${v}</td></tr>`
   ).join('');
 
-  const photosHtml = photos.length ? photos.map((p: any) =>
-    `<img src="${p.url}" style="width:48%;height:100px;object-fit:cover;border-radius:3px;border:1px solid ${NAVY}1a" crossOrigin="anonymous"/>`
-  ).join('') : '';
+  const photosHtml = photos.map((p: any) =>
+    `<img src="${p.url}" style="width:48%;object-fit:cover;border-radius:4px;border:1px solid ${NAVY}1a" crossOrigin="anonymous"/>`
+  ).join('');
 
   const extraLine = extra > 0
-    ? `<p style="font-size:8px;color:#6b7280;font-style:italic;margin:4px 0 0">+ ${extra} photo${extra > 1 ? 's' : ''} supplémentaire${extra > 1 ? 's' : ''} dans l'application</p>`
+    ? `<p style="font-size:8.5px;color:#6b7280;font-style:italic;margin:6px 0 0;text-align:center">+ ${extra} photo${extra > 1 ? 's' : ''} supplémentaire${extra > 1 ? 's' : ''} disponible${extra > 1 ? 's' : ''} dans l'application</p>`
     : '';
 
   const sigBox = (url: string | null) => url
-    ? `<div style="border:1px solid ${NAVY}1a;border-radius:3px;height:65px;display:flex;align-items:center;padding:4px"><img src="${url}" style="max-height:56px;max-width:100%;object-fit:contain" crossOrigin="anonymous"/></div>`
-    : `<div style="height:65px;border:1px dashed #d1d5db;border-radius:3px"></div>`;
+    ? `<div style="border:1px solid ${NAVY}1a;border-radius:4px;height:80px;display:flex;align-items:center;justify-content:center;padding:6px;background:#fafafa"><img src="${url}" style="max-height:68px;max-width:100%;object-fit:contain" crossOrigin="anonymous"/></div>`
+    : `<div style="height:80px;border:1.5px dashed #d1d5db;border-radius:4px;background:#fafafa"></div>`;
 
   const commentBlock = inspection.general_comment
-    ? `<div style="padding:0 24px;margin-top:6px">
-        <div style="font-size:9px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:0.6px;border-bottom:1.5px solid ${GOLD};padding-bottom:2px;margin-bottom:3px">Observations</div>
-        <p style="font-size:8.5px;line-height:1.4;margin:0;max-height:30px;overflow:hidden;white-space:pre-wrap">${inspection.general_comment}</p>
+    ? `<div style="padding:0 28px;margin-top:10px">
+        <div style="font-size:9.5px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:0.6px;border-bottom:2px solid ${GOLD};padding-bottom:3px;margin-bottom:5px">Observations</div>
+        <p style="font-size:9px;line-height:1.5;margin:0;max-height:40px;overflow:hidden;white-space:pre-wrap">${inspection.general_comment}</p>
        </div>` : '';
 
   const damageBlock = inspection.damage_notes
-    ? `<div style="padding:0 24px;margin-top:4px">
-        <div style="font-size:9px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:0.6px;border-bottom:1.5px solid #dc2626;padding-bottom:2px;margin-bottom:3px">Dégâts</div>
-        <p style="font-size:8.5px;line-height:1.4;margin:0;max-height:24px;overflow:hidden;white-space:pre-wrap;background:#fef2f2;padding:3px 6px;border-radius:2px;border:1px solid #fecaca">${inspection.damage_notes}</p>
+    ? `<div style="padding:0 28px;margin-top:8px">
+        <div style="font-size:9.5px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:0.6px;border-bottom:2px solid #dc2626;padding-bottom:3px;margin-bottom:5px">Dégâts</div>
+        <p style="font-size:9px;line-height:1.5;margin:0;max-height:32px;overflow:hidden;white-space:pre-wrap;background:#fef2f2;padding:4px 8px;border-radius:3px;border:1px solid #fecaca">${inspection.damage_notes}</p>
        </div>` : '';
 
+  // The key: use display:flex;flex-direction:column;height:100% so photo section grows
   const html = `
-<!-- A. HEADER — 70px -->
-<div style="height:70px;background:${NAVY};color:${htc};display:flex;align-items:stretch;box-sizing:border-box">
-  <div style="flex:1;padding:10px 24px;display:flex;flex-direction:column;justify-content:center">
-    <div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid ${GOLD};display:inline-block;padding-bottom:2px">${companyName || 'MA CONCIERGERIE'}</div>
-    ${addr ? `<p style="margin:3px 0 0;font-size:8.5px;opacity:.85;line-height:1.3">${addr}</p>` : ''}
-  </div>
-  ${co.logo_url ? `<div style="width:60px;display:flex;align-items:center;justify-content:center;padding:4px"><img src="${co.logo_url}" style="max-height:46px;max-width:52px;object-fit:contain" crossOrigin="anonymous"/></div>` : ''}
-  <div style="flex:1;padding:10px 24px;display:flex;flex-direction:column;justify-content:center;text-align:right">
-    <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;border-bottom:2px solid ${GOLD};display:inline-block;margin-left:auto;padding-bottom:2px">${inspection.guest_name || 'NOM VOYAGEUR'}</div>
-    <p style="margin:3px 0 0;font-size:8.5px;opacity:.85">${inspection.property?.name || ''}</p>
-  </div>
-</div>
+<div style="display:flex;flex-direction:column;height:100%;width:100%;box-sizing:border-box">
 
-<!-- B. TITLE — 44px -->
-<div style="height:44px;padding:8px 24px;display:flex;align-items:center;box-sizing:border-box">
-  <div style="width:3px;height:26px;background:${GOLD};border-radius:1px;margin-right:10px;flex-shrink:0"></div>
-  <div>
-    <div style="font-size:14px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:1.5px;line-height:1.2">${label}</div>
-    <div style="font-size:9px;color:#555;margin-top:1px">Réf : ${refN} · Date : ${dateFmt}</div>
+  <!-- A. HEADER — 100px -->
+  <div style="height:100px;min-height:100px;background:${NAVY};color:${htc};display:flex;align-items:stretch;box-sizing:border-box">
+    <div style="flex:1;padding:14px 28px;display:flex;flex-direction:column;justify-content:center">
+      <div style="font-size:15px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;border-bottom:2.5px solid ${GOLD};display:inline-block;padding-bottom:3px">${companyName || 'MA CONCIERGERIE'}</div>
+      ${addr ? `<p style="margin:5px 0 0;font-size:9px;opacity:.85;line-height:1.4">${addr}</p>` : ''}
+    </div>
+    ${co.logo_url ? `<div style="width:80px;display:flex;align-items:center;justify-content:center;padding:8px"><img src="${co.logo_url}" style="max-height:60px;max-width:64px;object-fit:contain" crossOrigin="anonymous"/></div>` : ''}
+    <div style="flex:1;padding:14px 28px;display:flex;flex-direction:column;justify-content:center;text-align:right">
+      <div style="font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;border-bottom:2.5px solid ${GOLD};display:inline-block;margin-left:auto;padding-bottom:3px">${inspection.guest_name || 'NOM VOYAGEUR'}</div>
+      <p style="margin:5px 0 0;font-size:9px;opacity:.85">${inspection.property?.name || ''}</p>
+    </div>
   </div>
-</div>
 
-<!-- C. INFO TABLE — max 130px -->
-<div style="padding:0 24px;max-height:130px;overflow:hidden">
-  <table style="width:100%;border-collapse:collapse;border:1.5px solid ${NAVY};font-size:9px;font-family:${FONT}">
-    <thead><tr>
-      <th style="background:${NAVY};color:${htc};font-size:8.5px;font-weight:600;letter-spacing:.5px;text-align:left;padding:4px 10px;border-right:1px solid ${htc}33;width:38%">Information</th>
-      <th style="background:${NAVY};color:${htc};font-size:8.5px;font-weight:600;letter-spacing:.5px;text-align:left;padding:4px 10px">Détail</th>
-    </tr></thead>
-    <tbody>${rowsHtml}</tbody>
-  </table>
-</div>
-
-<!-- TEXT BLOCKS -->
-${commentBlock}
-${damageBlock}
-
-<!-- D. PHOTOS — 4 max, 2×2 grid, fixed 220px block -->
-${photos.length > 0 ? `
-<div style="padding:8px 24px 0;max-height:230px;overflow:hidden">
-  <div style="font-size:9px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:.6px;border-bottom:1.5px solid ${GOLD};padding-bottom:2px;margin-bottom:6px">Photos</div>
-  <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between">
-    ${photosHtml}
+  <!-- B. TITLE — 56px -->
+  <div style="height:56px;min-height:56px;padding:12px 28px;display:flex;align-items:center;box-sizing:border-box">
+    <div style="width:4px;height:32px;background:${GOLD};border-radius:2px;margin-right:14px;flex-shrink:0"></div>
+    <div>
+      <div style="font-size:16px;font-weight:800;color:${NAVY};text-transform:uppercase;letter-spacing:2px;line-height:1.2">${label}</div>
+      <div style="font-size:10px;color:#555;margin-top:2px">Réf : ${refN} · Date : ${dateFmt}</div>
+    </div>
   </div>
-  ${extraLine}
-</div>` : ''}
 
-<!-- E. SIGNATURES — fixed 100px -->
-<div style="padding:10px 24px 0;display:flex;gap:24px;height:100px;box-sizing:border-box">
-  <div style="flex:1">
-    <div style="font-size:8.5px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:.6px;border-bottom:1.5px solid ${GOLD};padding-bottom:3px;margin-bottom:5px">Signature conciergerie</div>
-    ${sigBox(concSig)}
+  <!-- C. INFO TABLE -->
+  <div style="padding:0 28px;flex-shrink:0">
+    <table style="width:100%;border-collapse:collapse;border:1.5px solid ${NAVY};font-size:10px;font-family:${FONT}">
+      <thead><tr>
+        <th style="background:${NAVY};color:${htc};font-size:9px;font-weight:600;letter-spacing:.5px;text-align:left;padding:6px 12px;border-right:1px solid ${htc}33;width:35%">Information</th>
+        <th style="background:${NAVY};color:${htc};font-size:9px;font-weight:600;letter-spacing:.5px;text-align:left;padding:6px 12px">Détail</th>
+      </tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
   </div>
-  <div style="flex:1">
-    <div style="font-size:8.5px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:.6px;border-bottom:1.5px solid ${GOLD};padding-bottom:3px;margin-bottom:5px">Signature client</div>
-    ${sigBox(inspection.guest_signature_url)}
-  </div>
-</div>
 
-<!-- F. FOOTER — pinned bottom 24px -->
-<div style="position:absolute;bottom:0;left:0;right:0;height:24px;border-top:1.5px solid ${GOLD};background:${GRAY};display:flex;align-items:center;justify-content:space-between;padding:0 24px;box-sizing:border-box">
-  <span style="font-size:7.5px;color:${NAVY};opacity:.7">Document généré via <b>MyWelkom</b>${companyName ? ` · ${companyName}` : ''}</span>
-  <span style="font-size:7.5px;color:${NAVY};opacity:.7">${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+  <!-- TEXT BLOCKS -->
+  ${commentBlock}
+  ${damageBlock}
+
+  <!-- D. PHOTOS — flex:1 fills remaining space -->
+  ${photos.length > 0 ? `
+  <div style="flex:1;min-height:60px;padding:12px 28px 0;display:flex;flex-direction:column;overflow:hidden">
+    <div style="font-size:10px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid ${GOLD};padding-bottom:3px;margin-bottom:8px;flex-shrink:0">Photos</div>
+    <div style="flex:1;display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-content:stretch">
+      ${photos.map((p: any) =>
+        `<img src="${p.url}" style="width:48%;flex:0 0 48%;height:calc(50% - 4px);object-fit:cover;border-radius:4px;border:1px solid ${NAVY}1a" crossOrigin="anonymous"/>`
+      ).join('')}
+    </div>
+    ${extraLine}
+  </div>` : `<div style="flex:1"></div>`}
+
+  <!-- E. SIGNATURES — 120px -->
+  <div style="height:120px;min-height:120px;padding:10px 28px;display:flex;gap:28px;box-sizing:border-box;flex-shrink:0">
+    <div style="flex:1;display:flex;flex-direction:column">
+      <div style="font-size:9.5px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid ${GOLD};padding-bottom:3px;margin-bottom:6px">Signature conciergerie</div>
+      <div style="flex:1">${sigBox(concSig)}</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column">
+      <div style="font-size:9.5px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid ${GOLD};padding-bottom:3px;margin-bottom:6px">Signature client</div>
+      <div style="flex:1">${sigBox(inspection.guest_signature_url)}</div>
+    </div>
+  </div>
+
+  <!-- F. FOOTER — 28px -->
+  <div style="height:28px;min-height:28px;border-top:2px solid ${GOLD};background:${GRAY};display:flex;align-items:center;justify-content:space-between;padding:0 28px;box-sizing:border-box;flex-shrink:0">
+    <span style="font-size:8px;color:${NAVY};opacity:.7">Document généré via <b>MyWelkom</b>${companyName ? ` · ${companyName}` : ''}</span>
+    <span style="font-size:8px;color:${NAVY};opacity:.7">${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+  </div>
+
 </div>`;
 
   return (
@@ -188,11 +188,9 @@ ${photos.length > 0 ? `
           fontFamily: FONT,
           width: '210mm',
           height: '297mm',
-          maxHeight: '297mm',
           overflow: 'hidden',
           background: '#fff',
           color: '#1a1a1a',
-          position: 'relative',
           boxSizing: 'border-box',
           margin: '0 auto',
         }}
