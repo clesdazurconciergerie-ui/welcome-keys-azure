@@ -52,21 +52,32 @@ export function useExpenses() {
 
   const createExpense = async (values: Partial<Expense>) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      toast.error("Vous devez être connecté");
+      return;
+    }
     const amount = Number(values.amount) || 0;
     const vatRate = Number(values.vat_rate) || 0;
     const vatAmount = amount * (vatRate / 100);
+    const payload = {
+      ...values,
+      user_id: user.id,
+      amount,
+      vat_rate: vatRate,
+      vat_amount: vatAmount,
+      status: values.status || "paid",
+    };
+    console.log('[useExpenses] Insert payload:', payload);
+    
     const { error } = await supabase
       .from("expenses" as any)
-      .insert({
-        ...values,
-        user_id: user.id,
-        amount,
-        vat_rate: vatRate,
-        vat_amount: vatAmount,
-        status: values.status || "paid",
-      });
-    if (error) { toast.error("Erreur création dépense"); return; }
+      .insert(payload);
+    
+    if (error) {
+      console.error('[useExpenses] Insert error:', error);
+      toast.error(`Erreur création dépense : ${error.message}`);
+      return;
+    }
     toast.success("Dépense ajoutée");
     await fetchExpenses();
   };
