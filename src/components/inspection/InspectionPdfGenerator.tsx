@@ -41,6 +41,10 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
 
   const cleaningPhotos = inspection.cleaning_photos_json || [];
   const exitPhotos = inspection.exit_photos_json || [];
+  const meterPhotos = (inspection as any).meter_photos_json || [];
+  const keysHandedOver = (inspection as any).keys_handed_over;
+
+  // NOTE: payments_json is EXCLUDED from PDF (internal concierge data)
 
   return (
     <>
@@ -78,41 +82,18 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
               <td style={{ padding: '6px 8px', fontWeight: 600, background: '#f3f4f6', border: '1px solid #e5e7eb' }}>Occupants</td>
               <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>{inspection.occupants_count || '—'}</td>
             </tr>
+            {keysHandedOver && (
+              <tr>
+                <td style={{ padding: '6px 8px', fontWeight: 600, background: '#f3f4f6', border: '1px solid #e5e7eb' }}>Clés remises</td>
+                <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>{keysHandedOver}</td>
+              </tr>
+            )}
             <tr>
               <td style={{ padding: '6px 8px', fontWeight: 600, background: '#f3f4f6', border: '1px solid #e5e7eb' }}>Ménage effectué par</td>
               <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>{inspection.cleaner_name || '—'}</td>
             </tr>
           </tbody>
         </table>
-
-        {/* Meter readings */}
-        {(inspection.meter_electricity || inspection.meter_water || inspection.meter_gas) && (
-          <>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#061452' }}>Relevés de compteurs</h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', marginBottom: '16px' }}>
-              <tbody>
-                {inspection.meter_electricity && (
-                  <tr>
-                    <td style={{ padding: '6px 8px', fontWeight: 600, background: '#f3f4f6', width: '35%', border: '1px solid #e5e7eb' }}>Électricité</td>
-                    <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>{inspection.meter_electricity}</td>
-                  </tr>
-                )}
-                {inspection.meter_water && (
-                  <tr>
-                    <td style={{ padding: '6px 8px', fontWeight: 600, background: '#f3f4f6', border: '1px solid #e5e7eb' }}>Eau</td>
-                    <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>{inspection.meter_water}</td>
-                  </tr>
-                )}
-                {inspection.meter_gas && (
-                  <tr>
-                    <td style={{ padding: '6px 8px', fontWeight: 600, background: '#f3f4f6', border: '1px solid #e5e7eb' }}>Gaz</td>
-                    <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>{inspection.meter_gas}</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </>
-        )}
 
         {/* Comments */}
         {inspection.general_comment && (
@@ -126,19 +107,31 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
 
         {inspection.damage_notes && (
           <div style={{ marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '6px', color: '#dc2626' }}>Dégâts / Problèmes à la sortie</h3>
+            <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '6px', color: '#dc2626' }}>Dégâts / Anomalies à la sortie</h3>
             <p style={{ fontSize: '13px', whiteSpace: 'pre-wrap', background: '#fef2f2', padding: '10px', borderRadius: '6px', border: '1px solid #fecaca' }}>
               {inspection.damage_notes}
             </p>
           </div>
         )}
 
-        {/* Entry photos */}
+        {/* Cleaning photos */}
         {cleaningPhotos.length > 0 && (
           <div style={{ marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#061452' }}>Photos d'entrée (ménage)</h3>
+            <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#061452' }}>Photos de référence (ménage)</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
               {cleaningPhotos.slice(0, 9).map((p: any, i: number) => (
+                <img key={i} src={p.url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e7eb' }} crossOrigin="anonymous" />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Meter photos */}
+        {meterPhotos.length > 0 && (
+          <div style={{ marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#061452' }}>Photos des compteurs</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+              {meterPhotos.slice(0, 6).map((p: any, i: number) => (
                 <img key={i} src={p.url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e7eb' }} crossOrigin="anonymous" />
               ))}
             </div>
