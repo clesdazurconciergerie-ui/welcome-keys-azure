@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsOwner } from "@/hooks/useIsOwner";
-import { Loader2, BookOpen, ExternalLink } from "lucide-react";
+import { Loader2, BookOpen, ExternalLink, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface Booklet {
@@ -12,6 +12,7 @@ interface Booklet {
   property_address: string;
   status: string;
   property_id: string | null;
+  unique_views_count?: number;
 }
 
 interface Pin {
@@ -40,7 +41,7 @@ export default function OwnerBookletsPage() {
       if (propertyIds.length > 0) {
         const { data } = await (supabase as any)
           .from('booklets')
-          .select('id, property_name, property_address, status, property_id')
+          .select('id, property_name, property_address, status, property_id, unique_views_count')
           .in('property_id', propertyIds);
         const bookletsList = data || [];
         setBooklets(bookletsList);
@@ -102,18 +103,29 @@ export default function OwnerBookletsPage() {
                     <div>
                       <h3 className="font-semibold text-foreground">{b.property_name}</h3>
                       <p className="text-sm text-muted-foreground">{b.property_address}</p>
-                      <span className={`text-xs mt-1 inline-block px-2 py-0.5 rounded-full font-medium ${
-                        b.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                      }`}>
-                        {b.status === 'published' ? 'Publié' : 'Brouillon'}
-                      </span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-xs inline-block px-2 py-0.5 rounded-full font-medium ${
+                          b.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {b.status === 'published' ? 'Publié' : 'Brouillon'}
+                        </span>
+                        {b.status === 'published' && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            {b.unique_views_count || 0} visiteur{(b.unique_views_count || 0) !== 1 ? 's' : ''} unique{(b.unique_views_count || 0) !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
                       disabled={!canView}
                       onClick={() => {
-                        if (pin) window.open(`/view/${pin.pin_code}`, '_blank');
+                        if (pin) {
+                          const publicUrl = `https://welkom.lovable.app/view/${pin.pin_code}`;
+                          window.open(publicUrl, '_blank');
+                        }
                       }}
                       className="gap-1.5"
                     >
