@@ -161,9 +161,19 @@ export default function OwnerRequestsAdminPage() {
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline" className={r.status === "open" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}>
-                    {r.status === "open" ? "Ouverte" : "Fermée"}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={r.status === "open" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}>
+                      {r.status === "open" ? "Ouverte" : "Fermée"}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
