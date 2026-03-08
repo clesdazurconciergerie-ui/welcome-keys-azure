@@ -8,6 +8,7 @@ import { CreatePropertyDialog } from "@/components/dashboard/properties/CreatePr
 import { EditPropertyDialog } from "@/components/dashboard/properties/EditPropertyDialog";
 import { PropertiesList } from "@/components/dashboard/properties/PropertiesList";
 import { AirbnbPropertyImport } from "@/components/dashboard/properties/AirbnbPropertyImport";
+import { ContextualTip } from "@/components/onboarding/ContextualTip";
 
 const LogementsPage = () => {
   const { properties, isLoading, createProperty, updateProperty, deleteProperty, duplicateProperty } = useProperties();
