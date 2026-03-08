@@ -34,7 +34,7 @@ export function useNotifications() {
 
     if (!error && data) {
       setNotifications(data as AppNotification[]);
-      setUnreadCount(data.filter(n => !n.read).length);
+      setUnreadCount(data.filter(n => !n.is_read).length);
     }
     setLoading(false);
   }, []);
