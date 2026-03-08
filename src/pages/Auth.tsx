@@ -388,7 +388,7 @@ const Auth = () => {
 
           {/* Floating product cards */}
           <div className="mt-16 relative h-52">
-            <FloatingCard delay={0} y={-6} className="absolute top-0 left-0" mouseX={mouseX} mouseY={mouseY} centerX={0} centerY={0}>
+            <FloatingCard delay={0} orbit={{ rx: 15, ry: 12, duration: 8, phase: 0, tilt: 2.5 }} className="absolute top-0 left-0" mouseX={mouseX} mouseY={mouseY}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
                   <CalendarDays className="h-4 w-4 text-[#C4A45B]" />
@@ -400,7 +400,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
 
-            <FloatingCard delay={0.8} y={-10} className="absolute top-4 right-0" mouseX={mouseX} mouseY={mouseY} centerX={0} centerY={0}>
+            <FloatingCard delay={0.6} orbit={{ rx: -18, ry: 14, duration: 9.5, phase: 1.8, tilt: -3 }} className="absolute top-4 right-0" mouseX={mouseX} mouseY={mouseY}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15">
                   <CheckCircle2 className="h-4 w-4 text-emerald-400" />
@@ -412,7 +412,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
 
-            <FloatingCard delay={1.4} y={-7} className="absolute bottom-0 left-8" mouseX={mouseX} mouseY={mouseY} centerX={0} centerY={0}>
+            <FloatingCard delay={1.2} orbit={{ rx: 12, ry: -16, duration: 10.5, phase: 3.5, tilt: 2 }} className="absolute bottom-0 left-8" mouseX={mouseX} mouseY={mouseY}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15">
                   <BarChart3 className="h-4 w-4 text-blue-400" />
@@ -424,7 +424,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
 
-            <FloatingCard delay={2} y={-5} className="absolute bottom-4 right-4" mouseX={mouseX} mouseY={mouseY} centerX={0} centerY={0}>
+            <FloatingCard delay={1.8} orbit={{ rx: -14, ry: 10, duration: 11, phase: 5.2, tilt: -1.8 }} className="absolute bottom-4 right-4" mouseX={mouseX} mouseY={mouseY}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
                   <Sparkles className="h-4 w-4 text-[#C4A45B]" />
