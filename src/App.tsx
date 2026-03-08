@@ -137,7 +137,18 @@ const App = () => (
           <Route path="/booklets/:id/wizard" element={<BookletWizardPage />} />
           <Route path="/view/:code" element={<ViewBooklet />} />
           <Route path="/preview/:id" element={<PreviewBooklet />} />
-          <Route path="/demo" element={<DemoExperience />} />
+          {/* Demo dashboard with real layout */}
+          <Route path="/demo" element={<DemoDashboardLayout />}>
+            <Route index element={<DemoDashboardHome />} />
+            <Route path="logements" element={<DemoLogementsPage />} />
+            <Route path="proprietaires" element={<DemoProprietairesPage />} />
+            <Route path="prestataires" element={<DemoPrestatairesPage />} />
+            <Route path="missions" element={<DemoMissionsPage />} />
+            <Route path="etats-des-lieux" element={<DemoInspectionsPage />} />
+            <Route path="livrets" element={<DemoLivretsPage />} />
+            <Route path="finance" element={<DemoFinancePage />} />
+            <Route path="prospection" element={<DemoProspectionPage />} />
+          </Route>
           <Route path="/expired-demo" element={<ExpiredDemoPage />} />
           <Route path="/exemples/proprietaires" element={<ExampleProprietaires />} />
           <Route path="/exemples/conciergeries" element={<ExampleConciergeries />} />
