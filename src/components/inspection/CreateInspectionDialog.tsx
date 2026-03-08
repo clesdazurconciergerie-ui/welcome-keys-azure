@@ -187,12 +187,35 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
     }
   }, []);
 
-  // Fetch last cleaning photos
-  const fetchLastCleaningPhotos = useCallback(async (propId: string) => {
+  // Fetch cleaning photos from buffer (not yet used)
+  const fetchBufferPhotos = useCallback(async (propId: string) => {
     setLoadingPhotos(true);
     setCleaningPhotos([]);
     try {
-      log('Fetching cleaning photos for property:', propId);
+      log('Fetching buffer photos for property:', propId);
+      
+      // First check buffer for unused photos
+      const { data: bufferPhotos } = await (supabase as any)
+        .from('property_cleaning_buffer')
+        .select('id, photo_url, cleaning_intervention_id, created_at')
+        .eq('property_id', propId)
+        .eq('used_in_inspection', false)
+        .order('created_at', { ascending: false });
+
+      if (bufferPhotos?.length) {
+        log('✅ Found', bufferPhotos.length, 'photos in buffer');
+        const photos: CleaningPhoto[] = bufferPhotos.map((p: any) => ({
+          bufferId: p.id,
+          url: p.photo_url,
+          uploaded_at: p.created_at,
+          type: 'buffer',
+        }));
+        setCleaningPhotos(photos);
+        return;
+      }
+
+      // Fallback: fetch directly from cleaning_photos / mission_photos for legacy data
+      log('No buffer photos, checking legacy cleaning_photos...');
       const { data: interventions } = await (supabase as any)
         .from('cleaning_interventions')
         .select('id, scheduled_date, status')
@@ -208,24 +231,26 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
 
       const { data: cpPhotos } = await (supabase as any)
         .from('cleaning_photos')
-        .select('url, type, uploaded_at, caption')
+        .select('id, url, type, uploaded_at, caption')
         .eq('intervention_id', intervention.id);
 
-      const resultPhotos: CleaningPhoto[] = (cpPhotos || []).map((p: any) => ({ url: p.url, type: p.type, uploaded_at: p.uploaded_at, caption: p.caption }));
+      const resultPhotos: CleaningPhoto[] = (cpPhotos || []).map((p: any) => ({ 
+        id: p.id, url: p.url, type: p.type, uploaded_at: p.uploaded_at, caption: p.caption 
+      }));
 
       if (resultPhotos.length === 0) {
         const { data: mPhotos } = await (supabase as any)
           .from('mission_photos')
-          .select('url, kind, created_at')
+          .select('id, url, kind, created_at')
           .eq('mission_id', intervention.id);
         if (mPhotos?.length) {
           for (const mp of mPhotos) {
-            resultPhotos.push({ url: mp.url, type: mp.kind || 'after', uploaded_at: mp.created_at });
+            resultPhotos.push({ id: mp.id, url: mp.url, type: mp.kind || 'after', uploaded_at: mp.created_at });
           }
         }
       }
 
-      log('Total cleaning photos attached:', resultPhotos.length);
+      log('Total legacy cleaning photos attached:', resultPhotos.length);
       setCleaningPhotos(resultPhotos);
     } catch (err) {
       console.error('Error fetching cleaning photos:', err);
@@ -234,6 +259,14 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
       setLoadingPhotos(false);
     }
   }, []);
+
+  // Sync button handler
+  const handleSync = useCallback(() => {
+    if (!propertyId) return;
+    log('🔄 Sync triggered for property:', propertyId);
+    fetchBookings(propertyId);
+    fetchBufferPhotos(propertyId);
+  }, [propertyId, fetchBookings, fetchBufferPhotos]);
 
   // When property changes
   useEffect(() => {
