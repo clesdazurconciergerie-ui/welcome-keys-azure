@@ -398,7 +398,12 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
                       <SelectItem value="manual"><span className="text-muted-foreground">+ Séjour direct</span></SelectItem>
                     </SelectContent>
                   </Select>
-                  {bookings.length === 0 && <p className="text-xs text-muted-foreground">Aucune réservation — séjour direct.</p>}
+                  <div className="flex items-center gap-2">
+                    {bookings.length === 0 && <p className="text-xs text-muted-foreground">Aucune réservation — séjour direct.</p>}
+                    <Button type="button" variant="ghost" size="sm" onClick={handleSync} className="gap-1 text-xs ml-auto h-7">
+                      <RefreshCw className="w-3 h-3" />Synchroniser
+                    </Button>
+                  </div>
                 </>
               )}
             </div>
