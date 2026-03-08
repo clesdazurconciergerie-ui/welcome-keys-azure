@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
 import { Loader2, Menu } from "lucide-react";
+import { GuidedTourProvider } from "@/components/onboarding/GuidedTourProvider";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
@@ -57,6 +58,7 @@ export default function DashboardLayout() {
           </main>
         </div>
       </div>
+      <GuidedTourProvider />
     </SidebarProvider>
   );
 }
