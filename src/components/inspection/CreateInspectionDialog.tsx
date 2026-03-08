@@ -166,7 +166,9 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
   const fetchBufferPhotos = useCallback(async (propId: string) => {
     setLoadingPhotos(true);
     setCleaningPhotos([]);
+    log('🔍 Fetching cleaning photos for property:', propId);
     try {
+      // 1) Try buffer table first
       const { data: bufferPhotos } = await (supabase as any)
         .from('property_cleaning_buffer')
         .select('id, photo_url, cleaning_intervention_id, created_at')
@@ -174,16 +176,56 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
         .order('created_at', { ascending: false });
 
       if (bufferPhotos?.length) {
+        log('✅ Buffer photos found:', bufferPhotos.length);
         setCleaningPhotos(bufferPhotos.map((p: any) => ({ bufferId: p.id, url: p.photo_url, uploaded_at: p.created_at, type: 'buffer' })));
+        setLoadingPhotos(false);
         return;
       }
+      log('ℹ️ No buffer photos, trying missions table...');
 
-      // Fallback to legacy
+      // 2) Try NEW mission system — missions table + mission_photos
+      const { data: newMissions } = await (supabase as any)
+        .from('missions')
+        .select('id, title, status, start_at')
+        .eq('property_id', propId)
+        .in('status', ['done', 'validated', 'paid', 'confirmed'])
+        .order('start_at', { ascending: false })
+        .limit(3);
+
+      if (newMissions?.length) {
+        log('🔍 Found new missions:', newMissions.map((m: any) => `${m.id} (${m.status})`));
+        for (const mission of newMissions) {
+          const { data: mPhotos } = await (supabase as any)
+            .from('mission_photos')
+            .select('id, url, kind, created_at')
+            .eq('mission_id', mission.id)
+            .order('created_at', { ascending: false });
+
+          if (mPhotos?.length) {
+            log(`✅ Found ${mPhotos.length} photos from mission "${mission.title}" (${mission.status})`);
+            const resultPhotos: CleaningPhoto[] = mPhotos.map((mp: any) => ({
+              id: mp.id, url: mp.url, type: mp.kind || 'after', uploaded_at: mp.created_at,
+            }));
+            setCleaningPhotos(resultPhotos);
+            setLoadingPhotos(false);
+            return;
+          }
+        }
+        log('⚠️ Missions found but no photos attached');
+      }
+
+      // 3) Fallback to legacy cleaning_interventions
+      log('ℹ️ No new mission photos, trying legacy interventions...');
       const { data: interventions } = await (supabase as any)
         .from('cleaning_interventions')
         .select('id').eq('property_id', propId).in('status', ['completed', 'validated'])
         .order('scheduled_date', { ascending: false }).limit(1);
-      if (!interventions?.length) { setLoadingPhotos(false); return; }
+
+      if (!interventions?.length) {
+        log('⚠️ No legacy interventions found either');
+        setLoadingPhotos(false);
+        return;
+      }
 
       const { data: cpPhotos } = await (supabase as any)
         .from('cleaning_photos')
@@ -191,6 +233,7 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
         .eq('intervention_id', interventions[0].id);
 
       const resultPhotos: CleaningPhoto[] = (cpPhotos || []).map((p: any) => ({ id: p.id, url: p.url, type: p.type, uploaded_at: p.uploaded_at, caption: p.caption }));
+
       if (resultPhotos.length === 0) {
         const { data: mPhotos } = await (supabase as any)
           .from('mission_photos').select('id, url, kind, created_at').eq('mission_id', interventions[0].id);
@@ -198,6 +241,7 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
           for (const mp of mPhotos) resultPhotos.push({ id: mp.id, url: mp.url, type: mp.kind || 'after', uploaded_at: mp.created_at });
         }
       }
+      log(resultPhotos.length > 0 ? `✅ Legacy photos found: ${resultPhotos.length}` : '⚠️ No photos found anywhere');
       setCleaningPhotos(resultPhotos);
     } catch (err) {
       console.error('Error fetching cleaning photos:', err);
