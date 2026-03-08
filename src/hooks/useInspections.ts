@@ -24,7 +24,7 @@ export interface Inspection {
   concierge_signature_url: string | null;
   guest_signature_url: string | null;
   pdf_url: string | null;
-  status: 'draft' | 'pending' | 'completed';
+  status: 'draft' | 'pending' | 'completed' | 'entry_validated' | 'exit_completed' | 'finalized';
   created_at: string;
   updated_at: string;
   property?: { name: string; address: string };
