@@ -245,7 +245,7 @@ const BookletCard = ({
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <BarChart3 className="w-3.5 h-3.5" />
-              <span>{booklet.views_count || 0} vues</span>
+              <span>{booklet.views_count || 0} visiteur{(booklet.views_count || 0) !== 1 ? 's' : ''}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" />

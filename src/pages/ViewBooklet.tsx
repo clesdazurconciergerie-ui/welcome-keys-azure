@@ -187,18 +187,15 @@ export default function ViewBooklet() {
           if (data?.booklet) {
             setBooklet(data.booklet);
             
-            // Récupérer le rôle du propriétaire du livret
-            if (data.booklet.user_id) {
-              const { data: userData } = await supabase
-                .from('users')
-                .select('role')
-                .eq('id', data.booklet.user_id)
-                .single();
-              
-              if (userData) {
-                setOwnerRole(userData.role);
+            // Track unique view (fire and forget)
+            fetch(
+              `https://otxnzjkyzkpoymeypmef.supabase.co/functions/v1/track-booklet-view`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ booklet_id: data.booklet.id }),
               }
-            }
+            ).catch(() => {});
           } else {
             setError(true);
           }
