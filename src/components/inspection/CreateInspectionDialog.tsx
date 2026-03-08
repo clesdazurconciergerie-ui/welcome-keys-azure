@@ -7,9 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SignaturePad } from '@/components/inspection/SignaturePad';
 import { supabase } from '@/integrations/supabase/client';
-import { ClipboardCheck, Camera, X, Loader2, CheckCircle, Calendar, User, Image, Key, Euro, RefreshCw } from 'lucide-react';
+import { ClipboardCheck, Camera, X, Loader2, Calendar, User, Image, Key, Euro, RefreshCw } from 'lucide-react';
 
 interface Booking {
   id: string;
@@ -25,7 +24,7 @@ interface CleaningPhoto {
   type?: string;
   uploaded_at?: string;
   caption?: string | null;
-  bufferId?: string; // reference to property_cleaning_buffer.id
+  bufferId?: string;
 }
 
 interface PaymentEntry {
@@ -39,16 +38,15 @@ export interface InspectionFormValues {
   booking_id: string | null;
   guest_name: string | null;
   inspection_date: string;
+  check_out_date: string | null;
   general_comment: string | null;
   occupants_count: number | null;
   keys_handed_over: number | null;
   meter_photos: { url: string; file?: File; uploaded_at: string }[];
   photos: { url: string; file?: File; uploaded_at: string }[];
   cleaningPhotos: CleaningPhoto[];
-  bufferPhotoIds: string[]; // IDs to mark as used
+  bufferPhotoIds: string[];
   payments: PaymentEntry[];
-  concierge_signature: string | null;
-  guest_signature: string | null;
 }
 
 interface CreateInspectionDialogProps {
@@ -64,13 +62,12 @@ const log = (...args: any[]) => { if (isDev) console.log('[EdL]', ...args); };
 export function CreateInspectionDialog({ open, onClose, properties, onSave }: CreateInspectionDialogProps) {
   const [propertyId, setPropertyId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [checkOutDate, setCheckOutDate] = useState('');
   const [comment, setComment] = useState('');
   const [occupants, setOccupants] = useState('');
   const [keysHandedOver, setKeysHandedOver] = useState('');
   const [photos, setPhotos] = useState<{ url: string; file: File; uploaded_at: string }[]>([]);
   const [meterPhotos, setMeterPhotos] = useState<{ url: string; file: File; uploaded_at: string }[]>([]);
-  const [signature, setSignature] = useState<string | null>(null);
-  const [guestSignature, setGuestSignature] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Auto-loaded data
@@ -94,7 +91,6 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
   const [propCleaningFee, setPropCleaningFee] = useState(0);
   const [propLinenPrice, setPropLinenPrice] = useState(0);
 
-  // Fetch property financial settings
   const fetchPropertySettings = useCallback(async (propId: string) => {
     try {
       const { data } = await (supabase as any)
@@ -103,56 +99,39 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
         .eq('property_id', propId)
         .maybeSingle();
       if (data) {
-        const cf = data.cleaning_fee || 0;
-        const lp = data.linen_price_per_person || 0;
-        setPropCleaningFee(cf);
-        setPropLinenPrice(lp);
-        setCleaningAmount(cf);
-        log('Property settings loaded — cleaning_fee:', cf, 'linen_price:', lp);
+        setPropCleaningFee(data.cleaning_fee || 0);
+        setPropLinenPrice(data.linen_price_per_person || 0);
+        setCleaningAmount(data.cleaning_fee || 0);
       } else {
-        setPropCleaningFee(0);
-        setPropLinenPrice(0);
-        setCleaningAmount(0);
+        setPropCleaningFee(0); setPropLinenPrice(0); setCleaningAmount(0);
       }
-    } catch (err) {
-      log('⚠️ property settings fetch error:', err);
-    }
+    } catch (err) { log('⚠️ property settings fetch error:', err); }
   }, []);
 
-  // Fetch bookings for a property
   const fetchBookings = useCallback(async (propId: string) => {
     setLoadingBookings(true);
     setBookings([]);
     setSelectedBookingId('manual');
     try {
       const today = new Date().toISOString().split('T')[0];
-      log('Fetching bookings for property:', propId, 'from date:', today);
-
       const [dbResult, calResult] = await Promise.allSettled([
-        (supabase as any)
-          .from('bookings')
+        (supabase as any).from('bookings')
           .select('id, guest_name, check_in, check_out, source, calendar_event_id')
-          .eq('property_id', propId)
-          .gte('check_out', today)
-          .neq('price_status', 'canceled')
+          .eq('property_id', propId).gte('check_out', today).neq('price_status', 'canceled')
           .order('check_in', { ascending: true }),
-        (supabase as any)
-          .from('calendar_events')
+        (supabase as any).from('calendar_events')
           .select('id, guest_name, start_date, end_date, platform, event_type, status')
-          .eq('property_id', propId)
-          .gte('end_date', today)
+          .eq('property_id', propId).gte('end_date', today)
           .order('start_date', { ascending: true }),
       ]);
 
       const dbBookings = dbResult.status === 'fulfilled' ? (dbResult.value.data || []) : [];
       const calEvents = calResult.status === 'fulfilled' ? (calResult.value.data || []) : [];
-      log('DB bookings:', dbBookings.length, '| Calendar events:', calEvents.length);
 
       const allBookings: Booking[] = [];
       for (const b of dbBookings) {
         allBookings.push({ id: b.id, guest_name: b.guest_name, check_in: b.check_in, check_out: b.check_out, source: b.source || 'manual' });
       }
-
       const linkedCalEventIds = new Set(dbBookings.map((b: any) => b.calendar_event_id).filter(Boolean));
       for (const e of calEvents) {
         if (e.event_type === 'blocked' || e.status === 'cancelled' || linkedCalEventIds.has(e.id)) continue;
@@ -160,143 +139,102 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
         if (isDuplicate) continue;
         allBookings.push({ id: `cal_${e.id}`, guest_name: e.guest_name || e.platform || 'Réservation iCal', check_in: e.start_date, check_out: e.end_date, source: e.platform || 'ical' });
       }
-
       allBookings.sort((a, b) => a.check_in.localeCompare(b.check_in));
       setBookings(allBookings);
-      log('Total merged bookings:', allBookings.length);
 
       const nextBooking = allBookings.find(b => b.check_in >= today);
       if (nextBooking) {
-        log('✅ Auto-selected next booking:', nextBooking.guest_name, nextBooking.check_in);
         setSelectedBookingId(nextBooking.id);
         setGuestName(nextBooking.guest_name || '');
         setDate(nextBooking.check_in);
+        setCheckOutDate(nextBooking.check_out);
       } else if (allBookings.length > 0) {
         setSelectedBookingId(allBookings[0].id);
         setGuestName(allBookings[0].guest_name || '');
         setDate(allBookings[0].check_in);
+        setCheckOutDate(allBookings[0].check_out);
       } else {
         setSelectedBookingId('manual');
+        setCheckOutDate('');
       }
     } catch (err) {
       console.error('Error fetching bookings:', err);
-      setBookings([]);
-      setSelectedBookingId('manual');
-    } finally {
-      setLoadingBookings(false);
-    }
+      setBookings([]); setSelectedBookingId('manual');
+    } finally { setLoadingBookings(false); }
   }, []);
 
-  // Fetch cleaning photos from buffer (not yet used)
   const fetchBufferPhotos = useCallback(async (propId: string) => {
     setLoadingPhotos(true);
     setCleaningPhotos([]);
     try {
-      log('Fetching buffer photos for property:', propId);
-      
-      // First check buffer for unused photos
       const { data: bufferPhotos } = await (supabase as any)
         .from('property_cleaning_buffer')
         .select('id, photo_url, cleaning_intervention_id, created_at')
-        .eq('property_id', propId)
-        .eq('used_in_inspection', false)
+        .eq('property_id', propId).eq('used_in_inspection', false)
         .order('created_at', { ascending: false });
 
       if (bufferPhotos?.length) {
-        log('✅ Found', bufferPhotos.length, 'photos in buffer');
-        const photos: CleaningPhoto[] = bufferPhotos.map((p: any) => ({
-          bufferId: p.id,
-          url: p.photo_url,
-          uploaded_at: p.created_at,
-          type: 'buffer',
-        }));
-        setCleaningPhotos(photos);
+        setCleaningPhotos(bufferPhotos.map((p: any) => ({ bufferId: p.id, url: p.photo_url, uploaded_at: p.created_at, type: 'buffer' })));
         return;
       }
 
-      // Fallback: fetch directly from cleaning_photos / mission_photos for legacy data
-      log('No buffer photos, checking legacy cleaning_photos...');
+      // Fallback to legacy
       const { data: interventions } = await (supabase as any)
         .from('cleaning_interventions')
-        .select('id, scheduled_date, status')
-        .eq('property_id', propId)
-        .in('status', ['completed', 'validated'])
-        .order('scheduled_date', { ascending: false })
-        .limit(1);
-
-      if (!interventions?.length) { log('No completed cleaning found'); setLoadingPhotos(false); return; }
-
-      const intervention = interventions[0];
-      log('✅ Found cleaning intervention:', intervention.id);
+        .select('id').eq('property_id', propId).in('status', ['completed', 'validated'])
+        .order('scheduled_date', { ascending: false }).limit(1);
+      if (!interventions?.length) { setLoadingPhotos(false); return; }
 
       const { data: cpPhotos } = await (supabase as any)
         .from('cleaning_photos')
         .select('id, url, type, uploaded_at, caption')
-        .eq('intervention_id', intervention.id);
+        .eq('intervention_id', interventions[0].id);
 
-      const resultPhotos: CleaningPhoto[] = (cpPhotos || []).map((p: any) => ({ 
-        id: p.id, url: p.url, type: p.type, uploaded_at: p.uploaded_at, caption: p.caption 
-      }));
-
+      const resultPhotos: CleaningPhoto[] = (cpPhotos || []).map((p: any) => ({ id: p.id, url: p.url, type: p.type, uploaded_at: p.uploaded_at, caption: p.caption }));
       if (resultPhotos.length === 0) {
         const { data: mPhotos } = await (supabase as any)
-          .from('mission_photos')
-          .select('id, url, kind, created_at')
-          .eq('mission_id', intervention.id);
+          .from('mission_photos').select('id, url, kind, created_at').eq('mission_id', interventions[0].id);
         if (mPhotos?.length) {
-          for (const mp of mPhotos) {
-            resultPhotos.push({ id: mp.id, url: mp.url, type: mp.kind || 'after', uploaded_at: mp.created_at });
-          }
+          for (const mp of mPhotos) resultPhotos.push({ id: mp.id, url: mp.url, type: mp.kind || 'after', uploaded_at: mp.created_at });
         }
       }
-
-      log('Total legacy cleaning photos attached:', resultPhotos.length);
       setCleaningPhotos(resultPhotos);
     } catch (err) {
       console.error('Error fetching cleaning photos:', err);
       setCleaningPhotos([]);
-    } finally {
-      setLoadingPhotos(false);
-    }
+    } finally { setLoadingPhotos(false); }
   }, []);
 
-  // Sync button handler
   const handleSync = useCallback(() => {
     if (!propertyId) return;
-    log('🔄 Sync triggered for property:', propertyId);
     fetchBookings(propertyId);
     fetchBufferPhotos(propertyId);
   }, [propertyId, fetchBookings, fetchBufferPhotos]);
 
-  // When property changes
   useEffect(() => {
     if (!propertyId) {
       setBookings([]); setSelectedBookingId('manual'); setGuestName(''); setCleaningPhotos([]);
       setPropCleaningFee(0); setPropLinenPrice(0); setCleaningAmount(0); setLinenAmount(0);
       return;
     }
-    log('Property selected:', propertyId);
     fetchBookings(propertyId);
     fetchBufferPhotos(propertyId);
     fetchPropertySettings(propertyId);
   }, [propertyId, fetchBookings, fetchBufferPhotos, fetchPropertySettings]);
 
-  // When booking selection changes
   useEffect(() => {
-    if (selectedBookingId === 'manual') return;
+    if (selectedBookingId === 'manual') { setCheckOutDate(''); return; }
     const booking = bookings.find(b => b.id === selectedBookingId);
     if (booking) {
       setGuestName(booking.guest_name || '');
       setDate(booking.check_in);
+      setCheckOutDate(booking.check_out);
     }
   }, [selectedBookingId, bookings]);
 
-  // Auto-calculate linen total when occupants change
   useEffect(() => {
     const count = parseInt(occupants) || 0;
-    if (propLinenPrice > 0 && count > 0) {
-      setLinenAmount(count * propLinenPrice);
-    }
+    if (propLinenPrice > 0 && count > 0) setLinenAmount(count * propLinenPrice);
   }, [occupants, propLinenPrice]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<{ url: string; file: File; uploaded_at: string }[]>>) => {
@@ -318,15 +256,14 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
     if (linenPaid) payments.push({ label: 'Draps', amount: linenAmount, paid: true });
     if (extraPaid && extraLabel) payments.push({ label: extraLabel, amount: extraAmount, paid: true });
 
-    const bufferPhotoIds = cleaningPhotos
-      .filter(p => p.bufferId)
-      .map(p => p.bufferId as string);
+    const bufferPhotoIds = cleaningPhotos.filter(p => p.bufferId).map(p => p.bufferId as string);
 
     await onSave({
       property_id: propertyId,
       booking_id: bookingId,
       guest_name: guestName || null,
       inspection_date: date,
+      check_out_date: checkOutDate || null,
       general_comment: comment || null,
       occupants_count: occupants ? parseInt(occupants) : null,
       keys_handed_over: keysHandedOver ? parseInt(keysHandedOver) : null,
@@ -335,15 +272,12 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
       cleaningPhotos,
       bufferPhotoIds,
       payments,
-      concierge_signature: signature,
-      guest_signature: guestSignature,
     });
     setSaving(false);
     // Reset
     setPropertyId(''); setComment(''); setPhotos([]); setMeterPhotos([]);
-    setSignature(null); setGuestSignature(null); setGuestName('');
-    setSelectedBookingId('manual'); setCleaningPhotos([]);
-    setOccupants(''); setKeysHandedOver('');
+    setGuestName(''); setSelectedBookingId('manual'); setCleaningPhotos([]);
+    setOccupants(''); setKeysHandedOver(''); setCheckOutDate('');
     setCleaningPaid(false); setLinenPaid(false); setExtraPaid(false);
     setExtraLabel(''); setExtraAmount(0);
     onClose();
@@ -360,9 +294,10 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ClipboardCheck className="w-5 h-5" />
-            État des lieux d'entrée
+            Préparer un état des lieux
           </DialogTitle>
         </DialogHeader>
+        <p className="text-xs text-muted-foreground -mt-2">Les signatures seront collectées lors de la validation d'entrée avec le voyageur.</p>
         <div className="space-y-4">
           {/* Property */}
           <div className="space-y-1.5">
@@ -409,16 +344,20 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
             </div>
           )}
 
-          {/* Guest name + Date */}
+          {/* Guest name + Dates */}
           {propertyId && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-sm flex items-center gap-1.5"><User className="w-3.5 h-3.5" />Voyageur</Label>
                 <Input value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="Nom" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-sm">Date</Label>
+                <Label className="text-sm">Arrivée</Label>
                 <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Départ</Label>
+                <Input type="date" value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} />
               </div>
             </div>
           )}
@@ -464,36 +403,27 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
           {/* Payments section */}
           {propertyId && (
             <div className="space-y-3 p-3 rounded-lg border bg-muted/30">
-              <Label className="text-sm font-semibold flex items-center gap-1.5"><Euro className="w-3.5 h-3.5" />Règlements voyageur</Label>
-              
-              {/* Cleaning */}
+              <Label className="text-sm font-semibold flex items-center gap-1.5"><Euro className="w-3.5 h-3.5" />Règlements voyageur (interne)</Label>
+              <p className="text-[10px] text-muted-foreground -mt-1">Ces règlements ne seront pas visibles par les propriétaires.</p>
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 flex-1">
                   <Switch checked={cleaningPaid} onCheckedChange={setCleaningPaid} />
                   <span className="text-sm">Ménage réglé</span>
                 </div>
                 {cleaningPaid && (
-                  <Input type="number" step="0.01" value={cleaningAmount} onChange={e => setCleaningAmount(parseFloat(e.target.value) || 0)}
-                    className="w-24 h-8 text-sm" />
+                  <Input type="number" step="0.01" value={cleaningAmount} onChange={e => setCleaningAmount(parseFloat(e.target.value) || 0)} className="w-24 h-8 text-sm" />
                 )}
               </div>
-
-              {/* Linen */}
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 flex-1">
                   <Switch checked={linenPaid} onCheckedChange={setLinenPaid} />
                   <span className="text-sm">Draps réglés</span>
-                  {propLinenPrice > 0 && occupants && (
-                    <span className="text-xs text-muted-foreground">({occupants} × {propLinenPrice}€)</span>
-                  )}
+                  {propLinenPrice > 0 && occupants && <span className="text-xs text-muted-foreground">({occupants} × {propLinenPrice}€)</span>}
                 </div>
                 {linenPaid && (
-                  <Input type="number" step="0.01" value={linenAmount} onChange={e => setLinenAmount(parseFloat(e.target.value) || 0)}
-                    className="w-24 h-8 text-sm" />
+                  <Input type="number" step="0.01" value={linenAmount} onChange={e => setLinenAmount(parseFloat(e.target.value) || 0)} className="w-24 h-8 text-sm" />
                 )}
               </div>
-
-              {/* Extra */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Switch checked={extraPaid} onCheckedChange={setExtraPaid} />
@@ -502,8 +432,7 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
                 {extraPaid && (
                   <div className="flex gap-2">
                     <Input value={extraLabel} onChange={e => setExtraLabel(e.target.value)} placeholder="Libellé" className="h-8 text-sm flex-1" />
-                    <Input type="number" step="0.01" value={extraAmount} onChange={e => setExtraAmount(parseFloat(e.target.value) || 0)}
-                      className="w-24 h-8 text-sm" />
+                    <Input type="number" step="0.01" value={extraAmount} onChange={e => setExtraAmount(parseFloat(e.target.value) || 0)} className="w-24 h-8 text-sm" />
                   </div>
                 )}
               </div>
@@ -514,7 +443,7 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
           {propertyId && (
             <div className="space-y-1.5">
               <Label className="text-sm">Observation</Label>
-              <Textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="État général..." rows={2} />
+              <Textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="État général du logement..." rows={2} />
             </div>
           )}
 
@@ -566,21 +495,13 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
             </div>
           )}
 
-          {/* Signatures */}
-          {propertyId && (
-            <div className="grid grid-cols-2 gap-4 pt-3 border-t">
-              <SignaturePad label="Signature concierge" onSignatureChange={setSignature} />
-              <SignaturePad label="Signature voyageur" onSignatureChange={setGuestSignature} />
-            </div>
-          )}
-
-          {/* Actions */}
+          {/* Actions — NO signatures here */}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
             <Button onClick={handleSubmit} disabled={saving || !propertyId}>
               {saving && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
-              <CheckCircle className="w-4 h-4 mr-1" />
-              Créer
+              <ClipboardCheck className="w-4 h-4 mr-1" />
+              Préparer l'état des lieux
             </Button>
           </div>
         </div>
