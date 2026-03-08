@@ -52,7 +52,7 @@ export function InspectionPdfGenerator({ inspection }: { inspection: Inspection 
       const html2pdf = (await import('html2pdf.js')).default;
       const el = ref.current;
       if (!el) return;
-      el.style.display = 'blockk';
+      el.style.display = 'flex';
       await html2pdf().set({
         margin: 0,
         filename: `etat-des-lieux-${inspection.inspection_date}.pdf`,
@@ -104,7 +104,7 @@ export function InspectionPdfGenerator({ inspection }: { inspection: Inspection 
 
   // The key: use display:flex;flex-direction:column;height:100% so photo section grows
   const html = `
-<div style="display:flex;flex-direction:column;height:123px;width:100%;box-sizing:border-box;overflow:hiddenx">
+<div style="display:flex;flex-direction:column;height:100%;width:100%;box-sizing:border-box">
 
   <!-- A. HEADER — 100px -->
   <div style="height:100px;min-height:100px;background:${NAVY};color:${htc};display:flex;align-items:stretch;box-sizing:border-box">
