@@ -68,13 +68,8 @@ export function FinanceSettingsTab() {
         bic: (settings as any).bic || "",
         legal_footer: settings.legal_footer || "",
         vat_enabled: settings.vat_enabled ?? true,
-        invoice_primary_color: (settings as any).invoice_primary_color || "#061452",
-        invoice_accent_color: (settings as any).invoice_accent_color || "#C4A45B",
-        invoice_text_color: (settings as any).invoice_text_color || "",
         next_invoice_number: settings.next_invoice_number || 1,
       });
-      setLogoUrl(settings.logo_url || null);
-      setSignatureUrl((settings as any).default_signature_url || null);
     }
   }, [settings]);
 
