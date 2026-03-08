@@ -143,7 +143,7 @@ export function useGuidedTour() {
 
   const startTour = useCallback(() => {
     const step = TOUR_STEPS[0];
-    setTourState({ currentStep: 0, isActive: true, showWelcome: false });
+    setTourState({ currentStep: 0, isActive: true, isPaused: false, showWelcome: false });
     navigate(step.route);
   }, [navigate]);
 
