@@ -20,6 +20,9 @@ import { toast } from "sonner";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
+import { PerformanceOverview } from "@/components/dashboard/PerformanceOverview";
+import { UpcomingOperations } from "@/components/dashboard/UpcomingOperations";
+import { startOfMonth, endOfMonth } from "date-fns";
 
 const DashboardHome = () => {
   const navigate = useNavigate();

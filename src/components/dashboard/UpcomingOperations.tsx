@@ -7,10 +7,10 @@ import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 
 export function UpcomingOperations() {
-  const { missions, loading } = useNewMissions('concierge');
+  const { missions, isLoading } = useNewMissions('concierge');
   const navigate = useNavigate();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="animate-pulse">
         <CardHeader>
