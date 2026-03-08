@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SignaturePad } from '@/components/inspection/SignaturePad';
 import { supabase } from '@/integrations/supabase/client';
-import { ClipboardCheck, Camera, X, Loader2, CheckCircle, Calendar, User, Image, Key, Euro } from 'lucide-react';
+import { ClipboardCheck, Camera, X, Loader2, CheckCircle, Calendar, User, Image, Key, Euro, RefreshCw } from 'lucide-react';
 
 interface Booking {
   id: string;
@@ -20,10 +20,12 @@ interface Booking {
 }
 
 interface CleaningPhoto {
+  id?: string;
   url: string;
   type?: string;
   uploaded_at?: string;
   caption?: string | null;
+  bufferId?: string; // reference to property_cleaning_buffer.id
 }
 
 interface PaymentEntry {
@@ -43,6 +45,7 @@ export interface InspectionFormValues {
   meter_photos: { url: string; file?: File; uploaded_at: string }[];
   photos: { url: string; file?: File; uploaded_at: string }[];
   cleaningPhotos: CleaningPhoto[];
+  bufferPhotoIds: string[]; // IDs to mark as used
   payments: PaymentEntry[];
   concierge_signature: string | null;
   guest_signature: string | null;
