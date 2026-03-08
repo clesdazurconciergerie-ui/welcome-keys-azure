@@ -198,6 +198,7 @@ export function useGuidedTour() {
 
   return {
     isActive: tourState.isActive,
+    isPaused: tourState.isPaused,
     showWelcome: tourState.showWelcome,
     currentStepIndex: tourState.currentStep,
     currentStep,
