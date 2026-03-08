@@ -1419,11 +1419,14 @@ export type Database = {
           id: string
           inspection_date: string
           inspection_type: string | null
+          keys_handed_over: number | null
           linked_inspection_id: string | null
           meter_electricity: string | null
           meter_gas: string | null
+          meter_photos_json: Json | null
           meter_water: string | null
           occupants_count: number | null
+          payments_json: Json | null
           pdf_url: string | null
           property_id: string
           status: string
@@ -1445,11 +1448,14 @@ export type Database = {
           id?: string
           inspection_date?: string
           inspection_type?: string | null
+          keys_handed_over?: number | null
           linked_inspection_id?: string | null
           meter_electricity?: string | null
           meter_gas?: string | null
+          meter_photos_json?: Json | null
           meter_water?: string | null
           occupants_count?: number | null
+          payments_json?: Json | null
           pdf_url?: string | null
           property_id: string
           status?: string
@@ -1471,11 +1477,14 @@ export type Database = {
           id?: string
           inspection_date?: string
           inspection_type?: string | null
+          keys_handed_over?: number | null
           linked_inspection_id?: string | null
           meter_electricity?: string | null
           meter_gas?: string | null
+          meter_photos_json?: Json | null
           meter_water?: string | null
           occupants_count?: number | null
+          payments_json?: Json | null
           pdf_url?: string | null
           property_id?: string
           status?: string
@@ -2506,6 +2515,7 @@ export type Database = {
           compensation_model: string | null
           created_at: string | null
           id: string
+          linen_price_per_person: number | null
           maintenance_rate: number | null
           ota_payout_recipient: string | null
           pricing_source: string | null
@@ -2520,6 +2530,7 @@ export type Database = {
           compensation_model?: string | null
           created_at?: string | null
           id?: string
+          linen_price_per_person?: number | null
           maintenance_rate?: number | null
           ota_payout_recipient?: string | null
           pricing_source?: string | null
@@ -2534,6 +2545,7 @@ export type Database = {
           compensation_model?: string | null
           created_at?: string | null
           id?: string
+          linen_price_per_person?: number | null
           maintenance_rate?: number | null
           ota_payout_recipient?: string | null
           pricing_source?: string | null
