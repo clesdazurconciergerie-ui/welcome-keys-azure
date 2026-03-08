@@ -26,6 +26,99 @@ function lighten(hex: string, amount: number): string {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
+/**
+ * Compute adaptive layout parameters based on content density.
+ * Total A4 usable height ≈ 277mm (297 - 20 footer).
+ * We estimate each section's height and adapt photo sizes & spacing.
+ */
+function computeLayout(inspection: Inspection) {
+  const hasComment = !!inspection.general_comment;
+  const hasDamage = !!inspection.damage_notes;
+  const commentLen = (inspection.general_comment || '').length;
+  const damageLen = (inspection.damage_notes || '').length;
+
+  const cleaningAll = inspection.cleaning_photos_json || [];
+  const exitAll = inspection.exit_photos_json || [];
+  const meterAll = (inspection as any).meter_photos_json || [];
+  const totalPhotos = cleaningAll.length + exitAll.length + meterAll.length;
+
+  // Estimate fixed heights (mm)
+  const headerH = 22; // compact header
+  const titleH = 14;
+  const tableH = 28; // ~6 rows compact
+  const sigH = 24;
+  const footerH = 10;
+  const fixedH = headerH + titleH + tableH + sigH + footerH;
+
+  // Text sections height estimate
+  const commentH = hasComment ? Math.min(12 + commentLen * 0.03, 30) : 0;
+  const damageH = hasDamage ? Math.min(12 + damageLen * 0.03, 25) : 0;
+  const textH = commentH + damageH;
+
+  const availableForPhotos = 277 - fixedH - textH - 8; // 8mm buffer
+
+  // Determine photo budget
+  let maxPhotos: number;
+  let photoHeight: number; // px in the 210mm-wide container
+  let photoGap: number;
+  let sectionGap: number;
+  let spacing: 'relaxed' | 'normal' | 'compact';
+
+  if (totalPhotos === 0) {
+    maxPhotos = 0;
+    photoHeight = 0;
+    photoGap = 0;
+    sectionGap = 14;
+    spacing = 'relaxed';
+  } else if (totalPhotos <= 3 && availableForPhotos > 60) {
+    // Few photos, lots of space → larger thumbnails
+    maxPhotos = 3;
+    photoHeight = 80;
+    photoGap = 8;
+    sectionGap = 12;
+    spacing = 'relaxed';
+  } else if (totalPhotos <= 6 && availableForPhotos > 45) {
+    maxPhotos = 6;
+    photoHeight = 60;
+    photoGap = 6;
+    sectionGap = 10;
+    spacing = 'normal';
+  } else if (availableForPhotos > 35) {
+    maxPhotos = Math.min(totalPhotos, 9);
+    photoHeight = 48;
+    photoGap = 5;
+    sectionGap = 8;
+    spacing = 'normal';
+  } else {
+    // Very tight
+    maxPhotos = Math.min(totalPhotos, 6);
+    photoHeight = 38;
+    photoGap = 4;
+    sectionGap = 6;
+    spacing = 'compact';
+  }
+
+  // Distribute photos across sections proportionally
+  const distribute = (all: any[], budget: number) => {
+    const take = Math.min(all.length, budget);
+    return { photos: all.slice(0, take), remaining: all.length - take, used: take };
+  };
+
+  let budget = maxPhotos;
+  const cleaning = distribute(cleaningAll, budget);
+  budget -= cleaning.used;
+  const meter = distribute(meterAll, budget);
+  budget -= meter.used;
+  const exit = distribute(exitAll, budget);
+
+  const extraPhotos = cleaning.remaining + meter.remaining + exit.remaining;
+
+  return {
+    cleaning, meter, exit, extraPhotos, totalPhotos,
+    photoHeight, photoGap, sectionGap, spacing,
+  };
+}
+
 export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorProps) {
   const printRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
@@ -64,13 +157,7 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
     }
   };
 
-  const cleaningPhotos = (inspection.cleaning_photos_json || []).slice(0, 6);
-  const exitPhotos = (inspection.exit_photos_json || []).slice(0, 6);
-  const meterPhotos = ((inspection as any).meter_photos_json || []).slice(0, 6);
-  const allPhotosCount = (inspection.cleaning_photos_json || []).length + (inspection.exit_photos_json || []).length + ((inspection as any).meter_photos_json || []).length;
-  const displayedCount = cleaningPhotos.length + exitPhotos.length + meterPhotos.length;
-  const extraPhotos = allPhotosCount - displayedCount;
-
+  const layout = computeLayout(inspection);
   const keysHandedOver = (inspection as any).keys_handed_over;
   const conciergeSignature = inspection.concierge_signature_url || defaultSignatureUrl;
 
@@ -82,19 +169,16 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
   const refNumber = `EDL-${year}-${inspection.id?.substring(0, 3).toUpperCase() || '001'}`;
   const addressLine = [co.address, [co.org_postal_code, co.org_city].filter(Boolean).join(' ')].filter(Boolean).join(' — ');
 
-  // Decide how many photo rows to show — keep to max 2 rows (6 photos) per section, pick only sections with photos
-  const photoSections: { title: string; photos: any[] }[] = [];
-  if (cleaningPhotos.length) photoSections.push({ title: 'Photos du ménage', photos: cleaningPhotos });
-  if (meterPhotos.length) photoSections.push({ title: 'Photos compteurs', photos: meterPhotos });
-  if (exitPhotos.length) photoSections.push({ title: 'Photos complémentaires', photos: exitPhotos });
+  const isRelaxed = layout.spacing === 'relaxed';
+  const isCompact = layout.spacing === 'compact';
+  const pad = isCompact ? '20px' : '24px';
+  const sigHeight = isRelaxed ? 65 : isCompact ? 45 : 55;
 
-  // If total photos > 6, limit each section proportionally
-  let totalAllowed = 6;
-  const limitedSections = photoSections.map(s => {
-    const take = Math.min(s.photos.length, totalAllowed);
-    totalAllowed -= take;
-    return { ...s, photos: s.photos.slice(0, take) };
-  }).filter(s => s.photos.length > 0);
+  // Photo sections to render
+  const photoSections: { title: string; photos: any[] }[] = [];
+  if (layout.cleaning.photos.length) photoSections.push({ title: 'Photos du ménage', photos: layout.cleaning.photos });
+  if (layout.meter.photos.length) photoSections.push({ title: 'Photos compteurs', photos: layout.meter.photos });
+  if (layout.exit.photos.length) photoSections.push({ title: 'Photos complémentaires', photos: layout.exit.photos });
 
   return (
     <>
@@ -118,14 +202,15 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
           boxSizing: 'border-box',
         }}
       >
-        {/* ═══ HEADER — compact ═══ */}
+        {/* ═══ HEADER ═══ */}
         <div style={{
           backgroundColor: NAVY, color: headerTextColor,
-          display: 'flex', alignItems: 'stretch', minHeight: 72, maxHeight: 80,
+          display: 'flex', alignItems: 'stretch',
+          minHeight: isCompact ? 64 : 72, maxHeight: isRelaxed ? 85 : 80,
         }}>
-          <div style={{ flex: 1, padding: '12px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ flex: 1, padding: `${isCompact ? 10 : 12}px ${pad}`, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <div style={{
-              fontSize: 14, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
+              fontSize: isCompact ? 13 : 14, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
               paddingBottom: 3, borderBottom: `2px solid ${GOLD}`, display: 'inline-block',
             }}>{companyName || 'MA CONCIERGERIE'}</div>
             {addressLine && (
@@ -137,20 +222,20 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
               <img src={co.logo_url} alt="" style={{ maxHeight: 50, maxWidth: 60, objectFit: 'contain' }} crossOrigin="anonymous" />
             </div>
           )}
-          <div style={{ flex: 1, padding: '12px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'right' }}>
+          <div style={{ flex: 1, padding: `${isCompact ? 10 : 12}px ${pad}`, display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'right' }}>
             <div style={{
-              fontSize: 12, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
+              fontSize: isCompact ? 11 : 12, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
               paddingBottom: 3, borderBottom: `2px solid ${GOLD}`, display: 'inline-block', marginLeft: 'auto',
             }}>{inspection.guest_name || 'NOM VOYAGEUR'}</div>
             <p style={{ margin: '4px 0 0', fontSize: 9, opacity: 0.85 }}>{inspection.property?.name || ''}</p>
           </div>
         </div>
 
-        {/* ═══ TITLE — compact ═══ */}
-        <div style={{ padding: '14px 24px 8px', display: 'flex' }}>
-          <div style={{ width: 3, backgroundColor: GOLD, borderRadius: 1, marginRight: 10, minHeight: 32 }} />
+        {/* ═══ TITLE ═══ */}
+        <div style={{ padding: `${isRelaxed ? 16 : isCompact ? 10 : 14}px ${pad} ${isCompact ? 6 : 8}px`, display: 'flex' }}>
+          <div style={{ width: 3, backgroundColor: GOLD, borderRadius: 1, marginRight: 10, minHeight: 28 }} />
           <div>
-            <h1 style={{ fontSize: 16, fontWeight: 700, color: NAVY, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0 }}>
+            <h1 style={{ fontSize: isCompact ? 14 : 16, fontWeight: 700, color: NAVY, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0 }}>
               {typeLabel}
             </h1>
             <p style={{ margin: '2px 0 0', fontSize: 9.5, color: '#555' }}>
@@ -159,13 +244,13 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
           </div>
         </div>
 
-        {/* ═══ INFO TABLE — compact ═══ */}
-        <div style={{ padding: '4px 24px' }}>
+        {/* ═══ INFO TABLE ═══ */}
+        <div style={{ padding: `4px ${pad}` }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', border: `1.5px solid ${NAVY}`, fontSize: 9.5 }}>
             <thead>
               <tr>
-                <th style={{ backgroundColor: NAVY, color: headerTextColor, fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textAlign: 'left', padding: '5px 10px', borderRight: `1px solid ${headerTextColor}33`, width: '38%' }}>Information</th>
-                <th style={{ backgroundColor: NAVY, color: headerTextColor, fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textAlign: 'left', padding: '5px 10px' }}>Détail</th>
+                <th style={{ backgroundColor: NAVY, color: headerTextColor, fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textAlign: 'left', padding: `${isCompact ? 4 : 5}px 10px`, borderRight: `1px solid ${headerTextColor}33`, width: '38%' }}>Information</th>
+                <th style={{ backgroundColor: NAVY, color: headerTextColor, fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textAlign: 'left', padding: `${isCompact ? 4 : 5}px 10px` }}>Détail</th>
               </tr>
             </thead>
             <tbody>
@@ -178,17 +263,17 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
                 ['Ménage par', inspection.cleaner_name],
               ].map(([label, value], i) => (
                 <tr key={i}>
-                  <td style={{ padding: '4px 10px', fontWeight: 600, borderBottom: `1px solid ${NAVY}15`, borderRight: `1px solid ${NAVY}15` }}>{label}</td>
-                  <td style={{ padding: '4px 10px', borderBottom: `1px solid ${NAVY}15` }}>{value || '—'}</td>
+                  <td style={{ padding: `${isCompact ? 3 : 4}px 10px`, fontWeight: 600, borderBottom: `1px solid ${NAVY}15`, borderRight: `1px solid ${NAVY}15` }}>{label}</td>
+                  <td style={{ padding: `${isCompact ? 3 : 4}px 10px`, borderBottom: `1px solid ${NAVY}15` }}>{value || '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        {/* ═══ OBSERVATIONS — compact ═══ */}
+        {/* ═══ OBSERVATIONS ═══ */}
         {inspection.general_comment && (
-          <div style={{ padding: '8px 24px 0' }}>
+          <div style={{ padding: `${layout.sectionGap}px ${pad} 0` }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: NAVY, textTransform: 'uppercase', letterSpacing: 1, paddingBottom: 4, borderBottom: `1.5px solid ${GOLD}` }}>
               Observations
             </div>
@@ -197,7 +282,7 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
         )}
 
         {inspection.damage_notes && (
-          <div style={{ padding: '8px 24px 0' }}>
+          <div style={{ padding: `${layout.sectionGap}px ${pad} 0` }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: 1, paddingBottom: 4, borderBottom: '1.5px solid #dc2626' }}>
               Dégâts / Anomalies
             </div>
@@ -205,44 +290,44 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
           </div>
         )}
 
-        {/* ═══ PHOTOS — thumbnail grid, max 6 total ═══ */}
-        {limitedSections.length > 0 && (
-          <div style={{ padding: '8px 24px 0' }}>
-            {limitedSections.map((section, si) => (
-              <div key={si} style={{ marginBottom: 6 }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: NAVY, textTransform: 'uppercase', letterSpacing: 0.8, paddingBottom: 3, borderBottom: `1.5px solid ${GOLD}`, marginBottom: 5 }}>
+        {/* ═══ PHOTOS — adaptive grid ═══ */}
+        {photoSections.length > 0 && (
+          <div style={{ padding: `${layout.sectionGap}px ${pad} 0` }}>
+            {photoSections.map((section, si) => (
+              <div key={si} style={{ marginBottom: layout.sectionGap - 2 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: NAVY, textTransform: 'uppercase', letterSpacing: 0.8, paddingBottom: 3, borderBottom: `1.5px solid ${GOLD}`, marginBottom: layout.photoGap }}>
                   {section.title}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: layout.photoGap }}>
                   {section.photos.map((p: any, i: number) => (
                     <img key={i} src={p.url} alt="" style={{
-                      width: '100%', height: 52, objectFit: 'cover',
+                      width: '100%', height: layout.photoHeight, objectFit: 'cover',
                       borderRadius: 3, border: `1px solid ${NAVY}1a`,
                     }} crossOrigin="anonymous" />
                   ))}
                 </div>
               </div>
             ))}
-            {extraPhotos > 0 && (
-              <p style={{ fontSize: 8, color: '#6b7280', fontStyle: 'italic', margin: '2px 0 0' }}>
-                + {extraPhotos} photo{extraPhotos > 1 ? 's' : ''} supplémentaire{extraPhotos > 1 ? 's' : ''} disponible{extraPhotos > 1 ? 's' : ''} dans l'application
+            {layout.extraPhotos > 0 && (
+              <p style={{ fontSize: 8, color: '#6b7280', fontStyle: 'italic', margin: '0' }}>
+                + {layout.extraPhotos} photo{layout.extraPhotos > 1 ? 's' : ''} supplémentaire{layout.extraPhotos > 1 ? 's' : ''} disponible{layout.extraPhotos > 1 ? 's' : ''} dans l'application
               </p>
             )}
           </div>
         )}
 
         {/* ═══ SIGNATURES ═══ */}
-        <div style={{ padding: '12px 24px 0', display: 'flex', gap: 30, pageBreakInside: 'avoid' }}>
+        <div style={{ padding: `${isRelaxed ? 16 : layout.sectionGap}px ${pad} 0`, display: 'flex', gap: 30, pageBreakInside: 'avoid' }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 9, fontWeight: 700, color: NAVY, textTransform: 'uppercase', letterSpacing: 0.8, paddingBottom: 4, borderBottom: `1.5px solid ${GOLD}`, marginBottom: 6 }}>
               Signature conciergerie
             </div>
             {conciergeSignature ? (
-              <div style={{ border: `1px solid ${NAVY}1a`, borderRadius: 3, padding: 4, height: 55, display: 'flex', alignItems: 'center' }}>
-                <img src={conciergeSignature} alt="Signature" style={{ maxHeight: 48, maxWidth: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
+              <div style={{ border: `1px solid ${NAVY}1a`, borderRadius: 3, padding: 4, height: sigHeight, display: 'flex', alignItems: 'center' }}>
+                <img src={conciergeSignature} alt="Signature" style={{ maxHeight: sigHeight - 10, maxWidth: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
               </div>
             ) : (
-              <div style={{ height: 55, border: '1px dashed #d1d5db', borderRadius: 3 }} />
+              <div style={{ height: sigHeight, border: '1px dashed #d1d5db', borderRadius: 3 }} />
             )}
           </div>
           <div style={{ flex: 1 }}>
@@ -250,11 +335,11 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
               Signature client
             </div>
             {inspection.guest_signature_url ? (
-              <div style={{ border: `1px solid ${NAVY}1a`, borderRadius: 3, padding: 4, height: 55, display: 'flex', alignItems: 'center' }}>
-                <img src={inspection.guest_signature_url} alt="Signature" style={{ maxHeight: 48, maxWidth: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
+              <div style={{ border: `1px solid ${NAVY}1a`, borderRadius: 3, padding: 4, height: sigHeight, display: 'flex', alignItems: 'center' }}>
+                <img src={inspection.guest_signature_url} alt="Signature" style={{ maxHeight: sigHeight - 10, maxWidth: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
               </div>
             ) : (
-              <div style={{ height: 55, border: '1px dashed #d1d5db', borderRadius: 3 }} />
+              <div style={{ height: sigHeight, border: '1px dashed #d1d5db', borderRadius: 3 }} />
             )}
           </div>
         </div>
@@ -262,7 +347,7 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
         {/* ═══ FOOTER ═══ */}
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
-          padding: '7px 24px', borderTop: `1.5px solid ${GOLD}`,
+          padding: `7px ${pad}`, borderTop: `1.5px solid ${GOLD}`,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           backgroundColor: GRAY_STRIP,
         }}>
