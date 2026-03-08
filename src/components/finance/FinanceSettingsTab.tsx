@@ -9,8 +9,6 @@ import { useServicesCatalog, type ServiceCatalogItem } from "@/hooks/useServices
 import { Switch } from "@/components/ui/switch";
 import { Save, Loader2, Plus, Trash2, Edit2, Check, X, RotateCcw } from "lucide-react";
 import { formatEUR } from "@/lib/finance-utils";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 function contrastColor(hex: string): string {
   const c = hex.replace("#", "");
