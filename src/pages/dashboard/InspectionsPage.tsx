@@ -23,6 +23,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
+import { ContextualTip } from '@/components/onboarding/ContextualTip';
 
 const isDev = import.meta.env.DEV;
 const log = (...args: any[]) => { if (isDev) console.log('[EdL]', ...args); };
