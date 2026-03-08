@@ -305,6 +305,42 @@ export type Database = {
           },
         ]
       }
+      automation_settings: {
+        Row: {
+          auto_cleaning_missions: boolean
+          auto_link_cleaning_photos: boolean
+          created_at: string
+          id: string
+          notifications_enabled: boolean
+          provider_reminders: boolean
+          reminder_hours_before: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_cleaning_missions?: boolean
+          auto_link_cleaning_photos?: boolean
+          created_at?: string
+          id?: string
+          notifications_enabled?: boolean
+          provider_reminders?: boolean
+          reminder_hours_before?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_cleaning_missions?: boolean
+          auto_link_cleaning_photos?: boolean
+          created_at?: string
+          id?: string
+          notifications_enabled?: boolean
+          provider_reminders?: boolean
+          reminder_hours_before?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           calendar_event_id: string | null
@@ -2010,6 +2046,45 @@ export type Database = {
           smtp_secure?: boolean | null
           smtp_user?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string | null
+          related_id: string | null
+          related_type: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          related_id?: string | null
+          related_type?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          related_id?: string | null
+          related_type?: string | null
+          title?: string
+          type?: string
           user_id?: string
         }
         Relationships: []
