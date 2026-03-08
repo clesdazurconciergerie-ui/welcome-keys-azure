@@ -1,5 +1,6 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { motion } from "framer-motion";
+import { HelpCircle } from "lucide-react";
 
 const FAQ = () => {
   const faqs = [
@@ -11,9 +12,12 @@ const FAQ = () => {
   ];
 
   return (
-    <section id="faq" className="py-20 lg:py-28 bg-background scroll-mt-20">
+    <section id="faq" className="py-20 lg:py-28 bg-background scroll-mt-20 relative">
       <div className="mx-auto max-w-6xl px-6 lg:px-10">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="text-center mb-12">
+          <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center mx-auto mb-4">
+            <HelpCircle className="w-6 h-6 text-primary" />
+          </div>
           <h2 className="!text-[clamp(1.75rem,4vw,2.75rem)] font-bold text-foreground leading-tight mb-4">Questions fréquentes</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">Tout ce que vous devez savoir sur MyWelkom</p>
         </motion.div>
@@ -21,7 +25,11 @@ const FAQ = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }} className="max-w-3xl mx-auto">
           <Accordion type="single" collapsible className="space-y-3">
             {faqs.map((faq, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="border border-border rounded-2xl px-6 bg-card hover:shadow-md transition-shadow">
+              <AccordionItem
+                key={index}
+                value={`item-${index}`}
+                className="border border-border rounded-2xl px-6 bg-card hover:border-gold/20 hover:shadow-md transition-all duration-300"
+              >
                 <AccordionTrigger className="text-left text-foreground py-5 hover:no-underline">
                   <span className="font-semibold pr-2">{faq.question}</span>
                 </AccordionTrigger>

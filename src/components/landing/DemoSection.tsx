@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Building2, UserCheck, BarChart3, BookOpen } from "lucide-react";
+import { Building2, UserCheck, Check } from "lucide-react";
 
 const DemoSection = () => {
   const navigate = useNavigate();
@@ -10,11 +10,17 @@ const DemoSection = () => {
       icon: Building2,
       title: "Pour les conciergeries",
       points: ["CRM de prospection intégré", "Dashboard performance en temps réel", "Gestion prestataires & ménage", "Scalabilité multi-logements"],
+      accent: "from-primary/10 to-primary/[0.02]",
+      iconBg: "bg-primary/10",
+      iconColor: "text-primary",
     },
     {
       icon: UserCheck,
       title: "Pour les propriétaires",
       points: ["Revenus mensuels visibles", "Taux d'occupation transparent", "Photos ménage en temps réel", "Documents centralisés"],
+      accent: "from-gold/10 to-gold/[0.02]",
+      iconBg: "bg-gold/10",
+      iconColor: "text-gold",
     },
   ];
 
@@ -33,7 +39,7 @@ const DemoSection = () => {
           </p>
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
+        <div className="grid lg:grid-cols-2 gap-6 max-w-5xl mx-auto mb-12">
           {audiences.map((audience, i) => (
             <motion.div
               key={i}
@@ -41,30 +47,39 @@ const DemoSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="bg-card rounded-2xl p-8 border border-border hover:border-gold/30 hover:shadow-lg transition-all duration-300"
+              className="group bg-card rounded-2xl p-8 border border-border hover:border-gold/20 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
             >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center">
-                  <audience.icon className="w-6 h-6 text-primary" />
+              <div className={`absolute inset-0 bg-gradient-to-br ${audience.accent} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className={`w-12 h-12 rounded-xl ${audience.iconBg} flex items-center justify-center`}>
+                    <audience.icon className={`w-6 h-6 ${audience.iconColor}`} />
+                  </div>
+                  <h3 className="!text-[1.25rem] font-bold text-foreground">{audience.title}</h3>
                 </div>
-                <h3 className="!text-[1.25rem] font-bold text-foreground">{audience.title}</h3>
+                <ul className="space-y-3.5">
+                  {audience.points.map((point, j) => (
+                    <li key={j} className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <div className="w-5 h-5 rounded-full bg-gold/10 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-3 h-3 text-gold" strokeWidth={3} />
+                      </div>
+                      {point}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="space-y-3">
-                {audience.points.map((point, j) => (
-                  <li key={j} className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <div className="w-1.5 h-1.5 rounded-full bg-gold flex-shrink-0" />
-                    {point}
-                  </li>
-                ))}
-              </ul>
             </motion.div>
           ))}
         </div>
 
         <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.3 }} className="text-center">
-          <p className="text-xs text-muted-foreground">
-            ⚡ Déploiement en 24h · 📱 Compatible tous appareils · 🔒 Données sécurisées RGPD
-          </p>
+          <div className="inline-flex items-center gap-6 text-xs text-muted-foreground bg-secondary/80 rounded-full px-6 py-3 border border-border">
+            <span>⚡ Déploiement en 24h</span>
+            <span className="w-px h-3 bg-border" />
+            <span>📱 Compatible tous appareils</span>
+            <span className="w-px h-3 bg-border hidden sm:block" />
+            <span className="hidden sm:inline">🔒 Données sécurisées RGPD</span>
+          </div>
         </motion.div>
       </div>
     </section>
