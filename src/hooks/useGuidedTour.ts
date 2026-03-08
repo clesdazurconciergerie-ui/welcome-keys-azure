@@ -171,7 +171,7 @@ export function useGuidedTour() {
   }, [tourState.currentStep, goToStep]);
 
   const skipTour = useCallback(() => {
-    setTourState({ currentStep: 0, isActive: false, showWelcome: false });
+    setTourState({ currentStep: 0, isActive: false, isPaused: false, showWelcome: false });
     setTourCompleted(true);
     localStorage.setItem(TOUR_COMPLETED_KEY, "true");
   }, []);
