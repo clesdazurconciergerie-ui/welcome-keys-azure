@@ -7,75 +7,46 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, CalendarDays, BarChart3, Sparkles, CheckCircle2, ArrowLeft } from "lucide-react";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform, MotionValue } from "framer-motion";
 import BrandMark from "@/components/BrandMark";
 
-/* ── Orbital floating card with magnetic pull + tilt ── */
+/* ── Floating card with magnetic pull driven by normalized mouse coords ── */
 const FloatingCard = ({
   children,
   className = "",
   delay = 0,
   orbit,
-  mouseX,
-  mouseY,
+  nx,
+  ny,
+  magnetStrength = 35,
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
   orbit: { rx: number; ry: number; duration: number; phase: number; tilt: number };
-  mouseX: any;
-  mouseY: any;
+  nx: MotionValue<number>;
+  ny: MotionValue<number>;
+  magnetStrength?: number;
 }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
+  // nx/ny are -1..1 normalized mouse coords; multiply by per-card strength
+  const pullX = useTransform(nx, [-1, 0, 1], [-magnetStrength, 0, magnetStrength]);
+  const pullY = useTransform(ny, [-1, 0, 1], [-magnetStrength, 0, magnetStrength]);
+  const tiltY = useTransform(nx, [-1, 0, 1], [-8, 0, 8]);
+  const tiltX = useTransform(ny, [-1, 0, 1], [8, 0, -8]);
 
-  // Stronger magnetic pull (max ±40px) with smooth spring
-  const dx = useTransform(mouseX, (mx: number) => {
-    if (mx === 0) return 0;
-    const rect = cardRef.current?.getBoundingClientRect();
-    if (!rect) return 0;
-    const cardCx = rect.left + rect.width / 2;
-    const dist = mx - cardCx;
-    return Math.max(-40, Math.min(40, dist * 0.09));
-  });
-  const dy = useTransform(mouseY, (my: number) => {
-    if (my === 0) return 0;
-    const rect = cardRef.current?.getBoundingClientRect();
-    if (!rect) return 0;
-    const cardCy = rect.top + rect.height / 2;
-    const dist = my - cardCy;
-    return Math.max(-40, Math.min(40, dist * 0.09));
-  });
-
-  // Tilt toward cursor (max ±6deg)
-  const rotateY = useTransform(mouseX, (mx: number) => {
-    if (mx === 0) return 0;
-    const rect = cardRef.current?.getBoundingClientRect();
-    if (!rect) return 0;
-    const cardCx = rect.left + rect.width / 2;
-    return Math.max(-6, Math.min(6, (mx - cardCx) * 0.012));
-  });
-  const rotateX = useTransform(mouseY, (my: number) => {
-    if (my === 0) return 0;
-    const rect = cardRef.current?.getBoundingClientRect();
-    if (!rect) return 0;
-    const cardCy = rect.top + rect.height / 2;
-    return Math.max(-6, Math.min(6, -(my - cardCy) * 0.012));
-  });
-
-  const sx = useSpring(dx, { stiffness: 60, damping: 16 });
-  const sy = useSpring(dy, { stiffness: 60, damping: 16 });
-  const sRotateX = useSpring(rotateX, { stiffness: 60, damping: 18 });
-  const sRotateY = useSpring(rotateY, { stiffness: 60, damping: 18 });
+  const sx = useSpring(pullX, { stiffness: 50, damping: 14 });
+  const sy = useSpring(pullY, { stiffness: 50, damping: 14 });
+  const sRotateX = useSpring(tiltX, { stiffness: 50, damping: 16 });
+  const sRotateY = useSpring(tiltY, { stiffness: 50, damping: 16 });
 
   const { rx, ry, duration, phase, tilt } = orbit;
 
   return (
     <motion.div
-      ref={cardRef}
       initial={{ opacity: 0, y: 30, scale: 0.85 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.8, delay: 0.4 + delay, ease: [0.22, 1, 0.36, 1] }}
-      style={{ x: sx, y: sy, rotateX: sRotateX, rotateY: sRotateY, perspective: 600 }}
+      style={{ x: sx, y: sy, rotateX: sRotateX, rotateY: sRotateY }}
       className={className}
     >
       <motion.div
@@ -96,7 +67,6 @@ const FloatingCard = ({
     </motion.div>
   );
 };
-
 /* ── Premium input wrapper ── */
 const PremiumInput = ({
   hasError,
