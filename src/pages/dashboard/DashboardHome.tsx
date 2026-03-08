@@ -172,6 +172,15 @@ const DashboardHome = () => {
         </Card>
       </div>
 
+      {/* Performance Overview */}
+      <PerformanceOverview
+        startDate={startOfMonth(now).toISOString().slice(0, 10)}
+        endDate={endOfMonth(now).toISOString().slice(0, 10)}
+      />
+
+      {/* Upcoming Operations */}
+      <UpcomingOperations />
+
       {/* Global Calendar */}
       <GlobalCalendar />
 
