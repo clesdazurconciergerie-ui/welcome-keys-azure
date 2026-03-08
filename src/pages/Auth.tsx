@@ -62,10 +62,10 @@ const FloatingCard = ({
     return Math.max(-6, Math.min(6, -(my - cardCy) * 0.012));
   });
 
-  const sx = useSpring(dx, { stiffness: 80, damping: 18 });
-  const sy = useSpring(dy, { stiffness: 80, damping: 18 });
-  const sRotateX = useSpring(rotateX, { stiffness: 80, damping: 20 });
-  const sRotateY = useSpring(rotateY, { stiffness: 80, damping: 20 });
+  const sx = useSpring(dx, { stiffness: 60, damping: 16 });
+  const sy = useSpring(dy, { stiffness: 60, damping: 16 });
+  const sRotateX = useSpring(rotateX, { stiffness: 60, damping: 18 });
+  const sRotateY = useSpring(rotateY, { stiffness: 60, damping: 18 });
 
   const { rx, ry, duration, phase, tilt } = orbit;
 
