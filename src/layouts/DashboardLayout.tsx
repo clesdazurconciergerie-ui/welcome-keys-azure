@@ -7,6 +7,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
 import { Loader2, Menu } from "lucide-react";
 import { GuidedTourProvider } from "@/components/onboarding/GuidedTourProvider";
+import { NotificationsBell } from "@/components/notifications/NotificationsBell";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
@@ -51,6 +52,7 @@ export default function DashboardLayout() {
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
             <div className="flex-1" />
+            <NotificationsBell />
             <span className="text-xs text-muted-foreground font-medium">{userEmail}</span>
           </header>
           <main className="flex-1 p-5 md:p-8 overflow-auto">
