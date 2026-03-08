@@ -38,9 +38,6 @@ export function FinanceSettingsTab() {
     bic: "",
     legal_footer: "",
     vat_enabled: true,
-    invoice_primary_color: "#061452",
-    invoice_accent_color: "#C4A45B",
-    invoice_text_color: "",
     next_invoice_number: 1,
   });
   const [saving, setSaving] = useState(false);
