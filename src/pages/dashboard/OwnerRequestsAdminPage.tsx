@@ -92,6 +92,17 @@ export default function OwnerRequestsAdminPage() {
     if (threadOpen?.id === req.id) setThreadOpen({ ...req, status: newStatus });
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    // Delete messages first, then the request
+    await (supabase as any).from("owner_request_messages").delete().eq("request_id", deleteTarget.id);
+    await (supabase as any).from("owner_requests").delete().eq("id", deleteTarget.id);
+    toast.success("Demande supprimée");
+    setDeleteTarget(null);
+    if (threadOpen?.id === deleteTarget.id) setThreadOpen(null);
+    loadRequests();
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
