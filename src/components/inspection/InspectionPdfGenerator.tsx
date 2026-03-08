@@ -53,12 +53,15 @@ export function InspectionPdfGenerator({ inspection }: { inspection: Inspection 
       const el = ref.current;
       if (!el) return;
       el.style.display = 'flex';
+      const elW = el.offsetWidth;
+      const elH = el.offsetHeight;
       await html2pdf().set({
         margin: 0,
         filename: `etat-des-lieux-${inspection.inspection_date}.pdf`,
         image: { type: 'jpeg', quality: 0.92 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        html2canvas: { scale: 2, useCORS: true, width: elW, height: elH, scrollY: 0, scrollX: 0 },
+        jsPDF: { unit: 'px', format: [elW * 2, elH * 2], orientation: 'portrait', hotfixes: ['px_scaling'] },
+        pagebreak: { mode: ['avoid-all'] },
       }).from(el).save();
       el.style.display = 'none';
     } catch (e) { console.error(e); }
