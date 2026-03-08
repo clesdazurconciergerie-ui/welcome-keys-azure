@@ -34,7 +34,7 @@ const ownerNav = [
   { title: "Mes biens", url: "/proprietaire/biens", icon: Home },
   { title: "Calendrier", url: "/proprietaire/calendrier", icon: CalendarDays },
   { title: "Livrets d'accueil", url: "/proprietaire/livrets", icon: BookOpen },
-  { État des lieux", url: "/proprietaire/etats-des-lieux", icon: ClipboardCheck: Camera },
+  { title: "État des lieux", url: "/proprietaire/etats-des-lieux", icon: ClipboardCheck },
   { title: "Documents", url: "/proprietaire/documents", icon: FileText },
   { title: "Mes demandes", url: "/proprietaire/demandes", icon: MessageCircle },
   { title: "Factures", url: "/proprietaire/finances", icon: Euro },
