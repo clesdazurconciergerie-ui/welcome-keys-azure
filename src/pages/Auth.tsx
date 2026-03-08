@@ -4,11 +4,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, CalendarDays, BarChart3, Sparkles, CheckCircle2, ArrowLeft } from "lucide-react";
+import { motion } from "framer-motion";
 import BrandMark from "@/components/BrandMark";
+
+const FloatingCard = ({ children, className = "", delay = 0, y = -8 }: { children: React.ReactNode; className?: string; delay?: number; y?: number }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20, scale: 0.9 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    transition={{ duration: 0.7, delay: 0.5 + delay, ease: [0.22, 1, 0.36, 1] }}
+    className={className}
+  >
+    <motion.div
+      animate={{ y: [0, y, 0] }}
+      transition={{ duration: 5 + delay, repeat: Infinity, ease: "easeInOut" }}
+    >
+      {children}
+    </motion.div>
+  </motion.div>
+);
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -18,13 +34,11 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   
-  // Check if demo mode is requested
   const searchParams = new URLSearchParams(window.location.search);
   const isDemoMode = searchParams.get('mode') === 'demo';
-  const [defaultTab, setDefaultTab] = useState(isDemoMode ? 'signup' : 'signin');
+  const [defaultTab] = useState(isDemoMode ? 'signup' : 'signin');
 
   useEffect(() => {
-    // Check if user is already logged in
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
@@ -33,14 +47,12 @@ const Auth = () => {
     };
     checkUser();
 
-    // Check if user just verified their email
     const verified = searchParams.get('verified');
     if (verified === 'true') {
       toast.success(
         "✅ Ton email est confirmé ! Tu peux maintenant te connecter depuis n'importe quel appareil.",
         { duration: 5000 }
       );
-      // Remove the verified parameter from URL
       window.history.replaceState({}, '', '/auth');
     }
   }, [navigate]);
@@ -51,12 +63,10 @@ const Auth = () => {
       toast.error("Veuillez remplir tous les champs");
       return;
     }
-
     if (password.length < 6) {
       toast.error("Le mot de passe doit contenir au moins 6 caractères");
       return;
     }
-
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -66,22 +76,14 @@ const Auth = () => {
           emailRedirectTo: `${window.location.origin}/auth?verified=true`,
         },
       });
-
       if (error) throw error;
-      
-      // If signup successful and session exists, user is auto-logged in
       if (data.session) {
-        // If demo mode, activate demo after signup
         if (isDemoMode) {
           try {
             toast.loading("Activation de votre démo gratuite...");
-            
             const response = await supabase.functions.invoke('activate-demo', {
-              headers: {
-                Authorization: `Bearer ${data.session.access_token}`,
-              },
+              headers: { Authorization: `Bearer ${data.session.access_token}` },
             });
-
             if (response.error) {
               console.error('Error activating demo:', response.error);
               toast.dismiss();
@@ -91,11 +93,7 @@ const Auth = () => {
             } else {
               toast.dismiss();
               toast.success("Démo activée ! Créez votre premier livret...", { duration: 2000 });
-              
-              // Redirection vers la création de livret après un court délai
-              setTimeout(() => {
-                navigate("/booklets/new");
-              }, 1500);
+              setTimeout(() => { navigate("/booklets/new"); }, 1500);
               return;
             }
           } catch (demoError) {
@@ -106,17 +104,13 @@ const Auth = () => {
             return;
           }
         }
-        
-        // Normal signup with session - redirect to dashboard
         toast.success("Compte créé avec succès ! Bienvenue sur MyWelkom.");
         navigate("/dashboard");
       } else {
-        // Email confirmation required - user needs to verify email first
         toast.success("Inscription réussie ! Vérifiez votre email pour confirmer votre compte.");
       }
     } catch (error: any) {
       console.error("Signup error:", error);
-      // Handle "User already registered" error
       if (error.message?.includes('already registered') || error.message?.includes('already been registered')) {
         toast.error("Cet email est déjà utilisé. Veuillez vous connecter.");
       } else {
@@ -128,21 +122,14 @@ const Auth = () => {
   };
 
   const handleResendVerification = async () => {
-    if (!email) {
-      toast.error("Veuillez saisir votre email");
-      return;
-    }
-    
+    if (!email) { toast.error("Veuillez saisir votre email"); return; }
     setLoading(true);
     try {
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth?verified=true`,
-        },
+        options: { emailRedirectTo: `${window.location.origin}/auth?verified=true` },
       });
-      
       if (error) throw error;
       toast.success("Email de vérification renvoyé ! Vérifiez votre boîte mail.");
     } catch (error: any) {
@@ -154,22 +141,14 @@ const Auth = () => {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      toast.error("Veuillez saisir votre email");
-      return;
-    }
-
+    if (!email) { toast.error("Veuillez saisir votre email"); return; }
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
-
       if (error) throw error;
-      
-      toast.success("Email de réinitialisation envoyé ! Vérifiez votre boîte mail.", {
-        duration: 5000,
-      });
+      toast.success("Email de réinitialisation envoyé ! Vérifiez votre boîte mail.", { duration: 5000 });
       setShowForgotPassword(false);
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de l'envoi de l'email");
@@ -180,81 +159,34 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      toast.error("Veuillez remplir tous les champs");
-      return;
-    }
-
+    if (!email || !password) { toast.error("Veuillez remplir tous les champs"); return; }
     setLoading(true);
     try {
       const { error, data } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
-
       if (error) {
-        // Check if error is due to unverified email
         if (error.message.includes('Email not confirmed') || error.message.includes('not confirmed')) {
-          toast.error(
-            "Votre email n'est pas encore vérifié. Vérifiez votre boîte mail ou cliquez ci-dessous pour renvoyer l'email.",
-            { duration: 5000 }
-          );
+          toast.error("Votre email n'est pas encore vérifié. Vérifiez votre boîte mail ou cliquez ci-dessous pour renvoyer l'email.", { duration: 5000 });
           setLoading(false);
           return;
         }
-        // Show clearer error for invalid credentials
         if (error.message.includes('Invalid login credentials')) {
-          toast.error(
-            "Email ou mot de passe incorrect. Vérifiez vos identifiants et réessayez.",
-            { duration: 5000 }
-          );
+          toast.error("Email ou mot de passe incorrect. Vérifiez vos identifiants et réessayez.", { duration: 5000 });
           setLoading(false);
           return;
         }
         throw error;
       }
-      
-      // Check if user is a service provider
-      const { data: spRecord } = await (supabase as any)
-        .from('service_providers')
-        .select('id')
-        .eq('auth_user_id', data.user.id)
-        .eq('status', 'active')
-        .maybeSingle();
-
-      // Check if user is an owner (created by concierge)
-      const { data: ownerRecord } = await (supabase as any)
-        .from('owners')
-        .select('id')
-        .eq('auth_user_id', data.user.id)
-        .eq('status', 'active')
-        .maybeSingle();
-
+      const { data: spRecord } = await (supabase as any).from('service_providers').select('id').eq('auth_user_id', data.user.id).eq('status', 'active').maybeSingle();
+      const { data: ownerRecord } = await (supabase as any).from('owners').select('id').eq('auth_user_id', data.user.id).eq('status', 'active').maybeSingle();
       toast.success("Connexion réussie !");
-
-      // SP → redirect to SP space
-      if (spRecord) {
-        navigate("/prestataire");
-        return;
-      }
-
-      // Owner → redirect to owner space
-      if (ownerRecord) {
-        navigate("/proprietaire");
-        return;
-      }
-
-      // Check subscription status for concierge users
-      const { data: userData } = await supabase
-        .from('users')
-        .select('role, subscription_status')
-        .eq('id', data.user.id)
-        .single();
-
-      // Check for next parameter in URL
-      const searchParams = new URLSearchParams(window.location.search);
-      const next = searchParams.get('next');
-
+      if (spRecord) { navigate("/prestataire"); return; }
+      if (ownerRecord) { navigate("/proprietaire"); return; }
+      const { data: userData } = await supabase.from('users').select('role, subscription_status').eq('id', data.user.id).single();
+      const sp = new URLSearchParams(window.location.search);
+      const next = sp.get('next');
       if (next === '/tarifs') {
         if (userData?.subscription_status !== 'active' || userData?.role === 'free') {
           const baseUrl = "https://buy.stripe.com/cNi5kDeMB6Cd8htgEQ5kk00";
@@ -265,8 +197,6 @@ const Auth = () => {
           return;
         }
       }
-
-      // Default: go to concierge dashboard
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Signin error:", error);
@@ -276,197 +206,206 @@ const Auth = () => {
     }
   };
 
+  const inputClasses = "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-[#C4A45B]/50 focus:ring-[#C4A45B]/20 transition-all duration-200";
+  const labelClasses = "text-white/70 text-sm font-medium";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-primary p-4 sm:p-6 relative overflow-hidden">
-      {/* Subtle gold radial */}
-      <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(196, 164, 91, 0.25) 0%, transparent 60%)' }} />
-
-      <div className="w-full max-w-md relative z-10">
-        <div className="text-center mb-6 sm:mb-8">
-          <BrandMark variant="full" showIcon={true} light />
+    <div className="min-h-screen flex bg-[#061452] relative overflow-hidden">
+      {/* ── Left brand panel (hidden on mobile) ── */}
+      <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center p-12">
+        {/* Background effects */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#061452] via-[#0a1f6b] to-[#061452]" />
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#C4A45B]/8 rounded-full blur-[120px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-[#C4A45B]/5 rounded-full blur-[100px]" />
+          {/* Grid pattern */}
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
         </div>
 
-        <Card className="shadow-2xl border-0 bg-card">
-          <CardHeader className="px-4 sm:px-6 pt-5 sm:pt-6">
-            <CardTitle className="text-xl sm:text-2xl">{isDemoMode ? "Créer un compte démo" : "Accès à MyWelkom"}</CardTitle>
-            <CardDescription className="text-sm">
-              {isDemoMode 
-                ? "Créez votre compte et testez MyWelkom gratuitement pendant 30 jours"
-                : "Connectez-vous ou créez un compte pour gérer votre conciergerie"
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6 pb-5 sm:pb-6">
+        <div className="relative z-10 max-w-md text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <BrandMark variant="full" showIcon={true} light />
+          </motion.div>
+
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mt-8 text-xl text-white/60 font-light leading-relaxed"
+          >
+            La plateforme qui pilote<br />
+            <span className="text-[#C4A45B] font-medium">votre conciergerie.</span>
+          </motion.p>
+
+          {/* Floating product cards */}
+          <div className="mt-16 relative h-52">
+            <FloatingCard delay={0} y={-6} className="absolute top-0 left-0">
+              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
+                  <CalendarDays className="h-4 w-4 text-[#C4A45B]" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-medium text-white/80">12 réservations</p>
+                  <p className="text-[10px] text-white/40">Cette semaine</p>
+                </div>
+              </div>
+            </FloatingCard>
+
+            <FloatingCard delay={0.8} y={-10} className="absolute top-4 right-0">
+              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-medium text-white/80">8 missions</p>
+                  <p className="text-[10px] text-white/40">Terminées</p>
+                </div>
+              </div>
+            </FloatingCard>
+
+            <FloatingCard delay={1.4} y={-7} className="absolute bottom-0 left-8">
+              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15">
+                  <BarChart3 className="h-4 w-4 text-blue-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-medium text-white/80">+35% revenus</p>
+                  <p className="text-[10px] text-white/40">Ce trimestre</p>
+                </div>
+              </div>
+            </FloatingCard>
+
+            <FloatingCard delay={2} y={-5} className="absolute bottom-4 right-4">
+              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
+                  <Sparkles className="h-4 w-4 text-[#C4A45B]" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-medium text-white/80">98% satisfaction</p>
+                  <p className="text-[10px] text-white/40">Voyageurs</p>
+                </div>
+              </div>
+            </FloatingCard>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Right form panel ── */}
+      <div className="flex flex-1 items-center justify-center p-4 sm:p-8 lg:w-1/2">
+        {/* Mobile background glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#C4A45B]/6 rounded-full blur-[150px] lg:hidden" />
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="w-full max-w-md relative z-10"
+        >
+          {/* Mobile brand */}
+          <div className="text-center mb-8 lg:hidden">
+            <BrandMark variant="full" showIcon={true} light />
+          </div>
+
+          {/* Form card */}
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-black/20 relative">
+            {/* Top glow line */}
+            <div className="absolute -top-px left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-[#C4A45B]/40 to-transparent" />
+
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-white">
+                {isDemoMode ? "Créer un compte démo" : "Accéder à MyWelkom"}
+              </h1>
+              <p className="mt-1 text-sm text-white/50">
+                {isDemoMode
+                  ? "Testez MyWelkom gratuitement pendant 30 jours"
+                  : "Connectez-vous pour gérer votre conciergerie"}
+              </p>
+            </div>
+
             <Tabs defaultValue={defaultTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6 h-9 sm:h-10">
-                <TabsTrigger value="signin" className="text-xs sm:text-sm">Connexion</TabsTrigger>
-                <TabsTrigger value="signup" className="text-xs sm:text-sm">{isDemoMode ? "Démo gratuite" : "Inscription"}</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 mb-6 bg-white/5 border border-white/10 rounded-lg h-10">
+                <TabsTrigger value="signin" className="text-xs sm:text-sm text-white/60 data-[state=active]:bg-[#C4A45B]/15 data-[state=active]:text-[#C4A45B] data-[state=active]:shadow-none rounded-md transition-all">
+                  Connexion
+                </TabsTrigger>
+                <TabsTrigger value="signup" className="text-xs sm:text-sm text-white/60 data-[state=active]:bg-[#C4A45B]/15 data-[state=active]:text-[#C4A45B] data-[state=active]:shadow-none rounded-md transition-all">
+                  {isDemoMode ? "Démo gratuite" : "Inscription"}
+                </TabsTrigger>
               </TabsList>
 
+              {/* ── Sign In ── */}
               <TabsContent value="signin">
                 {!showForgotPassword ? (
                   <form onSubmit={handleSignIn} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signin-email">Email</Label>
-                      <Input
-                        id="signin-email"
-                        type="email"
-                        placeholder="votre@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={loading}
-                        required
-                      />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signin-email" className={labelClasses}>Email</Label>
+                      <Input id="signin-email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required className={inputClasses} />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="signin-password">Mot de passe</Label>
-                        <button
-                          type="button"
-                          onClick={() => setShowForgotPassword(true)}
-                          className="text-xs text-primary hover:underline"
-                        >
+                        <Label htmlFor="signin-password" className={labelClasses}>Mot de passe</Label>
+                        <button type="button" onClick={() => setShowForgotPassword(true)} className="text-xs text-[#C4A45B]/70 hover:text-[#C4A45B] transition-colors">
                           Mot de passe oublié ?
                         </button>
                       </div>
                       <div className="relative">
-                        <Input
-                          id="signin-password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          disabled={loading}
-                          required
-                          className="pr-10"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                          aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                          tabIndex={-1}
-                        >
+                        <Input id="signin-password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} required className={`${inputClasses} pr-10`} />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors" aria-label={showPassword ? "Masquer" : "Afficher"} tabIndex={-1}>
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
                     </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Connexion...
-                        </>
-                      ) : (
-                        "Se connecter"
-                      )}
+                    <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#C4A45B] to-[#d4b96b] text-[#061452] font-semibold hover:shadow-lg hover:shadow-[#C4A45B]/20 hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
+                      {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Connexion...</>) : "Se connecter"}
                     </Button>
-                    
-                    <div className="text-center mt-4">
-                      <button
-                        type="button"
-                        onClick={handleResendVerification}
-                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                        disabled={loading}
-                      >
+                    <div className="text-center mt-3">
+                      <button type="button" onClick={handleResendVerification} className="text-xs text-white/40 hover:text-white/60 transition-colors" disabled={loading}>
                         Email non reçu ? Renvoyer l'email de vérification
                       </button>
                     </div>
                   </form>
                 ) : (
                   <form onSubmit={handleForgotPassword} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="forgot-email">Email</Label>
-                      <Input
-                        id="forgot-email"
-                        type="email"
-                        placeholder="votre@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={loading}
-                        required
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Nous vous enverrons un lien pour réinitialiser votre mot de passe
-                      </p>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="forgot-email" className={labelClasses}>Email</Label>
+                      <Input id="forgot-email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required className={inputClasses} />
+                      <p className="text-xs text-white/40">Nous vous enverrons un lien pour réinitialiser votre mot de passe</p>
                     </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Envoi...
-                        </>
-                      ) : (
-                        "Envoyer le lien de réinitialisation"
-                      )}
+                    <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#C4A45B] to-[#d4b96b] text-[#061452] font-semibold hover:shadow-lg hover:shadow-[#C4A45B]/20 hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
+                      {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Envoi...</>) : "Envoyer le lien"}
                     </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="w-full"
-                      onClick={() => setShowForgotPassword(false)}
-                      disabled={loading}
-                    >
-                      Retour à la connexion
-                    </Button>
+                    <button type="button" onClick={() => setShowForgotPassword(false)} disabled={loading} className="w-full flex items-center justify-center gap-2 text-sm text-white/50 hover:text-white/70 transition-colors py-2">
+                      <ArrowLeft className="h-3.5 w-3.5" /> Retour à la connexion
+                    </button>
                   </form>
                 )}
               </TabsContent>
 
+              {/* ── Sign Up ── */}
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="votre@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={loading}
-                      required
-                    />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-email" className={labelClasses}>Email</Label>
+                    <Input id="signup-email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required className={inputClasses} />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Mot de passe</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-password" className={labelClasses}>Mot de passe</Label>
                     <div className="relative">
-                      <Input
-                        id="signup-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={loading}
-                        required
-                        className="pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                        tabIndex={-1}
-                      >
+                      <Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} required className={`${inputClasses} pr-10`} />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors" aria-label={showPassword ? "Masquer" : "Afficher"} tabIndex={-1}>
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Minimum 6 caractères
-                    </p>
+                    <p className="text-xs text-white/40">Minimum 6 caractères</p>
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {isDemoMode ? "Création..." : "Inscription..."}
-                      </>
-                    ) : (
-                      isDemoMode ? "🎬 Créer ma démo gratuite" : "Créer un compte"
-                    )}
+                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#C4A45B] to-[#d4b96b] text-[#061452] font-semibold hover:shadow-lg hover:shadow-[#C4A45B]/20 hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
+                    {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isDemoMode ? "Création..." : "Inscription..."}</>) : (isDemoMode ? "🎬 Créer ma démo gratuite" : "Créer un compte")}
                   </Button>
                   {isDemoMode && (
-                    <p className="text-xs text-center text-muted-foreground mt-3">
+                    <p className="text-xs text-center text-white/40 mt-3">
                       30 jours d'essai gratuit • 1 livret • Aucune carte requise
                     </p>
                   )}
@@ -474,29 +413,20 @@ const Auth = () => {
               </TabsContent>
             </Tabs>
 
-            <div className="mt-6 pt-6 border-t text-center">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/")}
-                className="text-sm"
-              >
-                Retour à l'accueil
-              </Button>
+            {/* Footer links */}
+            <div className="mt-6 pt-5 border-t border-white/10 flex flex-col items-center gap-3">
+              <button onClick={() => navigate("/")} className="text-sm text-white/40 hover:text-white/60 transition-colors flex items-center gap-1.5">
+                <ArrowLeft className="h-3.5 w-3.5" /> Retour à l'accueil
+              </button>
+              <p className="text-xs text-white/30">
+                Vous avez un code ?{" "}
+                <button onClick={() => navigate("/acces-livret")} className="text-[#C4A45B]/70 hover:text-[#C4A45B] transition-colors font-medium">
+                  Accéder à un livret
+                </button>
+              </p>
             </div>
-          </CardContent>
-        </Card>
-
-        <div className="text-center mt-6">
-          <p className="text-sm text-muted-foreground">
-            Vous avez un code ?{" "}
-            <button
-              onClick={() => navigate("/acces-livret")}
-              className="text-primary hover:underline font-medium"
-            >
-              Accéder à un livret
-            </button>
-          </p>
-        </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
