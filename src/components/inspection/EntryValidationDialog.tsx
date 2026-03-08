@@ -25,9 +25,15 @@ export function EntryValidationDialog({ inspection, onClose, onValidate }: Entry
   const handleValidate = async () => {
     if (!guestSignature) return;
     setSaving(true);
-    await onValidate(inspection.id, conciergeSignature, guestSignature);
-    setSaving(false);
-    onClose();
+    try {
+      await onValidate(inspection.id, conciergeSignature, guestSignature);
+      onClose();
+    } catch (err) {
+      // Don't close on error — let user retry
+      console.error('Validation failed, keeping dialog open');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const photoCount = (inspection.cleaning_photos_json?.length || 0) + ((inspection as any).meter_photos_json?.length || 0);
