@@ -42,6 +42,7 @@ export default function OwnerRequestsAdminPage() {
   const [msgLoading, setMsgLoading] = useState(false);
   const [reply, setReply] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<OwnerRequest | null>(null);
 
   const loadRequests = async () => {
     const { data } = await (supabase as any)
