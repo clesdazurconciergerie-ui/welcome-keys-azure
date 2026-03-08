@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, MessageCircle, Send, Clock, CheckCircle, Filter } from "lucide-react";
+import { Loader2, MessageCircle, Send, Clock, CheckCircle, Filter, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -41,6 +42,7 @@ export default function OwnerRequestsAdminPage() {
   const [msgLoading, setMsgLoading] = useState(false);
   const [reply, setReply] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<OwnerRequest | null>(null);
 
   const loadRequests = async () => {
     const { data } = await (supabase as any)
@@ -88,6 +90,17 @@ export default function OwnerRequestsAdminPage() {
     toast.success(newStatus === "closed" ? "Demande fermée" : "Demande réouverte");
     loadRequests();
     if (threadOpen?.id === req.id) setThreadOpen({ ...req, status: newStatus });
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    // Delete messages first, then the request
+    await (supabase as any).from("owner_request_messages").delete().eq("request_id", deleteTarget.id);
+    await (supabase as any).from("owner_requests").delete().eq("id", deleteTarget.id);
+    toast.success("Demande supprimée");
+    setDeleteTarget(null);
+    if (threadOpen?.id === deleteTarget.id) setThreadOpen(null);
+    loadRequests();
   };
 
   if (loading) {
@@ -148,9 +161,19 @@ export default function OwnerRequestsAdminPage() {
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline" className={r.status === "open" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}>
-                    {r.status === "open" ? "Ouverte" : "Fermée"}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={r.status === "open" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}>
+                      {r.status === "open" ? "Ouverte" : "Fermée"}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -204,6 +227,21 @@ export default function OwnerRequestsAdminPage() {
           )}
         </DialogContent>
       </Dialog>
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette demande ?</AlertDialogTitle>
+            <AlertDialogDescription>Cette action est définitive.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
