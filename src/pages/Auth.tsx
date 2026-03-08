@@ -28,14 +28,14 @@ const FloatingCard = ({
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Stronger magnetic pull (max ±30px) with smooth spring
+  // Stronger magnetic pull (max ±40px) with smooth spring
   const dx = useTransform(mouseX, (mx: number) => {
     if (mx === 0) return 0;
     const rect = cardRef.current?.getBoundingClientRect();
     if (!rect) return 0;
     const cardCx = rect.left + rect.width / 2;
     const dist = mx - cardCx;
-    return Math.max(-30, Math.min(30, dist * 0.07));
+    return Math.max(-40, Math.min(40, dist * 0.09));
   });
   const dy = useTransform(mouseY, (my: number) => {
     if (my === 0) return 0;
