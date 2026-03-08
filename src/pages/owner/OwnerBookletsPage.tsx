@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsOwner } from "@/hooks/useIsOwner";
-import { Loader2, BookOpen, ExternalLink } from "lucide-react";
+import { Loader2, BookOpen, ExternalLink, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface Booklet {
@@ -12,6 +12,7 @@ interface Booklet {
   property_address: string;
   status: string;
   property_id: string | null;
+  unique_views_count?: number;
 }
 
 interface Pin {
