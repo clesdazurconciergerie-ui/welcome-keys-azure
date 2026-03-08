@@ -20,6 +20,7 @@ import ExampleHotelsResidences from "./pages/ExampleHotelsResidences";
 import Pricing from "./pages/Pricing";
 import BillingSuccess from "./pages/BillingSuccess";
 import ExpiredDemoPage from "./components/ExpiredDemoPage";
+import DemoExperience from "./pages/DemoExperience";
 import DashboardLayout from "./layouts/DashboardLayout";
 import { DashboardErrorBoundary } from "./components/DashboardErrorBoundary";
 import OwnerDashboardLayout from "./layouts/OwnerDashboardLayout";
@@ -127,6 +128,7 @@ const App = () => (
           <Route path="/booklets/:id/wizard" element={<BookletWizardPage />} />
           <Route path="/view/:code" element={<ViewBooklet />} />
           <Route path="/preview/:id" element={<PreviewBooklet />} />
+          <Route path="/demo" element={<DemoExperience />} />
           <Route path="/expired-demo" element={<ExpiredDemoPage />} />
           <Route path="/exemples/proprietaires" element={<ExampleProprietaires />} />
           <Route path="/exemples/conciergeries" element={<ExampleConciergeries />} />
