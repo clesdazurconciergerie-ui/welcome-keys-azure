@@ -58,6 +58,7 @@ export default function DashboardLayout() {
           </main>
         </div>
       </div>
+      <GuidedTourProvider />
     </SidebarProvider>
   );
 }

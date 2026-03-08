@@ -193,6 +193,22 @@ export function DashboardSidebar() {
           <div className="h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent mb-2" />
           <Button
             variant="ghost"
+            onClick={() => {
+              const TOUR_SEEN_KEY = "mywelkom_tour_seen";
+              const TOUR_COMPLETED_KEY = "mywelkom_tour_completed";
+              const TOUR_STATE_KEY = "mywelkom_guided_tour";
+              localStorage.removeItem(TOUR_SEEN_KEY);
+              localStorage.removeItem(TOUR_COMPLETED_KEY);
+              localStorage.setItem(TOUR_STATE_KEY, JSON.stringify({ currentStep: 0, isActive: false, showWelcome: true }));
+              window.location.href = "/dashboard";
+            }}
+            className="w-full justify-start gap-3 text-[hsl(var(--gold))]/40 hover:text-[hsl(var(--gold))]/80 hover:bg-[hsl(var(--gold))]/[0.04] px-3 h-10 rounded-lg transition-all duration-300"
+          >
+            <Compass className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+            {!collapsed && <span className="text-[13px] font-medium">Visite guidée</span>}
+          </Button>
+          <Button
+            variant="ghost"
             onClick={handleSignOut}
             className="w-full justify-start gap-3 text-white/30 hover:text-white/70 hover:bg-white/[0.04] px-3 h-10 rounded-lg transition-all duration-300"
           >
