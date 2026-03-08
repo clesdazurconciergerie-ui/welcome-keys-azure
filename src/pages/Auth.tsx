@@ -146,6 +146,41 @@ const Auth = () => {
   const mouseY = useMotionValue(0);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Panel-level 3D perspective tilt (Layer 1 — background: ~3°, Layer 2 — content: ~4°)
+  const panelTiltX = useTransform(mouseY, (my: number) => {
+    if (my === 0) return 0;
+    const rect = panelRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const center = rect.top + rect.height / 2;
+    return Math.max(-3, Math.min(3, -(my - center) * 0.006));
+  });
+  const panelTiltY = useTransform(mouseX, (mx: number) => {
+    if (mx === 0) return 0;
+    const rect = panelRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const center = rect.left + rect.width / 2;
+    return Math.max(-3, Math.min(3, (mx - center) * 0.006));
+  });
+  const contentTiltX = useTransform(mouseY, (my: number) => {
+    if (my === 0) return 0;
+    const rect = panelRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const center = rect.top + rect.height / 2;
+    return Math.max(-4.5, Math.min(4.5, -(my - center) * 0.009));
+  });
+  const contentTiltY = useTransform(mouseX, (mx: number) => {
+    if (mx === 0) return 0;
+    const rect = panelRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const center = rect.left + rect.width / 2;
+    return Math.max(-4.5, Math.min(4.5, (mx - center) * 0.009));
+  });
+
+  const panelRotateX = useSpring(panelTiltX, { stiffness: 40, damping: 20 });
+  const panelRotateY = useSpring(panelTiltY, { stiffness: 40, damping: 20 });
+  const contentRotateX = useSpring(contentTiltX, { stiffness: 50, damping: 18 });
+  const contentRotateY = useSpring(contentTiltY, { stiffness: 50, damping: 18 });
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     mouseX.set(e.clientX);
     mouseY.set(e.clientY);
