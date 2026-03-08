@@ -41,7 +41,7 @@ export default function OwnerBookletsPage() {
       if (propertyIds.length > 0) {
         const { data } = await (supabase as any)
           .from('booklets')
-          .select('id, property_name, property_address, status, property_id')
+          .select('id, property_name, property_address, status, property_id, unique_views_count')
           .in('property_id', propertyIds);
         const bookletsList = data || [];
         setBooklets(bookletsList);
