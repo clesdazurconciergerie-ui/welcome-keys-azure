@@ -32,7 +32,7 @@ const LivretsPage = () => {
 
       const { data, error } = await supabase
         .from("booklets")
-        .select("*")
+        .select("*, unique_views_count")
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false });
 
