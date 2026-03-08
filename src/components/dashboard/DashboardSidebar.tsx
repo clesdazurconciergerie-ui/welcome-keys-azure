@@ -44,6 +44,7 @@ const navGroups = [
     items: [
       { title: "Paramètres", url: "/dashboard/parametres", icon: Settings },
       { title: "Apparence", url: "/dashboard/branding", icon: Palette },
+      { title: "Aide & Guide", url: "/dashboard/aide", icon: HelpCircle },
     ],
   },
 ];

@@ -94,6 +94,7 @@ const App = () => (
             <Route path="abonnement" element={<AbonnementPage />} />
             <Route path="parametres" element={<ParametresPage />} />
             <Route path="branding" element={<BrandingPage />} />
+            <Route path="aide" element={<HelpCenterPage />} />
           </Route>
 
           {/* Owner dashboard */}
