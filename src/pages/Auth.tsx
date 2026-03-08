@@ -10,36 +10,32 @@ import { Loader2, Eye, EyeOff, CalendarDays, BarChart3, Sparkles, CheckCircle2, 
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import BrandMark from "@/components/BrandMark";
 
-/* ── Magnetic floating card ── */
+/* ── Orbital floating card with magnetic pull + tilt ── */
 const FloatingCard = ({
   children,
   className = "",
   delay = 0,
-  y = -8,
+  orbit,
   mouseX,
   mouseY,
-  centerX,
-  centerY,
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
-  y?: number;
+  orbit: { rx: number; ry: number; duration: number; phase: number; tilt: number };
   mouseX: any;
   mouseY: any;
-  centerX: number;
-  centerY: number;
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // magnetic pull toward cursor – subtle (max ±18px)
+  // Stronger magnetic pull (max ±30px) with smooth spring
   const dx = useTransform(mouseX, (mx: number) => {
     if (mx === 0) return 0;
     const rect = cardRef.current?.getBoundingClientRect();
     if (!rect) return 0;
     const cardCx = rect.left + rect.width / 2;
     const dist = mx - cardCx;
-    return Math.max(-18, Math.min(18, dist * 0.04));
+    return Math.max(-30, Math.min(30, dist * 0.07));
   });
   const dy = useTransform(mouseY, (my: number) => {
     if (my === 0) return 0;
@@ -47,24 +43,53 @@ const FloatingCard = ({
     if (!rect) return 0;
     const cardCy = rect.top + rect.height / 2;
     const dist = my - cardCy;
-    return Math.max(-18, Math.min(18, dist * 0.04));
+    return Math.max(-30, Math.min(30, dist * 0.07));
   });
 
-  const sx = useSpring(dx, { stiffness: 120, damping: 20 });
-  const sy = useSpring(dy, { stiffness: 120, damping: 20 });
+  // Tilt toward cursor (max ±6deg)
+  const rotateY = useTransform(mouseX, (mx: number) => {
+    if (mx === 0) return 0;
+    const rect = cardRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const cardCx = rect.left + rect.width / 2;
+    return Math.max(-6, Math.min(6, (mx - cardCx) * 0.012));
+  });
+  const rotateX = useTransform(mouseY, (my: number) => {
+    if (my === 0) return 0;
+    const rect = cardRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const cardCy = rect.top + rect.height / 2;
+    return Math.max(-6, Math.min(6, -(my - cardCy) * 0.012));
+  });
+
+  const sx = useSpring(dx, { stiffness: 80, damping: 18 });
+  const sy = useSpring(dy, { stiffness: 80, damping: 18 });
+  const sRotateX = useSpring(rotateX, { stiffness: 80, damping: 20 });
+  const sRotateY = useSpring(rotateY, { stiffness: 80, damping: 20 });
+
+  const { rx, ry, duration, phase, tilt } = orbit;
 
   return (
     <motion.div
       ref={cardRef}
-      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      initial={{ opacity: 0, y: 30, scale: 0.85 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.7, delay: 0.5 + delay, ease: [0.22, 1, 0.36, 1] }}
-      style={{ x: sx, y: sy }}
+      transition={{ duration: 0.8, delay: 0.4 + delay, ease: [0.22, 1, 0.36, 1] }}
+      style={{ x: sx, y: sy, rotateX: sRotateX, rotateY: sRotateY, perspective: 600 }}
       className={className}
     >
       <motion.div
-        animate={{ y: [0, y, 0] }}
-        transition={{ duration: 5 + delay, repeat: Infinity, ease: "easeInOut" }}
+        animate={{
+          x: [0, rx * Math.cos(phase), -rx * 0.6, rx * 0.8 * Math.cos(phase + 1), 0],
+          y: [0, -ry, ry * 0.5, -ry * 0.7, 0],
+          rotate: [0, tilt, -tilt * 0.6, tilt * 0.4, 0],
+        }}
+        transition={{
+          duration,
+          repeat: Infinity,
+          ease: "easeInOut",
+          times: [0, 0.25, 0.5, 0.75, 1],
+        }}
       >
         {children}
       </motion.div>
@@ -363,7 +388,7 @@ const Auth = () => {
 
           {/* Floating product cards */}
           <div className="mt-16 relative h-52">
-            <FloatingCard delay={0} y={-6} className="absolute top-0 left-0" mouseX={mouseX} mouseY={mouseY} centerX={0} centerY={0}>
+            <FloatingCard delay={0} orbit={{ rx: 15, ry: 12, duration: 8, phase: 0, tilt: 2.5 }} className="absolute top-0 left-0" mouseX={mouseX} mouseY={mouseY}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
                   <CalendarDays className="h-4 w-4 text-[#C4A45B]" />
@@ -375,7 +400,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
 
-            <FloatingCard delay={0.8} y={-10} className="absolute top-4 right-0" mouseX={mouseX} mouseY={mouseY} centerX={0} centerY={0}>
+            <FloatingCard delay={0.6} orbit={{ rx: -18, ry: 14, duration: 9.5, phase: 1.8, tilt: -3 }} className="absolute top-4 right-0" mouseX={mouseX} mouseY={mouseY}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15">
                   <CheckCircle2 className="h-4 w-4 text-emerald-400" />
@@ -387,7 +412,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
 
-            <FloatingCard delay={1.4} y={-7} className="absolute bottom-0 left-8" mouseX={mouseX} mouseY={mouseY} centerX={0} centerY={0}>
+            <FloatingCard delay={1.2} orbit={{ rx: 12, ry: -16, duration: 10.5, phase: 3.5, tilt: 2 }} className="absolute bottom-0 left-8" mouseX={mouseX} mouseY={mouseY}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15">
                   <BarChart3 className="h-4 w-4 text-blue-400" />
@@ -399,7 +424,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
 
-            <FloatingCard delay={2} y={-5} className="absolute bottom-4 right-4" mouseX={mouseX} mouseY={mouseY} centerX={0} centerY={0}>
+            <FloatingCard delay={1.8} orbit={{ rx: -14, ry: 10, duration: 11, phase: 5.2, tilt: -1.8 }} className="absolute bottom-4 right-4" mouseX={mouseX} mouseY={mouseY}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
                   <Sparkles className="h-4 w-4 text-[#C4A45B]" />
