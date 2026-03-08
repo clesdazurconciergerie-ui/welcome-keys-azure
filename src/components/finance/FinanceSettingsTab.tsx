@@ -81,6 +81,7 @@ export function FinanceSettingsTab() {
         next_invoice_number: settings.next_invoice_number || 1,
       });
       setLogoUrl(settings.logo_url || null);
+      setSignatureUrl((settings as any).default_signature_url || null);
     }
   }, [settings]);
 
