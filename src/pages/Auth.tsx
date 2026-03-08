@@ -405,7 +405,7 @@ const Auth = () => {
 
           {/* Layer 3 — Floating product cards (strongest parallax) */}
           <div className="mt-16 relative h-52" style={{ transformStyle: "preserve-3d" }}>
-            <FloatingCard delay={0} orbit={{ rx: 15, ry: 12, duration: 8, phase: 0, tilt: 2.5 }} className="absolute top-0 left-0" nx={nx} ny={ny} magnetStrength={40={40}>
+            <FloatingCard delay={0} orbit={{ rx: 15, ry: 12, duration: 8, phase: 0, tilt: 2.5 }} className="absolute top-0 left-0" nx={nx} ny={ny} magnetStrength={40={40={40}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg" style={{ transform: "translateZ(30px)" }}>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
                   <CalendarDays className="h-4 w-4 text-[#C4A45B]" />
@@ -417,7 +417,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
 
-            <FloatingCard delay={0.6} orbit={{ rx: -18, ry: 14, duration: 9.5, phase: 1.8, tilt: -3 }} className="absolute top-4 rightnx={nx} ny={ny} magnetStrength={30useY}>
+            <FloatingCard delay={0.6} orbit={{ rx: -18, ry: 14, duration: 9.5, phase: 1.8, tilt: -3 }} className="absolute top-4 rnx={nx} ny={ny} magnetStrength={30ngth={30useY}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg" style={{ transform: "translateZ(20px)" }}>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15">
                   <CheckCircle2 className="h-4 w-4 text-emerald-400" />
@@ -429,7 +429,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
 
-            <FloatingCard delay={1.2} orbit={{ rx: 12, ry: -16, duration: 10.5, phase: 3.5, tilt: 2 }} className="absolute bottom-0 left-8" mouseX={mouseX} mouseY={mouseY}>
+            <FloatingCard delay={1.2} orbit={{ rx: 12, ry: -16, duration: 10.5, phase: 3.5, tilt: 2 }} className="absolute bottom-0 nx={nx} ny={ny} magnetStrength={35={mouseY}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg" style={{ transform: "translateZ(25px)" }}>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15">
                   <BarChart3 className="h-4 w-4 text-blue-400" />
