@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, BookOpen, Users, Home, Wrench, Settings, LogOut,
-  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle,
+  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
