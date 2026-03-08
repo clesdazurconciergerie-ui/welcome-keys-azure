@@ -224,7 +224,7 @@ const Hero = () => {
               className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-12"
             >
               <button
-                onClick={() => navigate("/auth?mode=demo")}
+                onClick={() => navigate("/demo")}
                 className="group relative inline-flex items-center justify-center rounded-xl px-7 py-3.5 font-semibold text-sm sm:text-base
                   bg-gold text-primary overflow-hidden
                   transition-all duration-300 ease-out
