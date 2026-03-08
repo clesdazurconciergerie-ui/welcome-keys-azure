@@ -7,12 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useInspections, type Inspection } from '@/hooks/useInspections';
 import { useCleaningInterventions } from '@/hooks/useCleaningInterventions';
+import { useProperties } from '@/hooks/useProperties';
 import { InspectionPdfGenerator } from '@/components/inspection/InspectionPdfGenerator';
 import { SignaturePad } from '@/components/inspection/SignaturePad';
+import { CreateInspectionDialog } from '@/components/inspection/CreateInspectionDialog';
 import { motion } from 'framer-motion';
 import {
   ClipboardCheck, Home, Calendar, User, Eye, Edit, Trash2,
-  Camera, CheckCircle, Clock, Sparkles, X, Loader2
+  Camera, CheckCircle, Clock, Sparkles, X, Loader2, Plus
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle
@@ -23,17 +25,23 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export default function InspectionsPage() {
-  const { inspections, isLoading, deleteInspection, updateInspection, createFromCleaning, uploadSignature, uploadExitPhoto, refetch } = useInspections();
+  const { inspections, isLoading, deleteInspection, updateInspection, createInspection, createFromCleaning, uploadSignature, uploadExitPhoto, refetch } = useInspections();
   const { interventions } = useCleaningInterventions('concierge');
+  const { properties } = useProperties();
   const [viewInspection, setViewInspection] = useState<Inspection | null>(null);
   const [editInspection, setEditInspection] = useState<Inspection | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
 
   // Completed/validated interventions that don't yet have an inspection
   const existingInterventionIds = new Set(inspections.map(i => i.cleaning_intervention_id).filter(Boolean));
   const completedCleanings = interventions.filter(
     i => ['completed', 'validated'].includes(i.status) && !existingInterventionIds.has(i.id) && i.photos && i.photos.length > 0
   );
+
+  // Properties that have NO inspection at all yet
+  const propertiesWithInspection = new Set(inspections.map(i => i.property_id));
+  const propertiesWithoutInspection = properties.filter(p => !propertiesWithInspection.has(p.id));
 
   const handleAutoCreate = async (intervention: any) => {
     await createFromCleaning({
@@ -43,6 +51,43 @@ export default function InspectionsPage() {
       service_provider: intervention.service_provider,
       photos: intervention.photos,
     });
+  };
+
+  const handleManualCreate = async (values: {
+    property_id: string;
+    inspection_date: string;
+    general_comment: string | null;
+    photos: { url: string; file: File; uploaded_at: string }[];
+    concierge_signature: string | null;
+  }) => {
+    // Create inspection first
+    const result = await createInspection({
+      property_id: values.property_id,
+      inspection_date: values.inspection_date,
+      general_comment: values.general_comment,
+      inspection_type: 'entry',
+      status: 'draft',
+    });
+    if (!result) return;
+
+    // Upload photos
+    const photoUrls: any[] = [];
+    for (const p of values.photos) {
+      const url = await uploadExitPhoto(result.id, p.file);
+      if (url) photoUrls.push({ url, uploaded_at: p.uploaded_at });
+    }
+
+    // Upload signature
+    let sigUrl = values.concierge_signature;
+    if (sigUrl?.startsWith('data:')) {
+      sigUrl = await uploadSignature(result.id, sigUrl, 'concierge');
+    }
+
+    // Update with photos and signature
+    await updateInspection(result.id, {
+      cleaning_photos_json: photoUrls,
+      concierge_signature_url: sigUrl,
+    } as any);
   };
 
   const statusLabel = (s: string) => {
@@ -59,10 +104,64 @@ export default function InspectionsPage() {
 
   return (
     <div className="space-y-6 max-w-6xl">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold text-foreground">État des lieux</h1>
-        <p className="text-muted-foreground mt-1">Créés automatiquement à chaque ménage validé</p>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">État des lieux</h1>
+          <p className="text-muted-foreground mt-1">
+            {inspections.length > 0
+              ? 'Créés automatiquement à chaque ménage validé'
+              : 'Créez votre premier état des lieux pour démarrer'}
+          </p>
+        </div>
+        <Button onClick={() => setShowCreate(true)} className="gap-1.5 shrink-0">
+          <Plus className="w-4 h-4" />
+          Créer un état des lieux
+        </Button>
       </motion.div>
+
+      {/* First-time setup: properties without any inspection */}
+      {!isLoading && propertiesWithoutInspection.length > 0 && inspections.length === 0 && completedCleanings.length === 0 && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-6 text-center">
+            <ClipboardCheck className="w-10 h-10 mx-auto text-primary mb-3" />
+            <h3 className="text-lg font-semibold mb-1">Aucun état des lieux</h3>
+            <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
+              Créez un premier état des lieux initial pour vos logements. Ensuite, le système créera automatiquement les suivants à partir des ménages validés.
+            </p>
+            <Button onClick={() => setShowCreate(true)} size="lg" className="gap-2">
+              <Plus className="w-4 h-4" />
+              Créer le premier état des lieux
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Properties without inspection (when some inspections exist already) */}
+      {!isLoading && propertiesWithoutInspection.length > 0 && inspections.length > 0 && (
+        <Card className="border-amber-500/20 bg-amber-500/5">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Home className="w-4 h-4 text-amber-600" />
+              <span className="font-semibold text-sm">Logements sans état des lieux initial</span>
+              <Badge variant="secondary" className="text-xs">{propertiesWithoutInspection.length}</Badge>
+            </div>
+            <div className="space-y-2">
+              {propertiesWithoutInspection.slice(0, 5).map(p => (
+                <div key={p.id} className="flex items-center justify-between bg-background rounded-lg p-3 border">
+                  <div className="flex items-center gap-3 text-sm">
+                    <Home className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-medium">{p.name}</span>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => setShowCreate(true)} className="gap-1.5">
+                    <Plus className="w-3.5 h-3.5" />
+                    Créer l'état initial
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pending auto-creation from completed cleanings */}
       {completedCleanings.length > 0 && (
@@ -97,15 +196,7 @@ export default function InspectionsPage() {
         <div className="flex justify-center py-12">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : inspections.length === 0 && completedCleanings.length === 0 ? (
-        <Card className="text-center py-12">
-          <CardContent className="pt-6">
-            <ClipboardCheck className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-            <h3 className="text-lg font-semibold mb-1">Aucun état des lieux</h3>
-            <p className="text-muted-foreground text-sm">Les états des lieux seront créés automatiquement quand un ménage sera terminé avec photos.</p>
-          </CardContent>
-        </Card>
-      ) : (
+      ) : inspections.length > 0 && (
         <div className="space-y-3">
           {inspections.map((insp, idx) => (
             <motion.div key={insp.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }}>
@@ -161,13 +252,20 @@ export default function InspectionsPage() {
         </div>
       )}
 
+      {/* Manual create dialog */}
+      <CreateInspectionDialog
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        properties={properties.map(p => ({ id: p.id, name: p.name, address: p.address }))}
+        onSave={handleManualCreate}
+      />
+
       {/* Edit sheet */}
       {editInspection && (
         <InspectionEditDialog
           inspection={editInspection}
           onClose={() => { setEditInspection(null); refetch(); }}
           onSave={async (id, values) => {
-            // Handle signature uploads
             let conciergeUrl = values.concierge_signature_url;
             let guestUrl = values.guest_signature_url;
             if (conciergeUrl?.startsWith('data:')) {
@@ -177,7 +275,6 @@ export default function InspectionsPage() {
               guestUrl = await uploadSignature(id, guestUrl, 'guest');
             }
 
-            // Upload any new exit photo files
             const exitPhotos = [];
             for (const p of (values.exit_photos_json || [])) {
               if (p.file) {
@@ -276,7 +373,6 @@ function InspectionEditDialog({ inspection, onClose, onSave }: {
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-5">
-          {/* Cleaning photos preview */}
           {inspection.cleaning_photos_json?.length > 0 && (
             <div>
               <Label className="text-sm font-semibold mb-2 block">Photos ménage ({inspection.cleaning_photos_json.length})</Label>
@@ -288,7 +384,6 @@ function InspectionEditDialog({ inspection, onClose, onSave }: {
             </div>
           )}
 
-          {/* Guest info */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label className="text-sm">Nom du voyageur</Label>
@@ -300,7 +395,6 @@ function InspectionEditDialog({ inspection, onClose, onSave }: {
             </div>
           </div>
 
-          {/* Meters */}
           <div>
             <Label className="text-sm font-semibold mb-2 block">Compteurs (optionnel)</Label>
             <div className="grid grid-cols-3 gap-3">
@@ -310,13 +404,11 @@ function InspectionEditDialog({ inspection, onClose, onSave }: {
             </div>
           </div>
 
-          {/* Comments */}
           <div className="space-y-1.5">
             <Label className="text-sm">Commentaire / Observation</Label>
             <Textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="État général..." rows={2} />
           </div>
 
-          {/* Exit / damage section */}
           <div className="space-y-3 pt-3 border-t">
             <Label className="text-sm font-semibold">Sortie / Dégâts (à remplir au départ)</Label>
             <Textarea value={damageNotes} onChange={e => setDamageNotes(e.target.value)} placeholder="Notes de dégâts ou problèmes constatés..." rows={2} />
@@ -325,7 +417,7 @@ function InspectionEditDialog({ inspection, onClose, onSave }: {
                 <div key={i} className="relative aspect-square rounded-lg overflow-hidden border group">
                   <img src={p.url} alt="" className="w-full h-full object-cover" />
                   <button type="button" onClick={() => setExitPhotos(prev => prev.filter((_, j) => j !== i))}
-                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
@@ -339,13 +431,11 @@ function InspectionEditDialog({ inspection, onClose, onSave }: {
             </div>
           </div>
 
-          {/* Signatures */}
           <div className="grid grid-cols-2 gap-4 pt-3 border-t">
             <SignaturePad label="Signature concierge" onSignatureChange={setConciergeSignature} existingSignature={inspection.concierge_signature_url} />
             <SignaturePad label="Signature voyageur" onSignatureChange={setGuestSignature} existingSignature={inspection.guest_signature_url} />
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
             <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
