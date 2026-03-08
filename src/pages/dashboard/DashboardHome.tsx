@@ -31,6 +31,7 @@ const DashboardHome = () => {
   const { interventions } = useCleaningInterventions('concierge');
   const { missions: newMissions } = useNewMissions('concierge');
   const { followups, updateFollowup } = useProspectFollowups();
+  const { showWizard, dismissWizard, progress, completionPercent, isFullyComplete } = useOnboarding();
 
   useEffect(() => {
     const init = async () => {
