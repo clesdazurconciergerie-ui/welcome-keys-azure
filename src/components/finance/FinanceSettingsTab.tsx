@@ -248,6 +248,53 @@ export function FinanceSettingsTab() {
         </CardContent>
       </Card>
 
+      {/* Default Concierge Signature */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <PenTool className="h-4 w-4" />
+            Signature concierge par défaut
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Utilisée automatiquement dans les états des lieux PDF</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {signatureUrl ? (
+            <div className="flex items-center gap-4">
+              <div className="h-20 w-48 rounded border bg-muted/30 flex items-center justify-center overflow-hidden p-2">
+                <img src={signatureUrl} alt="Signature" className="max-h-full max-w-full object-contain" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="relative cursor-pointer inline-block">
+                  <Button variant="outline" size="sm" className="gap-2 text-xs h-8 pointer-events-none" tabIndex={-1} asChild>
+                    <span>
+                      {uploadingSignature ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                      Remplacer
+                    </span>
+                  </Button>
+                  <input type="file" accept="image/png,image/jpeg" onChange={handleSignatureUpload} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+                </label>
+                <Button variant="ghost" size="sm" className="gap-2 text-xs h-8 text-destructive" onClick={handleRemoveSignature}>
+                  <Trash2 className="h-3.5 w-3.5" />Supprimer
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <label className="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 py-8 cursor-pointer hover:border-primary/40 transition-colors">
+              <input type="file" accept="image/png,image/jpeg" onChange={handleSignatureUpload} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+              {uploadingSignature ? (
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              ) : (
+                <>
+                  <PenTool className="h-8 w-8 text-muted-foreground/40 mb-2" />
+                  <p className="text-sm text-muted-foreground">Cliquez pour ajouter votre signature</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">PNG ou JPG</p>
+                </>
+              )}
+            </label>
+          )}
+        </CardContent>
+      </Card>
+
       {/* ═══ INVOICE THEME ═══ */}
       <Card>
         <CardHeader>
