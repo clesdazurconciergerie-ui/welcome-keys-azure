@@ -171,6 +171,14 @@ export function useCleaningInterventions(mode: 'concierge' | 'service_provider' 
         }
       }
 
+      // Populate cleaning buffer when validated or completed
+      if (status === 'validated' || status === 'completed') {
+        const intervention = interventions.find(i => i.id === id);
+        if (intervention) {
+          await populateCleaningBuffer(id, intervention.property_id, intervention.photos);
+        }
+      }
+
       toast.success('Statut mis à jour');
       await fetchInterventions();
     } catch (err) {
