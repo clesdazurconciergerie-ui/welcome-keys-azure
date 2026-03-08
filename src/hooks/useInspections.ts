@@ -141,17 +141,19 @@ export function useInspections(propertyId?: string) {
         caption: p.caption,
       }));
 
-      // Find next booking for this property
+      // Find next booking for this property (exclude cancelled)
       const today = new Date().toISOString().split('T')[0];
       const { data: nextBookings } = await (supabase as any)
         .from('bookings')
         .select('id, guest_name, check_in, check_out')
         .eq('property_id', intervention.property_id)
         .gte('check_in', today)
+        .neq('price_status', 'canceled')
         .order('check_in', { ascending: true })
         .limit(1);
 
       const nextBooking = nextBookings?.[0] || null;
+      if (import.meta.env.DEV) console.log('[EdL] createFromCleaning — next booking:', nextBooking?.guest_name || 'none');
 
       const { data, error } = await (supabase as any)
         .from('inspections')
