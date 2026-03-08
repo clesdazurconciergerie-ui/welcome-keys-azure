@@ -7,75 +7,46 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, CalendarDays, BarChart3, Sparkles, CheckCircle2, ArrowLeft } from "lucide-react";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform, MotionValue } from "framer-motion";
 import BrandMark from "@/components/BrandMark";
 
-/* ── Orbital floating card with magnetic pull + tilt ── */
+/* ── Floating card with magnetic pull driven by normalized mouse coords ── */
 const FloatingCard = ({
   children,
   className = "",
   delay = 0,
   orbit,
-  mouseX,
-  mouseY,
+  nx,
+  ny,
+  magnetStrength = 35,
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
   orbit: { rx: number; ry: number; duration: number; phase: number; tilt: number };
-  mouseX: any;
-  mouseY: any;
+  nx: MotionValue<number>;
+  ny: MotionValue<number>;
+  magnetStrength?: number;
 }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
+  // nx/ny are -1..1 normalized mouse coords; multiply by per-card strength
+  const pullX = useTransform(nx, [-1, 0, 1], [-magnetStrength, 0, magnetStrength]);
+  const pullY = useTransform(ny, [-1, 0, 1], [-magnetStrength, 0, magnetStrength]);
+  const tiltY = useTransform(nx, [-1, 0, 1], [-8, 0, 8]);
+  const tiltX = useTransform(ny, [-1, 0, 1], [8, 0, -8]);
 
-  // Stronger magnetic pull (max ±40px) with smooth spring
-  const dx = useTransform(mouseX, (mx: number) => {
-    if (mx === 0) return 0;
-    const rect = cardRef.current?.getBoundingClientRect();
-    if (!rect) return 0;
-    const cardCx = rect.left + rect.width / 2;
-    const dist = mx - cardCx;
-    return Math.max(-40, Math.min(40, dist * 0.09));
-  });
-  const dy = useTransform(mouseY, (my: number) => {
-    if (my === 0) return 0;
-    const rect = cardRef.current?.getBoundingClientRect();
-    if (!rect) return 0;
-    const cardCy = rect.top + rect.height / 2;
-    const dist = my - cardCy;
-    return Math.max(-40, Math.min(40, dist * 0.09));
-  });
-
-  // Tilt toward cursor (max ±6deg)
-  const rotateY = useTransform(mouseX, (mx: number) => {
-    if (mx === 0) return 0;
-    const rect = cardRef.current?.getBoundingClientRect();
-    if (!rect) return 0;
-    const cardCx = rect.left + rect.width / 2;
-    return Math.max(-6, Math.min(6, (mx - cardCx) * 0.012));
-  });
-  const rotateX = useTransform(mouseY, (my: number) => {
-    if (my === 0) return 0;
-    const rect = cardRef.current?.getBoundingClientRect();
-    if (!rect) return 0;
-    const cardCy = rect.top + rect.height / 2;
-    return Math.max(-6, Math.min(6, -(my - cardCy) * 0.012));
-  });
-
-  const sx = useSpring(dx, { stiffness: 60, damping: 16 });
-  const sy = useSpring(dy, { stiffness: 60, damping: 16 });
-  const sRotateX = useSpring(rotateX, { stiffness: 60, damping: 18 });
-  const sRotateY = useSpring(rotateY, { stiffness: 60, damping: 18 });
+  const sx = useSpring(pullX, { stiffness: 50, damping: 14 });
+  const sy = useSpring(pullY, { stiffness: 50, damping: 14 });
+  const sRotateX = useSpring(tiltX, { stiffness: 50, damping: 16 });
+  const sRotateY = useSpring(tiltY, { stiffness: 50, damping: 16 });
 
   const { rx, ry, duration, phase, tilt } = orbit;
 
   return (
     <motion.div
-      ref={cardRef}
       initial={{ opacity: 0, y: 30, scale: 0.85 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.8, delay: 0.4 + delay, ease: [0.22, 1, 0.36, 1] }}
-      style={{ x: sx, y: sy, rotateX: sRotateX, rotateY: sRotateY, perspective: 600 }}
+      style={{ x: sx, y: sy, rotateX: sRotateX, rotateY: sRotateY }}
       className={className}
     >
       <motion.div
@@ -96,7 +67,6 @@ const FloatingCard = ({
     </motion.div>
   );
 };
-
 /* ── Premium input wrapper ── */
 const PremiumInput = ({
   hasError,
@@ -141,55 +111,44 @@ const Auth = () => {
   const isDemoMode = searchParams.get('mode') === 'demo';
   const [defaultTab] = useState(isDemoMode ? 'signup' : 'signin');
 
-  // Mouse tracking for parallax cards
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
+  // Normalized mouse position: -1 to 1 relative to panel center
+  const nx = useMotionValue(0); // normalized X
+  const ny = useMotionValue(0); // normalized Y
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Panel-level 3D perspective tilt (Layer 1 — background: ~3°, Layer 2 — content: ~4°)
-  const panelTiltX = useTransform(mouseY, (my: number) => {
-    if (my === 0) return 0;
-    const rect = panelRef.current?.getBoundingClientRect();
-    if (!rect) return 0;
-    const center = rect.top + rect.height / 2;
-    return Math.max(-3, Math.min(3, -(my - center) * 0.006));
-  });
-  const panelTiltY = useTransform(mouseX, (mx: number) => {
-    if (mx === 0) return 0;
-    const rect = panelRef.current?.getBoundingClientRect();
-    if (!rect) return 0;
-    const center = rect.left + rect.width / 2;
-    return Math.max(-3, Math.min(3, (mx - center) * 0.006));
-  });
-  const contentTiltX = useTransform(mouseY, (my: number) => {
-    if (my === 0) return 0;
-    const rect = panelRef.current?.getBoundingClientRect();
-    if (!rect) return 0;
-    const center = rect.top + rect.height / 2;
-    return Math.max(-4.5, Math.min(4.5, -(my - center) * 0.009));
-  });
-  const contentTiltY = useTransform(mouseX, (mx: number) => {
-    if (mx === 0) return 0;
-    const rect = panelRef.current?.getBoundingClientRect();
-    if (!rect) return 0;
-    const center = rect.left + rect.width / 2;
-    return Math.max(-4.5, Math.min(4.5, (mx - center) * 0.009));
-  });
-
-  const panelRotateX = useSpring(panelTiltX, { stiffness: 40, damping: 20 });
-  const panelRotateY = useSpring(panelTiltY, { stiffness: 40, damping: 20 });
-  const contentRotateX = useSpring(contentTiltX, { stiffness: 50, damping: 18 });
-  const contentRotateY = useSpring(contentTiltY, { stiffness: 50, damping: 18 });
+  // Background panel tilt (Layer 1: subtle ~3°)
+  const panelRotateX = useSpring(
+    useTransform(ny, [-1, 0, 1], [3, 0, -3]),
+    { stiffness: 40, damping: 20 }
+  );
+  const panelRotateY = useSpring(
+    useTransform(nx, [-1, 0, 1], [-3, 0, 3]),
+    { stiffness: 40, damping: 20 }
+  );
+  // Content tilt (Layer 2: medium ~5°)
+  const contentRotateX = useSpring(
+    useTransform(ny, [-1, 0, 1], [5, 0, -5]),
+    { stiffness: 50, damping: 18 }
+  );
+  const contentRotateY = useSpring(
+    useTransform(nx, [-1, 0, 1], [-5, 0, 5]),
+    { stiffness: 50, damping: 18 }
+  );
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    mouseX.set(e.clientX);
-    mouseY.set(e.clientY);
-  }, [mouseX, mouseY]);
+    const rect = panelRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    // Compute -1..1 from panel edges
+    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const y = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+    nx.set(x);
+    ny.set(y);
+  }, [nx, ny]);
 
   const handleMouseLeave = useCallback(() => {
-    mouseX.set(0);
-    mouseY.set(0);
-  }, [mouseX, mouseY]);
+    nx.set(0);
+    ny.set(0);
+  }, [nx, ny]);
 
   // Clear error state when user types
   useEffect(() => {
@@ -446,7 +405,7 @@ const Auth = () => {
 
           {/* Layer 3 — Floating product cards (strongest parallax) */}
           <div className="mt-16 relative h-52" style={{ transformStyle: "preserve-3d" }}>
-            <FloatingCard delay={0} orbit={{ rx: 15, ry: 12, duration: 8, phase: 0, tilt: 2.5 }} className="absolute top-0 left-0" mouseX={mouseX} mouseY={mouseY}>
+            <FloatingCard delay={0} orbit={{ rx: 15, ry: 12, duration: 8, phase: 0, tilt: 2.5 }} className="absolute top-0 left-0" nx={nx} ny={ny} magnetStrength={40}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg" style={{ transform: "translateZ(30px)" }}>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
                   <CalendarDays className="h-4 w-4 text-[#C4A45B]" />
@@ -458,7 +417,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
 
-            <FloatingCard delay={0.6} orbit={{ rx: -18, ry: 14, duration: 9.5, phase: 1.8, tilt: -3 }} className="absolute top-4 right-0" mouseX={mouseX} mouseY={mouseY}>
+            <FloatingCard delay={0.6} orbit={{ rx: -18, ry: 14, duration: 9.5, phase: 1.8, tilt: -3 }} className="absolute top-4 right-0" nx={nx} ny={ny} magnetStrength={30}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg" style={{ transform: "translateZ(20px)" }}>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15">
                   <CheckCircle2 className="h-4 w-4 text-emerald-400" />
@@ -470,7 +429,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
 
-            <FloatingCard delay={1.2} orbit={{ rx: 12, ry: -16, duration: 10.5, phase: 3.5, tilt: 2 }} className="absolute bottom-0 left-8" mouseX={mouseX} mouseY={mouseY}>
+            <FloatingCard delay={1.2} orbit={{ rx: 12, ry: -16, duration: 10.5, phase: 3.5, tilt: 2 }} className="absolute bottom-0 left-8" nx={nx} ny={ny} magnetStrength={35}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg" style={{ transform: "translateZ(25px)" }}>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15">
                   <BarChart3 className="h-4 w-4 text-blue-400" />
@@ -482,7 +441,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
 
-            <FloatingCard delay={1.8} orbit={{ rx: -14, ry: 10, duration: 11, phase: 5.2, tilt: -1.8 }} className="absolute bottom-4 right-4" mouseX={mouseX} mouseY={mouseY}>
+            <FloatingCard delay={1.8} orbit={{ rx: -14, ry: 10, duration: 11, phase: 5.2, tilt: -1.8 }} className="absolute bottom-4 right-4" nx={nx} ny={ny} magnetStrength={25}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg" style={{ transform: "translateZ(15px)" }}>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
                   <Sparkles className="h-4 w-4 text-[#C4A45B]" />
