@@ -43,7 +43,7 @@ const FloatingCard = ({
     if (!rect) return 0;
     const cardCy = rect.top + rect.height / 2;
     const dist = my - cardCy;
-    return Math.max(-30, Math.min(30, dist * 0.07));
+    return Math.max(-40, Math.min(40, dist * 0.09));
   });
 
   // Tilt toward cursor (max ±6deg)
