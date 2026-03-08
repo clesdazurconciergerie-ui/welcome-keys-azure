@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, BookOpen, Users, Home, Wrench, Settings, LogOut,
-  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette,
+  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -44,6 +44,7 @@ const navGroups = [
     items: [
       { title: "Paramètres", url: "/dashboard/parametres", icon: Settings },
       { title: "Apparence", url: "/dashboard/branding", icon: Palette },
+      { title: "Aide & Guide", url: "/dashboard/aide", icon: HelpCircle },
     ],
   },
 ];

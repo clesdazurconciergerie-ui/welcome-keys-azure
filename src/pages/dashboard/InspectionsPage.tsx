@@ -23,6 +23,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
+import { ContextualTip } from '@/components/onboarding/ContextualTip';
 
 const isDev = import.meta.env.DEV;
 const log = (...args: any[]) => { if (isDev) console.log('[EdL]', ...args); };
@@ -229,6 +230,9 @@ export default function InspectionsPage() {
 
   return (
     <div className="space-y-6 max-w-6xl">
+      <ContextualTip tipId="inspections-intro" title="💡 Astuce">
+        Les photos du dernier ménage sont automatiquement ajoutées pour faciliter l'état des lieux d'entrée.
+      </ContextualTip>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">État des lieux</h1>

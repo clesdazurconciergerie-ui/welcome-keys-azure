@@ -37,6 +37,7 @@ import PerformancePage from "./pages/dashboard/PerformancePage";
 import AbonnementPage from "./pages/dashboard/AbonnementPage";
 import ParametresPage from "./pages/dashboard/ParametresPage";
 import BrandingPage from "./pages/dashboard/BrandingPage";
+import HelpCenterPage from "./pages/dashboard/HelpCenterPage";
 import OwnerDashboardHome from "./pages/owner/OwnerDashboardHome";
 import OwnerPropertiesPage from "./pages/owner/OwnerPropertiesPage";
 import OwnerBookletsPage from "./pages/owner/OwnerBookletsPage";
@@ -93,6 +94,7 @@ const App = () => (
             <Route path="abonnement" element={<AbonnementPage />} />
             <Route path="parametres" element={<ParametresPage />} />
             <Route path="branding" element={<BrandingPage />} />
+            <Route path="aide" element={<HelpCenterPage />} />
           </Route>
 
           {/* Owner dashboard */}

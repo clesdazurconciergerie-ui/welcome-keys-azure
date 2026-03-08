@@ -17,6 +17,9 @@ import DemoExpirationBanner from "@/components/DemoExpirationBanner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
+import { useOnboarding } from "@/hooks/useOnboarding";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
 
 const DashboardHome = () => {
   const navigate = useNavigate();
@@ -28,6 +31,7 @@ const DashboardHome = () => {
   const { interventions } = useCleaningInterventions('concierge');
   const { missions: newMissions } = useNewMissions('concierge');
   const { followups, updateFollowup } = useProspectFollowups();
+  const { showWizard, dismissWizard, progress, completionPercent, isFullyComplete } = useOnboarding();
 
   useEffect(() => {
     const init = async () => {
@@ -72,8 +76,17 @@ const DashboardHome = () => {
 
   return (
     <div className="space-y-5 sm:space-y-8 max-w-6xl">
+      <OnboardingWizard open={showWizard} onClose={dismissWizard} />
       <SubscriptionAlert />
       <DemoExpirationBanner />
+
+      {!isFullyComplete && (
+        <OnboardingProgress
+          progress={progress}
+          completionPercent={completionPercent}
+          isFullyComplete={isFullyComplete}
+        />
+      )}
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <p className="text-muted-foreground text-lg">
