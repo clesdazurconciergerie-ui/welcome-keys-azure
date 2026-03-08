@@ -393,10 +393,6 @@ export default function SPMissionsUnifiedPage() {
 
   const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
-  if (isLoading) {
-    return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
-  }
-
   // Today's missions for alert banner
   const todayMissions = useMemo(() => {
     const today = new Date();
@@ -405,6 +401,10 @@ export default function SPMissionsUnifiedPage() {
     const fromLegacy = myLegacyMissions.filter(m => new Date(m.scheduled_date).toDateString() === todayStr);
     return { count: fromNew.length + fromLegacy.length, firstNew: fromNew[0], firstLegacy: fromLegacy[0] };
   }, [myNewMissions, myLegacyMissions]);
+
+  if (isLoading) {
+    return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="space-y-5 sm:space-y-6 max-w-6xl">
