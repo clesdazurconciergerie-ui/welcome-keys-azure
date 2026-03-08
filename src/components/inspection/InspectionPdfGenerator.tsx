@@ -15,8 +15,7 @@ function contrastColor(hex: string): string {
   const r = parseInt(c.substring(0, 2), 16);
   const g = parseInt(c.substring(2, 4), 16);
   const b = parseInt(c.substring(4, 6), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? '#1a1a1a' : '#ffffff';
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5 ? '#1a1a1a' : '#ffffff';
 }
 
 function lighten(hex: string, amount: number): string {
@@ -51,7 +50,7 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
         .set({
           margin: 0,
           filename: `etat-des-lieux-${inspection.inspection_date}.pdf`,
-          image: { type: 'jpeg', quality: 0.95 },
+          image: { type: 'jpeg', quality: 0.92 },
           html2canvas: { scale: 2, useCORS: true, letterRendering: true },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         })
@@ -65,23 +64,37 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
     }
   };
 
-  const cleaningPhotos = inspection.cleaning_photos_json || [];
-  const exitPhotos = inspection.exit_photos_json || [];
-  const meterPhotos = (inspection as any).meter_photos_json || [];
+  const cleaningPhotos = (inspection.cleaning_photos_json || []).slice(0, 6);
+  const exitPhotos = (inspection.exit_photos_json || []).slice(0, 6);
+  const meterPhotos = ((inspection as any).meter_photos_json || []).slice(0, 6);
+  const allPhotosCount = (inspection.cleaning_photos_json || []).length + (inspection.exit_photos_json || []).length + ((inspection as any).meter_photos_json || []).length;
+  const displayedCount = cleaningPhotos.length + exitPhotos.length + meterPhotos.length;
+  const extraPhotos = allPhotosCount - displayedCount;
+
   const keysHandedOver = (inspection as any).keys_handed_over;
   const conciergeSignature = inspection.concierge_signature_url || defaultSignatureUrl;
 
   const dateFormatted = new Date(inspection.inspection_date).toLocaleDateString('fr-FR', {
     day: 'numeric', month: 'long', year: 'numeric',
   });
-
   const typeLabel = inspection.inspection_type === 'exit' ? "État des lieux de sortie" : "État des lieux d'entrée";
-
-  // Build a reference number like EDL-2026-001
   const year = new Date(inspection.inspection_date).getFullYear();
   const refNumber = `EDL-${year}-${inspection.id?.substring(0, 3).toUpperCase() || '001'}`;
-
   const addressLine = [co.address, [co.org_postal_code, co.org_city].filter(Boolean).join(' ')].filter(Boolean).join(' — ');
+
+  // Decide how many photo rows to show — keep to max 2 rows (6 photos) per section, pick only sections with photos
+  const photoSections: { title: string; photos: any[] }[] = [];
+  if (cleaningPhotos.length) photoSections.push({ title: 'Photos du ménage', photos: cleaningPhotos });
+  if (meterPhotos.length) photoSections.push({ title: 'Photos compteurs', photos: meterPhotos });
+  if (exitPhotos.length) photoSections.push({ title: 'Photos complémentaires', photos: exitPhotos });
+
+  // If total photos > 6, limit each section proportionally
+  let totalAllowed = 6;
+  const limitedSections = photoSections.map(s => {
+    const take = Math.min(s.photos.length, totalAllowed);
+    totalAllowed -= take;
+    return { ...s, photos: s.photos.slice(0, take) };
+  }).filter(s => s.photos.length > 0);
 
   return (
     <>
@@ -90,7 +103,6 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
         PDF
       </Button>
 
-      {/* Hidden A4 print layout — mirrors invoice structure */}
       <div
         ref={printRef}
         style={{
@@ -104,253 +116,161 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
           position: 'relative',
           overflow: 'hidden',
           boxSizing: 'border-box',
-          paddingBottom: '20mm',
         }}
       >
-        {/* ═══ A) TOP BAND — same as invoice ═══ */}
-        <div
-          style={{
-            backgroundColor: NAVY,
-            color: headerTextColor,
-            display: 'flex',
-            alignItems: 'stretch',
-            minHeight: 105,
-          }}
-        >
-          {/* Left — Issuer */}
-          <div style={{ flex: 1, padding: '20px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        {/* ═══ HEADER — compact ═══ */}
+        <div style={{
+          backgroundColor: NAVY, color: headerTextColor,
+          display: 'flex', alignItems: 'stretch', minHeight: 72, maxHeight: 80,
+        }}>
+          <div style={{ flex: 1, padding: '12px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <div style={{
-              fontFamily: FONT, fontSize: 17, fontWeight: 700,
-              letterSpacing: 2, textTransform: 'uppercase',
-              paddingBottom: 4, borderBottom: `2px solid ${GOLD}`, display: 'inline-block',
-            }}>
-              {companyName || 'MA CONCIERGERIE'}
-            </div>
+              fontSize: 14, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
+              paddingBottom: 3, borderBottom: `2px solid ${GOLD}`, display: 'inline-block',
+            }}>{companyName || 'MA CONCIERGERIE'}</div>
             {addressLine && (
-              <p style={{ margin: '7px 0 0', fontSize: 10.5, lineHeight: 1.55, opacity: 0.9, fontFamily: FONT }}>
-                {addressLine}
-              </p>
-            )}
-            {co.org_phone && (
-              <p style={{ margin: '2px 0 0', fontSize: 10.5, opacity: 0.9, fontFamily: FONT }}>{co.org_phone}</p>
+              <p style={{ margin: '4px 0 0', fontSize: 9, lineHeight: 1.4, opacity: 0.85 }}>{addressLine}</p>
             )}
           </div>
-
-          {/* Center — Logo */}
-          {co.logo_url ? (
-            <div style={{ width: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px' }}>
-              <img src={co.logo_url} alt="Logo" style={{ maxHeight: 70, maxWidth: 80, objectFit: 'contain' }} crossOrigin="anonymous" />
+          {co.logo_url && (
+            <div style={{ width: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6 }}>
+              <img src={co.logo_url} alt="" style={{ maxHeight: 50, maxWidth: 60, objectFit: 'contain' }} crossOrigin="anonymous" />
             </div>
-          ) : (
-            <div style={{ width: 20 }} />
           )}
-
-          {/* Right — Property owner / guest */}
-          <div style={{ flex: 1, padding: '20px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'right' }}>
+          <div style={{ flex: 1, padding: '12px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'right' }}>
             <div style={{
-              fontFamily: FONT, fontSize: 15, fontWeight: 700,
-              letterSpacing: 1.5, textTransform: 'uppercase',
-              paddingBottom: 4, borderBottom: `2px solid ${GOLD}`, display: 'inline-block', marginLeft: 'auto',
-            }}>
-              {inspection.guest_name || 'NOM VOYAGEUR'}
-            </div>
-            <p style={{ margin: '7px 0 0', fontSize: 10.5, lineHeight: 1.55, opacity: 0.9, fontFamily: FONT }}>
-              {inspection.property?.name || ''}
-            </p>
+              fontSize: 12, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
+              paddingBottom: 3, borderBottom: `2px solid ${GOLD}`, display: 'inline-block', marginLeft: 'auto',
+            }}>{inspection.guest_name || 'NOM VOYAGEUR'}</div>
+            <p style={{ margin: '4px 0 0', fontSize: 9, opacity: 0.85 }}>{inspection.property?.name || ''}</p>
           </div>
         </div>
 
-        {/* ═══ B) DOCUMENT TITLE — same layout as invoice ═══ */}
-        <div style={{ padding: '24px 30px 12px', display: 'flex' }}>
-          <div style={{ width: 3, backgroundColor: GOLD, borderRadius: 1, marginRight: 14, minHeight: 42 }} />
+        {/* ═══ TITLE — compact ═══ */}
+        <div style={{ padding: '14px 24px 8px', display: 'flex' }}>
+          <div style={{ width: 3, backgroundColor: GOLD, borderRadius: 1, marginRight: 10, minHeight: 32 }} />
           <div>
-            <h1 style={{
-              fontFamily: FONT, fontSize: 20, fontWeight: 700,
-              color: NAVY, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0,
-            }}>
+            <h1 style={{ fontSize: 16, fontWeight: 700, color: NAVY, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0 }}>
               {typeLabel}
             </h1>
-            <p style={{ margin: '3px 0 0', fontSize: 11, color: '#555', fontFamily: FONT }}>
-              Référence : {refNumber}
-            </p>
-            <p style={{ margin: '3px 0 0', fontSize: 11.5, color: '#555', fontFamily: FONT }}>
-              Date : {dateFormatted}
+            <p style={{ margin: '2px 0 0', fontSize: 9.5, color: '#555' }}>
+              Réf : {refNumber} · Date : {dateFormatted}
             </p>
           </div>
         </div>
 
-        {/* ═══ C) PROPERTY INFO — table style ═══ */}
-        <div style={{ padding: '8px 30px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', border: `2px solid ${NAVY}`, fontFamily: FONT }}>
+        {/* ═══ INFO TABLE — compact ═══ */}
+        <div style={{ padding: '4px 24px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', border: `1.5px solid ${NAVY}`, fontSize: 9.5 }}>
             <thead>
               <tr>
-                <th style={{
-                  backgroundColor: NAVY, color: headerTextColor, fontFamily: FONT,
-                  fontSize: 10.5, fontWeight: 600, letterSpacing: 0.8,
-                  textAlign: 'left', padding: '9px 12px', borderRight: `1px solid ${headerTextColor}33`, width: '40%',
-                }}>Information</th>
-                <th style={{
-                  backgroundColor: NAVY, color: headerTextColor, fontFamily: FONT,
-                  fontSize: 10.5, fontWeight: 600, letterSpacing: 0.8,
-                  textAlign: 'left', padding: '9px 12px',
-                }}>Détail</th>
+                <th style={{ backgroundColor: NAVY, color: headerTextColor, fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textAlign: 'left', padding: '5px 10px', borderRight: `1px solid ${headerTextColor}33`, width: '38%' }}>Information</th>
+                <th style={{ backgroundColor: NAVY, color: headerTextColor, fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textAlign: 'left', padding: '5px 10px' }}>Détail</th>
               </tr>
             </thead>
             <tbody>
               {[
-                ['Bien', inspection.property?.name || '—'],
-                ['Adresse', inspection.property?.address || '—'],
-                ['Voyageur', inspection.guest_name || '—'],
-                ['Nombre d\'occupants', inspection.occupants_count ? String(inspection.occupants_count) : '—'],
+                ['Bien', inspection.property?.name],
+                ['Adresse', inspection.property?.address],
+                ['Voyageur', inspection.guest_name],
+                ['Occupants', inspection.occupants_count ? String(inspection.occupants_count) : null],
                 ...(keysHandedOver ? [['Clés remises', String(keysHandedOver)]] : []),
-                ['Ménage effectué par', inspection.cleaner_name || '—'],
+                ['Ménage par', inspection.cleaner_name],
               ].map(([label, value], i) => (
                 <tr key={i}>
-                  <td style={{
-                    padding: '9px 12px', fontSize: 10.5, fontWeight: 600,
-                    borderBottom: `1px solid ${NAVY}1a`, borderRight: `1px solid ${NAVY}1a`, fontFamily: FONT,
-                  }}>{label}</td>
-                  <td style={{
-                    padding: '9px 12px', fontSize: 10.5,
-                    borderBottom: `1px solid ${NAVY}1a`, fontFamily: FONT,
-                  }}>{value}</td>
+                  <td style={{ padding: '4px 10px', fontWeight: 600, borderBottom: `1px solid ${NAVY}15`, borderRight: `1px solid ${NAVY}15` }}>{label}</td>
+                  <td style={{ padding: '4px 10px', borderBottom: `1px solid ${NAVY}15` }}>{value || '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        {/* ═══ D) OBSERVATIONS ═══ */}
+        {/* ═══ OBSERVATIONS — compact ═══ */}
         {inspection.general_comment && (
-          <div style={{ padding: '18px 30px 0' }}>
-            <div style={{
-              fontFamily: FONT, fontSize: 13, fontWeight: 700, color: NAVY,
-              textTransform: 'uppercase', letterSpacing: 1.5, paddingBottom: 7,
-              borderBottom: `2px solid ${GOLD}`,
-            }}>Observations</div>
-            <p style={{
-              marginTop: 10, fontSize: 10.5, lineHeight: 1.7,
-              whiteSpace: 'pre-wrap', fontFamily: FONT,
-            }}>{inspection.general_comment}</p>
+          <div style={{ padding: '8px 24px 0' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: NAVY, textTransform: 'uppercase', letterSpacing: 1, paddingBottom: 4, borderBottom: `1.5px solid ${GOLD}` }}>
+              Observations
+            </div>
+            <p style={{ marginTop: 4, fontSize: 9, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{inspection.general_comment}</p>
           </div>
         )}
 
-        {/* ═══ E) DAMAGES ═══ */}
         {inspection.damage_notes && (
-          <div style={{ padding: '18px 30px 0' }}>
-            <div style={{
-              fontFamily: FONT, fontSize: 13, fontWeight: 700, color: '#dc2626',
-              textTransform: 'uppercase', letterSpacing: 1.5, paddingBottom: 7,
-              borderBottom: '2px solid #dc2626',
-            }}>Dégâts / Anomalies</div>
-            <p style={{
-              marginTop: 10, fontSize: 10.5, lineHeight: 1.7,
-              whiteSpace: 'pre-wrap', fontFamily: FONT,
-              background: '#fef2f2', padding: '10px 12px', borderRadius: 4, border: '1px solid #fecaca',
-            }}>{inspection.damage_notes}</p>
-          </div>
-        )}
-
-        {/* ═══ F) PHOTO SECTIONS ═══ */}
-        {cleaningPhotos.length > 0 && (
-          <div style={{ padding: '18px 30px 0' }}>
-            <div style={{
-              fontFamily: FONT, fontSize: 13, fontWeight: 700, color: NAVY,
-              textTransform: 'uppercase', letterSpacing: 1.5, paddingBottom: 7,
-              borderBottom: `2px solid ${GOLD}`,
-            }}>Photos du dernier ménage</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 10 }}>
-              {cleaningPhotos.slice(0, 9).map((p: any, i: number) => (
-                <img key={i} src={p.url} alt="" style={{
-                  width: '100%', aspectRatio: '1', objectFit: 'cover',
-                  borderRadius: 4, border: `1px solid ${NAVY}1a`,
-                }} crossOrigin="anonymous" />
-              ))}
+          <div style={{ padding: '8px 24px 0' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: 1, paddingBottom: 4, borderBottom: '1.5px solid #dc2626' }}>
+              Dégâts / Anomalies
             </div>
+            <p style={{ marginTop: 4, fontSize: 9, lineHeight: 1.5, whiteSpace: 'pre-wrap', background: '#fef2f2', padding: '6px 8px', borderRadius: 3, border: '1px solid #fecaca' }}>{inspection.damage_notes}</p>
           </div>
         )}
 
-        {meterPhotos.length > 0 && (
-          <div style={{ padding: '18px 30px 0' }}>
-            <div style={{
-              fontFamily: FONT, fontSize: 13, fontWeight: 700, color: NAVY,
-              textTransform: 'uppercase', letterSpacing: 1.5, paddingBottom: 7,
-              borderBottom: `2px solid ${GOLD}`,
-            }}>Photos des compteurs</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 10 }}>
-              {meterPhotos.slice(0, 6).map((p: any, i: number) => (
-                <img key={i} src={p.url} alt="" style={{
-                  width: '100%', aspectRatio: '1', objectFit: 'cover',
-                  borderRadius: 4, border: `1px solid ${NAVY}1a`,
-                }} crossOrigin="anonymous" />
-              ))}
-            </div>
+        {/* ═══ PHOTOS — thumbnail grid, max 6 total ═══ */}
+        {limitedSections.length > 0 && (
+          <div style={{ padding: '8px 24px 0' }}>
+            {limitedSections.map((section, si) => (
+              <div key={si} style={{ marginBottom: 6 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: NAVY, textTransform: 'uppercase', letterSpacing: 0.8, paddingBottom: 3, borderBottom: `1.5px solid ${GOLD}`, marginBottom: 5 }}>
+                  {section.title}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
+                  {section.photos.map((p: any, i: number) => (
+                    <img key={i} src={p.url} alt="" style={{
+                      width: '100%', height: 52, objectFit: 'cover',
+                      borderRadius: 3, border: `1px solid ${NAVY}1a`,
+                    }} crossOrigin="anonymous" />
+                  ))}
+                </div>
+              </div>
+            ))}
+            {extraPhotos > 0 && (
+              <p style={{ fontSize: 8, color: '#6b7280', fontStyle: 'italic', margin: '2px 0 0' }}>
+                + {extraPhotos} photo{extraPhotos > 1 ? 's' : ''} supplémentaire{extraPhotos > 1 ? 's' : ''} disponible{extraPhotos > 1 ? 's' : ''} dans l'application
+              </p>
+            )}
           </div>
         )}
 
-        {exitPhotos.length > 0 && (
-          <div style={{ padding: '18px 30px 0' }}>
-            <div style={{
-              fontFamily: FONT, fontSize: 13, fontWeight: 700, color: NAVY,
-              textTransform: 'uppercase', letterSpacing: 1.5, paddingBottom: 7,
-              borderBottom: `2px solid ${GOLD}`,
-            }}>Photos complémentaires</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 10 }}>
-              {exitPhotos.slice(0, 9).map((p: any, i: number) => (
-                <img key={i} src={p.url} alt="" style={{
-                  width: '100%', aspectRatio: '1', objectFit: 'cover',
-                  borderRadius: 4, border: `1px solid ${NAVY}1a`,
-                }} crossOrigin="anonymous" />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ═══ G) SIGNATURES ═══ */}
-        <div style={{ padding: '28px 30px 0', display: 'flex', gap: 40 }}>
+        {/* ═══ SIGNATURES ═══ */}
+        <div style={{ padding: '12px 24px 0', display: 'flex', gap: 30, pageBreakInside: 'avoid' }}>
           <div style={{ flex: 1 }}>
-            <div style={{
-              fontFamily: FONT, fontSize: 11, fontWeight: 700, color: NAVY,
-              textTransform: 'uppercase', letterSpacing: 1, paddingBottom: 6,
-              borderBottom: `2px solid ${GOLD}`, marginBottom: 10,
-            }}>Signature conciergerie</div>
+            <div style={{ fontSize: 9, fontWeight: 700, color: NAVY, textTransform: 'uppercase', letterSpacing: 0.8, paddingBottom: 4, borderBottom: `1.5px solid ${GOLD}`, marginBottom: 6 }}>
+              Signature conciergerie
+            </div>
             {conciergeSignature ? (
-              <div style={{ border: `1px solid ${NAVY}1a`, borderRadius: 4, padding: 6, minHeight: 70, display: 'flex', alignItems: 'center' }}>
-                <img src={conciergeSignature} alt="Signature concierge" style={{ maxHeight: 65, maxWidth: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
+              <div style={{ border: `1px solid ${NAVY}1a`, borderRadius: 3, padding: 4, height: 55, display: 'flex', alignItems: 'center' }}>
+                <img src={conciergeSignature} alt="Signature" style={{ maxHeight: 48, maxWidth: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
               </div>
             ) : (
-              <div style={{ height: 70, border: '1px dashed #d1d5db', borderRadius: 4 }} />
+              <div style={{ height: 55, border: '1px dashed #d1d5db', borderRadius: 3 }} />
             )}
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{
-              fontFamily: FONT, fontSize: 11, fontWeight: 700, color: NAVY,
-              textTransform: 'uppercase', letterSpacing: 1, paddingBottom: 6,
-              borderBottom: `2px solid ${GOLD}`, marginBottom: 10,
-            }}>Signature client</div>
+            <div style={{ fontSize: 9, fontWeight: 700, color: NAVY, textTransform: 'uppercase', letterSpacing: 0.8, paddingBottom: 4, borderBottom: `1.5px solid ${GOLD}`, marginBottom: 6 }}>
+              Signature client
+            </div>
             {inspection.guest_signature_url ? (
-              <div style={{ border: `1px solid ${NAVY}1a`, borderRadius: 4, padding: 6, minHeight: 70, display: 'flex', alignItems: 'center' }}>
-                <img src={inspection.guest_signature_url} alt="Signature client" style={{ maxHeight: 65, maxWidth: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
+              <div style={{ border: `1px solid ${NAVY}1a`, borderRadius: 3, padding: 4, height: 55, display: 'flex', alignItems: 'center' }}>
+                <img src={inspection.guest_signature_url} alt="Signature" style={{ maxHeight: 48, maxWidth: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
               </div>
             ) : (
-              <div style={{ height: 70, border: '1px dashed #d1d5db', borderRadius: 4 }} />
+              <div style={{ height: 55, border: '1px dashed #d1d5db', borderRadius: 3 }} />
             )}
           </div>
         </div>
 
-        {/* ═══ H) FOOTER ═══ */}
+        {/* ═══ FOOTER ═══ */}
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
-          padding: '10px 30px', borderTop: `2px solid ${GOLD}`,
+          padding: '7px 24px', borderTop: `1.5px solid ${GOLD}`,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           backgroundColor: GRAY_STRIP,
         }}>
-          <div style={{ fontFamily: FONT, fontSize: 9, color: NAVY, opacity: 0.7 }}>
-            <span>Document généré via <strong>MyWelkom</strong></span>
-            {companyName && <span> · Conciergerie : {companyName}</span>}
+          <div style={{ fontSize: 8, color: NAVY, opacity: 0.7 }}>
+            Document généré via <strong>MyWelkom</strong>{companyName && ` · Conciergerie : ${companyName}`}
           </div>
-          <div style={{ fontFamily: FONT, fontSize: 9, color: NAVY, opacity: 0.7 }}>
-            Date de génération : {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+          <div style={{ fontSize: 8, color: NAVY, opacity: 0.7 }}>
+            {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
           </div>
         </div>
       </div>
