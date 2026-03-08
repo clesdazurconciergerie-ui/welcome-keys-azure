@@ -128,6 +128,37 @@ export function FinanceSettingsTab() {
     toast.success("Logo supprimé");
   };
 
+  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingSignature(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Non authentifié"); return; }
+      const ext = file.name.split(".").pop() || "png";
+      const filePath = `${user.id}/signature.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("branding")
+        .upload(filePath, file, { contentType: file.type, upsert: true });
+      if (uploadError) { toast.error(`Erreur upload: ${uploadError.message}`); return; }
+      const { data: urlData } = supabase.storage.from("branding").getPublicUrl(filePath);
+      const publicUrl = urlData.publicUrl + "?t=" + Date.now();
+      await saveSettings({ default_signature_url: publicUrl } as any);
+      setSignatureUrl(publicUrl);
+      toast.success("Signature mise à jour");
+    } catch (err: any) {
+      toast.error(`Erreur: ${err?.message || "Erreur inconnue"}`);
+    } finally {
+      setUploadingSignature(false);
+    }
+  };
+
+  const handleRemoveSignature = async () => {
+    await saveSettings({ default_signature_url: null } as any);
+    setSignatureUrl(null);
+    toast.success("Signature supprimée");
+  };
+
   const handleSave = async () => {
     setSaving(true);
     await saveSettings(form);
