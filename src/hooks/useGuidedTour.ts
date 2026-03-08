@@ -177,7 +177,7 @@ export function useGuidedTour() {
   }, []);
 
   const pauseTour = useCallback(() => {
-    setTourState(prev => ({ ...prev, isActive: false, showWelcome: false }));
+    setTourState(prev => ({ ...prev, isActive: false, isPaused: true, showWelcome: false }));
   }, []);
 
   const resumeTour = useCallback(() => {
