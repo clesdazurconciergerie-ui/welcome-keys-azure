@@ -101,6 +101,42 @@ export function FinanceSettingsTab() {
 
   return (
     <div className="space-y-6 mt-4 max-w-3xl">
+      <h2 className="text-lg font-semibold">Paramètres financiers</h2>
+
+      {/* Company Info */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Informations de la société</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div><Label>Nom de la société</Label><Input value={form.company_name} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} placeholder="Azur Keys" /></div>
+          <div><Label>Adresse (rue)</Label><Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="35 chemin du castellas" /></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><Label>Code postal</Label><Input value={form.org_postal_code} onChange={e => setForm(f => ({ ...f, org_postal_code: e.target.value }))} placeholder="83700" /></div>
+            <div><Label>Ville</Label><Input value={form.org_city} onChange={e => setForm(f => ({ ...f, org_city: e.target.value }))} placeholder="Saint-Raphaël" /></div>
+          </div>
+          <div><Label>Téléphone</Label><Input value={form.org_phone} onChange={e => setForm(f => ({ ...f, org_phone: e.target.value }))} placeholder="06.03.70.97.77" /></div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label>Assujetti à la TVA</Label>
+              <p className="text-xs text-muted-foreground">Activez si votre organisation est soumise à la TVA</p>
+            </div>
+            <Switch checked={form.vat_enabled} onCheckedChange={v => setForm(f => ({ ...f, vat_enabled: v }))} />
+          </div>
+          {form.vat_enabled ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>N° TVA</Label><Input value={form.vat_number} onChange={e => setForm(f => ({ ...f, vat_number: e.target.value }))} placeholder="FR12345678901" /></div>
+              <div><Label>Taux TVA par défaut (%)</Label><Input type="number" value={form.default_vat_rate} onChange={e => setForm(f => ({ ...f, default_vat_rate: parseFloat(e.target.value) || 0 }))} /></div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+              <p className="text-xs text-amber-800">TVA non applicable — mention légale « TVA non applicable - article 293 B du CGI. » ajoutée automatiquement sur les factures.</p>
+              <Button variant="outline" size="sm" className="text-xs h-8" onClick={async () => { await cleanupVatData(); refetch(); }}>
+                Nettoyer les données TVA existantes
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <p className="text-xs text-muted-foreground">
         Logo, couleurs et signature sont configurables dans{' '}
         <a href="/dashboard/branding" className="text-primary underline font-medium">Paramètres → Apparence</a>
