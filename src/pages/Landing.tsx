@@ -12,11 +12,13 @@ import FinalCTA from "@/components/landing/FinalCTA";
 import FAQ from "@/components/landing/FAQ";
 import Footer from "@/components/landing/Footer";
 import SEOHead from "@/components/SEOHead";
+import EntryModal from "@/components/landing/EntryModal";
 
 const Landing = () => {
   return (
     <>
-      <SEOHead 
+      <EntryModal />
+      <SEOHead
         title="MyWelkom by Azur Keys - Plateforme Digitale Premium pour Conciergeries"
         description="La plateforme digitale pensée pour les conciergeries orientées performance. CRM, livret d'accueil digital, espace propriétaire, dashboard analytics. Développé par Azur Keys Conciergerie."
         keywords="plateforme conciergerie, logiciel conciergerie, gestion conciergerie, livret d'accueil digital, espace propriétaire, CRM conciergerie, MyWelkom, Azur Keys, dashboard performance, conciergerie premium"
