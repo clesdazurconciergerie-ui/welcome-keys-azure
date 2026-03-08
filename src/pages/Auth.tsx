@@ -28,14 +28,14 @@ const FloatingCard = ({
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Stronger magnetic pull (max ±30px) with smooth spring
+  // Stronger magnetic pull (max ±40px) with smooth spring
   const dx = useTransform(mouseX, (mx: number) => {
     if (mx === 0) return 0;
     const rect = cardRef.current?.getBoundingClientRect();
     if (!rect) return 0;
     const cardCx = rect.left + rect.width / 2;
     const dist = mx - cardCx;
-    return Math.max(-30, Math.min(30, dist * 0.07));
+    return Math.max(-40, Math.min(40, dist * 0.09));
   });
   const dy = useTransform(mouseY, (my: number) => {
     if (my === 0) return 0;
@@ -43,7 +43,7 @@ const FloatingCard = ({
     if (!rect) return 0;
     const cardCy = rect.top + rect.height / 2;
     const dist = my - cardCy;
-    return Math.max(-30, Math.min(30, dist * 0.07));
+    return Math.max(-40, Math.min(40, dist * 0.09));
   });
 
   // Tilt toward cursor (max ±6deg)
@@ -62,10 +62,10 @@ const FloatingCard = ({
     return Math.max(-6, Math.min(6, -(my - cardCy) * 0.012));
   });
 
-  const sx = useSpring(dx, { stiffness: 80, damping: 18 });
-  const sy = useSpring(dy, { stiffness: 80, damping: 18 });
-  const sRotateX = useSpring(rotateX, { stiffness: 80, damping: 20 });
-  const sRotateY = useSpring(rotateY, { stiffness: 80, damping: 20 });
+  const sx = useSpring(dx, { stiffness: 60, damping: 16 });
+  const sy = useSpring(dy, { stiffness: 60, damping: 16 });
+  const sRotateX = useSpring(rotateX, { stiffness: 60, damping: 18 });
+  const sRotateY = useSpring(rotateY, { stiffness: 60, damping: 18 });
 
   const { rx, ry, duration, phase, tilt } = orbit;
 
@@ -145,6 +145,41 @@ const Auth = () => {
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Panel-level 3D perspective tilt (Layer 1 — background: ~3°, Layer 2 — content: ~4°)
+  const panelTiltX = useTransform(mouseY, (my: number) => {
+    if (my === 0) return 0;
+    const rect = panelRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const center = rect.top + rect.height / 2;
+    return Math.max(-3, Math.min(3, -(my - center) * 0.006));
+  });
+  const panelTiltY = useTransform(mouseX, (mx: number) => {
+    if (mx === 0) return 0;
+    const rect = panelRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const center = rect.left + rect.width / 2;
+    return Math.max(-3, Math.min(3, (mx - center) * 0.006));
+  });
+  const contentTiltX = useTransform(mouseY, (my: number) => {
+    if (my === 0) return 0;
+    const rect = panelRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const center = rect.top + rect.height / 2;
+    return Math.max(-4.5, Math.min(4.5, -(my - center) * 0.009));
+  });
+  const contentTiltY = useTransform(mouseX, (mx: number) => {
+    if (mx === 0) return 0;
+    const rect = panelRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const center = rect.left + rect.width / 2;
+    return Math.max(-4.5, Math.min(4.5, (mx - center) * 0.009));
+  });
+
+  const panelRotateX = useSpring(panelTiltX, { stiffness: 40, damping: 20 });
+  const panelRotateY = useSpring(panelTiltY, { stiffness: 40, damping: 20 });
+  const contentRotateX = useSpring(contentTiltX, { stiffness: 50, damping: 18 });
+  const contentRotateY = useSpring(contentTiltY, { stiffness: 50, damping: 18 });
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     mouseX.set(e.clientX);
@@ -359,15 +394,38 @@ const Auth = () => {
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Background effects */}
+        {/* Background effects — Layer 0 (static) */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-br from-[#061452] via-[#0a1f6b] to-[#061452]" />
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#C4A45B]/8 rounded-full blur-[120px]" />
           <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-[#C4A45B]/5 rounded-full blur-[100px]" />
-          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
         </div>
 
-        <div className="relative z-10 max-w-md text-center">
+        {/* Layer 1 — Background grid with subtle perspective tilt */}
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            rotateX: panelRotateX,
+            rotateY: panelRotateY,
+            perspective: 1200,
+            transformStyle: "preserve-3d",
+          }}
+        >
+          <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+          {/* Subtle dashboard silhouette */}
+          <div className="absolute inset-12 rounded-2xl border border-white/[0.04] bg-white/[0.015]" style={{ transform: "translateZ(-40px)" }} />
+        </motion.div>
+
+        {/* Layer 2 — Content with medium perspective */}
+        <motion.div
+          className="relative z-10 max-w-md text-center"
+          style={{
+            rotateX: contentRotateX,
+            rotateY: contentRotateY,
+            perspective: 800,
+            transformStyle: "preserve-3d",
+          }}
+        >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -386,10 +444,10 @@ const Auth = () => {
             <span className="text-[#C4A45B] font-medium">votre conciergerie.</span>
           </motion.p>
 
-          {/* Floating product cards */}
-          <div className="mt-16 relative h-52">
+          {/* Layer 3 — Floating product cards (strongest parallax) */}
+          <div className="mt-16 relative h-52" style={{ transformStyle: "preserve-3d" }}>
             <FloatingCard delay={0} orbit={{ rx: 15, ry: 12, duration: 8, phase: 0, tilt: 2.5 }} className="absolute top-0 left-0" mouseX={mouseX} mouseY={mouseY}>
-              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
+              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg" style={{ transform: "translateZ(30px)" }}>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
                   <CalendarDays className="h-4 w-4 text-[#C4A45B]" />
                 </div>
@@ -401,7 +459,7 @@ const Auth = () => {
             </FloatingCard>
 
             <FloatingCard delay={0.6} orbit={{ rx: -18, ry: 14, duration: 9.5, phase: 1.8, tilt: -3 }} className="absolute top-4 right-0" mouseX={mouseX} mouseY={mouseY}>
-              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
+              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg" style={{ transform: "translateZ(20px)" }}>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15">
                   <CheckCircle2 className="h-4 w-4 text-emerald-400" />
                 </div>
@@ -413,7 +471,7 @@ const Auth = () => {
             </FloatingCard>
 
             <FloatingCard delay={1.2} orbit={{ rx: 12, ry: -16, duration: 10.5, phase: 3.5, tilt: 2 }} className="absolute bottom-0 left-8" mouseX={mouseX} mouseY={mouseY}>
-              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
+              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg" style={{ transform: "translateZ(25px)" }}>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15">
                   <BarChart3 className="h-4 w-4 text-blue-400" />
                 </div>
@@ -425,7 +483,7 @@ const Auth = () => {
             </FloatingCard>
 
             <FloatingCard delay={1.8} orbit={{ rx: -14, ry: 10, duration: 11, phase: 5.2, tilt: -1.8 }} className="absolute bottom-4 right-4" mouseX={mouseX} mouseY={mouseY}>
-              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
+              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg" style={{ transform: "translateZ(15px)" }}>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
                   <Sparkles className="h-4 w-4 text-[#C4A45B]" />
                 </div>
@@ -436,7 +494,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* ── Right form panel ── */}
