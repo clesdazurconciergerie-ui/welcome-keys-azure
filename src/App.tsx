@@ -55,6 +55,7 @@ import SPSupportPage from "./pages/service-provider/SPSupportPage";
 import SPSettingsPage from "./pages/service-provider/SPSettingsPage";
 import SPAccountPage from "./pages/service-provider/SPAccountPage";
 import FinancePage from "./pages/dashboard/FinancePage";
+import InspectionsPage from "./pages/dashboard/InspectionsPage";
 import OwnerFinancesPage from "./pages/owner/OwnerFinancesPage";
 
 const queryClient = new QueryClient();
