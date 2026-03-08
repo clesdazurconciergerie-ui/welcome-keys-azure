@@ -26,6 +26,7 @@ import {
   Euro,
   MessageCircle,
   Briefcase,
+  ClipboardCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
