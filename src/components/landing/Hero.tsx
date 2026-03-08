@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { motion, useMotionValue, useTransform } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform, MotionValue } from "framer-motion";
 import { ArrowRight, Calendar, ClipboardCheck, TrendingUp, BookOpen, Bell, Users } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 const CountUp = ({ end, suffix = "", duration = 2000 }: { end: number; suffix?: string; duration?: number }) => {
   const [count, setCount] = useState(0);
@@ -33,25 +33,92 @@ const CountUp = ({ end, suffix = "", duration = 2000 }: { end: number; suffix?: 
   return <span ref={ref}>{count}{suffix}</span>;
 };
 
-/* Floating UI card component */
-const FloatingCard = ({ children, className, delay = 0, y = 0 }: { children: React.ReactNode; className?: string; delay?: number; y?: number }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 30, scale: 0.9 }}
-    animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ duration: 0.8, delay, ease: [0.22, 1, 0.36, 1] }}
-    className={className}
-  >
+/* ── Magnetic floating card with cursor attraction ── */
+const FloatingCard = ({
+  children,
+  className,
+  delay = 0,
+  y = 0,
+  nx,
+  ny,
+  magnetStrength = 25,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+  y?: number;
+  nx: MotionValue<number>;
+  ny: MotionValue<number>;
+  magnetStrength?: number;
+}) => {
+  const pullX = useTransform(nx, [-1, 0, 1], [-magnetStrength, 0, magnetStrength]);
+  const pullY = useTransform(ny, [-1, 0, 1], [-magnetStrength, 0, magnetStrength]);
+  const tiltY = useTransform(nx, [-1, 0, 1], [-6, 0, 6]);
+  const tiltX = useTransform(ny, [-1, 0, 1], [6, 0, -6]);
+
+  const sx = useSpring(pullX, { stiffness: 50, damping: 14 });
+  const sy = useSpring(pullY, { stiffness: 50, damping: 14 });
+  const sRotateX = useSpring(tiltX, { stiffness: 50, damping: 16 });
+  const sRotateY = useSpring(tiltY, { stiffness: 50, damping: 16 });
+
+  return (
     <motion.div
-      animate={{ y: [0, y, 0] }}
-      transition={{ duration: 4 + delay, repeat: Infinity, ease: "easeInOut" }}
+      initial={{ opacity: 0, y: 30, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.8, delay, ease: [0.22, 1, 0.36, 1] }}
+      style={{ x: sx, y: sy, rotateX: sRotateX, rotateY: sRotateY }}
+      className={className}
     >
-      {children}
+      <motion.div
+        animate={{ y: [0, y, 0] }}
+        transition={{ duration: 4 + delay, repeat: Infinity, ease: "easeInOut" }}
+      >
+        {children}
+      </motion.div>
     </motion.div>
-  </motion.div>
-);
+  );
+};
 
 const Hero = () => {
   const navigate = useNavigate();
+  const heroRightRef = useRef<HTMLDivElement>(null);
+
+  // Normalized mouse position: -1 to 1 relative to the right panel
+  const nx = useMotionValue(0);
+  const ny = useMotionValue(0);
+
+  // Dashboard mockup tilt (Layer 1: subtle ~4°)
+  const dashTiltX = useSpring(
+    useTransform(ny, [-1, 0, 1], [4, 0, -4]),
+    { stiffness: 40, damping: 20 }
+  );
+  const dashTiltY = useSpring(
+    useTransform(nx, [-1, 0, 1], [-4, 0, 4]),
+    { stiffness: 40, damping: 20 }
+  );
+  // Dashboard subtle translate
+  const dashTx = useSpring(
+    useTransform(nx, [-1, 0, 1], [-8, 0, 8]),
+    { stiffness: 40, damping: 20 }
+  );
+  const dashTy = useSpring(
+    useTransform(ny, [-1, 0, 1], [-6, 0, 6]),
+    { stiffness: 40, damping: 20 }
+  );
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const rect = heroRightRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const y = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+    nx.set(Math.max(-1, Math.min(1, x)));
+    ny.set(Math.max(-1, Math.min(1, y)));
+  }, [nx, ny]);
+
+  const handleMouseLeave = useCallback(() => {
+    nx.set(0);
+    ny.set(0);
+  }, [nx, ny]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -206,20 +273,33 @@ const Hero = () => {
             </motion.div>
           </motion.div>
 
-          {/* RIGHT: Dashboard Mockup */}
+          {/* RIGHT: Dashboard Mockup — Interactive 3D scene */}
           <motion.div
+            ref={heroRightRef}
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="relative hidden lg:block"
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            style={{ perspective: 900 }}
           >
             {/* Glow behind dashboard */}
             <div className="absolute inset-0 -m-10 rounded-3xl" style={{
               background: 'radial-gradient(ellipse at center, hsl(42 46% 56% / 0.12) 0%, transparent 70%)',
             }} />
 
-            {/* Main Dashboard Card */}
-            <div className="relative rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-1 shadow-2xl">
+            {/* Main Dashboard Card — Layer 1: subtle 3D tilt */}
+            <motion.div
+              className="relative rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-1 shadow-2xl"
+              style={{
+                rotateX: dashTiltX,
+                rotateY: dashTiltY,
+                x: dashTx,
+                y: dashTy,
+                transformStyle: "preserve-3d",
+              }}
+            >
               <div className="rounded-xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] p-6 space-y-5">
                 {/* Dashboard header */}
                 <div className="flex items-center justify-between">
@@ -294,13 +374,16 @@ const Hero = () => {
                   ))}
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            {/* Floating cards */}
+            {/* Floating cards — Layer 2: stronger magnetic pull */}
             <FloatingCard
               className="absolute -left-12 top-8"
               delay={0.6}
               y={-8}
+              nx={nx}
+              ny={ny}
+              magnetStrength={35}
             >
               <div className="rounded-xl bg-white/[0.1] backdrop-blur-lg border border-white/[0.12] px-4 py-3 shadow-xl">
                 <div className="flex items-center gap-2">
@@ -319,6 +402,9 @@ const Hero = () => {
               className="absolute -right-8 top-1/3"
               delay={0.9}
               y={-6}
+              nx={nx}
+              ny={ny}
+              magnetStrength={30}
             >
               <div className="rounded-xl bg-white/[0.1] backdrop-blur-lg border border-white/[0.12] px-4 py-3 shadow-xl">
                 <div className="flex items-center gap-2">
@@ -337,6 +423,9 @@ const Hero = () => {
               className="absolute -left-6 bottom-16"
               delay={1.2}
               y={-10}
+              nx={nx}
+              ny={ny}
+              magnetStrength={40}
             >
               <div className="rounded-xl bg-white/[0.1] backdrop-blur-lg border border-white/[0.12] px-4 py-3 shadow-xl">
                 <div className="flex items-center gap-2.5">
