@@ -27,6 +27,9 @@ const LogementsPage = () => {
 
   return (
     <div className="space-y-6 max-w-6xl">
+      <ContextualTip tipId="logements-intro" title="💡 Astuce">
+        Ajoutez ici les biens que vous gérez. Chaque logement servira à créer des missions, des états des lieux et des livrets digitaux.
+      </ContextualTip>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center justify-between">
           <div>

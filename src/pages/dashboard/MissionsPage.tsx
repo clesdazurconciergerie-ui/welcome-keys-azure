@@ -103,6 +103,9 @@ export default function MissionsPage() {
 
   return (
     <div className="space-y-6 max-w-6xl">
+      <ContextualTip tipId="missions-intro" title="💡 Astuce">
+        Les missions sont envoyées aux prestataires. Un prestataire peut accepter ou refuser la mission directement depuis son espace.
+      </ContextualTip>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center justify-between">
           <div>
