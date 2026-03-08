@@ -17,6 +17,9 @@ import DemoExpirationBanner from "@/components/DemoExpirationBanner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
+import { useOnboarding } from "@/hooks/useOnboarding";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
 
 const DashboardHome = () => {
   const navigate = useNavigate();
