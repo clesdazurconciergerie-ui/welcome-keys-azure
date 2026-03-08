@@ -43,6 +43,7 @@ const navGroups = [
     label: "Paramètres",
     items: [
       { title: "Paramètres", url: "/dashboard/parametres", icon: Settings },
+      { title: "Automatisation", url: "/dashboard/automatisation", icon: Zap },
       { title: "Apparence", url: "/dashboard/branding", icon: Palette },
       { title: "Aide & Guide", url: "/dashboard/aide", icon: HelpCircle },
     ],
