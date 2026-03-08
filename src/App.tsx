@@ -84,6 +84,7 @@ const App = () => (
             <Route path="prestataires" element={<PrestatairesPage />} />
             {/* Interventions removed — missions is the single source */}
             <Route path="missions" element={<MissionsPage />} />
+            <Route path="etats-des-lieux" element={<InspectionsPage />} />
             <Route path="prospection" element={<ProspectionPage />} />
             <Route path="finance" element={<FinancePage />} />
             <Route path="demandes-proprietaires" element={<OwnerRequestsAdminPage />} />
