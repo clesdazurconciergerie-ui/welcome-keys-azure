@@ -7,6 +7,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
 import { Loader2, Menu } from "lucide-react";
 import { GuidedTourProvider } from "@/components/onboarding/GuidedTourProvider";
+import { NotificationsBell } from "@/components/notifications/NotificationsBell";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
