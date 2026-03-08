@@ -8,16 +8,37 @@ interface InspectionPdfGeneratorProps {
   inspection: Inspection;
 }
 
+const FONT = "'Inter', 'Helvetica Neue', Arial, sans-serif";
+
+function contrastColor(hex: string): string {
+  const c = hex.replace('#', '');
+  const r = parseInt(c.substring(0, 2), 16);
+  const g = parseInt(c.substring(2, 4), 16);
+  const b = parseInt(c.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? '#1a1a1a' : '#ffffff';
+}
+
+function lighten(hex: string, amount: number): string {
+  const c = hex.replace('#', '');
+  const r = Math.min(255, parseInt(c.substring(0, 2), 16) + amount);
+  const g = Math.min(255, parseInt(c.substring(2, 4), 16) + amount);
+  const b = Math.min(255, parseInt(c.substring(4, 6), 16) + amount);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
 export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorProps) {
   const printRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
   const { settings } = useFinancialSettings();
 
-  const primaryColor = (settings as any)?.invoice_primary_color || '#061452';
-  const accentColor = (settings as any)?.invoice_accent_color || '#C4A45B';
-  const logoUrl = settings?.logo_url || null;
-  const companyName = settings?.company_name || '';
-  const defaultSignatureUrl = (settings as any)?.default_signature_url || null;
+  const co = (settings as any) || {};
+  const NAVY = co.invoice_primary_color || '#061452';
+  const GOLD = co.invoice_accent_color || '#C4A45B';
+  const GRAY_STRIP = lighten(NAVY, 210);
+  const headerTextColor = co.invoice_text_color || contrastColor(NAVY);
+  const defaultSignatureUrl = co.default_signature_url || null;
+  const companyName = co.company_name || '';
 
   const generatePdf = async () => {
     setGenerating(true);
@@ -25,20 +46,17 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
       const html2pdf = (await import('html2pdf.js')).default;
       const element = printRef.current;
       if (!element) return;
-
       element.style.display = 'block';
-
       await html2pdf()
         .set({
-          margin: [8, 10, 14, 10],
+          margin: 0,
           filename: `etat-des-lieux-${inspection.inspection_date}.pdf`,
           image: { type: 'jpeg', quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true },
+          html2canvas: { scale: 2, useCORS: true, letterRendering: true },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         })
         .from(element)
         .save();
-
       element.style.display = 'none';
     } catch (err) {
       console.error('PDF generation error:', err);
@@ -54,35 +72,16 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
   const conciergeSignature = inspection.concierge_signature_url || defaultSignatureUrl;
 
   const dateFormatted = new Date(inspection.inspection_date).toLocaleDateString('fr-FR', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    day: 'numeric', month: 'long', year: 'numeric',
   });
 
   const typeLabel = inspection.inspection_type === 'exit' ? "État des lieux de sortie" : "État des lieux d'entrée";
 
-  const sectionTitle = (text: string) => `
-    <div style="display:flex;align-items:center;gap:8px;margin:20px 0 10px 0;">
-      <div style="width:3px;height:18px;background:${accentColor};border-radius:2px;"></div>
-      <h3 style="font-size:13px;font-weight:700;color:${primaryColor};text-transform:uppercase;letter-spacing:0.5px;margin:0;">${text}</h3>
-    </div>
-  `;
+  // Build a reference number like EDL-2026-001
+  const year = new Date(inspection.inspection_date).getFullYear();
+  const refNumber = `EDL-${year}-${inspection.id?.substring(0, 3).toUpperCase() || '001'}`;
 
-  const infoRow = (label: string, value: string | number | null | undefined) => `
-    <tr>
-      <td style="padding:7px 10px;font-weight:600;font-size:12px;color:${primaryColor};background:#f8f9fb;width:38%;border-bottom:1px solid #eef0f3;">${label}</td>
-      <td style="padding:7px 10px;font-size:12px;color:#374151;border-bottom:1px solid #eef0f3;">${value || '—'}</td>
-    </tr>
-  `;
-
-  const photoGrid = (photos: any[], maxCount: number) => {
-    if (!photos.length) return '';
-    return `
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
-        ${photos.slice(0, maxCount).map((p: any) => `
-          <img src="${p.url}" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;border:1px solid #eef0f3;" crossOrigin="anonymous" />
-        `).join('')}
-      </div>
-    `;
-  };
+  const addressLine = [co.address, [co.org_postal_code, co.org_city].filter(Boolean).join(' ')].filter(Boolean).join(' — ');
 
   return (
     <>
@@ -91,109 +90,270 @@ export function InspectionPdfGenerator({ inspection }: InspectionPdfGeneratorPro
         PDF
       </Button>
 
-      {/* Hidden branded print layout */}
+      {/* Hidden A4 print layout — mirrors invoice structure */}
       <div
         ref={printRef}
-        style={{ display: 'none', fontFamily: 'Inter, Helvetica, Arial, sans-serif', color: '#1a1a1a', padding: '0' }}
-        dangerouslySetInnerHTML={{ __html: `
-          <!-- HEADER -->
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0 14px 0;border-bottom:3px solid ${primaryColor};">
-            <div style="flex-shrink:0;">
-              ${logoUrl
-                ? `<img src="${logoUrl}" alt="Logo" style="max-height:52px;max-width:160px;object-fit:contain;" crossOrigin="anonymous" />`
-                : (companyName
-                  ? `<div style="font-size:16px;font-weight:800;color:${primaryColor};letter-spacing:0.5px;">${companyName}</div>`
-                  : '')
-              }
+        style={{
+          display: 'none',
+          fontFamily: FONT,
+          width: '210mm',
+          height: '297mm',
+          margin: '0 auto',
+          background: '#fff',
+          color: '#1a1a1a',
+          position: 'relative',
+          overflow: 'hidden',
+          boxSizing: 'border-box',
+          paddingBottom: '20mm',
+        }}
+      >
+        {/* ═══ A) TOP BAND — same as invoice ═══ */}
+        <div
+          style={{
+            backgroundColor: NAVY,
+            color: headerTextColor,
+            display: 'flex',
+            alignItems: 'stretch',
+            minHeight: 105,
+          }}
+        >
+          {/* Left — Issuer */}
+          <div style={{ flex: 1, padding: '20px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div style={{
+              fontFamily: FONT, fontSize: 17, fontWeight: 700,
+              letterSpacing: 2, textTransform: 'uppercase',
+              paddingBottom: 4, borderBottom: `2px solid ${GOLD}`, display: 'inline-block',
+            }}>
+              {companyName || 'MA CONCIERGERIE'}
             </div>
-            <div style="text-align:right;">
-              <h1 style="font-size:18px;font-weight:800;color:${primaryColor};margin:0;letter-spacing:0.3px;">
-                ${typeLabel}
-              </h1>
-              <p style="font-size:11px;color:#6b7280;margin:4px 0 0 0;text-transform:capitalize;">
-                ${dateFormatted}
+            {addressLine && (
+              <p style={{ margin: '7px 0 0', fontSize: 10.5, lineHeight: 1.55, opacity: 0.9, fontFamily: FONT }}>
+                {addressLine}
               </p>
-            </div>
-          </div>
-          <div style="height:2px;background:linear-gradient(90deg,${accentColor},transparent);margin-bottom:18px;"></div>
-
-          <!-- PROPERTY INFO -->
-          ${sectionTitle('Informations du logement')}
-          <table style="width:100%;border-collapse:collapse;border-radius:6px;overflow:hidden;border:1px solid #eef0f3;">
-            <tbody>
-              ${infoRow('Bien', inspection.property?.name)}
-              ${infoRow('Adresse', inspection.property?.address)}
-              ${infoRow('Voyageur', inspection.guest_name)}
-              ${infoRow('Nombre d\'occupants', inspection.occupants_count)}
-              ${keysHandedOver ? infoRow('Clés remises', keysHandedOver) : ''}
-              ${infoRow('Ménage effectué par', inspection.cleaner_name)}
-            </tbody>
-          </table>
-
-          <!-- OBSERVATIONS -->
-          ${inspection.general_comment ? `
-            ${sectionTitle('Observations')}
-            <div style="font-size:12px;white-space:pre-wrap;background:#f8f9fb;padding:10px 12px;border-radius:6px;border:1px solid #eef0f3;color:#374151;line-height:1.5;">
-              ${inspection.general_comment}
-            </div>
-          ` : ''}
-
-          <!-- DAMAGES -->
-          ${inspection.damage_notes ? `
-            ${sectionTitle('Dégâts / Anomalies')}
-            <div style="font-size:12px;white-space:pre-wrap;background:#fef2f2;padding:10px 12px;border-radius:6px;border:1px solid #fecaca;color:#991b1b;line-height:1.5;">
-              ${inspection.damage_notes}
-            </div>
-          ` : ''}
-
-          <!-- CLEANING PHOTOS -->
-          ${cleaningPhotos.length > 0 ? `
-            ${sectionTitle('Photos du dernier ménage')}
-            ${photoGrid(cleaningPhotos, 9)}
-          ` : ''}
-
-          <!-- METER PHOTOS -->
-          ${meterPhotos.length > 0 ? `
-            ${sectionTitle('Photos des compteurs')}
-            ${photoGrid(meterPhotos, 6)}
-          ` : ''}
-
-          <!-- EXIT / ADDITIONAL PHOTOS -->
-          ${exitPhotos.length > 0 ? `
-            ${sectionTitle('Photos supplémentaires')}
-            ${photoGrid(exitPhotos, 9)}
-          ` : ''}
-
-          <!-- SIGNATURES -->
-          <div style="margin-top:30px;display:flex;gap:40px;page-break-inside:avoid;">
-            <div style="flex:1;">
-              <p style="font-size:11px;font-weight:700;color:${primaryColor};margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Signature concierge</p>
-              ${conciergeSignature
-                ? `<img src="${conciergeSignature}" alt="Signature concierge" style="max-height:70px;border:1px solid #eef0f3;border-radius:4px;padding:4px;" crossOrigin="anonymous" />`
-                : `<div style="height:70px;border:1px dashed #d1d5db;border-radius:4px;"></div>`
-              }
-            </div>
-            <div style="flex:1;">
-              <p style="font-size:11px;font-weight:700;color:${primaryColor};margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Signature client</p>
-              ${inspection.guest_signature_url
-                ? `<img src="${inspection.guest_signature_url}" alt="Signature client" style="max-height:70px;border:1px solid #eef0f3;border-radius:4px;padding:4px;" crossOrigin="anonymous" />`
-                : `<div style="height:70px;border:1px dashed #d1d5db;border-radius:4px;"></div>`
-              }
-            </div>
+            )}
+            {co.org_phone && (
+              <p style={{ margin: '2px 0 0', fontSize: 10.5, opacity: 0.9, fontFamily: FONT }}>{co.org_phone}</p>
+            )}
           </div>
 
-          <!-- FOOTER -->
-          <div style="margin-top:30px;padding-top:10px;border-top:2px solid ${accentColor};display:flex;justify-content:space-between;align-items:center;">
-            <div>
-              <p style="font-size:9px;color:#9ca3af;margin:0;">Document généré par <strong style="color:${primaryColor};">MyWelkom</strong></p>
-              ${companyName ? `<p style="font-size:9px;color:#9ca3af;margin:2px 0 0 0;">Conciergerie : ${companyName}</p>` : ''}
+          {/* Center — Logo */}
+          {co.logo_url ? (
+            <div style={{ width: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px' }}>
+              <img src={co.logo_url} alt="Logo" style={{ maxHeight: 70, maxWidth: 80, objectFit: 'contain' }} crossOrigin="anonymous" />
             </div>
-            <p style="font-size:9px;color:#9ca3af;margin:0;">
-              ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+          ) : (
+            <div style={{ width: 20 }} />
+          )}
+
+          {/* Right — Property owner / guest */}
+          <div style={{ flex: 1, padding: '20px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'right' }}>
+            <div style={{
+              fontFamily: FONT, fontSize: 15, fontWeight: 700,
+              letterSpacing: 1.5, textTransform: 'uppercase',
+              paddingBottom: 4, borderBottom: `2px solid ${GOLD}`, display: 'inline-block', marginLeft: 'auto',
+            }}>
+              {inspection.guest_name || 'NOM VOYAGEUR'}
+            </div>
+            <p style={{ margin: '7px 0 0', fontSize: 10.5, lineHeight: 1.55, opacity: 0.9, fontFamily: FONT }}>
+              {inspection.property?.name || ''}
             </p>
           </div>
-        ` }}
-      />
+        </div>
+
+        {/* ═══ B) DOCUMENT TITLE — same layout as invoice ═══ */}
+        <div style={{ padding: '24px 30px 12px', display: 'flex' }}>
+          <div style={{ width: 3, backgroundColor: GOLD, borderRadius: 1, marginRight: 14, minHeight: 42 }} />
+          <div>
+            <h1 style={{
+              fontFamily: FONT, fontSize: 20, fontWeight: 700,
+              color: NAVY, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0,
+            }}>
+              {typeLabel}
+            </h1>
+            <p style={{ margin: '3px 0 0', fontSize: 11, color: '#555', fontFamily: FONT }}>
+              Référence : {refNumber}
+            </p>
+            <p style={{ margin: '3px 0 0', fontSize: 11.5, color: '#555', fontFamily: FONT }}>
+              Date : {dateFormatted}
+            </p>
+          </div>
+        </div>
+
+        {/* ═══ C) PROPERTY INFO — table style ═══ */}
+        <div style={{ padding: '8px 30px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', border: `2px solid ${NAVY}`, fontFamily: FONT }}>
+            <thead>
+              <tr>
+                <th style={{
+                  backgroundColor: NAVY, color: headerTextColor, fontFamily: FONT,
+                  fontSize: 10.5, fontWeight: 600, letterSpacing: 0.8,
+                  textAlign: 'left', padding: '9px 12px', borderRight: `1px solid ${headerTextColor}33`, width: '40%',
+                }}>Information</th>
+                <th style={{
+                  backgroundColor: NAVY, color: headerTextColor, fontFamily: FONT,
+                  fontSize: 10.5, fontWeight: 600, letterSpacing: 0.8,
+                  textAlign: 'left', padding: '9px 12px',
+                }}>Détail</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['Bien', inspection.property?.name || '—'],
+                ['Adresse', inspection.property?.address || '—'],
+                ['Voyageur', inspection.guest_name || '—'],
+                ['Nombre d\'occupants', inspection.occupants_count ? String(inspection.occupants_count) : '—'],
+                ...(keysHandedOver ? [['Clés remises', String(keysHandedOver)]] : []),
+                ['Ménage effectué par', inspection.cleaner_name || '—'],
+              ].map(([label, value], i) => (
+                <tr key={i}>
+                  <td style={{
+                    padding: '9px 12px', fontSize: 10.5, fontWeight: 600,
+                    borderBottom: `1px solid ${NAVY}1a`, borderRight: `1px solid ${NAVY}1a`, fontFamily: FONT,
+                  }}>{label}</td>
+                  <td style={{
+                    padding: '9px 12px', fontSize: 10.5,
+                    borderBottom: `1px solid ${NAVY}1a`, fontFamily: FONT,
+                  }}>{value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* ═══ D) OBSERVATIONS ═══ */}
+        {inspection.general_comment && (
+          <div style={{ padding: '18px 30px 0' }}>
+            <div style={{
+              fontFamily: FONT, fontSize: 13, fontWeight: 700, color: NAVY,
+              textTransform: 'uppercase', letterSpacing: 1.5, paddingBottom: 7,
+              borderBottom: `2px solid ${GOLD}`,
+            }}>Observations</div>
+            <p style={{
+              marginTop: 10, fontSize: 10.5, lineHeight: 1.7,
+              whiteSpace: 'pre-wrap', fontFamily: FONT,
+            }}>{inspection.general_comment}</p>
+          </div>
+        )}
+
+        {/* ═══ E) DAMAGES ═══ */}
+        {inspection.damage_notes && (
+          <div style={{ padding: '18px 30px 0' }}>
+            <div style={{
+              fontFamily: FONT, fontSize: 13, fontWeight: 700, color: '#dc2626',
+              textTransform: 'uppercase', letterSpacing: 1.5, paddingBottom: 7,
+              borderBottom: '2px solid #dc2626',
+            }}>Dégâts / Anomalies</div>
+            <p style={{
+              marginTop: 10, fontSize: 10.5, lineHeight: 1.7,
+              whiteSpace: 'pre-wrap', fontFamily: FONT,
+              background: '#fef2f2', padding: '10px 12px', borderRadius: 4, border: '1px solid #fecaca',
+            }}>{inspection.damage_notes}</p>
+          </div>
+        )}
+
+        {/* ═══ F) PHOTO SECTIONS ═══ */}
+        {cleaningPhotos.length > 0 && (
+          <div style={{ padding: '18px 30px 0' }}>
+            <div style={{
+              fontFamily: FONT, fontSize: 13, fontWeight: 700, color: NAVY,
+              textTransform: 'uppercase', letterSpacing: 1.5, paddingBottom: 7,
+              borderBottom: `2px solid ${GOLD}`,
+            }}>Photos du dernier ménage</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 10 }}>
+              {cleaningPhotos.slice(0, 9).map((p: any, i: number) => (
+                <img key={i} src={p.url} alt="" style={{
+                  width: '100%', aspectRatio: '1', objectFit: 'cover',
+                  borderRadius: 4, border: `1px solid ${NAVY}1a`,
+                }} crossOrigin="anonymous" />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {meterPhotos.length > 0 && (
+          <div style={{ padding: '18px 30px 0' }}>
+            <div style={{
+              fontFamily: FONT, fontSize: 13, fontWeight: 700, color: NAVY,
+              textTransform: 'uppercase', letterSpacing: 1.5, paddingBottom: 7,
+              borderBottom: `2px solid ${GOLD}`,
+            }}>Photos des compteurs</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 10 }}>
+              {meterPhotos.slice(0, 6).map((p: any, i: number) => (
+                <img key={i} src={p.url} alt="" style={{
+                  width: '100%', aspectRatio: '1', objectFit: 'cover',
+                  borderRadius: 4, border: `1px solid ${NAVY}1a`,
+                }} crossOrigin="anonymous" />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {exitPhotos.length > 0 && (
+          <div style={{ padding: '18px 30px 0' }}>
+            <div style={{
+              fontFamily: FONT, fontSize: 13, fontWeight: 700, color: NAVY,
+              textTransform: 'uppercase', letterSpacing: 1.5, paddingBottom: 7,
+              borderBottom: `2px solid ${GOLD}`,
+            }}>Photos complémentaires</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 10 }}>
+              {exitPhotos.slice(0, 9).map((p: any, i: number) => (
+                <img key={i} src={p.url} alt="" style={{
+                  width: '100%', aspectRatio: '1', objectFit: 'cover',
+                  borderRadius: 4, border: `1px solid ${NAVY}1a`,
+                }} crossOrigin="anonymous" />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ G) SIGNATURES ═══ */}
+        <div style={{ padding: '28px 30px 0', display: 'flex', gap: 40 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{
+              fontFamily: FONT, fontSize: 11, fontWeight: 700, color: NAVY,
+              textTransform: 'uppercase', letterSpacing: 1, paddingBottom: 6,
+              borderBottom: `2px solid ${GOLD}`, marginBottom: 10,
+            }}>Signature conciergerie</div>
+            {conciergeSignature ? (
+              <div style={{ border: `1px solid ${NAVY}1a`, borderRadius: 4, padding: 6, minHeight: 70, display: 'flex', alignItems: 'center' }}>
+                <img src={conciergeSignature} alt="Signature concierge" style={{ maxHeight: 65, maxWidth: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
+              </div>
+            ) : (
+              <div style={{ height: 70, border: '1px dashed #d1d5db', borderRadius: 4 }} />
+            )}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{
+              fontFamily: FONT, fontSize: 11, fontWeight: 700, color: NAVY,
+              textTransform: 'uppercase', letterSpacing: 1, paddingBottom: 6,
+              borderBottom: `2px solid ${GOLD}`, marginBottom: 10,
+            }}>Signature client</div>
+            {inspection.guest_signature_url ? (
+              <div style={{ border: `1px solid ${NAVY}1a`, borderRadius: 4, padding: 6, minHeight: 70, display: 'flex', alignItems: 'center' }}>
+                <img src={inspection.guest_signature_url} alt="Signature client" style={{ maxHeight: 65, maxWidth: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
+              </div>
+            ) : (
+              <div style={{ height: 70, border: '1px dashed #d1d5db', borderRadius: 4 }} />
+            )}
+          </div>
+        </div>
+
+        {/* ═══ H) FOOTER ═══ */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          padding: '10px 30px', borderTop: `2px solid ${GOLD}`,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          backgroundColor: GRAY_STRIP,
+        }}>
+          <div style={{ fontFamily: FONT, fontSize: 9, color: NAVY, opacity: 0.7 }}>
+            <span>Document généré via <strong>MyWelkom</strong></span>
+            {companyName && <span> · Conciergerie : {companyName}</span>}
+          </div>
+          <div style={{ fontFamily: FONT, fontSize: 9, color: NAVY, opacity: 0.7 }}>
+            Date de génération : {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </div>
+        </div>
+      </div>
     </>
   );
 }
