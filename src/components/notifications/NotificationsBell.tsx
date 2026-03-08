@@ -71,15 +71,15 @@ export function NotificationsBell() {
                   key={notif.id}
                   onClick={() => handleNotificationClick(notif)}
                   className={`w-full p-4 text-left hover:bg-muted/50 transition-colors ${
-                    !notif.read ? "bg-primary/5" : ""
+                    !notif.is_read ? "bg-primary/5" : ""
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    {!notif.read && (
+                    {!notif.is_read && (
                       <div className="w-2 h-2 rounded-full bg-primary mt-1 flex-shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium ${!notif.read ? "text-foreground" : "text-muted-foreground"}`}>
+                      <p className={`text-sm font-medium ${!notif.is_read ? "text-foreground" : "text-muted-foreground"}`}>
                         {notif.title}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
