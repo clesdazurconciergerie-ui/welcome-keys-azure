@@ -13,6 +13,18 @@ export default function DemoDashboardHome() {
   const navigate = useNavigate();
   const demo = useDemoContext();
 
+  // Auto-start tour after 1.5s on first visit
+  useEffect(() => {
+    const seen = sessionStorage.getItem("demo_tour_seen");
+    if (!seen && demo) {
+      const t = setTimeout(() => {
+        sessionStorage.setItem("demo_tour_seen", "1");
+        demo.startTour();
+      }, 1500);
+      return () => clearTimeout(t);
+    }
+  }, [demo]);
+
   if (!demo) return null;
 
   const { demoInterventions: interventions, demoMissions: missions, demoBookings: bookings, demoUserName: userName, demoBookletCount: bookletCount } = demo;
