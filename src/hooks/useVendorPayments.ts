@@ -36,11 +36,22 @@ export function useVendorPayments() {
 
   const create = async (values: Partial<VendorPayment>) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      toast.error("Vous devez être connecté");
+      return;
+    }
+    const payload = { ...values, user_id: user.id };
+    console.log('[useVendorPayments] Insert payload:', payload);
+    
     const { error } = await supabase
       .from("vendor_payments" as any)
-      .insert({ ...values, user_id: user.id });
-    if (error) { toast.error("Erreur création paiement"); return; }
+      .insert(payload);
+    
+    if (error) {
+      console.error('[useVendorPayments] Insert error:', error);
+      toast.error(`Erreur création paiement : ${error.message}`);
+      return;
+    }
     toast.success("Paiement ajouté");
     await fetch();
   };
