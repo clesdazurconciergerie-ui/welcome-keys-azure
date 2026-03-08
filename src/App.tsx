@@ -39,7 +39,7 @@ import ParametresPage from "./pages/dashboard/ParametresPage";
 import OwnerDashboardHome from "./pages/owner/OwnerDashboardHome";
 import OwnerPropertiesPage from "./pages/owner/OwnerPropertiesPage";
 import OwnerBookletsPage from "./pages/owner/OwnerBookletsPage";
-import OwnerCleaningPhotosPage from "./pages/owner/OwnerCleaningPhotosPage";
+import OwnerInspectionsPage from "./pages/owner/OwnerInspectionsPage";
 import OwnerDocumentsPage from "./pages/owner/OwnerDocumentsPage";
 import OwnerAccountPage from "./pages/owner/OwnerAccountPage";
 import OwnerCalendarPage from "./pages/owner/OwnerCalendarPage";
