@@ -138,7 +138,7 @@ export function useGuidedTour() {
 
   // Auto-show welcome for first-time users (if not completed and not already dismissed)
   const showWelcomeScreen = useCallback(() => {
-    setTourState({ currentStep: 0, isActive: false, showWelcome: true });
+    setTourState({ currentStep: 0, isActive: false, isPaused: false, showWelcome: true });
   }, []);
 
   const startTour = useCallback(() => {
