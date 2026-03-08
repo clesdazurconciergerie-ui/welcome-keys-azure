@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +41,9 @@ interface CreateInspectionDialogProps {
   }) => Promise<void>;
 }
 
+const isDev = import.meta.env.DEV;
+const log = (...args: any[]) => { if (isDev) console.log('[EdL]', ...args); };
+
 export function CreateInspectionDialog({ open, onClose, properties, onSave }: CreateInspectionDialogProps) {
   const [propertyId, setPropertyId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -51,66 +54,50 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
 
   // Auto-loaded data
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [selectedBookingId, setSelectedBookingId] = useState<string>('none');
+  const [selectedBookingId, setSelectedBookingId] = useState<string>('manual');
   const [guestName, setGuestName] = useState('');
   const [cleaningPhotos, setCleaningPhotos] = useState<CleaningPhoto[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
 
-  // When property changes, fetch bookings + last cleaning photos
-  useEffect(() => {
-    if (!propertyId) {
-      setBookings([]);
-      setSelectedBookingId('none');
-      setGuestName('');
-      setCleaningPhotos([]);
-      return;
-    }
-
-    fetchBookings(propertyId);
-    fetchLastCleaningPhotos(propertyId);
-  }, [propertyId]);
-
-  // When booking selection changes, update guest name + date
-  useEffect(() => {
-    if (selectedBookingId === 'none' || selectedBookingId === 'manual') {
-      if (selectedBookingId === 'manual') setGuestName('');
-      return;
-    }
-    const booking = bookings.find(b => b.id === selectedBookingId);
-    if (booking) {
-      setGuestName(booking.guest_name || '');
-      setDate(booking.check_in);
-    }
-  }, [selectedBookingId, bookings]);
-
-  const fetchBookings = async (propId: string) => {
+  // Fetch bookings for a property
+  const fetchBookings = useCallback(async (propId: string) => {
     setLoadingBookings(true);
+    setBookings([]);
+    setSelectedBookingId('manual');
     try {
       const today = new Date().toISOString().split('T')[0];
+      log('Fetching bookings for property:', propId, 'from date:', today);
 
-      // Fetch from bookings table
-      const { data: dbBookings } = await (supabase as any)
-        .from('bookings')
-        .select('id, guest_name, check_in, check_out, source')
-        .eq('property_id', propId)
-        .gte('check_out', today)
-        .neq('price_status', 'canceled')
-        .order('check_in', { ascending: true });
+      // Parallel fetch from both sources
+      const [dbResult, calResult] = await Promise.allSettled([
+        (supabase as any)
+          .from('bookings')
+          .select('id, guest_name, check_in, check_out, source, calendar_event_id')
+          .eq('property_id', propId)
+          .gte('check_out', today)
+          .neq('price_status', 'canceled')
+          .order('check_in', { ascending: true }),
+        (supabase as any)
+          .from('calendar_events')
+          .select('id, guest_name, start_date, end_date, platform, event_type, status')
+          .eq('property_id', propId)
+          .gte('end_date', today)
+          .order('start_date', { ascending: true }),
+      ]);
 
-      // Fetch from calendar_events (iCal imports)
-      const { data: calEvents } = await (supabase as any)
-        .from('calendar_events')
-        .select('id, guest_name, start_date, end_date, platform, event_type, status')
-        .eq('property_id', propId)
-        .gte('end_date', today)
-        .neq('status', 'cancelled')
-        .order('start_date', { ascending: true });
+      const dbBookings = dbResult.status === 'fulfilled' ? (dbResult.value.data || []) : [];
+      const calEvents = calResult.status === 'fulfilled' ? (calResult.value.data || []) : [];
+
+      if (dbResult.status === 'rejected') log('⚠️ bookings query failed:', dbResult.reason);
+      if (calResult.status === 'rejected') log('⚠️ calendar_events query failed:', calResult.reason);
+
+      log('DB bookings:', dbBookings.length, '| Calendar events:', calEvents.length);
 
       const allBookings: Booking[] = [];
 
       // Add DB bookings
-      for (const b of (dbBookings || [])) {
+      for (const b of dbBookings) {
         allBookings.push({
           id: b.id,
           guest_name: b.guest_name,
@@ -120,80 +107,177 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
         });
       }
 
-      // Add calendar events (only real reservations, not blocked dates)
-      const dbBookingEventIds = new Set((dbBookings || []).map((b: any) => b.calendar_event_id).filter(Boolean));
-      for (const e of (calEvents || [])) {
-        // Skip blocked slots and events already linked to a booking
-        if (e.event_type === 'blocked' || dbBookingEventIds.has(e.id)) continue;
+      // Deduplicate: collect calendar_event_ids already linked to a booking
+      const linkedCalEventIds = new Set(
+        dbBookings
+          .map((b: any) => b.calendar_event_id)
+          .filter(Boolean)
+      );
+
+      // Add calendar events: only real reservations, exclude blocked + cancelled + already linked
+      for (const e of calEvents) {
+        if (e.event_type === 'blocked') continue;
+        if (e.status === 'cancelled') continue;
+        if (linkedCalEventIds.has(e.id)) continue;
+
+        // Also deduplicate by date range overlap with existing bookings
+        const isDuplicate = allBookings.some(
+          b => b.check_in === e.start_date && b.check_out === e.end_date
+        );
+        if (isDuplicate) continue;
+
         allBookings.push({
           id: `cal_${e.id}`,
-          guest_name: e.guest_name || e.platform,
+          guest_name: e.guest_name || e.platform || 'Réservation iCal',
           check_in: e.start_date,
           check_out: e.end_date,
           source: e.platform || 'ical',
         });
       }
 
-      // Sort by check_in and deduplicate
+      // Sort by check_in
       allBookings.sort((a, b) => a.check_in.localeCompare(b.check_in));
 
       setBookings(allBookings);
+      log('Total merged bookings:', allBookings.length);
 
       // Auto-select next upcoming booking
       const nextBooking = allBookings.find(b => b.check_in >= today);
       if (nextBooking) {
+        log('✅ Auto-selected next booking:', nextBooking.guest_name, nextBooking.check_in);
         setSelectedBookingId(nextBooking.id);
         setGuestName(nextBooking.guest_name || '');
         setDate(nextBooking.check_in);
+      } else if (allBookings.length > 0) {
+        // If all bookings are in the past but check_out >= today, select the first one
+        log('No future check_in found, selecting first available:', allBookings[0].guest_name);
+        setSelectedBookingId(allBookings[0].id);
+        setGuestName(allBookings[0].guest_name || '');
+        setDate(allBookings[0].check_in);
       } else {
-        setSelectedBookingId(allBookings.length > 0 ? allBookings[0].id : 'manual');
+        log('No bookings found — fallback to manual');
+        setSelectedBookingId('manual');
       }
     } catch (err) {
       console.error('Error fetching bookings:', err);
+      log('❌ Critical booking fetch error:', err);
+      setBookings([]);
+      setSelectedBookingId('manual');
     } finally {
       setLoadingBookings(false);
     }
-  };
+  }, []);
 
-  const fetchLastCleaningPhotos = async (propId: string) => {
+  // Fetch last cleaning photos for a property
+  const fetchLastCleaningPhotos = useCallback(async (propId: string) => {
     setLoadingPhotos(true);
+    setCleaningPhotos([]);
     try {
-      // Get latest completed cleaning intervention for this property
-      const { data: interventions } = await (supabase as any)
+      log('Fetching cleaning photos for property:', propId);
+
+      // Get latest completed/validated cleaning intervention
+      const { data: interventions, error: intError } = await (supabase as any)
         .from('cleaning_interventions')
-        .select('id')
+        .select('id, scheduled_date, status')
         .eq('property_id', propId)
         .in('status', ['completed', 'validated'])
         .order('scheduled_date', { ascending: false })
         .limit(1);
 
+      if (intError) {
+        log('⚠️ cleaning_interventions query error:', intError);
+        setLoadingPhotos(false);
+        return;
+      }
+
       if (!interventions?.length) {
+        log('No completed cleaning intervention found for property');
         setCleaningPhotos([]);
         setLoadingPhotos(false);
         return;
       }
 
-      const interventionId = interventions[0].id;
+      const intervention = interventions[0];
+      log('✅ Found cleaning intervention:', intervention.id, 'date:', intervention.scheduled_date, 'status:', intervention.status);
 
       // Get photos from cleaning_photos table
-      const { data: photos } = await (supabase as any)
+      const { data: cpPhotos, error: cpError } = await (supabase as any)
         .from('cleaning_photos')
         .select('url, type, uploaded_at, caption')
-        .eq('intervention_id', interventionId);
+        .eq('intervention_id', intervention.id);
 
-      setCleaningPhotos((photos || []).map((p: any) => ({
+      if (cpError) {
+        log('⚠️ cleaning_photos query error:', cpError);
+      }
+
+      const resultPhotos: CleaningPhoto[] = (cpPhotos || []).map((p: any) => ({
         url: p.url,
         type: p.type,
         uploaded_at: p.uploaded_at,
         caption: p.caption,
-      })));
+      }));
+
+      log('Cleaning photos from cleaning_photos table:', resultPhotos.length);
+
+      // If no photos from cleaning_photos, try mission_photos as fallback
+      if (resultPhotos.length === 0) {
+        log('No cleaning_photos found, trying mission_photos fallback...');
+        const { data: mPhotos, error: mpError } = await (supabase as any)
+          .from('mission_photos')
+          .select('url, kind, created_at')
+          .eq('mission_id', intervention.id);
+
+        if (mpError) {
+          log('⚠️ mission_photos query error:', mpError);
+        } else if (mPhotos?.length) {
+          for (const mp of mPhotos) {
+            resultPhotos.push({
+              url: mp.url,
+              type: mp.kind || 'after',
+              uploaded_at: mp.created_at,
+            });
+          }
+          log('Mission photos fallback retrieved:', mPhotos.length);
+        }
+      }
+
+      log('Total cleaning photos attached:', resultPhotos.length);
+      setCleaningPhotos(resultPhotos);
     } catch (err) {
       console.error('Error fetching cleaning photos:', err);
+      log('❌ Critical cleaning photos fetch error:', err);
       setCleaningPhotos([]);
     } finally {
       setLoadingPhotos(false);
     }
-  };
+  }, []);
+
+  // When property changes, fetch bookings + last cleaning photos
+  useEffect(() => {
+    if (!propertyId) {
+      setBookings([]);
+      setSelectedBookingId('manual');
+      setGuestName('');
+      setCleaningPhotos([]);
+      return;
+    }
+
+    log('Property selected:', propertyId);
+    fetchBookings(propertyId);
+    fetchLastCleaningPhotos(propertyId);
+  }, [propertyId, fetchBookings, fetchLastCleaningPhotos]);
+
+  // When booking selection changes, update guest name + date
+  useEffect(() => {
+    if (selectedBookingId === 'manual') {
+      return;
+    }
+    const booking = bookings.find(b => b.id === selectedBookingId);
+    if (booking) {
+      setGuestName(booking.guest_name || '');
+      setDate(booking.check_in);
+    }
+  }, [selectedBookingId, bookings]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -207,7 +291,7 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
   const handleSubmit = async () => {
     if (!propertyId) return;
     setSaving(true);
-    const bookingId = selectedBookingId === 'none' || selectedBookingId === 'manual' || selectedBookingId.startsWith('cal_')
+    const bookingId = selectedBookingId === 'manual' || selectedBookingId.startsWith('cal_')
       ? null
       : selectedBookingId;
 
@@ -228,12 +312,18 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
     setPhotos([]);
     setSignature(null);
     setGuestName('');
-    setSelectedBookingId('none');
+    setSelectedBookingId('manual');
     setCleaningPhotos([]);
     onClose();
   };
 
-  const formatDate = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+  const formatDate = (d: string) => {
+    try {
+      return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch {
+      return d;
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
@@ -260,7 +350,7 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
             </Select>
           </div>
 
-          {/* Booking selector - only shown when a property is selected */}
+          {/* Booking selector */}
           {propertyId && (
             <div className="space-y-1.5">
               <Label className="text-sm flex items-center gap-1.5">
@@ -273,30 +363,32 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
                   Chargement des réservations...
                 </div>
               ) : (
-                <Select value={selectedBookingId} onValueChange={setSelectedBookingId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une réservation" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bookings.map(b => (
-                      <SelectItem key={b.id} value={b.id}>
-                        <span className="flex items-center gap-2">
-                          <span>{b.guest_name || 'Voyageur'}</span>
-                          <span className="text-muted-foreground text-xs">
-                            {formatDate(b.check_in)} → {formatDate(b.check_out)}
+                <>
+                  <Select value={selectedBookingId} onValueChange={setSelectedBookingId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner une réservation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bookings.map(b => (
+                        <SelectItem key={b.id} value={b.id}>
+                          <span className="flex items-center gap-2">
+                            <span>{b.guest_name || 'Voyageur'}</span>
+                            <span className="text-muted-foreground text-xs">
+                              {formatDate(b.check_in)} → {formatDate(b.check_out)}
+                            </span>
+                            <Badge variant="outline" className="text-[10px] px-1 py-0">{b.source}</Badge>
                           </span>
-                          <Badge variant="outline" className="text-[10px] px-1 py-0">{b.source}</Badge>
-                        </span>
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="manual">
+                        <span className="text-muted-foreground">+ Séjour direct (sans réservation)</span>
                       </SelectItem>
-                    ))}
-                    <SelectItem value="manual">
-                      <span className="text-muted-foreground">+ Séjour direct (sans réservation)</span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-              {bookings.length === 0 && !loadingBookings && (
-                <p className="text-xs text-muted-foreground">Aucune réservation trouvée — vous pouvez créer un séjour direct.</p>
+                    </SelectContent>
+                  </Select>
+                  {bookings.length === 0 && (
+                    <p className="text-xs text-muted-foreground">Aucune réservation trouvée — séjour direct sélectionné.</p>
+                  )}
+                </>
               )}
             </div>
           )}
