@@ -20,6 +20,7 @@ import ExampleHotelsResidences from "./pages/ExampleHotelsResidences";
 import Pricing from "./pages/Pricing";
 import BillingSuccess from "./pages/BillingSuccess";
 import ExpiredDemoPage from "./components/ExpiredDemoPage";
+import DemoExperience from "./pages/DemoExperience";
 import DashboardLayout from "./layouts/DashboardLayout";
 import { DashboardErrorBoundary } from "./components/DashboardErrorBoundary";
 import OwnerDashboardLayout from "./layouts/OwnerDashboardLayout";
