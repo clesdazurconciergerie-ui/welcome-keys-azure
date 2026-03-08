@@ -1223,6 +1223,7 @@ export type Database = {
           company_name: string | null
           created_at: string | null
           default_due_days: number | null
+          default_signature_url: string | null
           default_vat_rate: number | null
           iban: string | null
           id: string
@@ -1247,6 +1248,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string | null
           default_due_days?: number | null
+          default_signature_url?: string | null
           default_vat_rate?: number | null
           iban?: string | null
           id?: string
@@ -1271,6 +1273,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string | null
           default_due_days?: number | null
+          default_signature_url?: string | null
           default_vat_rate?: number | null
           iban?: string | null
           id?: string
