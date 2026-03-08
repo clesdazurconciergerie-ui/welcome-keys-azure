@@ -20,7 +20,16 @@ import ExampleHotelsResidences from "./pages/ExampleHotelsResidences";
 import Pricing from "./pages/Pricing";
 import BillingSuccess from "./pages/BillingSuccess";
 import ExpiredDemoPage from "./components/ExpiredDemoPage";
-import DemoExperience from "./pages/DemoExperience";
+import DemoDashboardLayout from "./layouts/DemoDashboardLayout";
+import DemoDashboardHome from "./pages/demo/DemoDashboardHome";
+import DemoLogementsPage from "./pages/demo/DemoLogementsPage";
+import DemoMissionsPage from "./pages/demo/DemoMissionsPage";
+import DemoInspectionsPage from "./pages/demo/DemoInspectionsPage";
+import DemoLivretsPage from "./pages/demo/DemoLivretsPage";
+import DemoFinancePage from "./pages/demo/DemoFinancePage";
+import DemoProspectionPage from "./pages/demo/DemoProspectionPage";
+import DemoProprietairesPage from "./pages/demo/DemoProprietairesPage";
+import DemoPrestatairesPage from "./pages/demo/DemoPrestatairesPage";
 import DashboardLayout from "./layouts/DashboardLayout";
 import { DashboardErrorBoundary } from "./components/DashboardErrorBoundary";
 import OwnerDashboardLayout from "./layouts/OwnerDashboardLayout";
@@ -128,7 +137,18 @@ const App = () => (
           <Route path="/booklets/:id/wizard" element={<BookletWizardPage />} />
           <Route path="/view/:code" element={<ViewBooklet />} />
           <Route path="/preview/:id" element={<PreviewBooklet />} />
-          <Route path="/demo" element={<DemoExperience />} />
+          {/* Demo dashboard with real layout */}
+          <Route path="/demo" element={<DemoDashboardLayout />}>
+            <Route index element={<DemoDashboardHome />} />
+            <Route path="logements" element={<DemoLogementsPage />} />
+            <Route path="proprietaires" element={<DemoProprietairesPage />} />
+            <Route path="prestataires" element={<DemoPrestatairesPage />} />
+            <Route path="missions" element={<DemoMissionsPage />} />
+            <Route path="etats-des-lieux" element={<DemoInspectionsPage />} />
+            <Route path="livrets" element={<DemoLivretsPage />} />
+            <Route path="finance" element={<DemoFinancePage />} />
+            <Route path="prospection" element={<DemoProspectionPage />} />
+          </Route>
           <Route path="/expired-demo" element={<ExpiredDemoPage />} />
           <Route path="/exemples/proprietaires" element={<ExampleProprietaires />} />
           <Route path="/exemples/conciergeries" element={<ExampleConciergeries />} />
