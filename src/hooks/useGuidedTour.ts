@@ -109,6 +109,7 @@ export const TOUR_STEPS: TourStep[] = [
 interface TourState {
   currentStep: number;
   isActive: boolean;
+  isPaused: boolean;
   showWelcome: boolean;
 }
 
@@ -123,7 +124,7 @@ export function useGuidedTour() {
         return JSON.parse(saved);
       } catch { /* ignore */ }
     }
-    return { currentStep: 0, isActive: false, showWelcome: false };
+    return { currentStep: 0, isActive: false, isPaused: false, showWelcome: false };
   });
 
   const [tourCompleted, setTourCompleted] = useState(() =>
