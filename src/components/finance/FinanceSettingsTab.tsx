@@ -71,80 +71,6 @@ export function FinanceSettingsTab() {
     }
   }, [settings]);
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Seules les images sont acceptées (PNG, JPG, SVG)");
-      return;
-    }
-    setUploadingLogo(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { toast.error("Non authentifié"); return; }
-
-      const ext = file.name.split(".").pop() || "png";
-      const filePath = `${user.id}/logo.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("branding")
-        .upload(filePath, file, { contentType: file.type, upsert: true });
-
-      if (uploadError) {
-        toast.error(`Erreur upload: ${uploadError.message}`);
-        return;
-      }
-
-      const { data: urlData } = supabase.storage.from("branding").getPublicUrl(filePath);
-      const publicUrl = urlData.publicUrl + "?t=" + Date.now();
-
-      await saveSettings({ logo_url: publicUrl });
-      setLogoUrl(publicUrl);
-      toast.success("Logo mis à jour");
-    } catch (err: any) {
-      toast.error(`Erreur: ${err?.message || "Erreur inconnue"}`);
-    } finally {
-      setUploadingLogo(false);
-    }
-  };
-
-  const handleRemoveLogo = async () => {
-    await saveSettings({ logo_url: null });
-    setLogoUrl(null);
-    toast.success("Logo supprimé");
-  };
-
-  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingSignature(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { toast.error("Non authentifié"); return; }
-      const ext = file.name.split(".").pop() || "png";
-      const filePath = `${user.id}/signature.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("branding")
-        .upload(filePath, file, { contentType: file.type, upsert: true });
-      if (uploadError) { toast.error(`Erreur upload: ${uploadError.message}`); return; }
-      const { data: urlData } = supabase.storage.from("branding").getPublicUrl(filePath);
-      const publicUrl = urlData.publicUrl + "?t=" + Date.now();
-      await saveSettings({ default_signature_url: publicUrl } as any);
-      setSignatureUrl(publicUrl);
-      toast.success("Signature mise à jour");
-    } catch (err: any) {
-      toast.error(`Erreur: ${err?.message || "Erreur inconnue"}`);
-    } finally {
-      setUploadingSignature(false);
-    }
-  };
-
-  const handleRemoveSignature = async () => {
-    await saveSettings({ default_signature_url: null } as any);
-    setSignatureUrl(null);
-    toast.success("Signature supprimée");
-  };
-
   const handleSave = async () => {
     setSaving(true);
     await saveSettings(form);
@@ -181,9 +107,6 @@ export function FinanceSettingsTab() {
 
   if (loading) return <p className="text-sm text-muted-foreground mt-4">Chargement...</p>;
 
-  const primaryColor = form.invoice_primary_color || "#061452";
-  const accentColor = form.invoice_accent_color || "#C4A45B";
-  const autoTextColor = form.invoice_text_color || contrastColor(primaryColor);
   const previewInvoiceNumber = `${form.invoice_prefix || "FAC"}-${new Date().getFullYear()}-${String(form.next_invoice_number || 1).padStart(3, "0")}`;
 
   return (
