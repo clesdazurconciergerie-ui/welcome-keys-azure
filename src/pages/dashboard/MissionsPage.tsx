@@ -23,6 +23,7 @@ import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { ContextualTip } from "@/components/onboarding/ContextualTip";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   draft: { label: "Brouillon", color: "bg-muted text-muted-foreground" },
