@@ -52,7 +52,7 @@ export function InspectionPdfGenerator({ inspection }: { inspection: Inspection 
       const html2pdf = (await import('html2pdf.js')).default;
       const el = ref.current;
       if (!el) return;
-      el.style.display = 'flex';
+      el.style.display = 'block';
       await html2pdf().set({
         margin: 0,
         filename: `etat-des-lieux-${inspection.inspection_date}.pdf`,
