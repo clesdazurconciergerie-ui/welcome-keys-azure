@@ -18,7 +18,7 @@ import {
   LayoutDashboard,
   Home,
   BookOpen,
-  ClipboardCheckardCheck,
+  ClipboardCheck,
   FileText,
   User,
   LogOut,
