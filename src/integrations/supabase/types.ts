@@ -2466,6 +2466,64 @@ export type Database = {
         }
         Relationships: []
       }
+      property_cleaning_buffer: {
+        Row: {
+          cleaning_intervention_id: string | null
+          cleaning_mission_id: string | null
+          created_at: string
+          id: string
+          inspection_id: string | null
+          photo_url: string
+          property_id: string
+          used_in_inspection: boolean
+          user_id: string
+        }
+        Insert: {
+          cleaning_intervention_id?: string | null
+          cleaning_mission_id?: string | null
+          created_at?: string
+          id?: string
+          inspection_id?: string | null
+          photo_url: string
+          property_id: string
+          used_in_inspection?: boolean
+          user_id: string
+        }
+        Update: {
+          cleaning_intervention_id?: string | null
+          cleaning_mission_id?: string | null
+          created_at?: string
+          id?: string
+          inspection_id?: string | null
+          photo_url?: string
+          property_id?: string
+          used_in_inspection?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_cleaning_buffer_cleaning_intervention_id_fkey"
+            columns: ["cleaning_intervention_id"]
+            isOneToOne: false
+            referencedRelation: "cleaning_interventions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_cleaning_buffer_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_cleaning_buffer_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_documents: {
         Row: {
           category: string
