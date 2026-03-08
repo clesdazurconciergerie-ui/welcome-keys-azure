@@ -42,8 +42,6 @@ export function FinanceSettingsTab() {
   });
   const [saving, setSaving] = useState(false);
 
-  const [saving, setSaving] = useState(false);
-
   // Service catalog form
   const [newSvcName, setNewSvcName] = useState("");
   const [newSvcPrice, setNewSvcPrice] = useState("");
