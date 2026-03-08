@@ -1406,6 +1406,8 @@ export type Database = {
       inspections: {
         Row: {
           booking_id: string | null
+          cleaner_name: string | null
+          cleaning_intervention_id: string | null
           cleaning_photos_json: Json | null
           concierge_signature_url: string | null
           created_at: string
@@ -1416,7 +1418,7 @@ export type Database = {
           guest_signature_url: string | null
           id: string
           inspection_date: string
-          inspection_type: string
+          inspection_type: string | null
           linked_inspection_id: string | null
           meter_electricity: string | null
           meter_gas: string | null
@@ -1430,6 +1432,8 @@ export type Database = {
         }
         Insert: {
           booking_id?: string | null
+          cleaner_name?: string | null
+          cleaning_intervention_id?: string | null
           cleaning_photos_json?: Json | null
           concierge_signature_url?: string | null
           created_at?: string
@@ -1440,7 +1444,7 @@ export type Database = {
           guest_signature_url?: string | null
           id?: string
           inspection_date?: string
-          inspection_type?: string
+          inspection_type?: string | null
           linked_inspection_id?: string | null
           meter_electricity?: string | null
           meter_gas?: string | null
@@ -1454,6 +1458,8 @@ export type Database = {
         }
         Update: {
           booking_id?: string | null
+          cleaner_name?: string | null
+          cleaning_intervention_id?: string | null
           cleaning_photos_json?: Json | null
           concierge_signature_url?: string | null
           created_at?: string
@@ -1464,7 +1470,7 @@ export type Database = {
           guest_signature_url?: string | null
           id?: string
           inspection_date?: string
-          inspection_type?: string
+          inspection_type?: string | null
           linked_inspection_id?: string | null
           meter_electricity?: string | null
           meter_gas?: string | null
@@ -1482,6 +1488,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspections_cleaning_intervention_id_fkey"
+            columns: ["cleaning_intervention_id"]
+            isOneToOne: false
+            referencedRelation: "cleaning_interventions"
             referencedColumns: ["id"]
           },
           {

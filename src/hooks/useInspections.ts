@@ -8,7 +8,9 @@ export interface Inspection {
   property_id: string;
   booking_id: string | null;
   linked_inspection_id: string | null;
-  inspection_type: 'entry' | 'exit';
+  cleaning_intervention_id: string | null;
+  cleaner_name: string | null;
+  inspection_type: 'entry' | 'exit' | string;
   guest_name: string | null;
   inspection_date: string;
   occupants_count: number | null;
@@ -22,7 +24,7 @@ export interface Inspection {
   concierge_signature_url: string | null;
   guest_signature_url: string | null;
   pdf_url: string | null;
-  status: 'draft' | 'completed';
+  status: 'draft' | 'pending' | 'completed';
   created_at: string;
   updated_at: string;
   property?: { name: string; address: string };
@@ -73,7 +75,6 @@ export function useInspections(propertyId?: string) {
         .single();
 
       if (error) throw error;
-      toast.success('État des lieux créé');
       await fetchInspections();
       return data;
     } catch (err: any) {
@@ -114,31 +115,69 @@ export function useInspections(propertyId?: string) {
     }
   };
 
-  // Fetch latest cleaning photos for a property
-  const fetchLatestCleaningPhotos = async (propId: string) => {
+  /**
+   * Auto-create an inspection from a completed/validated cleaning intervention.
+   * Automatically links to the next upcoming booking for that property.
+   */
+  const createFromCleaning = async (intervention: {
+    id: string;
+    property_id: string;
+    scheduled_date: string;
+    service_provider?: { first_name: string; last_name: string } | null;
+    photos?: { url: string; type: string; uploaded_at: string; caption: string | null }[];
+  }) => {
     try {
-      // Get the latest completed cleaning intervention for this property
-      const { data: interventions, error } = await (supabase as any)
-        .from('cleaning_interventions')
-        .select('id, scheduled_date, photos:cleaning_photos(*)')
-        .eq('property_id', propId)
-        .in('status', ['completed', 'validated'])
-        .order('scheduled_date', { ascending: false })
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Non connecté');
+
+      const cleanerName = intervention.service_provider
+        ? `${intervention.service_provider.first_name} ${intervention.service_provider.last_name}`
+        : null;
+
+      const photos = (intervention.photos || []).map(p => ({
+        url: p.url,
+        type: p.type,
+        uploaded_at: p.uploaded_at,
+        caption: p.caption,
+      }));
+
+      // Find next booking for this property
+      const today = new Date().toISOString().split('T')[0];
+      const { data: nextBookings } = await (supabase as any)
+        .from('bookings')
+        .select('id, guest_name, check_in, check_out')
+        .eq('property_id', intervention.property_id)
+        .gte('check_in', today)
+        .order('check_in', { ascending: true })
         .limit(1);
 
+      const nextBooking = nextBookings?.[0] || null;
+
+      const { data, error } = await (supabase as any)
+        .from('inspections')
+        .insert({
+          user_id: user.id,
+          property_id: intervention.property_id,
+          cleaning_intervention_id: intervention.id,
+          booking_id: nextBooking?.id || null,
+          inspection_type: 'entry',
+          guest_name: nextBooking?.guest_name || null,
+          inspection_date: intervention.scheduled_date,
+          cleaner_name: cleanerName,
+          cleaning_photos_json: photos,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
       if (error) throw error;
-      if (interventions?.length > 0 && interventions[0].photos?.length > 0) {
-        return interventions[0].photos.map((p: any) => ({
-          url: p.url,
-          type: p.type,
-          uploaded_at: p.uploaded_at,
-          caption: p.caption,
-        }));
-      }
-      return [];
-    } catch (err) {
-      console.error('Error fetching cleaning photos:', err);
-      return [];
+      toast.success('État des lieux créé automatiquement');
+      await fetchInspections();
+      return data;
+    } catch (err: any) {
+      console.error('Error creating inspection from cleaning:', err);
+      toast.error(err.message || 'Erreur lors de la création automatique');
+      return null;
     }
   };
 
@@ -200,7 +239,7 @@ export function useInspections(propertyId?: string) {
     createInspection,
     updateInspection,
     deleteInspection,
-    fetchLatestCleaningPhotos,
+    createFromCleaning,
     uploadSignature,
     uploadExitPhoto,
     refetch: fetchInspections,
