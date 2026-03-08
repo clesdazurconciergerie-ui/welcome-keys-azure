@@ -277,9 +277,9 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
     }
     log('Property selected:', propertyId);
     fetchBookings(propertyId);
-    fetchLastCleaningPhotos(propertyId);
+    fetchBufferPhotos(propertyId);
     fetchPropertySettings(propertyId);
-  }, [propertyId, fetchBookings, fetchLastCleaningPhotos, fetchPropertySettings]);
+  }, [propertyId, fetchBookings, fetchBufferPhotos, fetchPropertySettings]);
 
   // When booking selection changes
   useEffect(() => {
