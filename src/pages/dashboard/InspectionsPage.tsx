@@ -260,12 +260,15 @@ export default function InspectionsPage() {
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                         {/* Main action button */}
-                        {actions.length > 0 && actions[0].label !== 'PDF' && (
-                          <Button size="sm" variant={actions[0].variant as any} onClick={actions[0].onClick} className="gap-1.5 text-xs h-8">
-                            <actions[0].icon className="w-3.5 h-3.5" />
-                            {actions[0].label}
-                          </Button>
-                        )}
+                        {actions.length > 0 && actions[0].label !== 'PDF' && (() => {
+                          const ActionIcon = actions[0].icon;
+                          return (
+                            <Button size="sm" variant={actions[0].variant as any} onClick={actions[0].onClick} className="gap-1.5 text-xs h-8">
+                              <ActionIcon className="w-3.5 h-3.5" />
+                              {actions[0].label}
+                            </Button>
+                          );
+                        })()}
                         {['finalized', 'completed', 'exit_completed'].includes(insp.status) && (
                           <InspectionPdfGenerator inspection={insp} />
                         )}
