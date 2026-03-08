@@ -301,9 +301,7 @@ export default function InspectionsPage() {
                           <InspectionPdfGenerator inspection={insp} />
                         )}
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewInspection(insp)}><Eye className="w-4 h-4" /></Button>
-                        {(insp.status === 'draft' || insp.status === 'pending') && (
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(insp.id)}><Trash2 className="w-4 h-4" /></Button>
-                        )}
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(insp.id)}><Trash2 className="w-4 h-4" /></Button>
                       </div>
                     </div>
                   </CardContent>
