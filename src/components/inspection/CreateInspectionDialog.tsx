@@ -318,6 +318,10 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
     if (linenPaid) payments.push({ label: 'Draps', amount: linenAmount, paid: true });
     if (extraPaid && extraLabel) payments.push({ label: extraLabel, amount: extraAmount, paid: true });
 
+    const bufferPhotoIds = cleaningPhotos
+      .filter(p => p.bufferId)
+      .map(p => p.bufferId as string);
+
     await onSave({
       property_id: propertyId,
       booking_id: bookingId,
@@ -329,6 +333,7 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
       meter_photos: meterPhotos,
       photos,
       cleaningPhotos,
+      bufferPhotoIds,
       payments,
       concierge_signature: signature,
       guest_signature: guestSignature,
