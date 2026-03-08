@@ -42,10 +42,7 @@ export function FinanceSettingsTab() {
   });
   const [saving, setSaving] = useState(false);
 
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
-  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Service catalog form
   const [newSvcName, setNewSvcName] = useState("");
