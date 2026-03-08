@@ -42,6 +42,7 @@ interface BookletCardProps {
     status: string;
     updated_at: string;
     views_count?: number;
+    unique_views_count?: number;
     cover_image_url?: string;
   };
   pin?: Pin;
