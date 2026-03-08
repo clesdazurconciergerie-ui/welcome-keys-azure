@@ -36,6 +36,7 @@ export interface PropertyFinancialSettings {
   maintenance_rate: number;
   ota_payout_recipient: string;
   pricing_source: string;
+  linen_price_per_person: number;
 }
 
 export function useFinancialSettings() {

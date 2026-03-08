@@ -35,6 +35,7 @@ export function PropertyFinanceSettings({ propertyId }: Props) {
     maintenance_rate: 0,
     ota_payout_recipient: "owner",
     pricing_source: "manual",
+    linen_price_per_person: 0,
   });
 
   // Booking creation
@@ -51,6 +52,7 @@ export function PropertyFinanceSettings({ propertyId }: Props) {
         maintenance_rate: settings.maintenance_rate || 0,
         ota_payout_recipient: settings.ota_payout_recipient || "owner",
         pricing_source: settings.pricing_source || "manual",
+        linen_price_per_person: (settings as any).linen_price_per_person || 0,
       });
     }
   }, [settings]);
@@ -114,10 +116,11 @@ export function PropertyFinanceSettings({ propertyId }: Props) {
             </div>
             <div><Label>Commission (%)</Label><Input type="number" step="0.1" value={form.commission_rate} onChange={e => setForm(f => ({ ...f, commission_rate: parseFloat(e.target.value) || 0 }))} /></div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div><Label>Ménage (€)</Label><Input type="number" step="0.01" value={form.cleaning_fee} onChange={e => setForm(f => ({ ...f, cleaning_fee: parseFloat(e.target.value) || 0 }))} /></div>
             <div><Label>Check-in (€)</Label><Input type="number" step="0.01" value={form.checkin_fee} onChange={e => setForm(f => ({ ...f, checkin_fee: parseFloat(e.target.value) || 0 }))} /></div>
             <div><Label>Maintenance (%)</Label><Input type="number" step="0.1" value={form.maintenance_rate} onChange={e => setForm(f => ({ ...f, maintenance_rate: parseFloat(e.target.value) || 0 }))} /></div>
+            <div><Label>Draps / pers. (€)</Label><Input type="number" step="0.01" value={form.linen_price_per_person} onChange={e => setForm(f => ({ ...f, linen_price_per_person: parseFloat(e.target.value) || 0 }))} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
