@@ -9,8 +9,10 @@ export interface AppNotification {
   title: string;
   message: string;
   type: string;
-  read: boolean;
-  link: string | null;
+  category: string;
+  is_read: boolean;
+  related_id: string | null;
+  related_type: string | null;
   created_at: string;
 }
 
