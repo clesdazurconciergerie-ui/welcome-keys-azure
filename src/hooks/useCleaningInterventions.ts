@@ -129,6 +129,52 @@ export function useCleaningInterventions(mode: 'concierge' | 'service_provider' 
     }
   };
 
+  // Populate cleaning buffer for a property
+  const populateCleaningBuffer = async (interventionId: string, propertyId: string, photos?: CleaningPhoto[]) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get photos from cleaning_photos table
+      const { data: cpPhotos } = await (supabase as any)
+        .from('cleaning_photos')
+        .select('url')
+        .eq('intervention_id', interventionId);
+
+      const allUrls: string[] = [];
+      if (cpPhotos?.length) {
+        for (const p of cpPhotos) allUrls.push(p.url);
+      }
+      // Fallback to intervention.photos
+      if (allUrls.length === 0 && photos?.length) {
+        for (const p of photos) allUrls.push(p.url);
+      }
+
+      if (allUrls.length === 0) return;
+
+      // Clear old unused buffer for this property
+      await (supabase as any)
+        .from('property_cleaning_buffer')
+        .delete()
+        .eq('property_id', propertyId)
+        .eq('used_in_inspection', false)
+        .eq('user_id', user.id);
+
+      // Insert new buffer entries
+      const rows = allUrls.map(url => ({
+        property_id: propertyId,
+        photo_url: url,
+        cleaning_intervention_id: interventionId,
+        user_id: user.id,
+      }));
+
+      await (supabase as any).from('property_cleaning_buffer').insert(rows);
+      if (import.meta.env.DEV) console.log('[Buffer] Populated', rows.length, 'photos for property', propertyId);
+    } catch (err) {
+      console.error('Error populating cleaning buffer:', err);
+    }
+  };
+
   const updateStatus = async (id: string, status: string, adminComment?: string, internalScore?: number) => {
     try {
       const updateData: any = { status };
@@ -168,6 +214,14 @@ export function useCleaningInterventions(mode: 'concierge' | 'service_provider' 
               .update({ score_global: newScore })
               .eq('id', intervention.service_provider_id);
           }
+        }
+      }
+
+      // Populate cleaning buffer when validated or completed
+      if (status === 'validated' || status === 'completed') {
+        const intervention = interventions.find(i => i.id === id);
+        if (intervention) {
+          await populateCleaningBuffer(id, intervention.property_id, intervention.photos);
         }
       }
 

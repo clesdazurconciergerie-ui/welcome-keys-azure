@@ -139,6 +139,15 @@ export default function InspectionsPage() {
       payments_json: values.payments,
     } as any);
 
+    // Mark buffer photos as used
+    if (values.bufferPhotoIds?.length > 0) {
+      log('Marking', values.bufferPhotoIds.length, 'buffer photos as used');
+      await (supabase as any)
+        .from('property_cleaning_buffer')
+        .update({ used_in_inspection: true, inspection_id: result.id })
+        .in('id', values.bufferPhotoIds);
+    }
+
     // Create finance records for paid items
     if (values.payments.length > 0) {
       await createFinanceRecords(result.id, values.property_id, values.booking_id, values.payments);
