@@ -39,7 +39,7 @@ const FinalCTA = () => {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-stretch sm:items-center">
             <button
-              onClick={() => navigate("/auth?mode=demo")}
+              onClick={() => navigate("/demo")}
               className="group relative inline-flex items-center justify-center rounded-xl px-8 py-4 font-semibold text-base
                 bg-gold text-primary overflow-hidden
                 transition-all duration-300 ease-out

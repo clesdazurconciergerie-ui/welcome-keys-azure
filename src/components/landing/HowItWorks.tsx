@@ -65,7 +65,7 @@ const HowItWorks = () => {
 
         <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.4 }} className="text-center">
           <button
-            onClick={() => navigate("/auth?mode=demo")}
+            onClick={() => navigate("/demo")}
             className="group inline-flex items-center justify-center rounded-xl px-7 py-3.5 font-semibold text-sm sm:text-base
               bg-primary text-primary-foreground
               transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
