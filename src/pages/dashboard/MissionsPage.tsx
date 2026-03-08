@@ -12,7 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { RadioCardGroup } from "@/components/ui/radio-card-group";
-import { Plus, Send, Eye, CheckCircle, XCircle, Loader2, Star, Ban, CalendarIcon, Users, UserCheck, RefreshCw, Trash2, Home } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Plus, Send, Eye, CheckCircle, XCircle, Loader2, Star, Ban, CalendarIcon, Users, UserCheck, RefreshCw, Trash2, Home, MessageSquare, Phone, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNewMissions, type CreateMissionData, type NewMission } from "@/hooks/useNewMissions";
 import { useProperties } from "@/hooks/useProperties";
@@ -219,12 +220,12 @@ export default function MissionsPage() {
                 <CardContent><p className="text-muted-foreground">Aucune mission active. Créez-en une !</p></CardContent>
               </Card>
             ) : activeMissions.map((m, i) => (
-              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} />
+              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onAcceptApp={acceptApplication} onRejectApp={rejectApplication} />
             ))}
           </TabsContent>
           <TabsContent value="archived" className="space-y-3 mt-4">
             {archivedMissions.map((m, i) => (
-              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} />
+              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onAcceptApp={acceptApplication} onRejectApp={rejectApplication} />
             ))}
           </TabsContent>
         </Tabs>
@@ -453,17 +454,21 @@ function getPropertyPhoto(mission: NewMission): string | null {
 
 /* ─── Mission Card ─── */
 
-function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete, onValidate, onMarkPaid }: {
+function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete, onValidate, onMarkPaid, onAcceptApp, onRejectApp }: {
   mission: NewMission; index: number;
   onView: () => void; onPublish: (id: string) => void; onCancel: (id: string) => void; onDelete: (id: string) => void; onValidate: (id: string) => void; onMarkPaid: (id: string) => void;
+  onAcceptApp: (missionId: string, appId: string, providerId: string) => void;
+  onRejectApp: (appId: string) => void;
 }) {
+  const [candidaturesOpen, setCandidaturesOpen] = useState(false);
   const cfg = statusConfig[m.status] || statusConfig.draft;
-  const appCount = m.applications?.filter(a => a.status === 'pending').length || 0;
+  const pendingApps = m.applications?.filter(a => a.status === 'pending') || [];
+  const appCount = pendingApps.length;
   const photoUrl = getPropertyPhoto(m);
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
-      <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={onView}>
+      <Card className={cn("hover:shadow-md transition-shadow cursor-pointer", appCount > 0 && "ring-1 ring-primary/20")} onClick={onView}>
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
             {/* Property thumbnail */}
@@ -482,23 +487,28 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className="font-semibold truncate">{m.title}</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.color}`}>{cfg.label}</span>
-                {appCount > 0 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500 text-white font-medium">
-                    {appCount} candidature{appCount > 1 ? 's' : ''}
-                  </span>
-                )}
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
                 <span>{m.property?.name}</span>
                 <span>{missionTypeLabels[m.mission_type] || m.mission_type}</span>
                 <span>📅 {new Date(m.start_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                {m.payout_amount > 0 && <span>💰 {m.payout_amount}€</span>}
-                {m.selected_provider && <span>👤 {m.selected_provider.first_name} {m.selected_provider.last_name}</span>}
+                {m.payout_amount > 0 && <span className="font-semibold text-emerald-600">💰 {m.payout_amount}€</span>}
               </div>
+              {m.selected_provider && (
+                <p className="text-xs text-primary mt-1 font-medium">
+                  👤 Assignée à : {m.selected_provider.first_name} {m.selected_provider.last_name}
+                </p>
+              )}
             </div>
 
             {/* Actions */}
             <div className="flex items-center gap-2 ml-auto shrink-0" onClick={e => e.stopPropagation()}>
+              {appCount > 0 && (
+                <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/10 font-medium gap-1.5" onClick={() => setCandidaturesOpen(true)}>
+                  <Users className="w-3.5 h-3.5" />
+                  Candidatures ({appCount})
+                </Button>
+              )}
               {m.status === 'draft' && (
                 <Button size="sm" variant="outline" onClick={() => onPublish(m.id)}>
                   <Send className="w-3 h-3 mr-1" /> Publier
@@ -538,6 +548,75 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
           </div>
         </CardContent>
       </Card>
+
+      {/* Candidatures Sheet */}
+      <Sheet open={candidaturesOpen} onOpenChange={setCandidaturesOpen}>
+        <SheetContent className="sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Candidatures — {m.title}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-6 space-y-4">
+            {pendingApps.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">Aucune candidature en attente</p>
+              </div>
+            ) : (
+              pendingApps.map(app => (
+                <Card key={app.id} className="border shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-semibold text-foreground">{app.provider?.first_name} {app.provider?.last_name}</p>
+                        {app.provider?.score_global != null && (
+                          <span className="inline-flex items-center gap-1 text-xs text-amber-600 mt-0.5">
+                            <Star className="w-3 h-3 fill-amber-500" /> {app.provider.score_global.toFixed(1)}
+                          </span>
+                        )}
+                      </div>
+                      <Badge variant="secondary" className="text-xs">En attente</Badge>
+                    </div>
+
+                    {app.message && (
+                      <div className="flex gap-2 p-2.5 bg-muted/60 rounded-lg text-sm">
+                        <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                        <p className="text-muted-foreground">{app.message}</p>
+                      </div>
+                    )}
+
+                    {/* Contact info */}
+                    <div className="flex gap-3 text-xs text-muted-foreground">
+                      {app.provider?.email && (
+                        <span className="flex items-center gap-1">
+                          <Mail className="w-3 h-3" /> {app.provider.email}
+                        </span>
+                      )}
+                      {app.provider?.phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3" /> {app.provider.phone}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { onAcceptApp(m.id, app.id, app.provider_id); setCandidaturesOpen(false); }}>
+                        <CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Accepter
+                      </Button>
+                      <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => onRejectApp(app.id)}>
+                        <XCircle className="w-3.5 h-3.5 mr-1.5" /> Refuser
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </motion.div>
   );
 }
