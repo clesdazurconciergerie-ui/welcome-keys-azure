@@ -157,8 +157,7 @@ export function useGuidedTour() {
   const nextStep = useCallback(() => {
     const next = tourState.currentStep + 1;
     if (next >= TOUR_STEPS.length) {
-      // Tour complete
-      setTourState({ currentStep: 0, isActive: false, showWelcome: false });
+      setTourState({ currentStep: 0, isActive: false, isPaused: false, showWelcome: false });
       setTourCompleted(true);
       localStorage.setItem(TOUR_COMPLETED_KEY, "true");
       navigate("/dashboard");
