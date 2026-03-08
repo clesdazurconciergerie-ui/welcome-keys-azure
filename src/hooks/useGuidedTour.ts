@@ -109,6 +109,7 @@ export const TOUR_STEPS: TourStep[] = [
 interface TourState {
   currentStep: number;
   isActive: boolean;
+  isPaused: boolean;
   showWelcome: boolean;
 }
 
@@ -123,7 +124,7 @@ export function useGuidedTour() {
         return JSON.parse(saved);
       } catch { /* ignore */ }
     }
-    return { currentStep: 0, isActive: false, showWelcome: false };
+    return { currentStep: 0, isActive: false, isPaused: false, showWelcome: false };
   });
 
   const [tourCompleted, setTourCompleted] = useState(() =>
@@ -137,12 +138,12 @@ export function useGuidedTour() {
 
   // Auto-show welcome for first-time users (if not completed and not already dismissed)
   const showWelcomeScreen = useCallback(() => {
-    setTourState({ currentStep: 0, isActive: false, showWelcome: true });
+    setTourState({ currentStep: 0, isActive: false, isPaused: false, showWelcome: true });
   }, []);
 
   const startTour = useCallback(() => {
     const step = TOUR_STEPS[0];
-    setTourState({ currentStep: 0, isActive: true, showWelcome: false });
+    setTourState({ currentStep: 0, isActive: true, isPaused: false, showWelcome: false });
     navigate(step.route);
   }, [navigate]);
 
@@ -156,8 +157,7 @@ export function useGuidedTour() {
   const nextStep = useCallback(() => {
     const next = tourState.currentStep + 1;
     if (next >= TOUR_STEPS.length) {
-      // Tour complete
-      setTourState({ currentStep: 0, isActive: false, showWelcome: false });
+      setTourState({ currentStep: 0, isActive: false, isPaused: false, showWelcome: false });
       setTourCompleted(true);
       localStorage.setItem(TOUR_COMPLETED_KEY, "true");
       navigate("/dashboard");
@@ -171,18 +171,18 @@ export function useGuidedTour() {
   }, [tourState.currentStep, goToStep]);
 
   const skipTour = useCallback(() => {
-    setTourState({ currentStep: 0, isActive: false, showWelcome: false });
+    setTourState({ currentStep: 0, isActive: false, isPaused: false, showWelcome: false });
     setTourCompleted(true);
     localStorage.setItem(TOUR_COMPLETED_KEY, "true");
   }, []);
 
   const pauseTour = useCallback(() => {
-    setTourState(prev => ({ ...prev, isActive: false, showWelcome: false }));
+    setTourState(prev => ({ ...prev, isActive: false, isPaused: true, showWelcome: false }));
   }, []);
 
   const resumeTour = useCallback(() => {
     const step = TOUR_STEPS[tourState.currentStep];
-    setTourState(prev => ({ ...prev, isActive: true, showWelcome: false }));
+    setTourState(prev => ({ ...prev, isActive: true, isPaused: false, showWelcome: false }));
     navigate(step.route);
   }, [tourState.currentStep, navigate]);
 
@@ -198,6 +198,7 @@ export function useGuidedTour() {
 
   return {
     isActive: tourState.isActive,
+    isPaused: tourState.isPaused,
     showWelcome: tourState.showWelcome,
     currentStepIndex: tourState.currentStep,
     currentStep,

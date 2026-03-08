@@ -4,6 +4,7 @@ import { useGuidedTour } from "@/hooks/useGuidedTour";
 import { GuidedTourWelcome } from "./GuidedTourWelcome";
 import { GuidedTourOverlay } from "./GuidedTourOverlay";
 import { GuidedTourComplete } from "./GuidedTourComplete";
+import { GuidedTourMinimized } from "./GuidedTourMinimized";
 
 const TOUR_SEEN_KEY = "mywelkom_tour_seen";
 
@@ -16,7 +17,6 @@ export function GuidedTourProvider() {
   useEffect(() => {
     const seen = localStorage.getItem(TOUR_SEEN_KEY);
     if (!seen && !tour.tourCompleted) {
-      // Small delay so dashboard renders first
       const t = setTimeout(() => tour.showWelcomeScreen(), 1200);
       return () => clearTimeout(t);
     }
@@ -87,6 +87,14 @@ export function GuidedTourProvider() {
           isLastStep={tour.currentStepIndex === tour.totalSteps - 1}
         />
       )}
+
+      <GuidedTourMinimized
+        visible={tour.isPaused && !tour.isActive && !tour.tourCompleted}
+        stepIndex={tour.currentStepIndex}
+        totalSteps={tour.totalSteps}
+        onResume={tour.resumeTour}
+        onClose={tour.skipTour}
+      />
 
       <GuidedTourComplete
         open={showComplete}
