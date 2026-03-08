@@ -26,6 +26,7 @@ import {
   Euro,
   MessageCircle,
   Briefcase,
+  ClipboardCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ const navGroups = [
       { title: "Propriétaires", url: "/dashboard/proprietaires", icon: Users },
       { title: "Prestataires", url: "/dashboard/prestataires", icon: Wrench },
       { title: "Missions", url: "/dashboard/missions", icon: Briefcase },
+      { title: "État des lieux", url: "/dashboard/etats-des-lieux", icon: ClipboardCheck },
       { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen },
     ],
   },

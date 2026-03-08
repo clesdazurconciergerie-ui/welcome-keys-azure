@@ -39,7 +39,7 @@ import ParametresPage from "./pages/dashboard/ParametresPage";
 import OwnerDashboardHome from "./pages/owner/OwnerDashboardHome";
 import OwnerPropertiesPage from "./pages/owner/OwnerPropertiesPage";
 import OwnerBookletsPage from "./pages/owner/OwnerBookletsPage";
-import OwnerCleaningPhotosPage from "./pages/owner/OwnerCleaningPhotosPage";
+import OwnerInspectionsPage from "./pages/owner/OwnerInspectionsPage";
 import OwnerDocumentsPage from "./pages/owner/OwnerDocumentsPage";
 import OwnerAccountPage from "./pages/owner/OwnerAccountPage";
 import OwnerCalendarPage from "./pages/owner/OwnerCalendarPage";
@@ -55,6 +55,7 @@ import SPSupportPage from "./pages/service-provider/SPSupportPage";
 import SPSettingsPage from "./pages/service-provider/SPSettingsPage";
 import SPAccountPage from "./pages/service-provider/SPAccountPage";
 import FinancePage from "./pages/dashboard/FinancePage";
+import InspectionsPage from "./pages/dashboard/InspectionsPage";
 import OwnerFinancesPage from "./pages/owner/OwnerFinancesPage";
 
 const queryClient = new QueryClient();
@@ -83,6 +84,7 @@ const App = () => (
             <Route path="prestataires" element={<PrestatairesPage />} />
             {/* Interventions removed — missions is the single source */}
             <Route path="missions" element={<MissionsPage />} />
+            <Route path="etats-des-lieux" element={<InspectionsPage />} />
             <Route path="prospection" element={<ProspectionPage />} />
             <Route path="finance" element={<FinancePage />} />
             <Route path="demandes-proprietaires" element={<OwnerRequestsAdminPage />} />
@@ -97,7 +99,7 @@ const App = () => (
             <Route path="biens" element={<OwnerPropertiesPage />} />
             <Route path="calendrier" element={<OwnerCalendarPage />} />
             <Route path="livrets" element={<OwnerBookletsPage />} />
-            <Route path="photos-menage" element={<OwnerCleaningPhotosPage />} />
+            <Route path="etats-des-lieux" element={<OwnerInspectionsPage />} />
             <Route path="documents" element={<OwnerDocumentsPage />} />
             <Route path="demandes" element={<OwnerRequestsPage />} />
             <Route path="finances" element={<OwnerFinancesPage />} />
