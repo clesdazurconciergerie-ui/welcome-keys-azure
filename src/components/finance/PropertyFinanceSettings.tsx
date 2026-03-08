@@ -35,6 +35,7 @@ export function PropertyFinanceSettings({ propertyId }: Props) {
     maintenance_rate: 0,
     ota_payout_recipient: "owner",
     pricing_source: "manual",
+    linen_price_per_person: 0,
   });
 
   // Booking creation

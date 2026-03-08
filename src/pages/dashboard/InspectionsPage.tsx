@@ -10,11 +10,13 @@ import { useCleaningInterventions } from '@/hooks/useCleaningInterventions';
 import { useProperties } from '@/hooks/useProperties';
 import { InspectionPdfGenerator } from '@/components/inspection/InspectionPdfGenerator';
 import { SignaturePad } from '@/components/inspection/SignaturePad';
-import { CreateInspectionDialog } from '@/components/inspection/CreateInspectionDialog';
+import { CreateInspectionDialog, type InspectionFormValues } from '@/components/inspection/CreateInspectionDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import {
   ClipboardCheck, Home, Calendar, User, Eye, Edit, Trash2,
-  Camera, CheckCircle, Clock, Sparkles, X, Loader2, Plus
+  Camera, CheckCircle, Clock, Sparkles, X, Loader2, Plus, Key, Euro
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle
@@ -23,6 +25,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
+
+const isDev = import.meta.env.DEV;
+const log = (...args: any[]) => { if (isDev) console.log('[EdL]', ...args); };
 
 export default function InspectionsPage() {
   const { inspections, isLoading, deleteInspection, updateInspection, createInspection, createFromCleaning, uploadSignature, uploadExitPhoto, refetch } = useInspections();
@@ -33,13 +38,11 @@ export default function InspectionsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
-  // Completed/validated interventions that don't yet have an inspection
   const existingInterventionIds = new Set(inspections.map(i => i.cleaning_intervention_id).filter(Boolean));
   const completedCleanings = interventions.filter(
     i => ['completed', 'validated'].includes(i.status) && !existingInterventionIds.has(i.id) && i.photos && i.photos.length > 0
   );
 
-  // Properties that have NO inspection at all yet
   const propertiesWithInspection = new Set(inspections.map(i => i.property_id));
   const propertiesWithoutInspection = properties.filter(p => !propertiesWithInspection.has(p.id));
 
@@ -53,30 +56,59 @@ export default function InspectionsPage() {
     });
   };
 
-  const handleManualCreate = async (values: {
-    property_id: string;
-    booking_id: string | null;
-    guest_name: string | null;
-    inspection_date: string;
-    general_comment: string | null;
-    photos: { url: string; file?: File; uploaded_at: string }[];
-    cleaningPhotos: { url: string; type?: string; uploaded_at?: string; caption?: string | null }[];
-    concierge_signature: string | null;
-  }) => {
-    // Create inspection first
+  /** Create cash_incomes for paid items */
+  const createFinanceRecords = async (inspectionId: string, propertyId: string, bookingId: string | null, payments: { label: string; amount: number; paid: boolean }[]) => {
+    const paidPayments = payments.filter(p => p.paid && p.amount > 0);
+    if (paidPayments.length === 0) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      for (const p of paidPayments) {
+        const category = p.label === 'Ménage' ? 'menage' : p.label === 'Draps' ? 'linge' : 'other';
+        await (supabase as any).from('cash_incomes').insert({
+          user_id: user.id,
+          property_id: propertyId,
+          amount: p.amount,
+          description: `${p.label} — EdL entrée`,
+          income_date: new Date().toISOString().split('T')[0],
+          category,
+          notes: `Inspection ${inspectionId}${bookingId ? ` / Réservation ${bookingId}` : ''}`,
+        });
+      }
+      log('✅ Created', paidPayments.length, 'cash_income records');
+      toast.success(`${paidPayments.length} règlement(s) enregistré(s) en finance`);
+    } catch (err) {
+      console.error('Error creating finance records:', err);
+    }
+  };
+
+  const handleManualCreate = async (values: InspectionFormValues) => {
+    // Create inspection
     const result = await createInspection({
       property_id: values.property_id,
       booking_id: values.booking_id,
       guest_name: values.guest_name,
       inspection_date: values.inspection_date,
       general_comment: values.general_comment,
+      occupants_count: values.occupants_count,
       inspection_type: 'entry',
       status: 'draft',
       cleaning_photos_json: values.cleaningPhotos,
-    });
+    } as any);
     if (!result) return;
 
-    // Upload additional manual photos
+    // Upload meter photos
+    const meterPhotoUrls: any[] = [];
+    for (const p of values.meter_photos) {
+      if (p.file) {
+        const url = await uploadExitPhoto(result.id, p.file);
+        if (url) meterPhotoUrls.push({ url, uploaded_at: p.uploaded_at, type: 'meter' });
+      }
+    }
+
+    // Upload additional photos
     const additionalPhotoUrls: any[] = [];
     for (const p of values.photos) {
       if (p.file) {
@@ -85,20 +117,32 @@ export default function InspectionsPage() {
       }
     }
 
-    // Upload signature
-    let sigUrl = values.concierge_signature;
-    if (sigUrl?.startsWith('data:')) {
-      sigUrl = await uploadSignature(result.id, sigUrl, 'concierge');
+    // Upload signatures
+    let conciergeUrl = values.concierge_signature;
+    if (conciergeUrl?.startsWith('data:')) {
+      conciergeUrl = await uploadSignature(result.id, conciergeUrl, 'concierge');
+    }
+    let guestUrl = values.guest_signature;
+    if (guestUrl?.startsWith('data:')) {
+      guestUrl = await uploadSignature(result.id, guestUrl, 'guest');
     }
 
-    // Merge cleaning photos with additional uploaded photos
     const allPhotos = [...values.cleaningPhotos, ...additionalPhotoUrls];
 
-    // Update with merged photos and signature
+    // Update with all data
     await updateInspection(result.id, {
       cleaning_photos_json: allPhotos,
-      concierge_signature_url: sigUrl,
+      concierge_signature_url: conciergeUrl,
+      guest_signature_url: guestUrl,
+      keys_handed_over: values.keys_handed_over,
+      meter_photos_json: meterPhotoUrls,
+      payments_json: values.payments,
     } as any);
+
+    // Create finance records for paid items
+    if (values.payments.length > 0) {
+      await createFinanceRecords(result.id, values.property_id, values.booking_id, values.payments);
+    }
   };
 
   const statusLabel = (s: string) => {
@@ -119,9 +163,7 @@ export default function InspectionsPage() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">État des lieux</h1>
           <p className="text-muted-foreground mt-1">
-            {inspections.length > 0
-              ? 'Créés automatiquement à chaque ménage validé'
-              : 'Créez votre premier état des lieux pour démarrer'}
+            {inspections.length > 0 ? 'Créés automatiquement ou manuellement' : 'Créez votre premier état des lieux'}
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="gap-1.5 shrink-0">
@@ -130,14 +172,14 @@ export default function InspectionsPage() {
         </Button>
       </motion.div>
 
-      {/* First-time setup: properties without any inspection */}
+      {/* First-time setup */}
       {!isLoading && propertiesWithoutInspection.length > 0 && inspections.length === 0 && completedCleanings.length === 0 && (
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="p-6 text-center">
             <ClipboardCheck className="w-10 h-10 mx-auto text-primary mb-3" />
             <h3 className="text-lg font-semibold mb-1">Aucun état des lieux</h3>
             <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
-              Créez un premier état des lieux initial pour vos logements. Ensuite, le système créera automatiquement les suivants à partir des ménages validés.
+              Créez un premier état des lieux d'entrée. Le système récupérera automatiquement les réservations et photos ménage.
             </p>
             <Button onClick={() => setShowCreate(true)} size="lg" className="gap-2">
               <Plus className="w-4 h-4" />
@@ -147,13 +189,13 @@ export default function InspectionsPage() {
         </Card>
       )}
 
-      {/* Properties without inspection (when some inspections exist already) */}
+      {/* Properties without inspection */}
       {!isLoading && propertiesWithoutInspection.length > 0 && inspections.length > 0 && (
         <Card className="border-amber-500/20 bg-amber-500/5">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <Home className="w-4 h-4 text-amber-600" />
-              <span className="font-semibold text-sm">Logements sans état des lieux initial</span>
+              <span className="font-semibold text-sm">Logements sans état des lieux</span>
               <Badge variant="secondary" className="text-xs">{propertiesWithoutInspection.length}</Badge>
             </div>
             <div className="space-y-2">
@@ -164,8 +206,7 @@ export default function InspectionsPage() {
                     <span className="font-medium">{p.name}</span>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => setShowCreate(true)} className="gap-1.5">
-                    <Plus className="w-3.5 h-3.5" />
-                    Créer l'état initial
+                    <Plus className="w-3.5 h-3.5" />Créer
                   </Button>
                 </div>
               ))}
@@ -174,7 +215,7 @@ export default function InspectionsPage() {
         </Card>
       )}
 
-      {/* Pending auto-creation from completed cleanings */}
+      {/* Pending auto-creation */}
       {completedCleanings.length > 0 && (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="p-4">
@@ -193,8 +234,7 @@ export default function InspectionsPage() {
                     {c.photos && <Badge variant="outline" className="text-xs gap-1"><Camera className="w-3 h-3" />{c.photos.length}</Badge>}
                   </div>
                   <Button size="sm" onClick={() => handleAutoCreate(c)} className="gap-1.5">
-                    <ClipboardCheck className="w-3.5 h-3.5" />
-                    Créer l'état des lieux
+                    <ClipboardCheck className="w-3.5 h-3.5" />Créer
                   </Button>
                 </div>
               ))}
@@ -220,40 +260,21 @@ export default function InspectionsPage() {
                         <span className="font-semibold truncate">{insp.property?.name || 'Bien'}</span>
                         <Badge variant={statusVariant(insp.status)} className="shrink-0">{statusLabel(insp.status)}</Badge>
                         {insp.inspection_type === 'entry' && <Badge variant="outline" className="text-xs">Entrée</Badge>}
-                        {insp.damage_notes && <Badge variant="destructive" className="text-xs">Sortie faite</Badge>}
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5" />
-                          {new Date(insp.inspection_date).toLocaleDateString('fr-FR')}
-                        </span>
-                        {insp.guest_name && (
-                          <span className="flex items-center gap-1">
-                            <User className="w-3.5 h-3.5" />
-                            {insp.guest_name}
-                          </span>
-                        )}
-                        {insp.cleaner_name && (
-                          <span className="text-xs">🧹 {insp.cleaner_name}</span>
-                        )}
+                        <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{new Date(insp.inspection_date).toLocaleDateString('fr-FR')}</span>
+                        {insp.guest_name && <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" />{insp.guest_name}</span>}
+                        {(insp as any).keys_handed_over && <span className="flex items-center gap-1"><Key className="w-3 h-3" />{(insp as any).keys_handed_over} clés</span>}
                         {insp.cleaning_photos_json?.length > 0 && (
-                          <span className="flex items-center gap-1 text-xs">
-                            <Camera className="w-3 h-3" />{insp.cleaning_photos_json.length} photos
-                          </span>
+                          <span className="flex items-center gap-1 text-xs"><Camera className="w-3 h-3" />{insp.cleaning_photos_json.length} photos</span>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       {insp.status === 'completed' && <InspectionPdfGenerator inspection={insp} />}
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewInspection(insp)}>
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditInspection(insp)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(insp.id)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewInspection(insp)}><Eye className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditInspection(insp)}><Edit className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(insp.id)}><Trash2 className="w-4 h-4" /></Button>
                     </div>
                   </div>
                 </CardContent>
@@ -263,7 +284,6 @@ export default function InspectionsPage() {
         </div>
       )}
 
-      {/* Manual create dialog */}
       <CreateInspectionDialog
         open={showCreate}
         onClose={() => setShowCreate(false)}
@@ -271,7 +291,6 @@ export default function InspectionsPage() {
         onSave={handleManualCreate}
       />
 
-      {/* Edit sheet */}
       {editInspection && (
         <InspectionEditDialog
           inspection={editInspection}
@@ -279,12 +298,8 @@ export default function InspectionsPage() {
           onSave={async (id, values) => {
             let conciergeUrl = values.concierge_signature_url;
             let guestUrl = values.guest_signature_url;
-            if (conciergeUrl?.startsWith('data:')) {
-              conciergeUrl = await uploadSignature(id, conciergeUrl, 'concierge');
-            }
-            if (guestUrl?.startsWith('data:')) {
-              guestUrl = await uploadSignature(id, guestUrl, 'guest');
-            }
+            if (conciergeUrl?.startsWith('data:')) conciergeUrl = await uploadSignature(id, conciergeUrl, 'concierge');
+            if (guestUrl?.startsWith('data:')) guestUrl = await uploadSignature(id, guestUrl, 'guest');
 
             const exitPhotos = [];
             for (const p of (values.exit_photos_json || [])) {
@@ -306,10 +321,8 @@ export default function InspectionsPage() {
         />
       )}
 
-      {/* View dialog */}
       <InspectionViewDialog inspection={viewInspection} onClose={() => setViewInspection(null)} />
 
-      {/* Delete confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={o => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -318,9 +331,7 @@ export default function InspectionsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (deleteId) { deleteInspection(deleteId); setDeleteId(null); } }}>
-              Supprimer
-            </AlertDialogAction>
+            <AlertDialogAction onClick={() => { if (deleteId) { deleteInspection(deleteId); setDeleteId(null); } }}>Supprimer</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -336,9 +347,6 @@ function InspectionEditDialog({ inspection, onClose, onSave }: {
 }) {
   const [guestName, setGuestName] = useState(inspection.guest_name || '');
   const [occupants, setOccupants] = useState(inspection.occupants_count?.toString() || '');
-  const [meterElec, setMeterElec] = useState(inspection.meter_electricity || '');
-  const [meterWater, setMeterWater] = useState(inspection.meter_water || '');
-  const [meterGas, setMeterGas] = useState(inspection.meter_gas || '');
   const [comment, setComment] = useState(inspection.general_comment || '');
   const [damageNotes, setDamageNotes] = useState(inspection.damage_notes || '');
   const [exitPhotos, setExitPhotos] = useState<any[]>(inspection.exit_photos_json || []);
@@ -360,9 +368,6 @@ function InspectionEditDialog({ inspection, onClose, onSave }: {
     await onSave(inspection.id, {
       guest_name: guestName || null,
       occupants_count: occupants ? parseInt(occupants) : null,
-      meter_electricity: meterElec || null,
-      meter_water: meterWater || null,
-      meter_gas: meterGas || null,
       general_comment: comment || null,
       damage_notes: damageNotes || null,
       exit_photos_json: exitPhotos,
@@ -380,7 +385,7 @@ function InspectionEditDialog({ inspection, onClose, onSave }: {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ClipboardCheck className="w-5 h-5" />
-            Compléter l'état des lieux — {inspection.property?.name}
+            Compléter — {inspection.property?.name}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-5">
@@ -395,10 +400,37 @@ function InspectionEditDialog({ inspection, onClose, onSave }: {
             </div>
           )}
 
+          {/* Meter photos */}
+          {(inspection as any).meter_photos_json?.length > 0 && (
+            <div>
+              <Label className="text-sm font-semibold mb-2 block">Photos compteurs ({(inspection as any).meter_photos_json.length})</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {(inspection as any).meter_photos_json.map((p: any, i: number) => (
+                  <img key={i} src={p.url} alt="" className="w-full aspect-square object-cover rounded-lg border" />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Payments summary */}
+          {(inspection as any).payments_json?.length > 0 && (
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <Label className="text-sm font-semibold mb-2 block flex items-center gap-1.5"><Euro className="w-3.5 h-3.5" />Règlements enregistrés</Label>
+              <div className="space-y-1">
+                {(inspection as any).payments_json.map((p: any, i: number) => (
+                  <div key={i} className="flex justify-between text-sm">
+                    <span>{p.label}</span>
+                    <span className="font-medium">{p.amount?.toFixed(2)} €</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label className="text-sm">Nom du voyageur</Label>
-              <Input value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="Nom complet" />
+              <Input value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="Nom" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Occupants</Label>
@@ -406,23 +438,14 @@ function InspectionEditDialog({ inspection, onClose, onSave }: {
             </div>
           </div>
 
-          <div>
-            <Label className="text-sm font-semibold mb-2 block">Compteurs (optionnel)</Label>
-            <div className="grid grid-cols-3 gap-3">
-              <Input value={meterElec} onChange={e => setMeterElec(e.target.value)} placeholder="Élec (kWh)" />
-              <Input value={meterWater} onChange={e => setMeterWater(e.target.value)} placeholder="Eau (m³)" />
-              <Input value={meterGas} onChange={e => setMeterGas(e.target.value)} placeholder="Gaz (m³)" />
-            </div>
-          </div>
-
           <div className="space-y-1.5">
-            <Label className="text-sm">Commentaire / Observation</Label>
+            <Label className="text-sm">Observation</Label>
             <Textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="État général..." rows={2} />
           </div>
 
           <div className="space-y-3 pt-3 border-t">
-            <Label className="text-sm font-semibold">Sortie / Dégâts (à remplir au départ)</Label>
-            <Textarea value={damageNotes} onChange={e => setDamageNotes(e.target.value)} placeholder="Notes de dégâts ou problèmes constatés..." rows={2} />
+            <Label className="text-sm font-semibold">Sortie / Dégâts</Label>
+            <Textarea value={damageNotes} onChange={e => setDamageNotes(e.target.value)} placeholder="Notes de dégâts..." rows={2} />
             <div className="grid grid-cols-4 gap-2">
               {exitPhotos.map((p, i) => (
                 <div key={i} className="relative aspect-square rounded-lg overflow-hidden border group">
@@ -436,7 +459,7 @@ function InspectionEditDialog({ inspection, onClose, onSave }: {
               <label className="aspect-square rounded-lg border-2 border-dashed border-primary/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors relative">
                 <Camera className="w-5 h-5 text-muted-foreground mb-0.5" />
                 <span className="text-[10px] text-muted-foreground">Photo sortie</span>
-                <input type="file" accept="image/*" multiple onChange={handleExitPhotoUpload}
+                <input type="file" accept="image/*" capture="environment" multiple onChange={handleExitPhotoUpload}
                   style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
               </label>
             </div>
@@ -450,13 +473,11 @@ function InspectionEditDialog({ inspection, onClose, onSave }: {
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
             <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
-              {saving && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
-              Enregistrer
+              {saving && <Loader2 className="w-4 h-4 animate-spin mr-1" />}Enregistrer
             </Button>
             <Button onClick={() => handleSave(true)} disabled={saving}>
               {saving && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
-              <CheckCircle className="w-4 h-4 mr-1" />
-              Finaliser
+              <CheckCircle className="w-4 h-4 mr-1" />Finaliser
             </Button>
           </div>
         </div>
@@ -471,6 +492,7 @@ function InspectionViewDialog({ inspection, onClose }: { inspection: Inspection 
 
   const allPhotos = [
     ...(inspection.cleaning_photos_json || []).map((p: any) => ({ ...p, label: 'Ménage' })),
+    ...((inspection as any).meter_photos_json || []).map((p: any) => ({ ...p, label: 'Compteur' })),
     ...(inspection.exit_photos_json || []).map((p: any) => ({ ...p, label: 'Sortie' })),
   ];
 
@@ -485,14 +507,20 @@ function InspectionViewDialog({ inspection, onClose }: { inspection: Inspection 
             <div><span className="font-medium">Date:</span> {new Date(inspection.inspection_date).toLocaleDateString('fr-FR')}</div>
             <div><span className="font-medium">Client:</span> {inspection.guest_name || '—'}</div>
             <div><span className="font-medium">Occupants:</span> {inspection.occupants_count || '—'}</div>
+            <div><span className="font-medium">Clés remises:</span> {(inspection as any).keys_handed_over || '—'}</div>
             <div><span className="font-medium">Ménage par:</span> {inspection.cleaner_name || '—'}</div>
           </div>
 
-          {(inspection.meter_electricity || inspection.meter_water || inspection.meter_gas) && (
-            <div className="grid grid-cols-3 gap-3 p-3 bg-muted/50 rounded-lg">
-              <div><span className="font-medium">Élec:</span> {inspection.meter_electricity || '—'}</div>
-              <div><span className="font-medium">Eau:</span> {inspection.meter_water || '—'}</div>
-              <div><span className="font-medium">Gaz:</span> {inspection.meter_gas || '—'}</div>
+          {/* Payments */}
+          {(inspection as any).payments_json?.length > 0 && (
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <p className="font-medium mb-2 flex items-center gap-1.5"><Euro className="w-3.5 h-3.5" />Règlements</p>
+              {(inspection as any).payments_json.map((p: any, i: number) => (
+                <div key={i} className="flex justify-between">
+                  <span>{p.label}</span>
+                  <span className="font-medium">{p.amount?.toFixed(2)} €</span>
+                </div>
+              ))}
             </div>
           )}
 
@@ -527,15 +555,11 @@ function InspectionViewDialog({ inspection, onClose }: { inspection: Inspection 
           <div className="grid grid-cols-2 gap-4 pt-3 border-t">
             <div>
               <p className="font-medium text-xs mb-1">Signature concierge</p>
-              {inspection.concierge_signature_url ? (
-                <img src={inspection.concierge_signature_url} alt="" className="h-16 border rounded" />
-              ) : <p className="text-muted-foreground">—</p>}
+              {inspection.concierge_signature_url ? <img src={inspection.concierge_signature_url} alt="" className="h-16 border rounded" /> : <p className="text-muted-foreground">—</p>}
             </div>
             <div>
               <p className="font-medium text-xs mb-1">Signature client</p>
-              {inspection.guest_signature_url ? (
-                <img src={inspection.guest_signature_url} alt="" className="h-16 border rounded" />
-              ) : <p className="text-muted-foreground">—</p>}
+              {inspection.guest_signature_url ? <img src={inspection.guest_signature_url} alt="" className="h-16 border rounded" /> : <p className="text-muted-foreground">—</p>}
             </div>
           </div>
         </div>
