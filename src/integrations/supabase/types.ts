@@ -420,6 +420,35 @@ export type Database = {
           },
         ]
       }
+      booklet_views: {
+        Row: {
+          booklet_id: string
+          created_at: string
+          id: string
+          visitor_ip: string
+        }
+        Insert: {
+          booklet_id: string
+          created_at?: string
+          id?: string
+          visitor_ip: string
+        }
+        Update: {
+          booklet_id?: string
+          created_at?: string
+          id?: string
+          visitor_ip?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booklet_views_booklet_id_fkey"
+            columns: ["booklet_id"]
+            isOneToOne: false
+            referencedRelation: "booklets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booklets: {
         Row: {
           accent_color: string | null
@@ -472,6 +501,7 @@ export type Database = {
           tagline: string | null
           text_color: string | null
           timezone: string | null
+          unique_views_count: number
           updated_at: string
           user_id: string
           waste_location: string | null
@@ -529,6 +559,7 @@ export type Database = {
           tagline?: string | null
           text_color?: string | null
           timezone?: string | null
+          unique_views_count?: number
           updated_at?: string
           user_id: string
           waste_location?: string | null
@@ -586,6 +617,7 @@ export type Database = {
           tagline?: string | null
           text_color?: string | null
           timezone?: string | null
+          unique_views_count?: number
           updated_at?: string
           user_id?: string
           waste_location?: string | null
