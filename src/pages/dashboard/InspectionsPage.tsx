@@ -123,18 +123,46 @@ export default function InspectionsPage() {
   };
 
   const handleEntryValidation = async (id: string, conciergeSignature: string | null, guestSignature: string | null) => {
-    let conciergeUrl = conciergeSignature;
-    if (conciergeUrl?.startsWith('data:')) conciergeUrl = await uploadSignature(id, conciergeUrl, 'concierge');
-    let guestUrl = guestSignature;
-    if (guestUrl?.startsWith('data:')) guestUrl = await uploadSignature(id, guestUrl, 'guest');
+    try {
+      let conciergeUrl = conciergeSignature;
+      if (conciergeUrl?.startsWith('data:')) conciergeUrl = await uploadSignature(id, conciergeUrl, 'concierge');
+      let guestUrl = guestSignature;
+      if (guestUrl?.startsWith('data:')) guestUrl = await uploadSignature(id, guestUrl, 'guest');
 
-    await updateInspection(id, {
-      concierge_signature_url: conciergeUrl,
-      guest_signature_url: guestUrl,
-      status: 'entry_validated',
-    } as any);
-    toast.success('Entrée validée avec signatures');
-    refetch();
+      log('Entry validation — uploading signatures done', { conciergeUrl: !!conciergeUrl, guestUrl: !!guestUrl });
+
+      // Direct Supabase call to ensure status update isn't swallowed
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Non connecté');
+
+      const updatePayload: Record<string, any> = {
+        status: 'entry_validated',
+        guest_signature_url: guestUrl,
+      };
+      if (conciergeUrl) updatePayload.concierge_signature_url = conciergeUrl;
+
+      const { error } = await (supabase as any)
+        .from('inspections')
+        .update(updatePayload)
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Entry validation DB error:', error);
+        toast.error(`Erreur: ${error.message}`);
+        throw error;
+      }
+
+      log('Entry validation — status updated to entry_validated');
+      toast.success('Entrée validée avec signatures');
+      await refetch();
+    } catch (err: any) {
+      console.error('Entry validation failed:', err);
+      if (!err?.message?.includes('Erreur')) {
+        toast.error(err?.message || 'Erreur lors de la validation');
+      }
+      throw err; // Re-throw so dialog knows it failed
+    }
   };
 
   const handleExitCompletion = async (id: string, values: {
