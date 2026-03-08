@@ -23,6 +23,7 @@ export interface FinancialSettings {
   invoice_primary_color: string | null;
   invoice_accent_color: string | null;
   invoice_text_color: string | null;
+  default_signature_url: string | null;
 }
 
 export interface PropertyFinancialSettings {
