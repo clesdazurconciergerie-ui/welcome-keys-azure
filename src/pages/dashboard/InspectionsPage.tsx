@@ -55,26 +55,34 @@ export default function InspectionsPage() {
 
   const handleManualCreate = async (values: {
     property_id: string;
+    booking_id: string | null;
+    guest_name: string | null;
     inspection_date: string;
     general_comment: string | null;
-    photos: { url: string; file: File; uploaded_at: string }[];
+    photos: { url: string; file?: File; uploaded_at: string }[];
+    cleaningPhotos: { url: string; type?: string; uploaded_at?: string; caption?: string | null }[];
     concierge_signature: string | null;
   }) => {
     // Create inspection first
     const result = await createInspection({
       property_id: values.property_id,
+      booking_id: values.booking_id,
+      guest_name: values.guest_name,
       inspection_date: values.inspection_date,
       general_comment: values.general_comment,
       inspection_type: 'entry',
       status: 'draft',
+      cleaning_photos_json: values.cleaningPhotos,
     });
     if (!result) return;
 
-    // Upload photos
-    const photoUrls: any[] = [];
+    // Upload additional manual photos
+    const additionalPhotoUrls: any[] = [];
     for (const p of values.photos) {
-      const url = await uploadExitPhoto(result.id, p.file);
-      if (url) photoUrls.push({ url, uploaded_at: p.uploaded_at });
+      if (p.file) {
+        const url = await uploadExitPhoto(result.id, p.file);
+        if (url) additionalPhotoUrls.push({ url, uploaded_at: p.uploaded_at });
+      }
     }
 
     // Upload signature
@@ -83,9 +91,12 @@ export default function InspectionsPage() {
       sigUrl = await uploadSignature(result.id, sigUrl, 'concierge');
     }
 
-    // Update with photos and signature
+    // Merge cleaning photos with additional uploaded photos
+    const allPhotos = [...values.cleaningPhotos, ...additionalPhotoUrls];
+
+    // Update with merged photos and signature
     await updateInspection(result.id, {
-      cleaning_photos_json: photoUrls,
+      cleaning_photos_json: allPhotos,
       concierge_signature_url: sigUrl,
     } as any);
   };
