@@ -147,9 +147,9 @@ export function InspectionPdfGenerator({ inspection }: { inspection: Inspection 
   ${photos.length > 0 ? `
   <div style="flex:1;min-height:60px;padding:12px 28px 0;display:flex;flex-direction:column;overflow:hidden">
     <div style="font-size:10px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid ${GOLD};padding-bottom:3px;margin-bottom:8px;flex-shrink:0">Photos</div>
-    <div style="flex:1;display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-content:stretch">
+    <div style="flex:1;display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-content:start">
       ${photos.map((p: any) =>
-        `<img src="${p.url}" style="width:48%;flex:0 0 48%;height:calc(50% - 4px);object-fit:cover;border-radius:4px;border:1px solid ${NAVY}1a" crossOrigin="anonymous"/>`
+        `<div style="width:48%;flex:0 0 48%;height:calc(50% - 4px);display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:4px;border:1px solid ${NAVY}1a;background:#f9f9f9"><img src="${p.url}" style="max-width:100%;max-height:100%;object-fit:contain" crossOrigin="anonymous"/></div>`
       ).join('')}
     </div>
     ${extraLine}
