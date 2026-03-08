@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,22 +7,99 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, CalendarDays, BarChart3, Sparkles, CheckCircle2, ArrowLeft } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import BrandMark from "@/components/BrandMark";
 
-const FloatingCard = ({ children, className = "", delay = 0, y = -8 }: { children: React.ReactNode; className?: string; delay?: number; y?: number }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20, scale: 0.9 }}
-    animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ duration: 0.7, delay: 0.5 + delay, ease: [0.22, 1, 0.36, 1] }}
-    className={className}
-  >
+/* ── Magnetic floating card ── */
+const FloatingCard = ({
+  children,
+  className = "",
+  delay = 0,
+  y = -8,
+  mouseX,
+  mouseY,
+  centerX,
+  centerY,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+  y?: number;
+  mouseX: any;
+  mouseY: any;
+  centerX: number;
+  centerY: number;
+}) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // magnetic pull toward cursor – subtle (max ±18px)
+  const dx = useTransform(mouseX, (mx: number) => {
+    if (mx === 0) return 0;
+    const rect = cardRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const cardCx = rect.left + rect.width / 2;
+    const dist = mx - cardCx;
+    return Math.max(-18, Math.min(18, dist * 0.04));
+  });
+  const dy = useTransform(mouseY, (my: number) => {
+    if (my === 0) return 0;
+    const rect = cardRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const cardCy = rect.top + rect.height / 2;
+    const dist = my - cardCy;
+    return Math.max(-18, Math.min(18, dist * 0.04));
+  });
+
+  const sx = useSpring(dx, { stiffness: 120, damping: 20 });
+  const sy = useSpring(dy, { stiffness: 120, damping: 20 });
+
+  return (
     <motion.div
-      animate={{ y: [0, y, 0] }}
-      transition={{ duration: 5 + delay, repeat: Infinity, ease: "easeInOut" }}
+      ref={cardRef}
+      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.7, delay: 0.5 + delay, ease: [0.22, 1, 0.36, 1] }}
+      style={{ x: sx, y: sy }}
+      className={className}
     >
-      {children}
+      <motion.div
+        animate={{ y: [0, y, 0] }}
+        transition={{ duration: 5 + delay, repeat: Infinity, ease: "easeInOut" }}
+      >
+        {children}
+      </motion.div>
     </motion.div>
+  );
+};
+
+/* ── Premium input wrapper ── */
+const PremiumInput = ({
+  hasError,
+  children,
+}: {
+  hasError: boolean;
+  children: React.ReactNode;
+}) => (
+  <motion.div
+    animate={
+      hasError
+        ? { x: [0, -6, 6, -4, 4, -2, 2, 0] }
+        : {}
+    }
+    transition={{ duration: 0.5, ease: "easeInOut" }}
+    className="relative group"
+  >
+    {/* Focus glow ring */}
+    <div
+      className={`absolute -inset-px rounded-lg opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none ${
+        hasError
+          ? "bg-gradient-to-r from-red-500/30 via-red-400/20 to-red-500/30"
+          : "bg-gradient-to-r from-[#C4A45B]/30 via-[#C4A45B]/15 to-[#C4A45B]/30"
+      }`}
+    />
+    <div className="relative">
+      {children}
+    </div>
   </motion.div>
 );
 
@@ -33,10 +110,34 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  
+  const [errorFields, setErrorFields] = useState<{ email?: boolean; password?: boolean }>({});
+
   const searchParams = new URLSearchParams(window.location.search);
   const isDemoMode = searchParams.get('mode') === 'demo';
   const [defaultTab] = useState(isDemoMode ? 'signup' : 'signin');
+
+  // Mouse tracking for parallax cards
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    mouseX.set(e.clientX);
+    mouseY.set(e.clientY);
+  }, [mouseX, mouseY]);
+
+  const handleMouseLeave = useCallback(() => {
+    mouseX.set(0);
+    mouseY.set(0);
+  }, [mouseX, mouseY]);
+
+  // Clear error state when user types
+  useEffect(() => {
+    if (email) setErrorFields((prev) => ({ ...prev, email: false }));
+  }, [email]);
+  useEffect(() => {
+    if (password) setErrorFields((prev) => ({ ...prev, password: false }));
+  }, [password]);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -57,14 +158,21 @@ const Auth = () => {
     }
   }, [navigate]);
 
+  const triggerError = (fields: { email?: boolean; password?: boolean }) => {
+    setErrorFields(fields);
+    setTimeout(() => setErrorFields({}), 2000);
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast.error("Veuillez remplir tous les champs");
+      triggerError({ email: !email, password: !password });
       return;
     }
     if (password.length < 6) {
       toast.error("Le mot de passe doit contenir au moins 6 caractères");
+      triggerError({ password: true });
       return;
     }
     setLoading(true);
@@ -111,6 +219,7 @@ const Auth = () => {
       }
     } catch (error: any) {
       console.error("Signup error:", error);
+      triggerError({ email: true });
       if (error.message?.includes('already registered') || error.message?.includes('already been registered')) {
         toast.error("Cet email est déjà utilisé. Veuillez vous connecter.");
       } else {
@@ -141,7 +250,7 @@ const Auth = () => {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) { toast.error("Veuillez saisir votre email"); return; }
+    if (!email) { toast.error("Veuillez saisir votre email"); triggerError({ email: true }); return; }
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -159,7 +268,7 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) { toast.error("Veuillez remplir tous les champs"); return; }
+    if (!email || !password) { toast.error("Veuillez remplir tous les champs"); triggerError({ email: !email, password: !password }); return; }
     setLoading(true);
     try {
       const { error, data } = await supabase.auth.signInWithPassword({
@@ -169,11 +278,13 @@ const Auth = () => {
       if (error) {
         if (error.message.includes('Email not confirmed') || error.message.includes('not confirmed')) {
           toast.error("Votre email n'est pas encore vérifié. Vérifiez votre boîte mail ou cliquez ci-dessous pour renvoyer l'email.", { duration: 5000 });
+          triggerError({ email: true });
           setLoading(false);
           return;
         }
         if (error.message.includes('Invalid login credentials')) {
           toast.error("Email ou mot de passe incorrect. Vérifiez vos identifiants et réessayez.", { duration: 5000 });
+          triggerError({ email: true, password: true });
           setLoading(false);
           return;
         }
@@ -200,25 +311,34 @@ const Auth = () => {
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Signin error:", error);
+      triggerError({ email: true, password: true });
       toast.error(error.message || "Email ou mot de passe incorrect");
     } finally {
       setLoading(false);
     }
   };
 
-  const inputClasses = "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-[#C4A45B]/50 focus:ring-[#C4A45B]/20 transition-all duration-200";
+  const inputBase = "bg-white/5 border-white/10 text-white placeholder:text-white/30 transition-all duration-300 focus:border-[#C4A45B]/50 focus:ring-[#C4A45B]/20 focus:bg-white/[0.07] focus:shadow-[0_0_15px_-3px_rgba(196,164,91,0.15)] focus:-translate-y-px";
+  const inputError = "border-red-500/50 bg-red-500/5 shadow-[0_0_12px_-3px_rgba(239,68,68,0.25)]";
   const labelClasses = "text-white/70 text-sm font-medium";
+
+  const getInputClass = (field: 'email' | 'password', extra = "") =>
+    `${inputBase} ${errorFields[field] ? inputError : ""} ${extra}`;
 
   return (
     <div className="min-h-screen flex bg-[#061452] relative overflow-hidden">
       {/* ── Left brand panel (hidden on mobile) ── */}
-      <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center p-12">
+      <div
+        ref={panelRef}
+        className="hidden lg:flex lg:w-1/2 relative items-center justify-center p-12"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
         {/* Background effects */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-br from-[#061452] via-[#0a1f6b] to-[#061452]" />
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#C4A45B]/8 rounded-full blur-[120px]" />
           <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-[#C4A45B]/5 rounded-full blur-[100px]" />
-          {/* Grid pattern */}
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
         </div>
 
@@ -243,7 +363,7 @@ const Auth = () => {
 
           {/* Floating product cards */}
           <div className="mt-16 relative h-52">
-            <FloatingCard delay={0} y={-6} className="absolute top-0 left-0">
+            <FloatingCard delay={0} y={-6} className="absolute top-0 left-0" mouseX={mouseX} mouseY={mouseY} centerX={0} centerY={0}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
                   <CalendarDays className="h-4 w-4 text-[#C4A45B]" />
@@ -255,7 +375,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
 
-            <FloatingCard delay={0.8} y={-10} className="absolute top-4 right-0">
+            <FloatingCard delay={0.8} y={-10} className="absolute top-4 right-0" mouseX={mouseX} mouseY={mouseY} centerX={0} centerY={0}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15">
                   <CheckCircle2 className="h-4 w-4 text-emerald-400" />
@@ -267,7 +387,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
 
-            <FloatingCard delay={1.4} y={-7} className="absolute bottom-0 left-8">
+            <FloatingCard delay={1.4} y={-7} className="absolute bottom-0 left-8" mouseX={mouseX} mouseY={mouseY} centerX={0} centerY={0}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15">
                   <BarChart3 className="h-4 w-4 text-blue-400" />
@@ -279,7 +399,7 @@ const Auth = () => {
               </div>
             </FloatingCard>
 
-            <FloatingCard delay={2} y={-5} className="absolute bottom-4 right-4">
+            <FloatingCard delay={2} y={-5} className="absolute bottom-4 right-4" mouseX={mouseX} mouseY={mouseY} centerX={0} centerY={0}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
                   <Sparkles className="h-4 w-4 text-[#C4A45B]" />
@@ -296,7 +416,6 @@ const Auth = () => {
 
       {/* ── Right form panel ── */}
       <div className="flex flex-1 items-center justify-center p-4 sm:p-8 lg:w-1/2">
-        {/* Mobile background glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#C4A45B]/6 rounded-full blur-[150px] lg:hidden" />
 
         <motion.div
@@ -305,14 +424,11 @@ const Auth = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="w-full max-w-md relative z-10"
         >
-          {/* Mobile brand */}
           <div className="text-center mb-8 lg:hidden">
             <BrandMark variant="full" showIcon={true} light />
           </div>
 
-          {/* Form card */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-black/20 relative">
-            {/* Top glow line */}
             <div className="absolute -top-px left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-[#C4A45B]/40 to-transparent" />
 
             <div className="mb-6">
@@ -342,7 +458,9 @@ const Auth = () => {
                   <form onSubmit={handleSignIn} className="space-y-4">
                     <div className="space-y-1.5">
                       <Label htmlFor="signin-email" className={labelClasses}>Email</Label>
-                      <Input id="signin-email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required className={inputClasses} />
+                      <PremiumInput hasError={!!errorFields.email}>
+                        <Input id="signin-email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required className={getInputClass('email')} />
+                      </PremiumInput>
                     </div>
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
@@ -351,12 +469,14 @@ const Auth = () => {
                           Mot de passe oublié ?
                         </button>
                       </div>
-                      <div className="relative">
-                        <Input id="signin-password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} required className={`${inputClasses} pr-10`} />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors" aria-label={showPassword ? "Masquer" : "Afficher"} tabIndex={-1}>
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
+                      <PremiumInput hasError={!!errorFields.password}>
+                        <div className="relative">
+                          <Input id="signin-password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} required className={getInputClass('password', 'pr-10')} />
+                          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors" aria-label={showPassword ? "Masquer" : "Afficher"} tabIndex={-1}>
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </PremiumInput>
                     </div>
                     <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#C4A45B] to-[#d4b96b] text-[#061452] font-semibold hover:shadow-lg hover:shadow-[#C4A45B]/20 hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
                       {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Connexion...</>) : "Se connecter"}
@@ -371,7 +491,9 @@ const Auth = () => {
                   <form onSubmit={handleForgotPassword} className="space-y-4">
                     <div className="space-y-1.5">
                       <Label htmlFor="forgot-email" className={labelClasses}>Email</Label>
-                      <Input id="forgot-email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required className={inputClasses} />
+                      <PremiumInput hasError={!!errorFields.email}>
+                        <Input id="forgot-email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required className={getInputClass('email')} />
+                      </PremiumInput>
                       <p className="text-xs text-white/40">Nous vous enverrons un lien pour réinitialiser votre mot de passe</p>
                     </div>
                     <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#C4A45B] to-[#d4b96b] text-[#061452] font-semibold hover:shadow-lg hover:shadow-[#C4A45B]/20 hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
@@ -389,16 +511,20 @@ const Auth = () => {
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="signup-email" className={labelClasses}>Email</Label>
-                    <Input id="signup-email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required className={inputClasses} />
+                    <PremiumInput hasError={!!errorFields.email}>
+                      <Input id="signup-email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required className={getInputClass('email')} />
+                    </PremiumInput>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="signup-password" className={labelClasses}>Mot de passe</Label>
-                    <div className="relative">
-                      <Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} required className={`${inputClasses} pr-10`} />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors" aria-label={showPassword ? "Masquer" : "Afficher"} tabIndex={-1}>
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
+                    <PremiumInput hasError={!!errorFields.password}>
+                      <div className="relative">
+                        <Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} required className={getInputClass('password', 'pr-10')} />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors" aria-label={showPassword ? "Masquer" : "Afficher"} tabIndex={-1}>
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </PremiumInput>
                     <p className="text-xs text-white/40">Minimum 6 caractères</p>
                   </div>
                   <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#C4A45B] to-[#d4b96b] text-[#061452] font-semibold hover:shadow-lg hover:shadow-[#C4A45B]/20 hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
