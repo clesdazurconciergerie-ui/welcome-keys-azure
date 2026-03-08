@@ -327,11 +327,11 @@ const Auth = () => {
             </div>
 
             <Tabs defaultValue={defaultTab} className="w-full">
-              <TabsList className="flex w-full items-stretch mb-6 bg-white/5 border border-white/10 rounded-lg h-10 p-1 gap-1">
-                <TabsTrigger value="signin" className="flex-1 flex items-center justify-center text-xs sm:text-sm rounded-md py-0 text-white/60 data-[state=active]:bg-[#C4A45B]/15 data-[state=active]:text-[#C4A45B] data-[state=active]:shadow-none transition-all">
+              <TabsList className="flex w-full items-center mb-6 bg-white/5 border border-white/10 rounded-lg h-10 p-1 gap-0">
+                <TabsTrigger value="signin" className="flex-1 h-full text-xs sm:text-sm text-white/60 data-[state=active]:bg-[#C4A45B]/15 data-[state=active]:text-[#C4A45B] data-[state=active]:shadow-none rounded-md transition-all">
                   Connexion
                 </TabsTrigger>
-                <TabsTrigger value="signup" className="flex-1 flex items-center justify-center text-xs sm:text-sm rounded-md py-0 text-white/60 data-[state=active]:bg-[#C4A45B]/15 data-[state=active]:text-[#C4A45B] data-[state=active]:shadow-none transition-all">
+                <TabsTrigger value="signup" className="flex-1 h-full text-xs sm:text-sm text-white/60 data-[state=active]:bg-[#C4A45B]/15 data-[state=active]:text-[#C4A45B] data-[state=active]:shadow-none rounded-md transition-all">
                   {isDemoMode ? "Démo gratuite" : "Inscription"}
                 </TabsTrigger>
               </TabsList>
