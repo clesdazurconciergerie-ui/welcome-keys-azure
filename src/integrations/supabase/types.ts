@@ -1403,6 +1403,103 @@ export type Database = {
           },
         ]
       }
+      inspections: {
+        Row: {
+          booking_id: string | null
+          cleaning_photos_json: Json | null
+          concierge_signature_url: string | null
+          created_at: string
+          damage_notes: string | null
+          exit_photos_json: Json | null
+          general_comment: string | null
+          guest_name: string | null
+          guest_signature_url: string | null
+          id: string
+          inspection_date: string
+          inspection_type: string
+          linked_inspection_id: string | null
+          meter_electricity: string | null
+          meter_gas: string | null
+          meter_water: string | null
+          occupants_count: number | null
+          pdf_url: string | null
+          property_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          cleaning_photos_json?: Json | null
+          concierge_signature_url?: string | null
+          created_at?: string
+          damage_notes?: string | null
+          exit_photos_json?: Json | null
+          general_comment?: string | null
+          guest_name?: string | null
+          guest_signature_url?: string | null
+          id?: string
+          inspection_date?: string
+          inspection_type?: string
+          linked_inspection_id?: string | null
+          meter_electricity?: string | null
+          meter_gas?: string | null
+          meter_water?: string | null
+          occupants_count?: number | null
+          pdf_url?: string | null
+          property_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          cleaning_photos_json?: Json | null
+          concierge_signature_url?: string | null
+          created_at?: string
+          damage_notes?: string | null
+          exit_photos_json?: Json | null
+          general_comment?: string | null
+          guest_name?: string | null
+          guest_signature_url?: string | null
+          id?: string
+          inspection_date?: string
+          inspection_type?: string
+          linked_inspection_id?: string | null
+          meter_electricity?: string | null
+          meter_gas?: string | null
+          meter_water?: string | null
+          occupants_count?: number | null
+          pdf_url?: string | null
+          property_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspections_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspections_linked_inspection_id_fkey"
+            columns: ["linked_inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspections_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_items: {
         Row: {
           booking_id: string | null
