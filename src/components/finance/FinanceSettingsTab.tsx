@@ -7,19 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useFinancialSettings } from "@/hooks/useFinancialSettings";
 import { useServicesCatalog, type ServiceCatalogItem } from "@/hooks/useServicesCatalog";
 import { Switch } from "@/components/ui/switch";
-import { Save, Loader2, Plus, Trash2, Edit2, Check, X, Upload, ImageIcon, RotateCcw, Palette, PenTool } from "lucide-react";
+import { Save, Loader2, Plus, Trash2, Edit2, Check, X, RotateCcw } from "lucide-react";
 import { formatEUR } from "@/lib/finance-utils";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-
-function contrastColor(hex: string): string {
-  const c = hex.replace("#", "");
-  const r = parseInt(c.substring(0, 2), 16);
-  const g = parseInt(c.substring(2, 4), 16);
-  const b = parseInt(c.substring(4, 6), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? "#1a1a1a" : "#ffffff";
-}
 
 export function FinanceSettingsTab() {
   const { settings, loading, saveSettings, refetch, cleanupVatData } = useFinancialSettings();
@@ -39,17 +28,9 @@ export function FinanceSettingsTab() {
     bic: "",
     legal_footer: "",
     vat_enabled: true,
-    invoice_primary_color: "#061452",
-    invoice_accent_color: "#C4A45B",
-    invoice_text_color: "",
     next_invoice_number: 1,
   });
   const [saving, setSaving] = useState(false);
-
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
-  const [uploadingSignature, setUploadingSignature] = useState(false);
 
   // Service catalog form
   const [newSvcName, setNewSvcName] = useState("");
@@ -75,89 +56,10 @@ export function FinanceSettingsTab() {
         bic: (settings as any).bic || "",
         legal_footer: settings.legal_footer || "",
         vat_enabled: settings.vat_enabled ?? true,
-        invoice_primary_color: (settings as any).invoice_primary_color || "#061452",
-        invoice_accent_color: (settings as any).invoice_accent_color || "#C4A45B",
-        invoice_text_color: (settings as any).invoice_text_color || "",
         next_invoice_number: settings.next_invoice_number || 1,
       });
-      setLogoUrl(settings.logo_url || null);
-      setSignatureUrl((settings as any).default_signature_url || null);
     }
   }, [settings]);
-
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Seules les images sont acceptées (PNG, JPG, SVG)");
-      return;
-    }
-    setUploadingLogo(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { toast.error("Non authentifié"); return; }
-
-      const ext = file.name.split(".").pop() || "png";
-      const filePath = `${user.id}/logo.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("branding")
-        .upload(filePath, file, { contentType: file.type, upsert: true });
-
-      if (uploadError) {
-        toast.error(`Erreur upload: ${uploadError.message}`);
-        return;
-      }
-
-      const { data: urlData } = supabase.storage.from("branding").getPublicUrl(filePath);
-      const publicUrl = urlData.publicUrl + "?t=" + Date.now();
-
-      await saveSettings({ logo_url: publicUrl });
-      setLogoUrl(publicUrl);
-      toast.success("Logo mis à jour");
-    } catch (err: any) {
-      toast.error(`Erreur: ${err?.message || "Erreur inconnue"}`);
-    } finally {
-      setUploadingLogo(false);
-    }
-  };
-
-  const handleRemoveLogo = async () => {
-    await saveSettings({ logo_url: null });
-    setLogoUrl(null);
-    toast.success("Logo supprimé");
-  };
-
-  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingSignature(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { toast.error("Non authentifié"); return; }
-      const ext = file.name.split(".").pop() || "png";
-      const filePath = `${user.id}/signature.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("branding")
-        .upload(filePath, file, { contentType: file.type, upsert: true });
-      if (uploadError) { toast.error(`Erreur upload: ${uploadError.message}`); return; }
-      const { data: urlData } = supabase.storage.from("branding").getPublicUrl(filePath);
-      const publicUrl = urlData.publicUrl + "?t=" + Date.now();
-      await saveSettings({ default_signature_url: publicUrl } as any);
-      setSignatureUrl(publicUrl);
-      toast.success("Signature mise à jour");
-    } catch (err: any) {
-      toast.error(`Erreur: ${err?.message || "Erreur inconnue"}`);
-    } finally {
-      setUploadingSignature(false);
-    }
-  };
-
-  const handleRemoveSignature = async () => {
-    await saveSettings({ default_signature_url: null } as any);
-    setSignatureUrl(null);
-    toast.success("Signature supprimée");
-  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -195,9 +97,6 @@ export function FinanceSettingsTab() {
 
   if (loading) return <p className="text-sm text-muted-foreground mt-4">Chargement...</p>;
 
-  const primaryColor = form.invoice_primary_color || "#061452";
-  const accentColor = form.invoice_accent_color || "#C4A45B";
-  const autoTextColor = form.invoice_text_color || contrastColor(primaryColor);
   const previewInvoiceNumber = `${form.invoice_prefix || "FAC"}-${new Date().getFullYear()}-${String(form.next_invoice_number || 1).padStart(3, "0")}`;
 
   return (
@@ -238,214 +137,11 @@ export function FinanceSettingsTab() {
         </CardContent>
       </Card>
 
-      {/* Logo */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Logo (factures)</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          {logoUrl ? (
-            <div className="flex items-center gap-4">
-              <div className="h-20 w-40 rounded border bg-muted/30 flex items-center justify-center overflow-hidden">
-                <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="relative cursor-pointer inline-block">
-                  <Button variant="outline" size="sm" className="gap-2 text-xs h-8 pointer-events-none" tabIndex={-1} asChild>
-                    <span>
-                      {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                      Remplacer
-                    </span>
-                  </Button>
-                  <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={handleLogoUpload} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
-                </label>
-                <Button variant="ghost" size="sm" className="gap-2 text-xs h-8 text-destructive" onClick={handleRemoveLogo}>
-                  <Trash2 className="h-3.5 w-3.5" />Supprimer
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <label className="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 py-8 cursor-pointer hover:border-primary/40 transition-colors">
-              <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={handleLogoUpload} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
-              {uploadingLogo ? (
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              ) : (
-                <>
-                  <ImageIcon className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                  <p className="text-sm text-muted-foreground">Cliquez pour ajouter votre logo</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">PNG, JPG ou SVG</p>
-                </>
-              )}
-            </label>
-          )}
-        </CardContent>
-      </Card>
+      <p className="text-xs text-muted-foreground">
+        Logo, couleurs et signature sont configurables dans{' '}
+        <a href="/dashboard/branding" className="text-primary underline font-medium">Paramètres → Apparence</a>
+      </p>
 
-      {/* Default Concierge Signature */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <PenTool className="h-4 w-4" />
-            Signature concierge par défaut
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">Utilisée automatiquement dans les états des lieux PDF</p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {signatureUrl ? (
-            <div className="flex items-center gap-4">
-              <div className="h-20 w-48 rounded border bg-muted/30 flex items-center justify-center overflow-hidden p-2">
-                <img src={signatureUrl} alt="Signature" className="max-h-full max-w-full object-contain" />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="relative cursor-pointer inline-block">
-                  <Button variant="outline" size="sm" className="gap-2 text-xs h-8 pointer-events-none" tabIndex={-1} asChild>
-                    <span>
-                      {uploadingSignature ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                      Remplacer
-                    </span>
-                  </Button>
-                  <input type="file" accept="image/png,image/jpeg" onChange={handleSignatureUpload} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
-                </label>
-                <Button variant="ghost" size="sm" className="gap-2 text-xs h-8 text-destructive" onClick={handleRemoveSignature}>
-                  <Trash2 className="h-3.5 w-3.5" />Supprimer
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <label className="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 py-8 cursor-pointer hover:border-primary/40 transition-colors">
-              <input type="file" accept="image/png,image/jpeg" onChange={handleSignatureUpload} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
-              {uploadingSignature ? (
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              ) : (
-                <>
-                  <PenTool className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                  <p className="text-sm text-muted-foreground">Cliquez pour ajouter votre signature</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">PNG ou JPG</p>
-                </>
-              )}
-            </label>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ═══ INVOICE THEME ═══ */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Palette className="h-4 w-4" />
-            Thème de la facture
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">Personnalisez les couleurs de vos factures PDF</p>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Couleur principale</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={primaryColor}
-                  onChange={e => setForm(f => ({ ...f, invoice_primary_color: e.target.value }))}
-                  className="w-10 h-10 rounded border border-border cursor-pointer"
-                />
-                <Input
-                  value={form.invoice_primary_color}
-                  onChange={e => setForm(f => ({ ...f, invoice_primary_color: e.target.value }))}
-                  placeholder="#061452"
-                  className="font-mono text-sm"
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground">En-tête, titres, bordures</p>
-            </div>
-            <div className="space-y-2">
-              <Label>Couleur d'accent</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={accentColor}
-                  onChange={e => setForm(f => ({ ...f, invoice_accent_color: e.target.value }))}
-                  className="w-10 h-10 rounded border border-border cursor-pointer"
-                />
-                <Input
-                  value={form.invoice_accent_color}
-                  onChange={e => setForm(f => ({ ...f, invoice_accent_color: e.target.value }))}
-                  placeholder="#C4A45B"
-                  className="font-mono text-sm"
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground">Séparateurs, accents dorés</p>
-            </div>
-            <div className="space-y-2">
-              <Label>Couleur du texte (optionnel)</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={form.invoice_text_color || autoTextColor}
-                  onChange={e => setForm(f => ({ ...f, invoice_text_color: e.target.value }))}
-                  className="w-10 h-10 rounded border border-border cursor-pointer"
-                />
-                <Input
-                  value={form.invoice_text_color}
-                  onChange={e => setForm(f => ({ ...f, invoice_text_color: e.target.value }))}
-                  placeholder="Auto (contraste)"
-                  className="font-mono text-sm"
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground">Vide = auto-contraste</p>
-            </div>
-          </div>
-
-          {/* Mini preview */}
-          <div className="rounded-lg border p-4 bg-white">
-            <p className="text-xs text-muted-foreground mb-2 font-medium">Aperçu</p>
-            <div className="rounded overflow-hidden border" style={{ maxWidth: 340 }}>
-              <div
-                style={{
-                  backgroundColor: primaryColor,
-                  color: autoTextColor,
-                  padding: "12px 16px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" as const, borderBottom: `2px solid ${accentColor}`, paddingBottom: 2, display: "inline-block" }}>
-                    {form.company_name || "Ma Conciergerie"}
-                  </div>
-                  <p style={{ fontSize: 8, opacity: 0.8, margin: "4px 0 0" }}>
-                    {form.address || "Adresse"} — {form.org_city || "Ville"}
-                  </p>
-                </div>
-                <div style={{ textAlign: "right" as const }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" as const, borderBottom: `2px solid ${accentColor}`, paddingBottom: 2, display: "inline-block" }}>
-                    Nom Propriétaire
-                  </div>
-                </div>
-              </div>
-              <div style={{ padding: "8px 16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                  <div style={{ width: 2, height: 20, backgroundColor: accentColor, borderRadius: 1 }} />
-                  <span style={{ fontSize: 10, fontWeight: 700, color: primaryColor, textTransform: "uppercase" as const, letterSpacing: 1 }}>
-                    Facture N° {previewInvoiceNumber}
-                  </span>
-                </div>
-                <div style={{ border: `1px solid ${primaryColor}30`, borderRadius: 2, overflow: "hidden" }}>
-                  <div style={{ backgroundColor: primaryColor, color: autoTextColor, fontSize: 7, padding: "4px 8px", display: "flex", justifyContent: "space-between" }}>
-                    <span>Désignation</span><span>Total</span>
-                  </div>
-                  <div style={{ fontSize: 7, padding: "4px 8px", display: "flex", justifyContent: "space-between", borderBottom: `1px solid ${primaryColor}15` }}>
-                    <span>Exemple de prestation</span><span>100,00 €</span>
-                  </div>
-                </div>
-                <div style={{ marginTop: 6, borderTop: `1px solid ${accentColor}`, paddingTop: 4 }}>
-                  <span style={{ fontSize: 7, fontWeight: 700, color: primaryColor }}>Modalités de paiement</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ═══ NUMBERING ═══ */}
       <Card>
         <CardHeader><CardTitle className="text-base">Numérotation des factures</CardTitle></CardHeader>
         <CardContent className="space-y-4">
