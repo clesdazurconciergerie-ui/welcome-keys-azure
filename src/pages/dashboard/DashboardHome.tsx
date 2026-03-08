@@ -76,8 +76,17 @@ const DashboardHome = () => {
 
   return (
     <div className="space-y-5 sm:space-y-8 max-w-6xl">
+      <OnboardingWizard open={showWizard} onClose={dismissWizard} />
       <SubscriptionAlert />
       <DemoExpirationBanner />
+
+      {!isFullyComplete && (
+        <OnboardingProgress
+          progress={progress}
+          completionPercent={completionPercent}
+          isFullyComplete={isFullyComplete}
+        />
+      )}
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <p className="text-muted-foreground text-lg">
