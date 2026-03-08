@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useFinancialSettings } from "@/hooks/useFinancialSettings";
 import { useServicesCatalog, type ServiceCatalogItem } from "@/hooks/useServicesCatalog";
 import { Switch } from "@/components/ui/switch";
-import { Save, Loader2, Plus, Trash2, Edit2, Check, X, Upload, ImageIcon, RotateCcw, Palette, PenTool } from "lucide-react";
+import { Save, Loader2, Plus, Trash2, Edit2, Check, X, RotateCcw } from "lucide-react";
 import { formatEUR } from "@/lib/finance-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
