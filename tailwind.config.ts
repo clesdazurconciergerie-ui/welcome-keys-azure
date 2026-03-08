@@ -5,31 +5,20 @@ export default {
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
   safelist: [
-    // Font families for dynamic theme application
-    'font-inter',
-    'font-poppins',
-    'font-montserrat',
-    'font-sans',
-    // Font sizes for dynamic theme application
-    'text-[14px]',
-    'text-[16px]',
-    'text-[18px]',
-    'text-[20px]',
+    'font-inter', 'font-poppins', 'font-montserrat', 'font-sans',
+    'text-[14px]', 'text-[16px]', 'text-[18px]', 'text-[20px]',
   ],
   theme: {
     container: {
       center: true,
       padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
+      screens: { "2xl": "1400px" },
     },
     extend: {
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
         display: ["Poppins", "ui-sans-serif", "system-ui", "sans-serif"],
         body: ["Montserrat", "ui-sans-serif", "system-ui", "sans-serif"],
-        // Theme-specific font classes (used in safelist)
         inter: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
         poppins: ["Poppins", "ui-sans-serif", "system-ui", "sans-serif"],
         montserrat: ["Montserrat", "ui-sans-serif", "system-ui", "sans-serif"],
@@ -83,44 +72,50 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        info: "hsl(var(--info))",
       },
       borderRadius: {
+        xl: "calc(var(--radius) + 4px)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      boxShadow: {
+        'xs': 'var(--shadow-xs)',
+        'subtle': 'var(--shadow-sm)',
+        'elevated': 'var(--shadow-md)',
+        'premium': 'var(--shadow-xl)',
+      },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
         "chatbot-slide-up": {
-          from: {
-            transform: "translateY(50px)",
-            opacity: "0",
-          },
-          to: {
-            transform: "translateY(0)",
-            opacity: "1",
-          },
+          from: { transform: "translateY(50px)", opacity: "0" },
+          to: { transform: "translateY(0)", opacity: "1" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0", transform: "translateY(4px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "scale-in": {
+          "0%": { transform: "scale(0.97)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "chatbot-slide-up": "chatbot-slide-up 0.3s ease forwards",
+        "fade-in": "fade-in 0.3s ease-out",
+        "scale-in": "scale-in 0.2s ease-out",
       },
     },
   },
