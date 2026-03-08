@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   ClipboardList, Play, CheckCircle, Upload, Camera, AlertTriangle,
   Send, MapPin, Calendar, Euro, Loader2, List, CalendarDays, ChevronLeft, ChevronRight,
-  AlertCircle,
+  AlertCircle, Clock, Briefcase, TrendingUp,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
@@ -31,24 +31,59 @@ function getPropertyPhoto(mission: NewMission): string | null {
 
 const missionTypeLabels: Record<string, string> = {
   cleaning: "🧹 Ménage",
+  cleaning_checkout: "🧹 Ménage",
   checkin: "🔑 Check-in",
   checkout: "🚪 Check-out",
   maintenance: "🔧 Maintenance",
 };
 
-const statusConfig: Record<string, { label: string; color: string }> = {
-  open: { label: "Ouverte", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
-  assigned: { label: "Assignée", color: "bg-blue-100 text-blue-800 border-blue-200" },
-  confirmed: { label: "Confirmée", color: "bg-blue-100 text-blue-800 border-blue-200" },
-  scheduled: { label: "Assignée", color: "bg-blue-100 text-blue-800 border-blue-200" },
-  in_progress: { label: "En cours", color: "bg-amber-100 text-amber-800 border-amber-200" },
-  done: { label: "Terminée", color: "bg-muted text-muted-foreground border-border" },
-  approved: { label: "Approuvée ✅", color: "bg-muted text-muted-foreground border-border" },
-  completed: { label: "En attente", color: "bg-amber-100 text-amber-800 border-amber-200" },
-  validated: { label: "Validée ✅", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
-  redo: { label: "À refaire", color: "bg-orange-100 text-orange-800 border-orange-200" },
-  refused: { label: "Refusée", color: "bg-red-100 text-red-800 border-red-200" },
+const statusConfig: Record<string, { label: string; pillClass: string }> = {
+  open: { label: "Ouverte", pillClass: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  assigned: { label: "Acceptée", pillClass: "bg-blue-100 text-blue-700 border-blue-200" },
+  confirmed: { label: "Confirmée", pillClass: "bg-blue-100 text-blue-700 border-blue-200" },
+  scheduled: { label: "Assignée", pillClass: "bg-blue-100 text-blue-700 border-blue-200" },
+  in_progress: { label: "En cours", pillClass: "bg-amber-100 text-amber-700 border-amber-200" },
+  done: { label: "Terminée", pillClass: "bg-muted text-muted-foreground border-border" },
+  approved: { label: "Approuvée", pillClass: "bg-muted text-muted-foreground border-border" },
+  completed: { label: "En attente", pillClass: "bg-amber-100 text-amber-700 border-amber-200" },
+  validated: { label: "Validée", pillClass: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  redo: { label: "À refaire", pillClass: "bg-orange-100 text-orange-700 border-orange-200" },
+  refused: { label: "Refusée", pillClass: "bg-red-100 text-red-700 border-red-200" },
 };
+
+/* ── Urgency helper ───────────────────────────────────────────── */
+
+function getUrgencyInfo(dateStr: string): { label: string; isUrgent: boolean } | null {
+  const missionDate = new Date(dateStr);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const mDay = new Date(missionDate.getFullYear(), missionDate.getMonth(), missionDate.getDate());
+  const diffDays = Math.round((mDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return null;
+  if (diffDays === 0) return { label: "Aujourd'hui", isUrgent: true };
+  if (diffDays === 1) return { label: "Demain", isUrgent: true };
+  if (diffDays <= 3) return { label: `Dans ${diffDays} jours`, isUrgent: false };
+  return null;
+}
+
+/* ── Stat Card ────────────────────────────────────────────────── */
+
+function StatCard({ icon: Icon, label, value, accent }: { icon: any; label: string; value: string | number; accent?: string }) {
+  return (
+    <Card className="border-border/60">
+      <CardContent className="p-4 flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${accent || "bg-primary/10"}`}>
+          <Icon className={`w-5 h-5 ${accent ? "text-white" : "text-primary"}`} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-2xl font-bold text-foreground leading-none">{value}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 /* ── Mission Card ─────────────────────────────────────────────── */
 
@@ -57,6 +92,7 @@ interface MissionCardProps {
   propertyName?: string;
   propertyAddress?: string;
   dateStr: string;
+  rawDate: string;
   missionType: string;
   payoutAmount: number;
   instructions?: string | null;
@@ -70,57 +106,82 @@ interface MissionCardProps {
 }
 
 function MissionCard({
-  title, propertyName, propertyAddress, dateStr, missionType, payoutAmount,
+  title, propertyName, propertyAddress, dateStr, rawDate, missionType, payoutAmount,
   instructions, status, photoCount, actions, onClick, applied, conflictWarning, propertyPhotoUrl,
 }: MissionCardProps) {
-  const cfg = statusConfig[status] || { label: status, color: "bg-muted text-muted-foreground border-border" };
+  const cfg = statusConfig[status] || { label: status, pillClass: "bg-muted text-muted-foreground border-border" };
+  const urgency = getUrgencyInfo(rawDate);
 
   return (
     <Card
-      className={`hover:shadow-md transition-all cursor-pointer border active:scale-[0.98] ${applied ? "border-primary/30 bg-primary/5" : "border-border"}`}
+      className={`transition-all cursor-pointer border hover:shadow-md hover:border-primary/20 hover:-translate-y-0.5 active:scale-[0.99] ${
+        applied ? "border-primary/30 bg-primary/5" : urgency?.isUrgent ? "border-amber-200 bg-amber-50/30" : "border-border"
+      }`}
       onClick={onClick}
     >
-      <CardContent className="p-0 sm:p-4">
-        {/* Mobile: stacked layout */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:gap-3">
-          {/* Property image — full width mobile, thumbnail desktop */}
-          <div className="shrink-0 w-full sm:w-16 h-32 sm:h-16 overflow-hidden sm:rounded-lg bg-muted sm:border sm:border-border sm:shadow-sm">
+      <CardContent className="p-0">
+        <div className="flex flex-col sm:flex-row">
+          {/* Property image */}
+          <div className="shrink-0 w-full sm:w-20 h-36 sm:h-auto sm:min-h-[100px] overflow-hidden sm:rounded-l-lg bg-muted">
             {propertyPhotoUrl ? (
               <img src={propertyPhotoUrl} alt={propertyName || 'Logement'} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <MapPin className="w-6 h-6 sm:w-5 sm:h-5 text-muted-foreground/50" />
+                <MapPin className="w-6 h-6 text-muted-foreground/40" />
               </div>
             )}
           </div>
 
-          <div className="flex-1 min-w-0 p-4 sm:p-0">
-            {/* Header: title + badge */}
+          {/* Content */}
+          <div className="flex-1 min-w-0 p-4">
+            {/* Top row: title + badge + urgency */}
             <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="font-semibold text-foreground text-sm sm:text-base truncate">{title}</p>
                 <span className="text-xs text-muted-foreground">{missionTypeLabels[missionType] || missionType}</span>
               </div>
-              <Badge className={`${cfg.color} border text-[11px] shrink-0`} variant="outline">{cfg.label}</Badge>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {urgency && (
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
+                    urgency.isUrgent ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-muted text-muted-foreground border-border"
+                  }`}>
+                    <Clock className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />
+                    {urgency.label}
+                  </span>
+                )}
+                <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full border ${cfg.pillClass}`}>
+                  {cfg.label}
+                </span>
+              </div>
             </div>
 
-            {/* Details — stacked on mobile */}
+            {/* Info row */}
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1.5 sm:gap-x-4 sm:gap-y-1 text-sm text-muted-foreground mb-2">
               {propertyName && (
-                <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 sm:w-3 sm:h-3 shrink-0" />{propertyName}</span>
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                  {propertyName}
+                </span>
               )}
-              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 sm:w-3 sm:h-3 shrink-0" />{dateStr}</span>
+              <span className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 shrink-0" />
+                {dateStr}
+              </span>
               {payoutAmount > 0 && (
-                <span className="flex items-center gap-1.5 font-semibold text-emerald-600"><Euro className="w-3.5 h-3.5 sm:w-3 sm:h-3" />{payoutAmount}€</span>
+                <span className="flex items-center gap-1.5 text-emerald-600 font-bold text-base">
+                  <Euro className="w-4 h-4" />
+                  {payoutAmount} €
+                </span>
               )}
-              {photoCount !== undefined && (
-                <span className="text-xs">📸 {photoCount}</span>
+              {photoCount !== undefined && photoCount > 0 && (
+                <span className="text-xs flex items-center gap-1"><Camera className="w-3 h-3" /> {photoCount}</span>
               )}
             </div>
 
             {instructions && (
               <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded-lg line-clamp-2 mb-2">{instructions}</p>
             )}
+
             {conflictWarning && (
               <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mb-2">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -128,9 +189,9 @@ function MissionCard({
               </div>
             )}
 
-            {/* Actions — full width on mobile */}
+            {/* Actions */}
             {actions && (
-              <div className="mt-1 [&>*]:w-full sm:[&>*]:w-auto [&>*]:h-11 sm:[&>*]:h-9">
+              <div className="mt-2 [&>*]:w-full sm:[&>*]:w-auto [&>*]:h-11 sm:[&>*]:h-9">
                 {actions}
               </div>
             )}
@@ -199,7 +260,7 @@ function MiniCalendar({ missions, onSelect }: { missions: NewMission[]; onSelect
                     <div
                       key={m.id}
                       onClick={() => onSelect(m)}
-                      className={`text-[10px] px-1 py-0.5 rounded truncate cursor-pointer mb-0.5 ${cfg?.color || "bg-muted"}`}
+                      className={`text-[10px] px-1 py-0.5 rounded truncate cursor-pointer mb-0.5 ${cfg?.pillClass || "bg-muted"}`}
                       title={m.title}
                     >
                       {missionTypeLabels[m.mission_type]?.charAt(0) || "📋"} {m.property?.name?.substring(0, 8) || "…"}
@@ -228,42 +289,43 @@ export default function SPMissionsUnifiedPage() {
   const [applyMessage, setApplyMessage] = useState("");
   const [applying, setApplying] = useState(false);
 
-  // New mission detail
   const [selectedNewMission, setSelectedNewMission] = useState<NewMission | null>(null);
-
-  // Legacy mission detail
   const [legacySelected, setLegacySelected] = useState<Mission | null>(null);
   const [uploading, setUploading] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [providerComment, setProviderComment] = useState("");
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const { items: checklistItems } = useChecklistItems(legacySelected?.property_id);
-
-  // Mission photos for new missions
   const { photos: missionPhotos, uploading: uploadingNewPhoto, uploadProgress, uploadPhoto: uploadMissionPhoto } = useMissionPhotos(selectedNewMission?.id || null);
 
   const isLoading = loadingNew || loadingLegacy;
 
-  // Open missions
   const openMissions = newMissions.filter(m => m.status === "open");
-
-  // My missions (new system)
   const myNewMissions = newMissions.filter(
     m => m.selected_provider_id && spId && ["assigned", "confirmed", "done", "approved"].includes(m.status)
   );
-
-  // My missions (legacy)
   const myLegacyMissions = legacyMissions.filter(m =>
     ["scheduled", "in_progress", "redo", "completed", "validated"].includes(m.status)
   );
 
+  const estimatedRevenue = useMemo(() => {
+    const fromNew = myNewMissions
+      .filter(m => ["assigned", "confirmed"].includes(m.status))
+      .reduce((sum, m) => sum + (m.payout_amount || 0), 0);
+    const fromLegacy = myLegacyMissions
+      .filter(m => ["scheduled", "in_progress"].includes(m.status))
+      .reduce((sum, m) => sum + (m.mission_amount || 0), 0);
+    return fromNew + fromLegacy;
+  }, [myNewMissions, myLegacyMissions]);
+
+  const myMissionsCount = myNewMissions.filter(m => ["assigned", "confirmed"].includes(m.status)).length
+    + myLegacyMissions.filter(m => ["scheduled", "in_progress"].includes(m.status)).length;
+
   const hasApplied = (m: NewMission) => m.applications?.some(a => a.provider_id === spId) || false;
 
-  // Conflict detection
   const getConflict = (mission: NewMission): string | null => {
     const mStart = new Date(mission.start_at);
     const mEnd = mission.end_at ? new Date(mission.end_at) : new Date(mStart.getTime() + (mission.duration_minutes || 120) * 60000);
-
     for (const my of myNewMissions) {
       if (["assigned", "confirmed"].includes(my.status)) {
         const s = new Date(my.start_at);
@@ -292,7 +354,6 @@ export default function SPMissionsUnifiedPage() {
     }
   };
 
-  // Legacy handlers
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: string = "after_cleaning") => {
     if (!legacySelected || !e.target.files?.length) return;
     setUploading(true);
@@ -338,11 +399,27 @@ export default function SPMissionsUnifiedPage() {
 
   return (
     <div className="space-y-5 sm:space-y-6 max-w-6xl">
+      {/* ── Header ─────────────────────────────────────────────── */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Missions</h1>
-        <p className="text-muted-foreground mt-1 text-sm sm:text-base">Postulez aux missions ouvertes ou gérez vos missions en cours</p>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+          Postulez aux missions ouvertes ou gérez vos missions acceptées.
+        </p>
       </motion.div>
 
+      {/* ── Stats Cards ────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="grid grid-cols-3 gap-3"
+      >
+        <StatCard icon={Send} label="Missions ouvertes" value={openMissions.length} accent="bg-emerald-600" />
+        <StatCard icon={Briefcase} label="Mes missions" value={myMissionsCount} accent="bg-[hsl(var(--brand-blue))]" />
+        <StatCard icon={TrendingUp} label="Revenus estimés" value={`${estimatedRevenue}€`} accent="bg-[hsl(var(--gold-dark))]" />
+      </motion.div>
+
+      {/* ── Tabs ───────────────────────────────────────────────── */}
       <Tabs defaultValue="ouvertes" className="w-full">
         <TabsList className="w-full h-12 sm:h-11 sm:max-w-md p-1 bg-muted">
           <TabsTrigger value="ouvertes" className="flex-1 h-10 sm:h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white gap-1.5 text-sm">
@@ -361,11 +438,15 @@ export default function SPMissionsUnifiedPage() {
         {/* ── Tab: Ouvertes ────────────────────────────────────── */}
         <TabsContent value="ouvertes" className="mt-4">
           {openMissions.length === 0 ? (
-            <Card className="text-center py-12">
-              <CardContent>
-                <Send className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                <h3 className="font-semibold text-lg">Aucune mission disponible</h3>
-                <p className="text-muted-foreground text-sm">Les nouvelles missions apparaîtront ici en temps réel</p>
+            <Card className="border-dashed border-2 border-border">
+              <CardContent className="py-16 text-center">
+                <div className="w-16 h-16 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">
+                  <Send className="w-7 h-7 text-muted-foreground" />
+                </div>
+                <h3 className="font-semibold text-lg text-foreground mb-1">Aucune mission disponible</h3>
+                <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+                  Les nouvelles missions apparaîtront ici dès qu'elles seront publiées par votre conciergerie.
+                </p>
               </CardContent>
             </Card>
           ) : (
@@ -379,6 +460,7 @@ export default function SPMissionsUnifiedPage() {
                       title={m.title}
                       propertyName={m.property?.name}
                       dateStr={fmtDate(m.start_at)}
+                      rawDate={m.start_at}
                       missionType={m.mission_type}
                       payoutAmount={m.payout_amount}
                       instructions={m.instructions}
@@ -388,10 +470,17 @@ export default function SPMissionsUnifiedPage() {
                       conflictWarning={conflict}
                       actions={
                         applied ? (
-                          <Badge className="bg-primary/10 text-primary border-primary/20 text-[11px]" variant="outline">✓ Postulé</Badge>
+                          <Badge className="bg-primary/10 text-primary border-primary/20 text-[11px] px-3 py-1.5" variant="outline">
+                            ✓ Candidature envoyée
+                          </Badge>
                         ) : (
-                          <Button size="sm" onClick={(e) => { e.stopPropagation(); setApplyTarget(m); setApplyMessage(""); }}>
-                            <Send className="w-3 h-3 mr-1" /> Postuler
+                          <Button
+                            size="sm"
+                            className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={(e) => { e.stopPropagation(); setApplyTarget(m); setApplyMessage(""); }}
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            Postuler
                           </Button>
                         )
                       }
@@ -405,7 +494,6 @@ export default function SPMissionsUnifiedPage() {
 
         {/* ── Tab: Mes missions ────────────────────────────────── */}
         <TabsContent value="mes-missions" className="mt-4 space-y-4">
-          {/* View toggle */}
           <div className="flex items-center gap-2">
             <Button
               variant={myView === "list" ? "default" : "outline"}
@@ -426,15 +514,9 @@ export default function SPMissionsUnifiedPage() {
           </div>
 
           {myView === "calendar" ? (
-            <MiniCalendar
-              missions={myNewMissions}
-              onSelect={(m) => {
-                // For calendar click, could open detail — for now just show info
-              }}
-            />
+            <MiniCalendar missions={myNewMissions} onSelect={() => {}} />
           ) : (
             <>
-              {/* New system missions */}
               {myNewMissions.length > 0 && (
                 <div className="space-y-3">
                   {myNewMissions.map((m, i) => (
@@ -443,6 +525,7 @@ export default function SPMissionsUnifiedPage() {
                         title={m.title}
                         propertyName={m.property?.name}
                         dateStr={fmtDate(m.start_at)}
+                        rawDate={m.start_at}
                         missionType={m.mission_type}
                         payoutAmount={m.payout_amount}
                         instructions={m.instructions}
@@ -453,12 +536,12 @@ export default function SPMissionsUnifiedPage() {
                           <>
                             {m.status === "assigned" && (
                               <Button size="sm" onClick={(e) => { e.stopPropagation(); confirmMission(m.id); }}>
-                                <CheckCircle className="w-3 h-3 mr-1" /> Confirmer
+                                <CheckCircle className="w-3.5 h-3.5 mr-1" /> Confirmer
                               </Button>
                             )}
                             {m.status === "confirmed" && (
-                              <Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedNewMission(m); }}>
-                                <Camera className="w-3 h-3 mr-1" /> Détail & Photos
+                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedNewMission(m); }}>
+                                <Camera className="w-3.5 h-3.5 mr-1" /> Détail & Photos
                               </Button>
                             )}
                           </>
@@ -469,7 +552,6 @@ export default function SPMissionsUnifiedPage() {
                 </div>
               )}
 
-              {/* Legacy missions */}
               {myLegacyMissions.length > 0 && (
                 <div className="space-y-3">
                   {myNewMissions.length > 0 && (
@@ -481,6 +563,7 @@ export default function SPMissionsUnifiedPage() {
                         title={m.property?.name || "Mission"}
                         propertyName={m.property?.address}
                         dateStr={new Date(m.scheduled_date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
+                        rawDate={m.scheduled_date}
                         missionType={m.mission_type}
                         payoutAmount={m.mission_amount}
                         instructions={m.notes}
@@ -494,11 +577,15 @@ export default function SPMissionsUnifiedPage() {
               )}
 
               {myNewMissions.length === 0 && myLegacyMissions.length === 0 && (
-                <Card className="text-center py-12">
-                  <CardContent>
-                    <ClipboardList className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                    <h3 className="font-semibold text-lg">Aucune mission en cours</h3>
-                    <p className="text-muted-foreground text-sm">Postulez aux missions ouvertes pour recevoir du travail</p>
+                <Card className="border-dashed border-2 border-border">
+                  <CardContent className="py-16 text-center">
+                    <div className="w-16 h-16 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">
+                      <ClipboardList className="w-7 h-7 text-muted-foreground" />
+                    </div>
+                    <h3 className="font-semibold text-lg text-foreground mb-1">Aucune mission en cours</h3>
+                    <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+                      Postulez aux missions ouvertes pour recevoir du travail.
+                    </p>
                   </CardContent>
                 </Card>
               )}
@@ -519,7 +606,7 @@ export default function SPMissionsUnifiedPage() {
                 <div className="text-sm space-y-1">
                   <p><span className="text-muted-foreground">Logement :</span> {applyTarget.property?.name}</p>
                   <p><span className="text-muted-foreground">Date :</span> {fmtDate(applyTarget.start_at)}</p>
-                  <p><span className="text-muted-foreground">Montant :</span> {applyTarget.payout_amount}€</p>
+                  <p><span className="text-muted-foreground">Montant :</span> <span className="font-bold text-emerald-600">{applyTarget.payout_amount}€</span></p>
                 </div>
                 {applyTarget.instructions && (
                   <div className="p-3 bg-muted/50 rounded-lg text-sm">
@@ -537,8 +624,8 @@ export default function SPMissionsUnifiedPage() {
                   <p className="text-sm font-medium mb-2">Message (optionnel)</p>
                   <Textarea value={applyMessage} onChange={e => setApplyMessage(e.target.value)} placeholder="Précisez vos disponibilités…" rows={3} />
                 </div>
-                <Button onClick={handleApply} disabled={applying} className="w-full">
-                  {applying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                <Button onClick={handleApply} disabled={applying} className="w-full gap-2">
+                  {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   Envoyer ma candidature
                 </Button>
               </div>
@@ -559,8 +646,13 @@ export default function SPMissionsUnifiedPage() {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div><span className="text-muted-foreground">Date :</span> {new Date(legacySelected.scheduled_date).toLocaleDateString("fr-FR")}</div>
                   <div><span className="text-muted-foreground">Type :</span> {missionTypeLabels[legacySelected.mission_type] || legacySelected.mission_type}</div>
-                  <div><span className="text-muted-foreground">Statut :</span> <Badge className={statusConfig[legacySelected.status]?.color}>{statusConfig[legacySelected.status]?.label || legacySelected.status}</Badge></div>
-                  <div><span className="text-muted-foreground">Montant :</span> {legacySelected.mission_amount}€</div>
+                  <div>
+                    <span className="text-muted-foreground">Statut : </span>
+                    <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full border ${statusConfig[legacySelected.status]?.pillClass || "bg-muted"}`}>
+                      {statusConfig[legacySelected.status]?.label || legacySelected.status}
+                    </span>
+                  </div>
+                  <div><span className="text-muted-foreground">Montant :</span> <span className="font-bold text-emerald-600">{legacySelected.mission_amount}€</span></div>
                 </div>
 
                 {legacySelected.notes && (
@@ -604,25 +696,27 @@ export default function SPMissionsUnifiedPage() {
                       )}
                       <label className="cursor-pointer block">
                         <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleFileUpload(e, "after_cleaning")} disabled={uploading} />
-                        <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-primary/30 rounded-lg hover:bg-primary/5 bg-primary/5">
+                        <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-primary/30 rounded-lg hover:bg-primary/5 bg-primary/5 min-h-[48px]">
                           <Camera className="w-5 h-5 text-primary" />
                           <span className="text-sm font-medium text-primary">{uploading ? "Upload…" : "📷 Prendre une photo"}</span>
                         </div>
                       </label>
-                      <label className="cursor-pointer block mt-2">
-                        <input type="file" accept="image/*" multiple className="hidden" onChange={e => handleFileUpload(e, "after_cleaning")} disabled={uploading} />
-                        <div className="flex items-center justify-center gap-2 p-2 border border-dashed border-primary/30 rounded-lg hover:bg-primary/5">
-                          <Upload className="w-4 h-4 text-primary" />
-                          <span className="text-xs font-medium text-primary">Importer depuis la galerie</span>
-                        </div>
-                      </label>
-                      <label className="cursor-pointer block mt-2">
-                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleFileUpload(e, "incident")} disabled={uploading} />
-                        <div className="flex items-center justify-center gap-2 p-2 border border-dashed border-destructive/30 rounded-lg hover:bg-destructive/5">
-                          <AlertTriangle className="w-4 h-4 text-destructive" />
-                          <span className="text-xs font-medium text-destructive">📷 Signaler un incident</span>
-                        </div>
-                      </label>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <label className="cursor-pointer block">
+                          <input type="file" accept="image/*" multiple className="hidden" onChange={e => handleFileUpload(e, "after_cleaning")} disabled={uploading} />
+                          <div className="flex items-center justify-center gap-2 p-2.5 border border-dashed border-primary/30 rounded-lg hover:bg-primary/5 min-h-[44px]">
+                            <Upload className="w-4 h-4 text-primary" />
+                            <span className="text-xs font-medium text-primary">Galerie</span>
+                          </div>
+                        </label>
+                        <label className="cursor-pointer block">
+                          <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleFileUpload(e, "incident")} disabled={uploading} />
+                          <div className="flex items-center justify-center gap-2 p-2.5 border border-dashed border-destructive/30 rounded-lg hover:bg-destructive/5 min-h-[44px]">
+                            <AlertTriangle className="w-4 h-4 text-destructive" />
+                            <span className="text-xs font-medium text-destructive">Incident</span>
+                          </div>
+                        </label>
+                      </div>
                       {photoCount < 4 && <p className="text-xs text-destructive mt-2">⚠️ Minimum 4 photos requises</p>}
                     </div>
 
@@ -631,7 +725,7 @@ export default function SPMissionsUnifiedPage() {
                       <Textarea value={providerComment} onChange={e => setProviderComment(e.target.value)} placeholder="Observations…" rows={3} />
                     </div>
 
-                    <Button onClick={handleLegacyComplete} disabled={completing || !canComplete} className="w-full bg-emerald-600 hover:bg-emerald-700">
+                    <Button onClick={handleLegacyComplete} disabled={completing || !canComplete} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
                       <CheckCircle className="w-4 h-4 mr-2" />
                       {completing ? "Validation…" : "Mission terminée"}
                     </Button>
@@ -643,7 +737,7 @@ export default function SPMissionsUnifiedPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── New Mission Detail Dialog (with photo upload) ────── */}
+      {/* ── New Mission Detail Dialog ─────────────────────────── */}
       <Dialog open={!!selectedNewMission} onOpenChange={open => { if (!open) setSelectedNewMission(null); }}>
         <DialogContent className="max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-auto w-[calc(100vw-2rem)] sm:w-auto">
           {selectedNewMission && (
@@ -656,12 +750,12 @@ export default function SPMissionsUnifiedPage() {
                   <div><span className="text-muted-foreground">Logement :</span> {selectedNewMission.property?.name}</div>
                   <div><span className="text-muted-foreground">Date :</span> {fmtDate(selectedNewMission.start_at)}</div>
                   <div><span className="text-muted-foreground">Type :</span> {missionTypeLabels[selectedNewMission.mission_type] || selectedNewMission.mission_type}</div>
-                  <div><span className="text-muted-foreground">Montant :</span> {selectedNewMission.payout_amount}€</div>
+                  <div><span className="text-muted-foreground">Montant :</span> <span className="font-bold text-emerald-600">{selectedNewMission.payout_amount}€</span></div>
                   <div className="col-span-2">
                     <span className="text-muted-foreground">Statut : </span>
-                    <Badge className={statusConfig[selectedNewMission.status]?.color} variant="outline">
+                    <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full border ${statusConfig[selectedNewMission.status]?.pillClass || "bg-muted"}`}>
                       {statusConfig[selectedNewMission.status]?.label || selectedNewMission.status}
-                    </Badge>
+                    </span>
                   </div>
                 </div>
 
@@ -672,7 +766,6 @@ export default function SPMissionsUnifiedPage() {
                   </div>
                 )}
 
-                {/* Actions based on status */}
                 {selectedNewMission.status === "assigned" && (
                   <Button
                     onClick={() => { confirmMission(selectedNewMission.id); setSelectedNewMission(null); }}
@@ -682,7 +775,6 @@ export default function SPMissionsUnifiedPage() {
                   </Button>
                 )}
 
-                {/* Photo upload section — for confirmed missions */}
                 {(selectedNewMission.status === "confirmed" || selectedNewMission.status === "done") && (
                   <>
                     <div>
