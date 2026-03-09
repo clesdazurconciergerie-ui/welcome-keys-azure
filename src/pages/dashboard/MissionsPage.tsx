@@ -461,17 +461,43 @@ function getPropertyPhoto(mission: NewMission): string | null {
 
 /* ─── Mission Card ─── */
 
-function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete, onValidate, onMarkPaid, onAcceptApp, onRejectApp }: {
+function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete, onValidate, onMarkPaid, onAcceptApp, onRejectApp, onSendEmail }: {
   mission: NewMission; index: number;
   onView: () => void; onPublish: (id: string) => void; onCancel: (id: string) => void; onDelete: (id: string) => void; onValidate: (id: string) => void; onMarkPaid: (id: string) => void;
   onAcceptApp: (missionId: string, appId: string, providerId: string) => void;
   onRejectApp: (appId: string) => void;
+  onSendEmail: (mission: NewMission) => Promise<{ sent: number; failed: number; providers: string[] }>;
 }) {
   const [candidaturesOpen, setCandidaturesOpen] = useState(false);
+  const [emailConfirmOpen, setEmailConfirmOpen] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [lastEmailSent, setLastEmailSent] = useState<string | null>(null);
   const cfg = statusConfig[m.status] || statusConfig.draft;
   const pendingApps = m.applications?.filter(a => a.status === 'pending') || [];
   const appCount = pendingApps.length;
   const photoUrl = getPropertyPhoto(m);
+
+  const handleSendEmail = async () => {
+    setEmailSending(true);
+    try {
+      const result = await onSendEmail(m);
+      if (result.sent === 0 && result.providers.length === 0) {
+        toast.warning('Aucun email prestataire trouvé');
+      } else if (result.sent > 0) {
+        toast.success(`Mission envoyée à ${result.sent} prestataire(s)`);
+        setLastEmailSent(new Date().toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }));
+      }
+      if (result.failed > 0) {
+        toast.error(`${result.failed} email(s) échoué(s) — voir les logs`);
+      }
+    } catch (err: any) {
+      console.error('❌ Send email error:', err);
+      toast.error(err.message || "Erreur d'envoi");
+    } finally {
+      setEmailSending(false);
+      setEmailConfirmOpen(false);
+    }
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
