@@ -116,11 +116,60 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
 
   const publishMission = async (id: string) => {
     try {
+      // Get mission details before updating
+      const { data: mission } = await (supabase as any)
+        .from('missions')
+        .select(`
+          *,
+          property:property_id(name, address),
+          selected_provider:selected_provider_id(email, first_name, last_name)
+        `)
+        .eq('id', id)
+        .single();
+
       const { error } = await (supabase as any)
         .from('missions')
         .update({ status: 'open' })
         .eq('id', id);
       if (error) throw error;
+
+      // Send email notifications to providers
+      if (mission) {
+        try {
+          const { data: providers } = await (supabase as any)
+            .from('service_providers')
+            .select('id, email, first_name, last_name')
+            .eq('concierge_user_id', mission.user_id)
+            .eq('status', 'active');
+
+          if (providers && providers.length > 0) {
+            // Send email to each provider
+            for (const provider of providers) {
+              await supabase.functions.invoke('send-provider-notification', {
+                body: {
+                  provider_email: provider.email,
+                  mission_title: mission.title,
+                  property_name: mission.property?.name || 'Logement',
+                  mission_date: new Date(mission.start_at).toLocaleString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }),
+                  mission_amount: mission.payout_amount || 0,
+                  mission_instructions: mission.instructions,
+                  mission_id: mission.id,
+                  notification_type: 'mission_available'
+                }
+              });
+            }
+          }
+        } catch (emailError) {
+          console.error('Email sending failed:', emailError);
+          // Don't block the mission publication if emails fail
+        }
+      }
+
       toast.success('Mission publiée — les prestataires peuvent postuler');
       await fetchMissions();
     } catch { toast.error('Erreur publication'); }
