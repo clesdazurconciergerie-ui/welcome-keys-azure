@@ -227,7 +227,7 @@ export default function MissionsPage() {
                 <CardContent><p className="text-muted-foreground">Aucune mission active. Créez-en une !</p></CardContent>
               </Card>
             ) : activeMissions.map((m, i) => (
-              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onAcceptApp={acceptApplication} onRejectApp={rejectApplication} />
+              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onAcceptApp={acceptApplication} onRejectApp={rejectApplication} onSendEmail={sendMissionEmail} />
             ))}
           </TabsContent>
           <TabsContent value="archived" className="space-y-3 mt-4">
