@@ -488,6 +488,78 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
   /** Legacy alias — now splits into validate */
   const approveMission = validateMission;
 
+  /** Manually send mission email to all relevant active providers */
+  const sendMissionEmail = async (mission: NewMission): Promise<{ sent: number; failed: number; providers: string[] }> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Non connecté');
+
+    // Get active providers for this concierge
+    const { data: providers, error: provErr } = await (supabase as any)
+      .from('service_providers')
+      .select('id, email, first_name, last_name')
+      .eq('concierge_user_id', user.id)
+      .eq('status', 'active');
+
+    if (provErr) throw provErr;
+    if (!providers || providers.length === 0) {
+      return { sent: 0, failed: 0, providers: [] };
+    }
+
+    // Filter out providers without valid emails
+    const validProviders = providers.filter((p: any) => p.email && p.email.includes('@'));
+    console.log(`📧 Manual email: ${validProviders.length} valid provider(s) found`);
+
+    const missionDate = new Date(mission.start_at).toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    let sent = 0;
+    let failed = 0;
+    const sentTo: string[] = [];
+
+    for (let i = 0; i < validProviders.length; i++) {
+      const provider = validProviders[i];
+      // Rate limit: 600ms between calls
+      if (i > 0) await new Promise(r => setTimeout(r, 600));
+
+      try {
+        console.log(`📧 Sending to ${provider.email}...`);
+        const { data, error } = await supabase.functions.invoke('send-provider-notification', {
+          body: {
+            provider_email: provider.email,
+            mission_title: mission.title,
+            property_name: mission.property?.name || 'Logement',
+            mission_date: missionDate,
+            mission_amount: mission.payout_amount || 0,
+            mission_instructions: mission.instructions || '',
+            mission_id: mission.id,
+            notification_type: 'mission_available',
+          },
+        });
+
+        if (error) {
+          console.error(`❌ Failed for ${provider.email}:`, error);
+          failed++;
+        } else if (data?.success) {
+          console.log(`✅ Sent to ${provider.email}, id:`, data.email_id);
+          sent++;
+          sentTo.push(provider.email);
+        } else {
+          console.error(`❌ Resend error for ${provider.email}:`, data);
+          failed++;
+        }
+      } catch (err) {
+        console.error(`❌ Exception for ${provider.email}:`, err);
+        failed++;
+      }
+    }
+
+    return { sent, failed, providers: sentTo };
+  };
+
   return {
     missions,
     isLoading,
@@ -503,6 +575,7 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
     approveMission,
     validateMission,
     markAsPaid,
+    sendMissionEmail,
     refetch: fetchMissions,
   };
 }

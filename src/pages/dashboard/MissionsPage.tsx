@@ -49,7 +49,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = ["00", "15", "30", "45"];
 
 export default function MissionsPage() {
-  const { missions, isLoading, createMission, publishMission, cancelMission, deleteMission, acceptApplication, rejectApplication, validateMission, markAsPaid, refetch } = useNewMissions('concierge');
+  const { missions, isLoading, createMission, publishMission, cancelMission, deleteMission, acceptApplication, rejectApplication, validateMission, markAsPaid, sendMissionEmail, refetch } = useNewMissions('concierge');
   const { properties } = useProperties();
   const { providers } = useServiceProviders();
   const [createOpen, setCreateOpen] = useState(false);
@@ -227,12 +227,12 @@ export default function MissionsPage() {
                 <CardContent><p className="text-muted-foreground">Aucune mission active. Créez-en une !</p></CardContent>
               </Card>
             ) : activeMissions.map((m, i) => (
-              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onAcceptApp={acceptApplication} onRejectApp={rejectApplication} />
+              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onAcceptApp={acceptApplication} onRejectApp={rejectApplication} onSendEmail={sendMissionEmail} />
             ))}
           </TabsContent>
           <TabsContent value="archived" className="space-y-3 mt-4">
             {archivedMissions.map((m, i) => (
-              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onAcceptApp={acceptApplication} onRejectApp={rejectApplication} />
+              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onAcceptApp={acceptApplication} onRejectApp={rejectApplication} onSendEmail={sendMissionEmail} />
             ))}
           </TabsContent>
         </Tabs>
@@ -461,17 +461,43 @@ function getPropertyPhoto(mission: NewMission): string | null {
 
 /* ─── Mission Card ─── */
 
-function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete, onValidate, onMarkPaid, onAcceptApp, onRejectApp }: {
+function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete, onValidate, onMarkPaid, onAcceptApp, onRejectApp, onSendEmail }: {
   mission: NewMission; index: number;
   onView: () => void; onPublish: (id: string) => void; onCancel: (id: string) => void; onDelete: (id: string) => void; onValidate: (id: string) => void; onMarkPaid: (id: string) => void;
   onAcceptApp: (missionId: string, appId: string, providerId: string) => void;
   onRejectApp: (appId: string) => void;
+  onSendEmail: (mission: NewMission) => Promise<{ sent: number; failed: number; providers: string[] }>;
 }) {
   const [candidaturesOpen, setCandidaturesOpen] = useState(false);
+  const [emailConfirmOpen, setEmailConfirmOpen] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [lastEmailSent, setLastEmailSent] = useState<string | null>(null);
   const cfg = statusConfig[m.status] || statusConfig.draft;
   const pendingApps = m.applications?.filter(a => a.status === 'pending') || [];
   const appCount = pendingApps.length;
   const photoUrl = getPropertyPhoto(m);
+
+  const handleSendEmail = async () => {
+    setEmailSending(true);
+    try {
+      const result = await onSendEmail(m);
+      if (result.sent === 0 && result.providers.length === 0) {
+        toast.warning('Aucun email prestataire trouvé');
+      } else if (result.sent > 0) {
+        toast.success(`Mission envoyée à ${result.sent} prestataire(s)`);
+        setLastEmailSent(new Date().toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }));
+      }
+      if (result.failed > 0) {
+        toast.error(`${result.failed} email(s) échoué(s) — voir les logs`);
+      }
+    } catch (err: any) {
+      console.error('❌ Send email error:', err);
+      toast.error(err.message || "Erreur d'envoi");
+    } finally {
+      setEmailSending(false);
+      setEmailConfirmOpen(false);
+    }
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
@@ -530,6 +556,38 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
                 <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => onMarkPaid(m.id)}>
                   💰 Marquer payée
                 </Button>
+              )}
+              {/* Manual email send for open missions */}
+              {m.status === 'open' && !m.selected_provider_id && (
+                <AlertDialog open={emailConfirmOpen} onOpenChange={setEmailConfirmOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="gap-1.5 text-primary border-primary/30 hover:bg-primary/10" disabled={emailSending}>
+                      {emailSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                      {lastEmailSent ? '' : 'Notifier'}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Envoyer la mission par email ?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action enverra un email de notification aux prestataires actifs pour la mission « {m.title} ».
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={emailSending}>Annuler</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleSendEmail} disabled={emailSending} className="gap-2">
+                        {emailSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Envoyer
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              {/* Email sent badge */}
+              {lastEmailSent && (
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                  ✉️ {lastEmailSent}
+                </span>
               )}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
