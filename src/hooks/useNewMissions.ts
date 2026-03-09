@@ -209,6 +209,22 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
 
   const acceptApplication = async (missionId: string, applicationId: string, providerId: string) => {
     try {
+      // Get mission and provider details before updating
+      const { data: mission } = await (supabase as any)
+        .from('missions')
+        .select(`
+          *,
+          property:property_id(name, address)
+        `)
+        .eq('id', missionId)
+        .single();
+
+      const { data: provider } = await (supabase as any)
+        .from('service_providers')
+        .select('email, first_name, last_name')
+        .eq('id', providerId)
+        .single();
+
       const { error: e1 } = await (supabase as any)
         .from('mission_applications')
         .update({ status: 'accepted' })
@@ -227,6 +243,32 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
         .update({ status: 'assigned', selected_provider_id: providerId })
         .eq('id', missionId);
       if (e3) throw e3;
+
+      // Send email notification to assigned provider
+      if (mission && provider) {
+        try {
+          await supabase.functions.invoke('send-provider-notification', {
+            body: {
+              provider_email: provider.email,
+              mission_title: mission.title,
+              property_name: mission.property?.name || 'Logement',
+              mission_date: new Date(mission.start_at).toLocaleString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+              }),
+              mission_amount: mission.payout_amount || 0,
+              mission_instructions: mission.instructions,
+              mission_id: mission.id,
+              notification_type: 'mission_assigned'
+            }
+          });
+        } catch (emailError) {
+          console.error('Email sending failed:', emailError);
+          // Don't block the assignment if email fails
+        }
+      }
 
       toast.success('Prestataire assigné');
       await fetchMissions();
