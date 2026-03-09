@@ -557,6 +557,38 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
                   💰 Marquer payée
                 </Button>
               )}
+              {/* Manual email send for open missions */}
+              {m.status === 'open' && !m.selected_provider_id && (
+                <AlertDialog open={emailConfirmOpen} onOpenChange={setEmailConfirmOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="gap-1.5 text-primary border-primary/30 hover:bg-primary/10" disabled={emailSending}>
+                      {emailSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                      {lastEmailSent ? '' : 'Notifier'}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Envoyer la mission par email ?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action enverra un email de notification aux prestataires actifs pour la mission « {m.title} ».
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={emailSending}>Annuler</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleSendEmail} disabled={emailSending} className="gap-2">
+                        {emailSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Envoyer
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              {/* Email sent badge */}
+              {lastEmailSent && (
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                  ✉️ {lastEmailSent}
+                </span>
+              )}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
