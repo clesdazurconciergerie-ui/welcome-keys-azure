@@ -15,9 +15,11 @@ export function NotificationsBell() {
   const handleNotificationClick = (notif: any) => {
     markAsRead(notif.id);
     if (notif.related_id && notif.related_type) {
-      // Navigate based on notification type
+      // Navigate based on notification type and current route
       const routes: Record<string, string> = {
-        mission: "/dashboard/missions",
+        mission: window.location.pathname.startsWith('/prestataire') 
+          ? "/prestataire/missions" 
+          : "/dashboard/missions",
         inspection: "/dashboard/etats-des-lieux",
         owner_request: "/dashboard/demandes-proprietaires",
         prospect: "/dashboard/prospection",
