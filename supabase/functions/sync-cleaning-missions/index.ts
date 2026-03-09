@@ -106,6 +106,7 @@ Deno.serve(async (req) => {
     let created = 0, updated = 0, skipped = 0, ignored = 0, errors = 0;
     const ignoredItems: IgnoredItem[] = [];
     const errorsList: string[] = [];
+    const newlyCreatedMissions: { id: string; property_id: string; title: string; start_at: string; payout_amount: number; instructions: string }[] = [];
 
     for (const ev of events || []) {
       const prop = propertiesMap[ev.property_id];
@@ -210,20 +211,24 @@ Deno.serve(async (req) => {
           }
         }
       } else {
-        const { error: insErr } = await supabase.from("missions").insert({
-          user_id: user.id,
-          property_id: ev.property_id,
-          title,
-          mission_type: "cleaning_checkout",
-          start_at: missionStart.toISOString(),
-          end_at: missionEnd.toISOString(),
-          payout_amount: prop.cleaning_payout_amount || 0,
-          instructions,
-          status: isOpen ? "open" : "draft",
-          is_open_to_all: isOpen,
-          source_type: "calendar_event",
-          source_id: ev.id,
-        });
+        const { data: newMission, error: insErr } = await supabase
+          .from("missions")
+          .insert({
+            user_id: user.id,
+            property_id: ev.property_id,
+            title,
+            mission_type: "cleaning_checkout",
+            start_at: missionStart.toISOString(),
+            end_at: missionEnd.toISOString(),
+            payout_amount: prop.cleaning_payout_amount || 0,
+            instructions,
+            status: isOpen ? "open" : "draft",
+            is_open_to_all: isOpen,
+            source_type: "calendar_event",
+            source_id: ev.id,
+          })
+          .select("id")
+          .single();
 
         if (insErr) {
           if (insErr.code === "23505") {
@@ -235,6 +240,67 @@ Deno.serve(async (req) => {
           }
         } else {
           created++;
+          // Track newly created open missions for email sending
+          if (isOpen && newMission) {
+            newlyCreatedMissions.push({
+              id: newMission.id,
+              property_id: ev.property_id,
+              title,
+              start_at: missionStart.toISOString(),
+              payout_amount: prop.cleaning_payout_amount || 0,
+              instructions,
+            });
+          }
+        }
+      }
+    }
+
+    // ── Step 4: Send email notifications for newly created open missions ──
+    if (newlyCreatedMissions.length > 0) {
+      console.log(`[sync-cleaning] Sending emails for ${newlyCreatedMissions.length} new open missions`);
+      
+      // Get all active providers for this concierge
+      const { data: providers } = await supabase
+        .from("service_providers")
+        .select("id, email, first_name, last_name")
+        .eq("concierge_user_id", user.id)
+        .eq("status", "active");
+
+      if (providers && providers.length > 0) {
+        for (const mission of newlyCreatedMissions) {
+          // Get property details
+          const prop = propertiesMap[mission.property_id];
+          const missionDate = new Date(mission.start_at).toLocaleString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+
+          // Send email to each provider
+          for (const provider of providers) {
+            try {
+              await fetch(`${supabaseUrl}/functions/v1/send-provider-notification`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${serviceRoleKey}`,
+                },
+                body: JSON.stringify({
+                  provider_email: provider.email,
+                  mission_title: mission.title,
+                  property_name: prop?.name || 'Logement',
+                  mission_date: missionDate,
+                  mission_amount: mission.payout_amount || 0,
+                  mission_instructions: mission.instructions,
+                  mission_id: mission.id,
+                  notification_type: 'mission_available'
+                })
+              });
+            } catch (emailErr) {
+              console.error(`[sync-cleaning] Failed to send email to ${provider.email}:`, emailErr);
+            }
+          }
         }
       }
     }
