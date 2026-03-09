@@ -168,7 +168,8 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
               .single();
 
             if (provider) {
-              await supabase.functions.invoke('send-provider-notification', {
+              console.log(`📧 Sending assigned mission email to: ${provider.email}`);
+              const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-provider-notification', {
                 body: {
                   provider_email: provider.email,
                   mission_title: newMission.title,
@@ -180,6 +181,14 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
                   notification_type: 'mission_assigned'
                 }
               });
+              
+              if (emailError) {
+                console.error(`❌ Assignment email failed:`, emailError);
+              } else {
+                console.log(`✅ Assignment email sent:`, emailResult);
+              }
+            } else {
+              console.warn('⚠️ Selected provider not found');
             }
           }
         } catch (emailError) {
