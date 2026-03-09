@@ -18,6 +18,9 @@ interface NotificationPayload {
 }
 
 Deno.serve(async (req) => {
+  console.log('=== send-provider-notification invoked ===');
+  console.log('Method:', req.method);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -28,6 +31,11 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const payload: NotificationPayload = await req.json();
+    console.log('Payload received:', { 
+      provider_email: payload.provider_email,
+      mission_title: payload.mission_title,
+      notification_type: payload.notification_type 
+    });
     
     const {
       provider_email,
