@@ -134,8 +134,10 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
               .eq('status', 'active');
 
             if (providers && providers.length > 0) {
+              console.log(`📧 Sending emails to ${providers.length} provider(s)`);
               for (const provider of providers) {
-                await supabase.functions.invoke('send-provider-notification', {
+                console.log(`Sending to: ${provider.email}`);
+                const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-provider-notification', {
                   body: {
                     provider_email: provider.email,
                     mission_title: newMission.title,
@@ -147,7 +149,15 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
                     notification_type: 'mission_available'
                   }
                 });
+                
+                if (emailError) {
+                  console.error(`❌ Email failed for ${provider.email}:`, emailError);
+                } else {
+                  console.log(`✅ Email sent to ${provider.email}:`, emailResult);
+                }
               }
+            } else {
+              console.warn('⚠️ No active providers found to notify');
             }
           } else if (selectedProviderId) {
             // Mission assignée: envoyer uniquement au prestataire sélectionné
