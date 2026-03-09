@@ -5,6 +5,7 @@ import { ServiceProviderSidebar } from "@/components/service-provider/ServicePro
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Menu } from "lucide-react";
 import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
+import { NotificationsBell } from "@/components/notifications/NotificationsBell";
 
 export default function ServiceProviderDashboardLayout() {
   const navigate = useNavigate();
@@ -44,6 +45,7 @@ export default function ServiceProviderDashboardLayout() {
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
             <div className="flex-1" />
+            <NotificationsBell />
             <span className="text-xs text-muted-foreground font-medium">{userEmail}</span>
           </header>
           <main className="flex-1 p-4 sm:p-5 md:p-8 overflow-auto pb-24 sm:pb-8">

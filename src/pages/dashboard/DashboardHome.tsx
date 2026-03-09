@@ -78,7 +78,7 @@ const DashboardHome = () => {
   ];
 
   return (
-    <div className="space-y-5 sm:space-y-8 max-w-6xl">
+    <div className="space-y-6 max-w-6xl">
       <OnboardingWizard open={showWizard} onClose={dismissWizard} />
       <SubscriptionAlert />
       <DemoExpirationBanner />
@@ -98,85 +98,139 @@ const DashboardHome = () => {
         <h1 className="text-3xl font-bold text-foreground mt-1">Tableau de bord</h1>
       </motion.div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {stats.map((stat, i) => (
-          <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-            <Card className="cursor-pointer hover:shadow-md transition-shadow border-border" onClick={() => navigate(stat.link)}>
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center`}>
-                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
+      {/* SECTION 1 — OPERATIONS */}
+      <div>
+        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+          <div className="w-1 h-6 bg-primary rounded-full" />
+          Opérations
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/dashboard/interventions')}>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-blue-600" />
                   </div>
-                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Missions aujourd'hui</span>
                 </div>
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
+                <p className="text-3xl font-bold text-foreground">{todayMissions.length}</p>
               </CardContent>
             </Card>
           </motion.div>
-        ))}
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow border-amber-200" onClick={() => navigate('/dashboard/interventions')}>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <span className="text-sm font-medium text-muted-foreground">À valider</span>
+                  {pendingValidation.length > 0 && <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />}
+                </div>
+                <p className="text-3xl font-bold text-foreground">{pendingValidation.length}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/dashboard/finances')}>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <span className="text-sm font-medium text-muted-foreground">Paiements du mois</span>
+                </div>
+                <p className="text-2xl font-bold text-emerald-600">{totalPaid}€</p>
+                <p className="text-sm text-amber-600 mt-1">{totalToPay}€ à payer</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }}>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/dashboard/prestataires')}>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-violet-600" />
+                  </div>
+                  <span className="text-sm font-medium text-muted-foreground">Prestataires actifs</span>
+                </div>
+                <p className="text-3xl font-bold text-foreground">{activeProviders}</p>
+                <p className="text-xs text-muted-foreground mt-1">aujourd'hui</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
       </div>
 
-      {/* Mission Blocks */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/dashboard/interventions')}>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                <Clock className="w-4 h-4 text-blue-600" />
-              </div>
-              <span className="text-sm font-medium text-muted-foreground">En cours</span>
-            </div>
-            <p className="text-3xl font-bold text-foreground">{inProgress.length}</p>
-          </CardContent>
-        </Card>
+      {/* SECTION 2 — ACTIVITÉ */}
+      <div>
+        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+          <div className="w-1 h-6 bg-[hsl(var(--gold))] rounded-full" />
+          Activité
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/dashboard/logements')}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                    <Home className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <p className="text-2xl font-bold text-foreground">—</p>
+                <p className="text-sm text-muted-foreground">Logements</p>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-        <Card className="cursor-pointer hover:shadow-md transition-shadow border-amber-200" onClick={() => navigate('/dashboard/interventions')}>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
-              </div>
-              <span className="text-sm font-medium text-muted-foreground">À valider</span>
-              {pendingValidation.length > 0 && <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />}
-            </div>
-            <p className="text-3xl font-bold text-foreground">{pendingValidation.length}</p>
-          </CardContent>
-        </Card>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.40 }}>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/dashboard/proprietaires')}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-[hsl(var(--gold))]" />
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <p className="text-2xl font-bold text-foreground">—</p>
+                <p className="text-sm text-muted-foreground">Propriétaires</p>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
-                <Users className="w-4 h-4 text-violet-600" />
-              </div>
-              <span className="text-sm font-medium text-muted-foreground">Prestataires actifs</span>
-            </div>
-            <p className="text-3xl font-bold text-foreground">{activeProviders}</p>
-            <p className="text-xs text-muted-foreground">aujourd'hui</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                <DollarSign className="w-4 h-4 text-emerald-600" />
-              </div>
-              <span className="text-sm font-medium text-muted-foreground">Paiements mois</span>
-            </div>
-            <p className="text-xl font-bold text-emerald-600">{totalPaid}€ <span className="text-xs font-normal text-muted-foreground">payé</span></p>
-            <p className="text-sm text-amber-600">{totalToPay}€ <span className="text-xs font-normal text-muted-foreground">à payer</span></p>
-          </CardContent>
-        </Card>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.48 }}>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/dashboard/prestataires')}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
+                    <Wrench className="w-5 h-5 text-violet-600" />
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <p className="text-2xl font-bold text-foreground">—</p>
+                <p className="text-sm text-muted-foreground">Prestataires</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
       </div>
 
-      {/* Performance Overview */}
-      <PerformanceOverview
-        startDate={startOfMonth(now).toISOString().slice(0, 10)}
-        endDate={endOfMonth(now).toISOString().slice(0, 10)}
-      />
+      {/* SECTION 3 — PERFORMANCE */}
+      <div>
+        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+          <div className="w-1 h-6 bg-blue-500 rounded-full" />
+          Performance
+        </h2>
+        <PerformanceOverview
+          startDate={startOfMonth(now).toISOString().slice(0, 10)}
+          endDate={endOfMonth(now).toISOString().slice(0, 10)}
+        />
+      </div>
 
       {/* Upcoming Operations */}
       <UpcomingOperations />
@@ -184,183 +238,9 @@ const DashboardHome = () => {
       {/* Global Calendar */}
       <GlobalCalendar />
 
-      {/* Pending validation list */}
-      {pendingValidation.length > 0 && (
-        <Card className="border-amber-200">
-          <CardContent className="pt-6">
-            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-              Missions en attente de validation ({pendingValidation.length})
-            </h2>
-            <div className="space-y-2">
-              {pendingValidation.slice(0, 5).map(m => (
-                <div
-                  key={m.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-amber-50 hover:bg-amber-100 cursor-pointer transition-colors"
-                  onClick={() => setSelectedMission(m)}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm">{m.property?.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(m.scheduled_date).toLocaleDateString('fr-FR')}
-                      {m.service_provider
-                        ? ` — Assigné à ${m.service_provider.first_name} ${m.service_provider.last_name}`
-                        : " — Aucun prestataire assigné"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {m.service_provider?.phone && (
-                      <Button size="icon" variant="ghost" className="h-8 w-8" asChild onClick={e => e.stopPropagation()}>
-                        <a href={`tel:${m.service_provider.phone}`}><Phone className="w-3.5 h-3.5 text-emerald-600" /></a>
-                      </Button>
-                    )}
-                    <span className="text-xs text-muted-foreground">📸 {m.photos?.length || 0}</span>
-                    <Badge variant="secondary">{m.mission_amount}€</Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* In progress list */}
-      {inProgress.length > 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-              Missions en cours ({inProgress.length})
-            </h2>
-            <div className="space-y-2">
-              {inProgress.map(m => (
-                <div
-                  key={m.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-blue-50 hover:bg-blue-100 cursor-pointer transition-colors"
-                  onClick={() => setSelectedMission(m)}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm">{m.property?.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {m.service_provider
-                        ? `👤 ${m.service_provider.first_name} ${m.service_provider.last_name}`
-                        : "Aucun prestataire assigné"}
-                      {m.actual_start_time && ` — Démarré à ${new Date(m.actual_start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {m.service_provider?.phone && (
-                      <Button size="icon" variant="ghost" className="h-8 w-8" asChild onClick={e => e.stopPropagation()}>
-                        <a href={`tel:${m.service_provider.phone}`}><Phone className="w-3.5 h-3.5 text-emerald-600" /></a>
-                      </Button>
-                    )}
-                    <Badge variant="secondary">En cours</Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Prospect Followups Today */}
-      {(() => {
-        const todayFollowups = followups.filter(f => f.status === "todo" && f.scheduled_date === new Date().toISOString().split('T')[0]);
-        const overdueFollowups = followups.filter(f => f.status === "todo" && new Date(f.scheduled_date) < new Date() && f.scheduled_date !== new Date().toISOString().split('T')[0]);
-        return (
-          <>
-            {(todayFollowups.length > 0 || overdueFollowups.length > 0) && (
-              <Card className="border-violet-200">
-                <CardContent className="pt-6">
-                  <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <Target className="w-5 h-5 text-violet-500" />
-                    Relances prospection
-                    {overdueFollowups.length > 0 && <Badge variant="destructive" className="text-xs">{overdueFollowups.length} en retard</Badge>}
-                  </h2>
-                  <div className="space-y-2">
-                    {overdueFollowups.slice(0, 3).map(f => (
-                      <div key={f.id} className="flex items-center justify-between p-3 rounded-lg bg-red-50">
-                        <div>
-                          <p className="font-medium text-sm">{f.prospect?.first_name} {f.prospect?.last_name}</p>
-                          <p className="text-xs text-red-600">⚠️ En retard — {format(new Date(f.scheduled_date), "dd MMM", { locale: fr })}</p>
-                        </div>
-                        <div className="flex gap-1">
-                          {f.prospect?.phone && <Button size="sm" variant="ghost" asChild><a href={`tel:${f.prospect.phone}`}><Phone className="w-3.5 h-3.5" /></a></Button>}
-                          <Button size="sm" variant="outline" onClick={() => { updateFollowup.mutate({ id: f.id, status: "done", completed_date: new Date().toISOString().split('T')[0] }); toast.success("Relance marquée comme faite"); }}>Fait</Button>
-                        </div>
-                      </div>
-                    ))}
-                    {todayFollowups.slice(0, 3).map(f => (
-                      <div key={f.id} className="flex items-center justify-between p-3 rounded-lg bg-violet-50">
-                        <div>
-                          <p className="font-medium text-sm">{f.prospect?.first_name} {f.prospect?.last_name}</p>
-                          <p className="text-xs text-muted-foreground">📅 Aujourd'hui{f.comment ? ` — ${f.comment}` : ""}</p>
-                        </div>
-                        <div className="flex gap-1">
-                          {f.prospect?.phone && <Button size="sm" variant="ghost" asChild><a href={`tel:${f.prospect.phone}`}><Phone className="w-3.5 h-3.5" /></a></Button>}
-                          <Button size="sm" variant="outline" onClick={() => { updateFollowup.mutate({ id: f.id, status: "done", completed_date: new Date().toISOString().split('T')[0] }); toast.success("Relance marquée comme faite"); }}>Fait</Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <Button variant="link" onClick={() => navigate("/dashboard/prospection")} className="mt-2 text-violet-600 p-0 h-auto">
-                    Voir tous les prospects <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </>
-        );
-      })()}
-
-      {/* New missions activity (assigned/confirmed with providers) */}
-      {(() => {
-        const activeMissions = newMissions.filter(m => ['assigned', 'confirmed', 'done'].includes(m.status));
-        if (activeMissions.length === 0) return null;
-        return (
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Wrench className="w-5 h-5 text-[hsl(var(--gold))]" />
-                Missions assignées ({activeMissions.length})
-              </h2>
-              <div className="space-y-2">
-                {activeMissions.slice(0, 8).map(m => (
-                  <div
-                    key={m.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
-                    onClick={() => setSelectedNewMission(m)}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm">{m.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {m.property?.name} — {format(new Date(m.start_at), "dd MMM HH:mm", { locale: fr })}
-                        {m.selected_provider
-                          ? ` — Assigné à ${m.selected_provider.first_name} ${m.selected_provider.last_name}`
-                          : " — Aucun prestataire"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {m.selected_provider?.phone && (
-                        <Button size="icon" variant="ghost" className="h-8 w-8" asChild onClick={e => e.stopPropagation()}>
-                          <a href={`tel:${m.selected_provider.phone}`}><Phone className="w-3.5 h-3.5 text-emerald-600" /></a>
-                        </Button>
-                      )}
-                      <Badge variant="secondary" className="text-xs">
-                        {m.status === 'assigned' ? 'Assignée' : m.status === 'confirmed' ? 'Confirmée' : 'Terminée'}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })()}
-
       {/* Quick Actions */}
       <div>
-        <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">Actions rapides</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-3">Actions rapides</h2>
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
           <Button onClick={() => navigate("/dashboard/interventions")} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             <Plus className="w-4 h-4 mr-2" />
