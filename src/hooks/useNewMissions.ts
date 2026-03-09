@@ -135,25 +135,31 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
 
             if (providers && providers.length > 0) {
               console.log(`📧 Sending emails to ${providers.length} provider(s)`);
-              for (const provider of providers) {
-                console.log(`Sending to: ${provider.email}`);
-                const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-provider-notification', {
-                  body: {
-                    provider_email: provider.email,
-                    mission_title: newMission.title,
-                    property_name: newMission.property?.name || 'Logement',
-                    mission_date: missionDate,
-                    mission_amount: newMission.payout_amount || 0,
-                    mission_instructions: newMission.instructions,
-                    mission_id: newMission.id,
-                    notification_type: 'mission_available'
+              // Send with delay to respect Resend rate limit (2 req/s)
+              for (let i = 0; i < providers.length; i++) {
+                const provider = providers[i];
+                if (i > 0) await new Promise(r => setTimeout(r, 600));
+                try {
+                  console.log(`Sending to: ${provider.email}`);
+                  const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-provider-notification', {
+                    body: {
+                      provider_email: provider.email,
+                      mission_title: newMission.title,
+                      property_name: newMission.property?.name || 'Logement',
+                      mission_date: missionDate,
+                      mission_amount: newMission.payout_amount || 0,
+                      mission_instructions: newMission.instructions,
+                      mission_id: newMission.id,
+                      notification_type: 'mission_available'
+                    }
+                  });
+                  if (emailError) {
+                    console.error(`❌ Email failed for ${provider.email}:`, emailError);
+                  } else {
+                    console.log(`✅ Email sent to ${provider.email}:`, emailResult);
                   }
-                });
-                
-                if (emailError) {
-                  console.error(`❌ Email failed for ${provider.email}:`, emailError);
-                } else {
-                  console.log(`✅ Email sent to ${provider.email}:`, emailResult);
+                } catch (emailErr) {
+                  console.error(`❌ Email exception for ${provider.email}:`, emailErr);
                 }
               }
             } else {
