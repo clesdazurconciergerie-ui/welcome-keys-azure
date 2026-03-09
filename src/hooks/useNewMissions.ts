@@ -234,9 +234,10 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
             .eq('status', 'active');
 
           if (providers && providers.length > 0) {
+            console.log(`📧 Publishing mission, sending to ${providers.length} provider(s)`);
             // Send email to each provider
             for (const provider of providers) {
-              await supabase.functions.invoke('send-provider-notification', {
+              const { error: emailError } = await supabase.functions.invoke('send-provider-notification', {
                 body: {
                   provider_email: provider.email,
                   mission_title: mission.title,
@@ -253,7 +254,13 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
                   notification_type: 'mission_available'
                 }
               });
+              
+              if (emailError) {
+                console.error(`❌ Publish email failed for ${provider.email}:`, emailError);
+              }
             }
+          } else {
+            console.warn('⚠️ No providers to notify on publish');
           }
         } catch (emailError) {
           console.error('Email sending failed:', emailError);
