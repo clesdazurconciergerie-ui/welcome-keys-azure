@@ -263,7 +263,8 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
             console.warn('⚠️ No providers to notify on publish');
           }
         } catch (emailError) {
-          console.error('Email sending failed:', emailError);
+          console.error('❌ Publish email notification failed:', emailError);
+          toast.error('Mission publiée mais notification email échouée', { duration: 3000 });
           // Don't block the mission publication if emails fail
         }
       }
