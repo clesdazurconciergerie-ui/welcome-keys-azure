@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import BrandMark from "@/components/BrandMark";
-import { LayoutDashboard, ClipboardList, History, CreditCard, Package, LifeBuoy, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, ClipboardList, History, CreditCard, Package, LifeBuoy, Settings, LogOut, Compass } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
