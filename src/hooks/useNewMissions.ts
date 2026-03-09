@@ -89,7 +89,9 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
       if (!user) throw new Error('Non connecté');
 
       const isOpen = data.is_open_to_all ?? false;
-      const { error } = await (supabase as any)
+      const selectedProviderId = isOpen ? null : (data.selected_provider_id || null);
+      
+      const { data: newMission, error } = await (supabase as any)
         .from('missions')
         .insert({
           user_id: user.id,
@@ -102,11 +104,51 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
           duration_minutes: data.duration_minutes || null,
           payout_amount: data.payout_amount || 0,
           is_open_to_all: isOpen,
-          selected_provider_id: isOpen ? null : (data.selected_provider_id || null),
-          status: isOpen ? 'open' : (data.selected_provider_id ? 'assigned' : 'draft'),
-        });
+          selected_provider_id: selectedProviderId,
+          status: isOpen ? 'open' : (selectedProviderId ? 'assigned' : 'draft'),
+        })
+        .select(`
+          *,
+          property:property_id(name, address)
+        `)
+        .single();
 
       if (error) throw error;
+
+      // Send email if mission is directly assigned to a provider
+      if (newMission && selectedProviderId) {
+        try {
+          const { data: provider } = await (supabase as any)
+            .from('service_providers')
+            .select('email, first_name, last_name')
+            .eq('id', selectedProviderId)
+            .single();
+
+          if (provider) {
+            await supabase.functions.invoke('send-provider-notification', {
+              body: {
+                provider_email: provider.email,
+                mission_title: newMission.title,
+                property_name: newMission.property?.name || 'Logement',
+                mission_date: new Date(newMission.start_at).toLocaleString('fr-FR', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                }),
+                mission_amount: newMission.payout_amount || 0,
+                mission_instructions: newMission.instructions,
+                mission_id: newMission.id,
+                notification_type: 'mission_assigned'
+              }
+            });
+          }
+        } catch (emailError) {
+          console.error('Email sending failed:', emailError);
+          // Don't block mission creation if email fails
+        }
+      }
+
       toast.success('Mission créée');
       await fetchMissions();
     } catch (err: any) {
