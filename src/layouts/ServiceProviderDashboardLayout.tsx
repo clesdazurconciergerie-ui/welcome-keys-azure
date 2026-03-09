@@ -54,6 +54,7 @@ export default function ServiceProviderDashboardLayout() {
           </main>
         </div>
       </div>
+      <PortalTourProvider portal="provider" />
     </SidebarProvider>
   );
 }

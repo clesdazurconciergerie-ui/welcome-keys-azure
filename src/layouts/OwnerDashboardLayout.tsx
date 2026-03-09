@@ -52,6 +52,7 @@ export default function OwnerDashboardLayout() {
           </main>
         </div>
       </div>
+      <PortalTourProvider portal="owner" />
     </SidebarProvider>
   );
 }
