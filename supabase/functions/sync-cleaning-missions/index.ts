@@ -257,16 +257,20 @@ Deno.serve(async (req) => {
 
     // ── Step 4: Send email notifications for newly created open missions ──
     if (newlyCreatedMissions.length > 0) {
-      console.log(`[sync-cleaning] Sending emails for ${newlyCreatedMissions.length} new open missions`);
+      console.log(`[sync-cleaning] 📧 Sending emails for ${newlyCreatedMissions.length} new open missions`);
       
       // Get all active providers for this concierge
-      const { data: providers } = await supabase
+      const { data: providers, error: providerErr } = await supabase
         .from("service_providers")
         .select("id, email, first_name, last_name")
         .eq("concierge_user_id", user.id)
         .eq("status", "active");
 
-      if (providers && providers.length > 0) {
+      if (providerErr) {
+        console.error('[sync-cleaning] ❌ Failed to fetch providers:', providerErr);
+      } else if (providers && providers.length > 0) {
+        console.log(`[sync-cleaning] Found ${providers.length} active provider(s)`);
+        
         for (const mission of newlyCreatedMissions) {
           // Get property details
           const prop = propertiesMap[mission.property_id];
@@ -277,10 +281,13 @@ Deno.serve(async (req) => {
             minute: '2-digit'
           });
 
+          console.log(`[sync-cleaning] Sending emails for mission: ${mission.title}`);
+
           // Send email to each provider
           for (const provider of providers) {
             try {
-              await fetch(`${supabaseUrl}/functions/v1/send-provider-notification`, {
+              console.log(`[sync-cleaning] → Sending to ${provider.email}`);
+              const response = await fetch(`${supabaseUrl}/functions/v1/send-provider-notification`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -297,12 +304,24 @@ Deno.serve(async (req) => {
                   notification_type: 'mission_available'
                 })
               });
+
+              const result = await response.json();
+              
+              if (!response.ok) {
+                console.error(`[sync-cleaning] ❌ Email failed for ${provider.email}:`, result);
+              } else {
+                console.log(`[sync-cleaning] ✅ Email sent to ${provider.email}`);
+              }
             } catch (emailErr) {
-              console.error(`[sync-cleaning] Failed to send email to ${provider.email}:`, emailErr);
+              console.error(`[sync-cleaning] ❌ Email exception for ${provider.email}:`, emailErr);
             }
           }
         }
+      } else {
+        console.warn('[sync-cleaning] ⚠️ No active providers found to notify');
       }
+    } else {
+      console.log('[sync-cleaning] No new missions created, skipping emails');
     }
 
     const eligible = totalFound - ignored;

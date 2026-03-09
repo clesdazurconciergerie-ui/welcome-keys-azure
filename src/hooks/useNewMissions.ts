@@ -346,7 +346,8 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
       // Send email notification to assigned provider
       if (mission && provider) {
         try {
-          await supabase.functions.invoke('send-provider-notification', {
+          console.log(`📧 Accepting application, sending email to: ${provider.email}`);
+          const { error: emailError } = await supabase.functions.invoke('send-provider-notification', {
             body: {
               provider_email: provider.email,
               mission_title: mission.title,
@@ -363,8 +364,13 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
               notification_type: 'mission_assigned'
             }
           });
+          
+          if (emailError) {
+            console.error('❌ Accept application email failed:', emailError);
+            toast.error('Assigné mais notification email échouée', { duration: 3000 });
+          }
         } catch (emailError) {
-          console.error('Email sending failed:', emailError);
+          console.error('❌ Email sending exception:', emailError);
           // Don't block the assignment if email fails
         }
       }

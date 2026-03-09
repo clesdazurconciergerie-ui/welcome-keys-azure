@@ -170,11 +170,13 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error sending provider notification:', error);
+    console.error('❌ Error sending provider notification:', error);
+    console.error('Error stack:', error.stack);
     return new Response(
       JSON.stringify({
         success: false,
         error: error.message,
+        details: error.stack
       }),
       {
         status: 500,
