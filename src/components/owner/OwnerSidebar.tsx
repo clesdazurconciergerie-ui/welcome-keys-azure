@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import BrandMark from "@/components/BrandMark";
 import {
   LayoutDashboard, Home, BookOpen, ClipboardCheck, FileText, User, LogOut,
-  Euro, CalendarDays, MessageCircle,
+  Euro, CalendarDays, MessageCircle, Compass,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
