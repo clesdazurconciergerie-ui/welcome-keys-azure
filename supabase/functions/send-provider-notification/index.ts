@@ -151,7 +151,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Notification prepared (email sending not yet configured)',
+        message: 'Email notification sent successfully',
+        email_id: resData.id,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
