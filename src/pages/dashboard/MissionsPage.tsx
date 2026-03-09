@@ -113,6 +113,9 @@ export default function MissionsPage() {
             <p className="text-muted-foreground mt-1">Publiez des missions — vos prestataires postulent</p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Test Email Button - DEV */}
+            <TestEmailButton providers={providers.filter(p => p.status === 'active')} />
+            
             <Dialog open={syncOpen} onOpenChange={(v) => { setSyncOpen(v); if (!v) setSyncResult(null); }}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2">
