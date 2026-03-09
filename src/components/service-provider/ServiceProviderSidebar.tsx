@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import BrandMark from "@/components/BrandMark";
-import { LayoutDashboard, ClipboardList, History, CreditCard, Package, LifeBuoy, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, ClipboardList, History, CreditCard, Package, LifeBuoy, Settings, LogOut, Compass } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -117,7 +117,20 @@ export function ServiceProviderSidebar() {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="p-3 border-t border-white/[0.06]">
+        <SidebarFooter className="p-3 border-t border-white/[0.06] space-y-1">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              localStorage.removeItem("mywelkom_sp_tour_completed");
+              localStorage.removeItem("mywelkom_sp_tour_seen");
+              localStorage.removeItem("mywelkom_sp_tour_state");
+              window.location.reload();
+            }}
+            className="w-full justify-start gap-3 text-white/40 hover:text-white/80 hover:bg-white/[0.06] px-3 h-9"
+          >
+            <Compass className="h-4 w-4 shrink-0" />
+            {!collapsed && <span className="text-[13px]">Refaire la visite</span>}
+          </Button>
           <Button
             variant="ghost"
             onClick={handleSignOut}

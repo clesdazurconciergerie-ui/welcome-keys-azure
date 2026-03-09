@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Menu } from "lucide-react";
 import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
 import { NotificationsBell } from "@/components/notifications/NotificationsBell";
+import { PortalTourProvider } from "@/components/onboarding/PortalTourProvider";
 
 export default function ServiceProviderDashboardLayout() {
   const navigate = useNavigate();
@@ -53,6 +54,7 @@ export default function ServiceProviderDashboardLayout() {
           </main>
         </div>
       </div>
+      <PortalTourProvider portal="provider" />
     </SidebarProvider>
   );
 }
