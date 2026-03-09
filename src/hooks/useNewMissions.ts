@@ -192,7 +192,8 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
             }
           }
         } catch (emailError) {
-          console.error('Email sending failed:', emailError);
+          console.error('❌ Email notification failed:', emailError);
+          toast.error('Mission créée mais notification email échouée', { duration: 3000 });
           // Don't block mission creation if email fails
         }
       }
