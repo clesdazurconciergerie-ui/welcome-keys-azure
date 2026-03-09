@@ -5,6 +5,7 @@ import { ServiceProviderSidebar } from "@/components/service-provider/ServicePro
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Menu } from "lucide-react";
 import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
+import { NotificationsBell } from "@/components/notifications/NotificationsBell";
 
 export default function ServiceProviderDashboardLayout() {
   const navigate = useNavigate();
