@@ -134,8 +134,10 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
               .eq('status', 'active');
 
             if (providers && providers.length > 0) {
+              console.log(`📧 Sending emails to ${providers.length} provider(s)`);
               for (const provider of providers) {
-                await supabase.functions.invoke('send-provider-notification', {
+                console.log(`Sending to: ${provider.email}`);
+                const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-provider-notification', {
                   body: {
                     provider_email: provider.email,
                     mission_title: newMission.title,
@@ -147,7 +149,15 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
                     notification_type: 'mission_available'
                   }
                 });
+                
+                if (emailError) {
+                  console.error(`❌ Email failed for ${provider.email}:`, emailError);
+                } else {
+                  console.log(`✅ Email sent to ${provider.email}:`, emailResult);
+                }
               }
+            } else {
+              console.warn('⚠️ No active providers found to notify');
             }
           } else if (selectedProviderId) {
             // Mission assignée: envoyer uniquement au prestataire sélectionné
@@ -158,7 +168,8 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
               .single();
 
             if (provider) {
-              await supabase.functions.invoke('send-provider-notification', {
+              console.log(`📧 Sending assigned mission email to: ${provider.email}`);
+              const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-provider-notification', {
                 body: {
                   provider_email: provider.email,
                   mission_title: newMission.title,
@@ -170,10 +181,19 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
                   notification_type: 'mission_assigned'
                 }
               });
+              
+              if (emailError) {
+                console.error(`❌ Assignment email failed:`, emailError);
+              } else {
+                console.log(`✅ Assignment email sent:`, emailResult);
+              }
+            } else {
+              console.warn('⚠️ Selected provider not found');
             }
           }
         } catch (emailError) {
-          console.error('Email sending failed:', emailError);
+          console.error('❌ Email notification failed:', emailError);
+          toast.error('Mission créée mais notification email échouée', { duration: 3000 });
           // Don't block mission creation if email fails
         }
       }
@@ -214,9 +234,10 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
             .eq('status', 'active');
 
           if (providers && providers.length > 0) {
+            console.log(`📧 Publishing mission, sending to ${providers.length} provider(s)`);
             // Send email to each provider
             for (const provider of providers) {
-              await supabase.functions.invoke('send-provider-notification', {
+              const { error: emailError } = await supabase.functions.invoke('send-provider-notification', {
                 body: {
                   provider_email: provider.email,
                   mission_title: mission.title,
@@ -233,10 +254,17 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
                   notification_type: 'mission_available'
                 }
               });
+              
+              if (emailError) {
+                console.error(`❌ Publish email failed for ${provider.email}:`, emailError);
+              }
             }
+          } else {
+            console.warn('⚠️ No providers to notify on publish');
           }
         } catch (emailError) {
-          console.error('Email sending failed:', emailError);
+          console.error('❌ Publish email notification failed:', emailError);
+          toast.error('Mission publiée mais notification email échouée', { duration: 3000 });
           // Don't block the mission publication if emails fail
         }
       }
@@ -318,7 +346,8 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
       // Send email notification to assigned provider
       if (mission && provider) {
         try {
-          await supabase.functions.invoke('send-provider-notification', {
+          console.log(`📧 Accepting application, sending email to: ${provider.email}`);
+          const { error: emailError } = await supabase.functions.invoke('send-provider-notification', {
             body: {
               provider_email: provider.email,
               mission_title: mission.title,
@@ -335,8 +364,13 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
               notification_type: 'mission_assigned'
             }
           });
+          
+          if (emailError) {
+            console.error('❌ Accept application email failed:', emailError);
+            toast.error('Assigné mais notification email échouée', { duration: 3000 });
+          }
         } catch (emailError) {
-          console.error('Email sending failed:', emailError);
+          console.error('❌ Email sending exception:', emailError);
           // Don't block the assignment if email fails
         }
       }

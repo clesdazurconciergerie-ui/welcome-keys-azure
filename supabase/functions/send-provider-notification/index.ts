@@ -18,6 +18,9 @@ interface NotificationPayload {
 }
 
 Deno.serve(async (req) => {
+  console.log('=== send-provider-notification invoked ===');
+  console.log('Method:', req.method);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -28,6 +31,11 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const payload: NotificationPayload = await req.json();
+    console.log('Payload received:', { 
+      provider_email: payload.provider_email,
+      mission_title: payload.mission_title,
+      notification_type: payload.notification_type 
+    });
     
     const {
       provider_email,
@@ -118,9 +126,11 @@ Deno.serve(async (req) => {
     // Send email via Resend
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
     if (!RESEND_API_KEY) {
+      console.error('RESEND_API_KEY not configured');
       throw new Error('RESEND_API_KEY not configured');
     }
 
+    console.log('Sending email via Resend to:', provider_email);
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -138,10 +148,11 @@ Deno.serve(async (req) => {
     const resData = await res.json();
     
     if (!res.ok) {
+      console.error('Resend API error:', resData);
       throw new Error(`Resend API error: ${JSON.stringify(resData)}`);
     }
 
-    console.log('Email sent successfully:', {
+    console.log('✅ Email sent successfully:', {
       to: provider_email,
       subject,
       mission_id,
@@ -159,11 +170,13 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error sending provider notification:', error);
+    console.error('❌ Error sending provider notification:', error);
+    console.error('Error stack:', error.stack);
     return new Response(
       JSON.stringify({
         success: false,
         error: error.message,
+        details: error.stack
       }),
       {
         status: 500,
