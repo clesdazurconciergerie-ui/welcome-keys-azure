@@ -126,9 +126,11 @@ Deno.serve(async (req) => {
     // Send email via Resend
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
     if (!RESEND_API_KEY) {
+      console.error('RESEND_API_KEY not configured');
       throw new Error('RESEND_API_KEY not configured');
     }
 
+    console.log('Sending email via Resend to:', provider_email);
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
