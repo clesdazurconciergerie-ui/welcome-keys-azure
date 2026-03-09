@@ -113,6 +113,9 @@ export default function MissionsPage() {
             <p className="text-muted-foreground mt-1">Publiez des missions — vos prestataires postulent</p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Test Email Button - DEV */}
+            <TestEmailButton providers={providers.filter(p => p.status === 'active')} />
+            
             <Dialog open={syncOpen} onOpenChange={(v) => { setSyncOpen(v); if (!v) setSyncResult(null); }}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2">
@@ -755,5 +758,154 @@ function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, on
         )}
       </div>
     </>
+  );
+}
+
+/* ─── Test Email Button (for debugging) ─── */
+
+interface TestEmailButtonProps {
+  providers: Array<{ id: string; first_name: string; last_name: string; email: string }>;
+}
+
+function TestEmailButton({ providers }: TestEmailButtonProps) {
+  const [open, setOpen] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ success: boolean; message: string; details?: any } | null>(null);
+
+  const handleSendTest = async () => {
+    if (!selectedEmail) {
+      toast.error("Sélectionnez un email");
+      return;
+    }
+    
+    setSending(true);
+    setResult(null);
+    
+    try {
+      console.log("🧪 Sending test email to:", selectedEmail);
+      
+      const { data, error } = await supabase.functions.invoke('send-provider-notification', {
+        body: {
+          provider_email: selectedEmail,
+          mission_title: "Mission test — Email de vérification",
+          property_name: "Propriété Test",
+          mission_date: new Date().toLocaleString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          mission_amount: 50,
+          mission_instructions: "Ceci est un email de test pour vérifier que les notifications fonctionnent.",
+          mission_id: "test-" + Date.now(),
+          notification_type: 'test'
+        }
+      });
+      
+      console.log("🧪 Test email result:", { data, error });
+      
+      if (error) {
+        setResult({ 
+          success: false, 
+          message: `Erreur: ${error.message}`,
+          details: error
+        });
+        toast.error("Échec de l'envoi");
+      } else if (data?.success) {
+        setResult({ 
+          success: true, 
+          message: `✅ Email envoyé à ${selectedEmail}`,
+          details: data
+        });
+        toast.success("Email de test envoyé !");
+      } else {
+        setResult({ 
+          success: false, 
+          message: data?.error || "Erreur inconnue",
+          details: data
+        });
+        toast.error(data?.error || "Échec de l'envoi");
+      }
+    } catch (err: any) {
+      console.error("🧪 Test email exception:", err);
+      setResult({ 
+        success: false, 
+        message: err.message,
+        details: err
+      });
+      toast.error("Exception: " + err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2 text-amber-600 border-amber-300 hover:bg-amber-50">
+          <Mail className="w-4 h-4" /> Test Email
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>🧪 Tester l'envoi d'email</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Envoyez un email de test pour vérifier que Resend fonctionne correctement.
+          </p>
+          
+          <div>
+            <Label>Email destinataire</Label>
+            <Select value={selectedEmail} onValueChange={setSelectedEmail}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choisir un prestataire" />
+              </SelectTrigger>
+              <SelectContent>
+                {providers.map(p => (
+                  <SelectItem key={p.id} value={p.email}>
+                    {p.first_name} {p.last_name} ({p.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Ou entrez manuellement :
+            </p>
+            <Input 
+              type="email" 
+              placeholder="email@exemple.com" 
+              value={selectedEmail}
+              onChange={(e) => setSelectedEmail(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+
+          <Button 
+            onClick={handleSendTest} 
+            disabled={sending || !selectedEmail}
+            className="w-full gap-2"
+          >
+            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            Envoyer l'email de test
+          </Button>
+
+          {result && (
+            <div className={cn(
+              "p-3 rounded-lg border text-sm",
+              result.success ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-800"
+            )}>
+              <p className="font-medium">{result.message}</p>
+              {result.details && (
+                <pre className="mt-2 text-xs overflow-auto max-h-32 bg-background/50 p-2 rounded">
+                  {JSON.stringify(result.details, null, 2)}
+                </pre>
+              )}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
