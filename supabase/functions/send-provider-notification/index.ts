@@ -148,10 +148,11 @@ Deno.serve(async (req) => {
     const resData = await res.json();
     
     if (!res.ok) {
+      console.error('Resend API error:', resData);
       throw new Error(`Resend API error: ${JSON.stringify(resData)}`);
     }
 
-    console.log('Email sent successfully:', {
+    console.log('✅ Email sent successfully:', {
       to: provider_email,
       subject,
       mission_id,
