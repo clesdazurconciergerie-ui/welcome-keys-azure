@@ -115,35 +115,44 @@ Deno.serve(async (req) => {
       </html>
     `;
 
-    // In a real implementation, you would send the email here using a service like Resend
-    // For now, we'll log it and return success
-    console.log('Email notification prepared:', {
+    // Send email via Resend
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+    if (!RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY not configured');
+    }
+
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: 'MyWelkom <notifications@mywelkom.com>',
+        to: provider_email,
+        subject,
+        html: emailHtml,
+      }),
+    });
+
+    const resData = await res.json();
+    
+    if (!res.ok) {
+      throw new Error(`Resend API error: ${JSON.stringify(resData)}`);
+    }
+
+    console.log('Email sent successfully:', {
       to: provider_email,
       subject,
       mission_id,
+      resend_id: resData.id,
     });
-
-    // TODO: Integrate with email service (Resend, SendGrid, etc.)
-    // Example with Resend:
-    // const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-    // const res = await fetch('https://api.resend.com/emails', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     'Authorization': `Bearer ${RESEND_API_KEY}`,
-    //   },
-    //   body: JSON.stringify({
-    //     from: 'MyWelkom <notifications@mywelkom.com>',
-    //     to: provider_email,
-    //     subject,
-    //     html: emailHtml,
-    //   }),
-    // });
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Notification prepared (email sending not yet configured)',
+        message: 'Email notification sent successfully',
+        email_id: resData.id,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
