@@ -5,6 +5,7 @@ import { OwnerSidebar } from "@/components/owner/OwnerSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Menu } from "lucide-react";
 import { useIsOwner } from "@/hooks/useIsOwner";
+import { PortalTourProvider } from "@/components/onboarding/PortalTourProvider";
 
 export default function OwnerDashboardLayout() {
   const navigate = useNavigate();
