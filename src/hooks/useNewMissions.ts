@@ -115,33 +115,62 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
 
       if (error) throw error;
 
-      // Send email if mission is directly assigned to a provider
-      if (newMission && selectedProviderId) {
+      // Send emails based on mission type
+      if (newMission) {
         try {
-          const { data: provider } = await (supabase as any)
-            .from('service_providers')
-            .select('email, first_name, last_name')
-            .eq('id', selectedProviderId)
-            .single();
+          const missionDate = new Date(newMission.start_at).toLocaleString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
 
-          if (provider) {
-            await supabase.functions.invoke('send-provider-notification', {
-              body: {
-                provider_email: provider.email,
-                mission_title: newMission.title,
-                property_name: newMission.property?.name || 'Logement',
-                mission_date: new Date(newMission.start_at).toLocaleString('fr-FR', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                }),
-                mission_amount: newMission.payout_amount || 0,
-                mission_instructions: newMission.instructions,
-                mission_id: newMission.id,
-                notification_type: 'mission_assigned'
+          if (isOpen) {
+            // Mission ouverte: envoyer à tous les prestataires actifs
+            const { data: providers } = await (supabase as any)
+              .from('service_providers')
+              .select('id, email, first_name, last_name')
+              .eq('concierge_user_id', user.id)
+              .eq('status', 'active');
+
+            if (providers && providers.length > 0) {
+              for (const provider of providers) {
+                await supabase.functions.invoke('send-provider-notification', {
+                  body: {
+                    provider_email: provider.email,
+                    mission_title: newMission.title,
+                    property_name: newMission.property?.name || 'Logement',
+                    mission_date: missionDate,
+                    mission_amount: newMission.payout_amount || 0,
+                    mission_instructions: newMission.instructions,
+                    mission_id: newMission.id,
+                    notification_type: 'mission_available'
+                  }
+                });
               }
-            });
+            }
+          } else if (selectedProviderId) {
+            // Mission assignée: envoyer uniquement au prestataire sélectionné
+            const { data: provider } = await (supabase as any)
+              .from('service_providers')
+              .select('email, first_name, last_name')
+              .eq('id', selectedProviderId)
+              .single();
+
+            if (provider) {
+              await supabase.functions.invoke('send-provider-notification', {
+                body: {
+                  provider_email: provider.email,
+                  mission_title: newMission.title,
+                  property_name: newMission.property?.name || 'Logement',
+                  mission_date: missionDate,
+                  mission_amount: newMission.payout_amount || 0,
+                  mission_instructions: newMission.instructions,
+                  mission_id: newMission.id,
+                  notification_type: 'mission_assigned'
+                }
+              });
+            }
           }
         } catch (emailError) {
           console.error('Email sending failed:', emailError);
