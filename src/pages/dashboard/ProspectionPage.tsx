@@ -28,6 +28,7 @@ import {
   PIPELINE_STATUSES, SOURCES, WARMTH_LEVELS,
   type Prospect, type ProspectFollowup
 } from "@/hooks/useProspects";
+import { useEmailTemplates } from "@/hooks/useEmailTemplates";
 import { supabase } from "@/integrations/supabase/client";
 
 const SCORE_BONUSES: Record<string, number> = {
