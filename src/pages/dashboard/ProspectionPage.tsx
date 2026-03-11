@@ -533,6 +533,17 @@ function ProspectDetailSheet({ prospect, onClose, onUpdate, onDelete }: {
               </Card>
             </div>
             <Separator />
+            {canStartSequence && (
+              <Button
+                size="sm"
+                onClick={handleStartSequence}
+                disabled={startingSequence}
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"
+              >
+                <Rocket className="w-3.5 h-3.5 mr-1" />
+                {startingSequence ? "Démarrage..." : "🚀 Démarrer la séquence e-mail"}
+              </Button>
+            )}
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => setShowAddInteraction(true)}>
                 <MessageSquare className="w-3.5 h-3.5 mr-1" /> Interaction
