@@ -356,12 +356,15 @@ function ProspectDetailSheet({ prospect, onClose, onUpdate, onDelete }: {
 }) {
   const { interactions, createInteraction } = useProspectInteractions(prospect.id);
   const { followups, createFollowup, updateFollowup } = useProspectFollowups(prospect.id);
+  const { templates, seedTemplates } = useEmailTemplates();
   const [showAddInteraction, setShowAddInteraction] = useState(false);
   const [showAddFollowup, setShowAddFollowup] = useState(false);
   const [interactionForm, setInteractionForm] = useState({ interaction_type: "call", summary: "", result: "" });
   const [followupDate, setFollowupDate] = useState<Date>();
   const [followupComment, setFollowupComment] = useState("");
   const [converting, setConverting] = useState(false);
+  const [startingSequence, setStartingSequence] = useState(false);
+  const queryClient = useQueryClient();
 
   const warmthInfo = WARMTH_LEVELS.find(w => w.value === prospect.warmth);
   const statusInfo = PIPELINE_STATUSES.find(s => s.value === prospect.pipeline_status);
