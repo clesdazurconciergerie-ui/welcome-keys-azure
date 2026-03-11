@@ -27,7 +27,7 @@ export default function Step8FAQ({ data, onUpdate }: Step8FAQProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftFAQ, setDraftFAQ] = useState({ question: "", answer: "" });
   const bookletId = data?.id;
-  const saveTimeoutRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
+  const saveTimeoutRef = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({});
 
   useEffect(() => {
     if (bookletId) {

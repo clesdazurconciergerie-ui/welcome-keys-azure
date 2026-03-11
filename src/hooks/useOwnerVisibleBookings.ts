@@ -63,7 +63,7 @@ export function useOwnerVisibleBookings(propertyIds: string[]) {
 
     const hiddenIds = new Set<string>(overrides.map((o: any) => o.source_event_id));
 
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.DEV) {
       console.log("[OwnerVisibleBookings] raw bookings:", rawBookings.length);
       console.log("[OwnerVisibleBookings] raw calendar_events:", rawEvents.length);
       console.log("[OwnerVisibleBookings] hidden override IDs:", [...hiddenIds]);
@@ -118,7 +118,7 @@ export function useOwnerVisibleBookings(propertyIds: string[]) {
 
     const result = [...bkEvents, ...ceEvents];
 
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.DEV) {
       const hiddenCount = (bookings.length + calendarEvents.length) - result.length;
       console.log("[OwnerVisibleBookings] hidden excluded:", hiddenCount, "| visible:", result.length);
     }
