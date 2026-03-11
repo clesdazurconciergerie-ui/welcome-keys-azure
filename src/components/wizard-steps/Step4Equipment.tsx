@@ -246,7 +246,7 @@ export default function Step4Equipment({ data, onUpdate }: Step4EquipmentProps) 
 
   // Autosave PATCH debouncé (upsert par ID uniquement, JSONB natif)
   const debouncedSave = useMemo(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
     return (items: Equipment[]) => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(async () => {

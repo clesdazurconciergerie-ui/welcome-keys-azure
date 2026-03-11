@@ -118,7 +118,7 @@ export function useOwnerVisibleBookings(propertyIds: string[]) {
 
     const result = [...bkEvents, ...ceEvents];
 
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.DEV) {
       const hiddenCount = (bookings.length + calendarEvents.length) - result.length;
       console.log("[OwnerVisibleBookings] hidden excluded:", hiddenCount, "| visible:", result.length);
     }
