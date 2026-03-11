@@ -412,6 +412,68 @@ function ProspectDetailSheet({ prospect, onClose, onUpdate, onDelete }: {
     onUpdate({ last_contact_date: new Date().toISOString().split('T')[0] });
   };
 
+  const cancelFollowup = (followup: ProspectFollowup) => {
+    updateFollowup.mutate({ id: followup.id, status: "cancelled" });
+  };
+
+  const handleStartSequence = async () => {
+    setStartingSequence(true);
+    try {
+      // Seed templates if needed
+      await seedTemplates();
+      // Fetch templates
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Non authentifié");
+      const { data: tpls, error: tplErr } = await (supabase as any)
+        .from("email_templates")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("actif", true)
+        .order("etape", { ascending: true });
+      if (tplErr) throw tplErr;
+      if (!tpls || tpls.length === 0) { toast.error("Aucun template trouvé"); return; }
+
+      const replacePlaceholders = (text: string) =>
+        text
+          .replace(/\{\{prenom\}\}/g, prospect.first_name || "")
+          .replace(/\{\{ville\}\}/g, prospect.city || "")
+          .replace(/\{\{expediteur\}\}/g, "MyWelkom Conciergerie");
+
+      const today = new Date();
+      const rows = tpls.map((t: any) => {
+        const scheduledDate = new Date(today);
+        scheduledDate.setDate(scheduledDate.getDate() + t.delai_jours);
+        return {
+          prospect_id: prospect.id,
+          user_id: user.id,
+          followup_type: "email",
+          status: "todo",
+          scheduled_date: scheduledDate.toISOString().split("T")[0],
+          email_subject: replacePlaceholders(t.email_subject),
+          email_body: replacePlaceholders(t.email_body),
+          comment: `Étape ${t.etape} — ${replacePlaceholders(t.email_subject)}`,
+        };
+      });
+
+      const { error: insertErr } = await (supabase as any)
+        .from("prospect_followups")
+        .insert(rows);
+      if (insertErr) throw insertErr;
+
+      // Update pipeline status
+      onUpdate({ pipeline_status: "contacted" });
+      queryClient.invalidateQueries({ queryKey: ["prospect_followups"] });
+      toast.success("✅ Séquence démarrée — " + rows.length + " relances planifiées");
+    } catch (err: any) {
+      console.error("Sequence error:", err);
+      toast.error("Erreur lors du démarrage de la séquence");
+    } finally {
+      setStartingSequence(false);
+    }
+  };
+
+  const canStartSequence = ["new_contact", "to_contact"].includes(prospect.pipeline_status);
+
   return (
     <Sheet open={true} onOpenChange={() => onClose()}>
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
