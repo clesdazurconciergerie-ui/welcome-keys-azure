@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import {
   Plus, Search, Phone, Mail, MapPin, CalendarIcon, MessageSquare,
   TrendingUp, Users, Target, AlertTriangle, CheckCircle, Clock, ArrowRightLeft,
-  Flame, Snowflake, Sun, Star, Trash2, UserPlus, X, BarChart3
+  Flame, Snowflake, Sun, Star, Trash2, UserPlus, X, BarChart3, Rocket, Ban
 } from "lucide-react";
 import {
   useProspects, useProspectInteractions, useProspectFollowups,
