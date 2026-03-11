@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,13 +22,14 @@ import { toast } from "sonner";
 import {
   Plus, Search, Phone, Mail, MapPin, CalendarIcon, MessageSquare,
   TrendingUp, Users, Target, AlertTriangle, CheckCircle, Clock, ArrowRightLeft,
-  Flame, Snowflake, Sun, Star, Trash2, UserPlus, X, BarChart3
+  Flame, Snowflake, Sun, Star, Trash2, UserPlus, X, BarChart3, Rocket, Ban
 } from "lucide-react";
 import {
   useProspects, useProspectInteractions, useProspectFollowups,
   PIPELINE_STATUSES, SOURCES, WARMTH_LEVELS,
   type Prospect, type ProspectFollowup
 } from "@/hooks/useProspects";
+import { useEmailTemplates } from "@/hooks/useEmailTemplates";
 import { supabase } from "@/integrations/supabase/client";
 
 const SCORE_BONUSES: Record<string, number> = {
@@ -355,12 +357,15 @@ function ProspectDetailSheet({ prospect, onClose, onUpdate, onDelete }: {
 }) {
   const { interactions, createInteraction } = useProspectInteractions(prospect.id);
   const { followups, createFollowup, updateFollowup } = useProspectFollowups(prospect.id);
+  const { templates, seedTemplates } = useEmailTemplates();
   const [showAddInteraction, setShowAddInteraction] = useState(false);
   const [showAddFollowup, setShowAddFollowup] = useState(false);
   const [interactionForm, setInteractionForm] = useState({ interaction_type: "call", summary: "", result: "" });
   const [followupDate, setFollowupDate] = useState<Date>();
   const [followupComment, setFollowupComment] = useState("");
   const [converting, setConverting] = useState(false);
+  const [startingSequence, setStartingSequence] = useState(false);
+  const queryClient = useQueryClient();
 
   const warmthInfo = WARMTH_LEVELS.find(w => w.value === prospect.warmth);
   const statusInfo = PIPELINE_STATUSES.find(s => s.value === prospect.pipeline_status);
@@ -406,6 +411,68 @@ function ProspectDetailSheet({ prospect, onClose, onUpdate, onDelete }: {
     updateFollowup.mutate({ id: followup.id, status: "done", completed_date: new Date().toISOString().split('T')[0] });
     onUpdate({ last_contact_date: new Date().toISOString().split('T')[0] });
   };
+
+  const cancelFollowup = (followup: ProspectFollowup) => {
+    updateFollowup.mutate({ id: followup.id, status: "cancelled" });
+  };
+
+  const handleStartSequence = async () => {
+    setStartingSequence(true);
+    try {
+      // Seed templates if needed
+      await seedTemplates();
+      // Fetch templates
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Non authentifié");
+      const { data: tpls, error: tplErr } = await (supabase as any)
+        .from("email_templates")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("actif", true)
+        .order("etape", { ascending: true });
+      if (tplErr) throw tplErr;
+      if (!tpls || tpls.length === 0) { toast.error("Aucun template trouvé"); return; }
+
+      const replacePlaceholders = (text: string) =>
+        text
+          .replace(/\{\{prenom\}\}/g, prospect.first_name || "")
+          .replace(/\{\{ville\}\}/g, prospect.city || "")
+          .replace(/\{\{expediteur\}\}/g, "MyWelkom Conciergerie");
+
+      const today = new Date();
+      const rows = tpls.map((t: any) => {
+        const scheduledDate = new Date(today);
+        scheduledDate.setDate(scheduledDate.getDate() + t.delai_jours);
+        return {
+          prospect_id: prospect.id,
+          user_id: user.id,
+          followup_type: "email",
+          status: "todo",
+          scheduled_date: scheduledDate.toISOString().split("T")[0],
+          email_subject: replacePlaceholders(t.email_subject),
+          email_body: replacePlaceholders(t.email_body),
+          comment: `Étape ${t.etape} — ${replacePlaceholders(t.email_subject)}`,
+        };
+      });
+
+      const { error: insertErr } = await (supabase as any)
+        .from("prospect_followups")
+        .insert(rows);
+      if (insertErr) throw insertErr;
+
+      // Update pipeline status
+      onUpdate({ pipeline_status: "contacted" });
+      queryClient.invalidateQueries({ queryKey: ["prospect_followups"] });
+      toast.success("✅ Séquence démarrée — " + rows.length + " relances planifiées");
+    } catch (err: any) {
+      console.error("Sequence error:", err);
+      toast.error("Erreur lors du démarrage de la séquence");
+    } finally {
+      setStartingSequence(false);
+    }
+  };
+
+  const canStartSequence = ["new_contact", "to_contact"].includes(prospect.pipeline_status);
 
   return (
     <Sheet open={true} onOpenChange={() => onClose()}>
@@ -466,6 +533,17 @@ function ProspectDetailSheet({ prospect, onClose, onUpdate, onDelete }: {
               </Card>
             </div>
             <Separator />
+            {canStartSequence && (
+              <Button
+                size="sm"
+                onClick={handleStartSequence}
+                disabled={startingSequence}
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"
+              >
+                <Rocket className="w-3.5 h-3.5 mr-1" />
+                {startingSequence ? "Démarrage..." : "🚀 Démarrer la séquence e-mail"}
+              </Button>
+            )}
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => setShowAddInteraction(true)}>
                 <MessageSquare className="w-3.5 h-3.5 mr-1" /> Interaction
@@ -509,22 +587,46 @@ function ProspectDetailSheet({ prospect, onClose, onUpdate, onDelete }: {
               <Plus className="w-3.5 h-3.5 mr-1" /> Programmer une relance
             </Button>
             {followups.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Aucune relance programmée</p>}
-            {followups.map(f => {
+            {followups.map((f: any) => {
               const isOverdue = f.status === "todo" && new Date(f.scheduled_date) < new Date();
+              const isEmail = f.followup_type === "email";
+              const isCancelled = f.status === "cancelled";
               return (
-                <div key={f.id} className={cn("p-3 rounded-xl border", f.status === "done" ? "bg-emerald-50/50 border-emerald-200" : isOverdue ? "bg-red-50/50 border-red-200" : "bg-muted/30 border-border/50")}>
+                <div key={f.id} className={cn(
+                  "p-3 rounded-xl border",
+                  f.status === "done" ? "bg-emerald-50/50 border-emerald-200"
+                    : isCancelled ? "bg-amber-50/50 border-amber-200 opacity-60"
+                    : isOverdue ? "bg-red-50/50 border-red-200"
+                    : "bg-muted/30 border-border/50"
+                )}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {f.status === "done" ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : isOverdue ? <AlertTriangle className="w-4 h-4 text-red-500" /> : <Clock className="w-4 h-4 text-blue-500" />}
-                      <span className="text-sm font-medium">{format(new Date(f.scheduled_date), "dd MMM yyyy", { locale: fr })}</span>
+                      {f.status === "done" ? <CheckCircle className="w-4 h-4 text-emerald-500" />
+                        : isCancelled ? <Ban className="w-4 h-4 text-amber-500" />
+                        : isOverdue ? <AlertTriangle className="w-4 h-4 text-red-500" />
+                        : <Clock className="w-4 h-4 text-blue-500" />}
+                      <span className="text-sm font-medium">{format(new Date(f.scheduled_date), "dd/MM/yyyy")}</span>
+                      <Badge variant={f.status === "done" ? "success" : isCancelled ? "warning" : "secondary"} className="text-[10px]">
+                        {f.status === "done" ? "Envoyée" : isCancelled ? "Annulée" : "Planifiée"}
+                      </Badge>
                     </div>
-                    {f.status === "todo" && (
-                      <Button size="sm" variant="ghost" onClick={() => markFollowupDone(f)} className="text-xs h-7">
-                        <CheckCircle className="w-3 h-3 mr-1" /> Fait
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {f.status === "todo" && (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={() => markFollowupDone(f)} className="text-xs h-7">
+                            <CheckCircle className="w-3 h-3 mr-1" /> Fait
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => cancelFollowup(f)} className="text-xs h-7 text-amber-600">
+                            Annuler
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  {f.comment && <p className="text-xs text-muted-foreground mt-1 ml-6">{f.comment}</p>}
+                  {isEmail && f.email_subject && (
+                    <p className="text-xs font-medium text-foreground mt-1.5 ml-6">📧 {f.email_subject}</p>
+                  )}
+                  {f.comment && !isEmail && <p className="text-xs text-muted-foreground mt-1 ml-6">{f.comment}</p>}
                 </div>
               );
             })}

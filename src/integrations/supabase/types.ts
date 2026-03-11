@@ -1051,6 +1051,39 @@ export type Database = {
           },
         ]
       }
+      email_templates: {
+        Row: {
+          actif: boolean | null
+          created_at: string | null
+          delai_jours: number
+          email_body: string
+          email_subject: string
+          etape: number
+          id: string
+          user_id: string
+        }
+        Insert: {
+          actif?: boolean | null
+          created_at?: string | null
+          delai_jours: number
+          email_body: string
+          email_subject: string
+          etape: number
+          id?: string
+          user_id: string
+        }
+        Update: {
+          actif?: boolean | null
+          created_at?: string | null
+          delai_jours?: number
+          email_body?: string
+          email_subject?: string
+          etape?: number
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       equipment: {
         Row: {
           booklet_id: string
@@ -2780,9 +2813,14 @@ export type Database = {
           comment: string | null
           completed_date: string | null
           created_at: string
+          email_body: string | null
+          email_subject: string | null
+          error_message: string | null
+          followup_type: string | null
           id: string
           prospect_id: string
           scheduled_date: string
+          sent_at: string | null
           status: string
           updated_at: string
           user_id: string
@@ -2791,9 +2829,14 @@ export type Database = {
           comment?: string | null
           completed_date?: string | null
           created_at?: string
+          email_body?: string | null
+          email_subject?: string | null
+          error_message?: string | null
+          followup_type?: string | null
           id?: string
           prospect_id: string
           scheduled_date: string
+          sent_at?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -2802,9 +2845,14 @@ export type Database = {
           comment?: string | null
           completed_date?: string | null
           created_at?: string
+          email_body?: string | null
+          email_subject?: string | null
+          error_message?: string | null
+          followup_type?: string | null
           id?: string
           prospect_id?: string
           scheduled_date?: string
+          sent_at?: string | null
           status?: string
           updated_at?: string
           user_id?: string
