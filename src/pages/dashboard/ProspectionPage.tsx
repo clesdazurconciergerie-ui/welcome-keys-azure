@@ -587,22 +587,46 @@ function ProspectDetailSheet({ prospect, onClose, onUpdate, onDelete }: {
               <Plus className="w-3.5 h-3.5 mr-1" /> Programmer une relance
             </Button>
             {followups.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Aucune relance programmée</p>}
-            {followups.map(f => {
+            {followups.map((f: any) => {
               const isOverdue = f.status === "todo" && new Date(f.scheduled_date) < new Date();
+              const isEmail = f.followup_type === "email";
+              const isCancelled = f.status === "cancelled";
               return (
-                <div key={f.id} className={cn("p-3 rounded-xl border", f.status === "done" ? "bg-emerald-50/50 border-emerald-200" : isOverdue ? "bg-red-50/50 border-red-200" : "bg-muted/30 border-border/50")}>
+                <div key={f.id} className={cn(
+                  "p-3 rounded-xl border",
+                  f.status === "done" ? "bg-emerald-50/50 border-emerald-200"
+                    : isCancelled ? "bg-amber-50/50 border-amber-200 opacity-60"
+                    : isOverdue ? "bg-red-50/50 border-red-200"
+                    : "bg-muted/30 border-border/50"
+                )}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {f.status === "done" ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : isOverdue ? <AlertTriangle className="w-4 h-4 text-red-500" /> : <Clock className="w-4 h-4 text-blue-500" />}
-                      <span className="text-sm font-medium">{format(new Date(f.scheduled_date), "dd MMM yyyy", { locale: fr })}</span>
+                      {f.status === "done" ? <CheckCircle className="w-4 h-4 text-emerald-500" />
+                        : isCancelled ? <Ban className="w-4 h-4 text-amber-500" />
+                        : isOverdue ? <AlertTriangle className="w-4 h-4 text-red-500" />
+                        : <Clock className="w-4 h-4 text-blue-500" />}
+                      <span className="text-sm font-medium">{format(new Date(f.scheduled_date), "dd/MM/yyyy")}</span>
+                      <Badge variant={f.status === "done" ? "success" : isCancelled ? "warning" : "secondary"} className="text-[10px]">
+                        {f.status === "done" ? "Envoyée" : isCancelled ? "Annulée" : "Planifiée"}
+                      </Badge>
                     </div>
-                    {f.status === "todo" && (
-                      <Button size="sm" variant="ghost" onClick={() => markFollowupDone(f)} className="text-xs h-7">
-                        <CheckCircle className="w-3 h-3 mr-1" /> Fait
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {f.status === "todo" && (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={() => markFollowupDone(f)} className="text-xs h-7">
+                            <CheckCircle className="w-3 h-3 mr-1" /> Fait
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => cancelFollowup(f)} className="text-xs h-7 text-amber-600">
+                            Annuler
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  {f.comment && <p className="text-xs text-muted-foreground mt-1 ml-6">{f.comment}</p>}
+                  {isEmail && f.email_subject && (
+                    <p className="text-xs font-medium text-foreground mt-1.5 ml-6">📧 {f.email_subject}</p>
+                  )}
+                  {f.comment && !isEmail && <p className="text-xs text-muted-foreground mt-1 ml-6">{f.comment}</p>}
                 </div>
               );
             })}
