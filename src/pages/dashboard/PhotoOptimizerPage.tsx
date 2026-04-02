@@ -58,6 +58,7 @@ function SegmentedControl<T extends string>({
   value: T;
   onChange: (v: T) => void;
 }) {
+  const handleChange = useCallback((v: string) => onChange(v as T), [onChange]);
   return (
     <div className="inline-flex items-center gap-0.5 rounded-xl bg-muted/60 p-1 backdrop-blur-sm">
       {options.map((opt) => (
