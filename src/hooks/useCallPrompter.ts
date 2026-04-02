@@ -99,7 +99,7 @@ export function useCallPrompter() {
   // Whisper chunking refs
   const audioChunksRef = useRef<Blob[]>([]);
   const isTranscribingRef = useRef(false);
-  const transcriptionQueueRef = useRef<Blob[]>([]);
+  const transcriptionQueueRef = useRef<{ blob: Blob; speaker: "user" | "prospect" }[]>([]);
 
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
@@ -243,11 +243,8 @@ export function useCallPrompter() {
   }, []);
 
   // ─── Whisper transcription ────────────────────────────────────
-  const transcribeChunk = useCallback(async (audioBlob: Blob) => {
+  const transcribeChunk = useCallback(async (audioBlob: Blob, speaker: "user" | "prospect") => {
     if (audioBlob.size < 2000) return;
-
-    // Check RMS energy to skip silence/noise
-    // We can't check RMS of the blob directly, but we filtered at recording time
 
     setSttStatus("transcribing");
     try {
@@ -273,9 +270,6 @@ export function useCallPrompter() {
       const data = await response.json();
       const text = (data.text || "").trim();
 
-      // Filter Whisper hallucinations:
-      // - too short
-      // - common Whisper hallucination patterns
       const hallucinations = [
         "sous-titres", "sous-titrage", "merci d'avoir regardé", "merci de votre attention",
         "subscribe", "like", "bell", "amara.org", "transcrit par", "réalisé par",
@@ -288,16 +282,18 @@ export function useCallPrompter() {
         setChunksTranscribed(prev => prev + 1);
         setLastTranscriptionTime(new Date().toLocaleTimeString("fr-FR"));
 
-        // With push-to-talk: all transcribed text = prospect (user holds space to mute)
         const entry: TranscriptEntry = {
-          speaker: "prospect",
+          speaker,
           text,
           timestamp: new Date().toISOString(),
         };
 
         setTranscript(prev => {
           const updated = [...prev, entry];
-          getSuggestion(text, updated);
+          // Only trigger AI suggestion for prospect speech
+          if (speaker === "prospect") {
+            getSuggestion(text, updated);
+          }
           return updated;
         });
       }
@@ -311,11 +307,11 @@ export function useCallPrompter() {
 
   const processQueue = useCallback(async () => {
     if (isTranscribingRef.current) return;
-    const blob = transcriptionQueueRef.current.shift();
-    if (!blob) return;
+    const item = transcriptionQueueRef.current.shift();
+    if (!item) return;
 
     isTranscribingRef.current = true;
-    await transcribeChunk(blob);
+    await transcribeChunk(item.blob, item.speaker);
     isTranscribingRef.current = false;
 
     if (transcriptionQueueRef.current.length > 0 && isActiveRef.current) {
@@ -338,40 +334,34 @@ export function useCallPrompter() {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
+      // Track speaker at chunk boundaries
+      let chunkSpeaker: "user" | "prospect" = userSpeakingRef.current ? "user" : "prospect";
+
       recorder.start();
       setSttStatus("active");
 
-      // 6-second chunks for better Whisper accuracy
+      // 6-second chunks — always transcribe, tag with speaker
       recordingIntervalRef.current = setInterval(() => {
         if (!isActiveRef.current || recorder.state !== "recording") return;
 
+        // Capture who was predominantly speaking during this chunk
+        const speakerForChunk = chunkSpeaker;
+
         recorder.stop();
         setTimeout(() => {
-          const wasUserSpeaking = userSpeakingRef.current;
-
-          if (audioChunksRef.current.length > 0 && !wasUserSpeaking) {
+          if (audioChunksRef.current.length > 0) {
             const blob = new Blob(audioChunksRef.current, { type: mimeType });
             audioChunksRef.current = [];
             // Energy filter: skip very small blobs (silence)
             if (blob.size > 4000) {
-              transcriptionQueueRef.current.push(blob);
+              transcriptionQueueRef.current.push({ blob, speaker: speakerForChunk });
               processQueue();
             }
           } else {
-            // Discard: user was speaking or no data
             audioChunksRef.current = [];
-            if (wasUserSpeaking) {
-              // Add a "user spoke" marker in transcript
-              const lastEntry = transcriptRef.current[transcriptRef.current.length - 1];
-              if (!lastEntry || lastEntry.speaker !== "user" || lastEntry.text !== "(vous parliez)") {
-                setTranscript(prev => [...prev, {
-                  speaker: "user",
-                  text: "(vous parliez)",
-                  timestamp: new Date().toISOString(),
-                }]);
-              }
-            }
           }
+          // Update speaker for next chunk
+          chunkSpeaker = userSpeakingRef.current ? "user" : "prospect";
           if (isActiveRef.current) {
             try { recorder.start(); } catch {}
           }
@@ -459,8 +449,7 @@ export function useCallPrompter() {
       ? Math.round((Date.now() - startTimeRef.current.getTime()) / 1000)
       : 0;
 
-    // Filter out "(vous parliez)" markers for final save
-    const finalTranscript = transcriptRef.current.filter(t => t.text !== "(vous parliez)");
+    const finalTranscript = transcriptRef.current;
     setCallStatus("idle");
 
     if (sessionIdRef.current) {
