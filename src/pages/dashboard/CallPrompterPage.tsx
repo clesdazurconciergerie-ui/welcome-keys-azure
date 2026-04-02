@@ -13,9 +13,10 @@ import {
   Phone, PhoneOff, Mic, MicOff, Settings, History, Brain, MessageSquare,
   TrendingUp, AlertTriangle, ThumbsUp, Lightbulb, RotateCcw,
   Volume2, Activity, User, Users, Clock, Hash, Eye, ArrowLeft,
-  Keyboard,
+  Keyboard, Zap,
 } from "lucide-react";
 import { useCallPrompter, CallAnalysis, CallSession, TranscriptEntry } from "@/hooks/useCallPrompter";
+import { SkillsManager } from "@/components/call-prompter/SkillsManager";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
