@@ -240,12 +240,7 @@ export function useCallPrompter() {
         if (!isActiveRef.current) return;
         analyser.getByteFrequencyData(dataArray);
         const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-        const nextLevel = Math.round((avg / 255) * 100);
-        setAudioLevel(nextLevel);
-        if (nextLevel >= 3) {
-          segmentHadSpeechRef.current = true;
-          lastSpeechAtRef.current = Date.now();
-        }
+        setAudioLevel(Math.round((avg / 255) * 100));
         animFrameRef.current = requestAnimationFrame(updateLevel);
       };
       updateLevel();
