@@ -250,7 +250,8 @@ export function useCallPrompter() {
 
   // ─── Whisper transcription ────────────────────────────────────
   const transcribeChunk = useCallback(async (audioBlob: Blob, speaker: "user" | "prospect") => {
-    if (audioBlob.size < 2000) return;
+    console.log("[CallPrompter] Transcribing chunk:", audioBlob.size, "bytes, speaker:", speaker);
+    if (audioBlob.size < 2000) { console.log("[CallPrompter] Chunk too small, skipping"); return; }
 
     setSttStatus("transcribing");
     try {
