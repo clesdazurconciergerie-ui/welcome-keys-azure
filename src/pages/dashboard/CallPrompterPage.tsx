@@ -12,8 +12,8 @@ import { Progress } from "@/components/ui/progress";
 import {
   Phone, PhoneOff, Mic, MicOff, Settings, History, Brain, MessageSquare,
   TrendingUp, AlertTriangle, ThumbsUp, Lightbulb, RotateCcw,
-  Volume2, Shield, Activity, User, Users, HelpCircle, Clock, Hash, Eye, ArrowLeft,
-  CheckCircle, Trash2, AudioLines,
+  Volume2, Activity, User, Users, Clock, Hash, Eye, ArrowLeft,
+  Keyboard,
 } from "lucide-react";
 import { useCallPrompter, CallAnalysis, CallSession, TranscriptEntry } from "@/hooks/useCallPrompter";
 import { format } from "date-fns";
@@ -28,27 +28,13 @@ const CallPrompterPage = () => {
     loading,
     startCall, endCall, regenerateSuggestion,
     micStatus, audioLevel, sttStatus,
-    speakerState, lastDetectedSpeaker,
     chunksTranscribed, lastTranscriptionTime,
-    hasVoiceProfile,
-    isRecordingVoice, voiceRecordProgress,
-    startVoiceRecording, cancelVoiceRecording, deleteVoiceProfile,
+    userSpeaking,
   } = useCallPrompter();
 
   const [tab, setTab] = useState("prompter");
   const [editSettings, setEditSettings] = useState(settings);
   const [selectedSession, setSelectedSession] = useState<CallSession | null>(null);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.code === "Space" && callStatus === "listening" && !["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) {
-        e.preventDefault();
-        regenerateSuggestion();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [callStatus, regenerateSuggestion]);
 
   const statusLabel = {
     idle: "Prêt",
@@ -73,18 +59,7 @@ const CallPrompterPage = () => {
             </h1>
             <p className="text-muted-foreground mt-1">Coach de vente IA en temps réel</p>
           </div>
-          <div className="flex items-center gap-2">
-            {hasVoiceProfile ? (
-              <Badge className="bg-green-500/20 text-green-600 gap-1">
-                <CheckCircle className="w-3 h-3" /> Voix enregistrée
-              </Badge>
-            ) : (
-              <Badge variant="destructive" className="gap-1">
-                <MicOff className="w-3 h-3" /> Voix non enregistrée
-              </Badge>
-            )}
-            <Badge className={statusColor}>{statusLabel}</Badge>
-          </div>
+          <Badge className={statusColor}>{statusLabel}</Badge>
         </div>
       </motion.div>
 
@@ -103,21 +78,18 @@ const CallPrompterPage = () => {
 
         {/* PROMPTER TAB */}
         <TabsContent value="prompter" className="space-y-4">
-          {/* Warning if no voice profile */}
-          {!hasVoiceProfile && callStatus === "idle" && (
-            <Card className="border-yellow-500/30 bg-yellow-500/5">
+          {/* Push-to-talk instructions */}
+          {callStatus === "idle" && (
+            <Card className="border-primary/20 bg-primary/5">
               <CardContent className="py-4 flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0" />
+                <Keyboard className="w-5 h-5 text-primary shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-foreground">Enregistrez votre voix d'abord</p>
+                  <p className="text-sm font-medium text-foreground">Mode Push-to-Talk</p>
                   <p className="text-xs text-muted-foreground">
-                    Allez dans l'onglet <strong>Paramètres</strong> pour enregistrer votre empreinte vocale. 
-                    Cela permet au système de distinguer automatiquement votre voix de celle du prospect.
+                    Pendant l'appel, <strong>maintenez la barre Espace quand vous parlez</strong>. 
+                    Quand vous relâchez, le système écoute le prospect et génère des suggestions IA.
                   </p>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => setTab("settings")}>
-                  Configurer
-                </Button>
               </CardContent>
             </Card>
           )}
@@ -129,7 +101,6 @@ const CallPrompterPage = () => {
                 onClick={startCall}
                 size="lg"
                 className="bg-green-600 hover:bg-green-700 text-white gap-2"
-                disabled={!hasVoiceProfile}
               >
                 <Phone className="w-5 h-5" /> Démarrer l'appel
               </Button>
@@ -140,7 +111,7 @@ const CallPrompterPage = () => {
             )}
             {callStatus === "listening" && (
               <Button onClick={regenerateSuggestion} variant="outline" className="gap-2">
-                <RotateCcw className="w-4 h-4" /> Régénérer (Espace)
+                <RotateCcw className="w-4 h-4" /> Régénérer
               </Button>
             )}
           </div>
@@ -176,23 +147,20 @@ const CallPrompterPage = () => {
                     </Badge>
                   </div>
 
-                  {/* Speaker detection — automatic */}
+                  {/* Push-to-talk indicator */}
                   <div className="flex items-center gap-2">
-                    {speakerState === "listening_user" ? (
+                    {userSpeaking ? (
                       <User className="w-4 h-4 text-primary" />
-                    ) : speakerState === "listening_prospect" ? (
-                      <Users className="w-4 h-4 text-green-500" />
                     ) : (
-                      <HelpCircle className="w-4 h-4 text-yellow-500" />
+                      <Users className="w-4 h-4 text-green-500" />
                     )}
-                    <span className="text-muted-foreground">Locuteur :</span>
                     <Badge
-                      variant={speakerState === "listening_prospect" ? "default" : "secondary"}
-                      className="text-xs"
+                      className={userSpeaking
+                        ? "bg-primary/20 text-primary text-xs"
+                        : "bg-green-500/20 text-green-600 text-xs"
+                      }
                     >
-                      {speakerState === "listening_user" ? "Vous" :
-                       speakerState === "listening_prospect" ? "Prospect" :
-                       "Détection…"}
+                      {userSpeaking ? "🔇 Vous parlez (muté)" : "🎙️ Écoute prospect"}
                     </Badge>
                   </div>
                 </div>
@@ -205,6 +173,10 @@ const CallPrompterPage = () => {
                   <div className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     Dernière : <span className="font-medium text-foreground">{lastTranscriptionTime || "—"}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Keyboard className="w-3 h-3" />
+                    <span className="text-foreground/60">Espace = je parle</span>
                   </div>
                 </div>
               </CardContent>
@@ -219,9 +191,20 @@ const CallPrompterPage = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
               >
-                <Card className="border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5 min-h-[200px] flex items-center justify-center">
+                <Card className={`border-2 min-h-[200px] flex items-center justify-center ${
+                  userSpeaking
+                    ? "border-primary/30 bg-primary/5"
+                    : "border-green-500/20 bg-gradient-to-br from-card to-green-500/5"
+                }`}>
                   <CardContent className="py-10 px-8 text-center w-full">
-                    {suggestion ? (
+                    {userSpeaking ? (
+                      <div className="space-y-3">
+                        <User className="w-10 h-10 text-primary mx-auto" />
+                        <p className="text-lg text-muted-foreground">
+                          Vous parlez — relâchez Espace pour écouter le prospect
+                        </p>
+                      </div>
+                    ) : suggestion ? (
                       <motion.p
                         key={suggestion}
                         initial={{ opacity: 0, y: 10 }}
@@ -235,7 +218,6 @@ const CallPrompterPage = () => {
                         <MessageSquare className="w-10 h-10 text-muted-foreground mx-auto" />
                         <p className="text-lg text-muted-foreground">
                           {callStatus === "processing" ? "Analyse IA en cours..." :
-                           speakerState === "listening_user" ? "Vous parlez — en attente du prospect…" :
                            audioLevel < 3 ? "En attente d'entrée audio…" :
                            "Écoute du prospect…"}
                         </p>
@@ -261,7 +243,7 @@ const CallPrompterPage = () => {
                     <Badge variant={entry.speaker === "user" ? "default" : "secondary"} className="shrink-0">
                       {entry.speaker === "user" ? "Vous" : "Prospect"}
                     </Badge>
-                    <span className={`${entry.speaker === "user" ? "text-right" : ""} text-foreground`}>
+                    <span className={`${entry.speaker === "user" ? "text-right text-muted-foreground italic" : ""} text-foreground`}>
                       {entry.text}
                     </span>
                   </div>
@@ -331,55 +313,6 @@ const CallPrompterPage = () => {
 
         {/* SETTINGS TAB */}
         <TabsContent value="settings" className="space-y-4">
-          {/* Voice Profile Section */}
-          <Card className="border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <AudioLines className="w-5 h-5 text-primary" /> Empreinte vocale
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Enregistrez votre voix pour que le système puisse automatiquement distinguer 
-                votre voix de celle du prospect pendant les appels. Parlez normalement pendant 10 secondes.
-              </p>
-
-              {isRecordingVoice ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Mic className="w-5 h-5 text-destructive animate-pulse" />
-                    <span className="text-sm font-medium text-foreground">Enregistrement en cours… Parlez normalement</span>
-                  </div>
-                  <Progress value={voiceRecordProgress} className="h-3" />
-                  <p className="text-xs text-muted-foreground">{voiceRecordProgress}%</p>
-                  <Button variant="outline" size="sm" onClick={cancelVoiceRecording}>
-                    Annuler
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3">
-                  {hasVoiceProfile ? (
-                    <>
-                      <Badge className="bg-green-500/20 text-green-600 gap-1">
-                        <CheckCircle className="w-3 h-3" /> Profil enregistré
-                      </Badge>
-                      <Button variant="outline" size="sm" onClick={startVoiceRecording} className="gap-2">
-                        <RotateCcw className="w-4 h-4" /> Ré-enregistrer
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={deleteVoiceProfile} className="gap-2 text-destructive">
-                        <Trash2 className="w-4 h-4" /> Supprimer
-                      </Button>
-                    </>
-                  ) : (
-                    <Button onClick={startVoiceRecording} className="gap-2">
-                      <Mic className="w-4 h-4" /> Enregistrer ma voix (10s)
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Business Settings */}
           <Card>
             <CardHeader>
@@ -449,6 +382,33 @@ const CallPrompterPage = () => {
               <Button onClick={() => saveSettings({ ...settings, ...editSettings })}>
                 Sauvegarder
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* How it works */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Keyboard className="w-5 h-5 text-primary" /> Comment ça marche
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <div className="flex items-start gap-3">
+                <Badge className="shrink-0 mt-0.5">1</Badge>
+                <p>Lancez l'appel et mettez votre téléphone en haut-parleur</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <Badge className="shrink-0 mt-0.5">2</Badge>
+                <p><strong>Maintenez la barre Espace quand vous parlez</strong> — le système ignore votre voix</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <Badge className="shrink-0 mt-0.5">3</Badge>
+                <p>Quand vous relâchez, le système écoute le prospect et génère une suggestion IA</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <Badge className="shrink-0 mt-0.5">4</Badge>
+                <p>Lisez la suggestion affichée à l'écran pour répondre au prospect</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
