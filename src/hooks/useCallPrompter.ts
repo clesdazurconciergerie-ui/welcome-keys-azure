@@ -257,9 +257,12 @@ export function useCallPrompter() {
   }, []);
 
   // ─── Whisper transcription ────────────────────────────────────
-  const transcribeChunk = useCallback(async (audioBlob: Blob, speaker: "user" | "prospect") => {
+  const transcribeChunk = useCallback(async (audioBlob: Blob, speaker: "user" | "prospect", triggerSuggestion: boolean) => {
     console.log("[CallPrompter] Transcribing chunk:", audioBlob.size, "bytes, speaker:", speaker);
-    if (audioBlob.size < 2000) { console.log("[CallPrompter] Chunk too small, skipping"); return; }
+    if (audioBlob.size < 2000) {
+      console.log("[CallPrompter] Chunk too small, skipping");
+      return;
+    }
 
     setSttStatus("transcribing");
     try {
@@ -294,9 +297,8 @@ export function useCallPrompter() {
       const isHallucination = text.length < 4 ||
         hallucinations.some(h => text.toLowerCase().includes(h)) ||
         /^[.\s,!?…]+$/.test(text) ||
-        /^(.{1,3}\s*){1,2}$/.test(text); // Very short repeated fragments
+        /^(.{1,3}\s*){1,2}$/.test(text);
 
-      // Duplicate detection: skip if identical or very similar to last transcription
       const isDuplicate = text === lastTranscribedTextRef.current ||
         (text.length > 5 && lastTranscribedTextRef.current.includes(text)) ||
         (lastTranscribedTextRef.current.length > 5 && text.includes(lastTranscribedTextRef.current));
@@ -314,7 +316,7 @@ export function useCallPrompter() {
 
         setTranscript(prev => {
           const updated = [...prev, entry];
-          if (speaker === "prospect") {
+          if (speaker === "prospect" && triggerSuggestion && !userSpeakingRef.current) {
             getSuggestion(text, updated);
           }
           return updated;
@@ -334,7 +336,7 @@ export function useCallPrompter() {
     if (!item) return;
 
     isTranscribingRef.current = true;
-    await transcribeChunk(item.blob, item.speaker);
+    await transcribeChunk(item.blob, item.speaker, item.triggerSuggestion);
     isTranscribingRef.current = false;
 
     if (transcriptionQueueRef.current.length > 0 && isActiveRef.current) {
