@@ -427,6 +427,10 @@ export function useCallPrompter() {
       clearInterval(recordingIntervalRef.current);
       recordingIntervalRef.current = null;
     }
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       try { mediaRecorderRef.current.stop(); } catch {}
     }
@@ -434,6 +438,7 @@ export function useCallPrompter() {
     audioChunksRef.current = [];
     transcriptionQueueRef.current = [];
     activeTranscriptionsRef.current = 0;
+    pendingProspectTextRef.current = [];
   }, []);
 
   // ─── Start call ───────────────────────────────────────────────
