@@ -458,6 +458,7 @@ export function useCallPrompter() {
     setAnalysis(null);
     setChunksTranscribed(0);
     setLastTranscriptionTime(null);
+    lastTranscribedTextRef.current = "";
     startTimeRef.current = new Date();
     isActiveRef.current = true;
     userSpeakingRef.current = false;
