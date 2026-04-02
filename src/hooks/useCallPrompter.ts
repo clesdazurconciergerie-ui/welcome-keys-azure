@@ -369,7 +369,7 @@ export function useCallPrompter() {
     }
   }, [transcribeChunk]);
 
-  // ─── MediaRecorder chunking (6s chunks) ──
+  // ─── MediaRecorder chunking (manual SPACE-only segmentation) ──
   const startRecording = useCallback((stream: MediaStream) => {
     try {
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
@@ -383,10 +383,32 @@ export function useCallPrompter() {
         return;
       }
 
+      const flushCurrentSegment = (triggerSuggestion: boolean) => {
+        const chunks = audioChunksRef.current;
+        const hadSpeech = segmentHadSpeechRef.current;
+        const speaker = segmentSpeakerRef.current;
+
+        audioChunksRef.current = [];
+        segmentHadSpeechRef.current = false;
+        lastSpeechAtRef.current = null;
+
+        if (!chunks.length || !hadSpeech) return;
+
+        const blob = new Blob(chunks, { type: mimeType });
+        console.log("[CallPrompter] Chunk ready:", blob.size, "bytes, speaker:", speaker, "triggerSuggestion:", triggerSuggestion);
+
+        if (blob.size > 4000) {
+          transcriptionQueueRef.current.push({ blob, speaker, triggerSuggestion });
+          processQueue();
+        }
+      };
+
       console.log("[CallPrompter] Starting recorder, mimeType:", mimeType);
       const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
+      segmentHadSpeechRef.current = false;
+      lastSpeechAtRef.current = null;
 
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -398,54 +420,25 @@ export function useCallPrompter() {
         console.error("[CallPrompter] MediaRecorder error:", e);
       };
 
-      // Track cumulative speaker time per chunk
-      let userTimeMs = 0;
-      let prospectTimeMs = 0;
-      let lastSampleTime = Date.now();
-
-      // Sample speaker state frequently to get accurate attribution
-      const speakerSampler = setInterval(() => {
-        const now = Date.now();
-        const delta = now - lastSampleTime;
-        if (userSpeakingRef.current) {
-          userTimeMs += delta;
-        } else {
-          prospectTimeMs += delta;
-        }
-        lastSampleTime = now;
-      }, 200);
-
-      // Use timeslice to get continuous data chunks every 500ms
       recorder.start(500);
       setSttStatus("active");
       console.log("[CallPrompter] Recorder started with timeslice 500ms");
 
-      // 6-second interval: collect all accumulated chunks, send for transcription
       recordingIntervalRef.current = setInterval(() => {
-        if (!isActiveRef.current) return;
+        if (!isActiveRef.current || userSpeakingRef.current) return;
+        if (!lastSpeechAtRef.current) return;
 
-        // Determine dominant speaker for this chunk
-        const speakerForChunk: "user" | "prospect" = userTimeMs >= prospectTimeMs ? "user" : "prospect";
-
-        // Reset counters for next chunk
-        userTimeMs = 0;
-        prospectTimeMs = 0;
-        lastSampleTime = Date.now();
-
-        // Collect accumulated chunks
-        if (audioChunksRef.current.length > 0) {
-          const blob = new Blob(audioChunksRef.current, { type: mimeType });
-          audioChunksRef.current = [];
-          console.log("[CallPrompter] Chunk ready:", blob.size, "bytes, speaker:", speakerForChunk);
-          if (blob.size > 4000) {
-            transcriptionQueueRef.current.push({ blob, speaker: speakerForChunk });
-            processQueue();
-          }
+        const silenceMs = Date.now() - lastSpeechAtRef.current;
+        if (segmentSpeakerRef.current === "prospect" && silenceMs >= 900) {
+          flushCurrentSegment(true);
         }
-      }, 6000);
+      }, 300);
 
-      // Store sampler interval for cleanup
-      speakerSamplerRef.current = speakerSampler;
+      speakerSamplerRef.current = setInterval(() => {
+        if (!isActiveRef.current) return;
+        if (audioChunksRef.current.length === 0) return;
+        flushCurrentSegment(segmentSpeakerRef.current === "prospect" && !userSpeakingRef.current);
+      }, 10000);
     } catch (e) {
       console.error("[CallPrompter] MediaRecorder error:", e);
       toast.error("Impossible de démarrer l'enregistrement audio");
@@ -468,6 +461,8 @@ export function useCallPrompter() {
     audioChunksRef.current = [];
     transcriptionQueueRef.current = [];
     isTranscribingRef.current = false;
+    segmentHadSpeechRef.current = false;
+    lastSpeechAtRef.current = null;
   }, []);
 
   // ─── Start call (no calibration needed) ───────────────────────
