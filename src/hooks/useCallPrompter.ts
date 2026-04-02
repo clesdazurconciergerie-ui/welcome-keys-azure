@@ -533,6 +533,12 @@ export function useCallPrompter() {
     if (lastProspect) getSuggestion(lastProspect.text, transcriptRef.current);
   }, [getSuggestion]);
 
+  const deleteSession = useCallback(async (sessionId: string) => {
+    await (supabase as any).from("call_sessions").delete().eq("id", sessionId);
+    setSessions(prev => prev.filter(s => s.id !== sessionId));
+    toast.success("Appel supprimé");
+  }, []);
+
   // ─── Cleanup ──────────────────────────────────────────────────
   useEffect(() => {
     return () => {
