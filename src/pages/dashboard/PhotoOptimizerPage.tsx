@@ -211,7 +211,7 @@ export default function PhotoOptimizerPage() {
       const photo = photos.find((p) => p.id === id)!;
       const base64 = await fileToBase64(photo.file);
       const { data, error } = await supabase.functions.invoke("photo-optimizer-generate", {
-        body: { imageBase64: base64, style, intensity, analysis: photo.analysis },
+        body: { imageBase64: base64, style, intensity, analysis: photo.analysis, homeStaging },
       });
       if (error) throw error;
       setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, status: "optimized", optimizedUrl: data.optimizedImageUrl } : p)));
