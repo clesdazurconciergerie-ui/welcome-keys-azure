@@ -449,8 +449,7 @@ export function useCallPrompter() {
       ? Math.round((Date.now() - startTimeRef.current.getTime()) / 1000)
       : 0;
 
-    // Filter out "(vous parliez)" markers for final save
-    const finalTranscript = transcriptRef.current.filter(t => t.text !== "(vous parliez)");
+    const finalTranscript = transcriptRef.current;
     setCallStatus("idle");
 
     if (sessionIdRef.current) {
