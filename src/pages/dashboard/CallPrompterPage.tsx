@@ -30,7 +30,17 @@ const CallPrompterPage = () => {
   const [editSettings, setEditSettings] = useState(settings);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
 
-  // Sync editSettings when settings load
+  // Keyboard shortcut: Space to regenerate
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.code === "Space" && callStatus === "listening" && !["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) {
+        e.preventDefault();
+        regenerateSuggestion();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [callStatus, regenerateSuggestion]);
   const settingsReady = !loading;
 
   const statusLabel = {
