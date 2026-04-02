@@ -70,6 +70,7 @@ import SPSettingsPage from "./pages/service-provider/SPSettingsPage";
 import SPAccountPage from "./pages/service-provider/SPAccountPage";
 import FinancePage from "./pages/dashboard/FinancePage";
 import InspectionsPage from "./pages/dashboard/InspectionsPage";
+import PhotoOptimizerPage from "./pages/dashboard/PhotoOptimizerPage";
 import OwnerFinancesPage from "./pages/owner/OwnerFinancesPage";
 
 const queryClient = new QueryClient();
@@ -108,6 +109,7 @@ const App = () => (
             <Route path="parametres" element={<ParametresPage />} />
             <Route path="automatisation" element={<AutomationPage />} />
             <Route path="branding" element={<BrandingPage />} />
+            <Route path="photo-optimizer" element={<PhotoOptimizerPage />} />
             <Route path="aide" element={<HelpCenterPage />} />
           </Route>
 
