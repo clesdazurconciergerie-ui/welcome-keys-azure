@@ -6,58 +6,66 @@ const corsHeaders = {
 };
 
 const STYLE_PROMPTS: Record<string, string> = {
-  standard: "Clean, bright, professional real estate photography. Natural warmth, golden hour tone.",
-  luxury: "High-end luxury interior design photography. Rich textures, elegant warm lighting, sophisticated atmosphere. Deep wood tones, plush fabrics with depth.",
-  minimal: "Scandinavian minimalist style. Ultra-bright, airy, spacious feel. Clean whites (never grey), soft natural light flooding the space.",
-  coastal: "Mediterranean/coastal style. Warm golden light, ocean-inspired accents, relaxed luxury. Soft glowing highlights around windows.",
+  standard: "Clean, bright, professional real estate photography. Neutral white balance, natural tones, magazine-quality finish.",
+  luxury: "High-end luxury interior photography. Rich textures, elegant lighting, sophisticated atmosphere. Deep wood tones, plush fabrics with depth. Premium but natural.",
+  minimal: "Scandinavian minimalist style. Ultra-bright, airy, spacious feel. Pure clean whites, soft natural light flooding the space. Crisp and modern.",
+  coastal: "Mediterranean/coastal style. Natural golden light, ocean-inspired accents, relaxed luxury. Soft highlights around windows, warm but balanced.",
 };
 
 const INTENSITY_PROMPTS: Record<string, string> = {
-  light: "Enhance noticeably: +30% brightness, warmer tones, open shadows, cleaner whites. The difference must be clearly visible.",
-  balanced: "Strong enhancement: +50% perceived brightness, warm golden hour grading, aggressive shadow opening, vibrant selective saturation (+20). Magazine-quality result.",
-  strong: "Maximum Airbnb optimization: +70-80% perceived brightness, ultra-warm inviting tones, fully opened shadows (no dark zones), enhanced saturation (+30 selective), simulated daylight flooding from windows, directional light gradients. The image must stop scrolling instantly.",
+  light: "Subtle professional enhancement: correct white balance, open shadows slightly, clean whites, +10 selective saturation. The result must look naturally better.",
+  balanced: "Professional real estate editing: correct white balance first, balance interior/exterior exposure (HDR-like), open shadows, S-curve contrast for depth, +15 selective saturation. Magazine-quality result.",
+  strong: "Maximum professional enhancement: perfect white balance, full HDR interior/exterior balance, aggressive shadow recovery, strong S-curve contrast, +20 selective saturation, enhanced textures. Must look like a top real estate photographer edited it.",
 };
 
-const BASE_PROMPT = `You are a high-end real estate photo editor specialized in Airbnb conversion optimization.
+const BASE_PROMPT = `You are a professional real estate photo editor for luxury Airbnb listings.
 
-ABSOLUTE PRIORITY: The result must feel SIGNIFICANTLY brighter, more vibrant, more premium, and emotionally attractive than the original. If it looks similar to the original, you have failed.
+CRITICAL RULES — STRUCTURE PRESERVATION (NON-NEGOTIABLE):
+- DO NOT modify, replace, move, or remove ANY existing element (walls, mirrors, furniture, objects, architecture)
+- DO NOT replace a mirror with a painting or any object with another
+- DO NOT alter the layout or perspective
+- ONLY color correction, lighting, and enhancement are allowed
 
-LIGHTING (TOP PRIORITY — NON-NEGOTIABLE):
-- Increase perceived brightness VERY strongly
-- Completely remove all dull or dark zones
-- Open shadows aggressively (no black areas)
-- Simulate natural daylight entering from windows
-- Create directional light gradients (never flat lighting)
-- The room must feel flooded with light, airy, spacious, premium
-- Must look brighter than reality but still believable
+STEP 1 — WHITE BALANCE (MANDATORY FIRST):
+- Neutralize ALL color casts before any other edit
+- Whites (walls, ceilings, surfaces) must be PURE and clean — not yellow, not orange, not grey
+- Use walls and ceilings as white reference points
+- This is the foundation — if white balance is wrong, everything fails
 
-COLOR & SATURATION (AIRBNB OPTIMIZED):
-- Apply warm color grading (golden hour tone)
-- Increase saturation selectively
-- Wood → richer and warmer | Plants → vibrant green | Fabrics → more depth and contrast
-- Whites must be clean, bright, slightly warm — NEVER grey
-- Goal: "vacation feeling" + "luxury comfort"
+STEP 2 — LIGHTING BALANCE:
+- Balance interior and exterior light (HDR effect)
+- Reduce overexposed windows — recover highlights, keep exterior visible
+- Brighten interior evenly WITHOUT burning highlights
+- Open shadows while maintaining depth and dimension
+- Create natural, even exposure throughout the room
 
-CONTRAST & DEPTH:
-- Increase local contrast (NOT harsh global contrast)
-- Enhance textures (wood, fabric, floor)
-- Add depth perception with subtle micro-darkening for relief
-- Image must feel more 3D, more detailed, more premium
+STEP 3 — COLOR GRADING (PRO LEVEL):
+- Apply slight warm tone ONLY AFTER white balance is correct
+- Controlled saturation: +10 to +20 maximum, never more
+- Never oversaturate walls or floors
+- Enhance selectively: wood → warmer/richer, plants → natural green (not neon), fabrics → realistic
+- Goal: natural luxury, not artificial
 
-WINDOW & LIGHT MANAGEMENT:
-- Reduce overexposed windows (recover highlights)
-- Keep visible exterior (sky slightly visible)
-- Add soft glow around window light
-- Balance: interior bright, exterior still readable
+STEP 4 — CONTRAST & DEPTH:
+- Apply S-curve tone adjustment for depth
+- Increase local contrast — textures must pop (wood grain, fabric weave, floor detail)
+- Avoid flat lighting — the image must feel three-dimensional
+- Enhance sharpness subtly
 
 REALISM (ANTI-AI):
 - Add subtle non-uniform grain
-- Slight chromatic aberration
 - Natural shadow gradients
-- Imperfect reflections
-- Avoid: flat lighting, artificial look, plastic textures, over-smoothing
+- Imperfect reflections preserved
+- Avoid: flat lighting, plastic textures, over-smoothing, artificial glow
 
-FINAL GOAL: Create an image that stops scrolling instantly, creates desire to stay, and increases booking intent. This is visual conversion engineering.`;
+FINAL VALIDATION:
+1. Are whites neutral and clean?
+2. Is lighting balanced and professional?
+3. Are colors natural and premium?
+4. Does it look like a real photographer edited it — NOT like AI?
+If any answer is NO → reprocess with stronger correction.
+
+FINAL GOAL: The result must look like a professionally edited real estate photo — clean, bright, balanced, natural but premium. Real photography quality, not an AI filter.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
