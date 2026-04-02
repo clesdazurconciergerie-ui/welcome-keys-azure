@@ -6,52 +6,65 @@ const corsHeaders = {
 };
 
 const STYLE_PROMPTS: Record<string, string> = {
-  standard: "Clean, bright, professional real estate photography style. Natural and inviting.",
-  luxury: "High-end luxury interior design photography. Rich textures, elegant lighting, sophisticated atmosphere.",
-  minimal: "Scandinavian minimalist style. Clean lines, neutral tones, airy and spacious feel.",
-  coastal: "Mediterranean/coastal style. Warm natural light, ocean-inspired tones, relaxed elegance.",
+  standard: "Clean, bright, professional real estate photography. Natural warmth, golden hour tone.",
+  luxury: "High-end luxury interior design photography. Rich textures, elegant warm lighting, sophisticated atmosphere. Deep wood tones, plush fabrics with depth.",
+  minimal: "Scandinavian minimalist style. Ultra-bright, airy, spacious feel. Clean whites (never grey), soft natural light flooding the space.",
+  coastal: "Mediterranean/coastal style. Warm golden light, ocean-inspired accents, relaxed luxury. Soft glowing highlights around windows.",
 };
 
 const INTENSITY_PROMPTS: Record<string, string> = {
-  light: "Make subtle improvements: slightly brighter, cleaner colors, minor adjustments only.",
-  balanced: "Enhance noticeably: improve lighting significantly, warm tones, professional quality.",
-  strong: "Maximum Airbnb optimization: ultra-bright, warm inviting tones, enhanced saturation, magazine-quality result.",
+  light: "Enhance noticeably: +30% brightness, warmer tones, open shadows, cleaner whites. The difference must be clearly visible.",
+  balanced: "Strong enhancement: +50% perceived brightness, warm golden hour grading, aggressive shadow opening, vibrant selective saturation (+20). Magazine-quality result.",
+  strong: "Maximum Airbnb optimization: +70-80% perceived brightness, ultra-warm inviting tones, fully opened shadows (no dark zones), enhanced saturation (+30 selective), simulated daylight flooding from windows, directional light gradients. The image must stop scrolling instantly.",
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+const BASE_PROMPT = `You are a high-end real estate photo editor specialized in Airbnb conversion optimization.
 
-  try {
-    const { imageBase64, style = "standard", intensity = "balanced", analysis } = await req.json();
-    if (!imageBase64) {
-      return new Response(JSON.stringify({ error: "imageBase64 required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+ABSOLUTE PRIORITY: The result must feel SIGNIFICANTLY brighter, more vibrant, more premium, and emotionally attractive than the original. If it looks similar to the original, you have failed.
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+LIGHTING (TOP PRIORITY — NON-NEGOTIABLE):
+- Increase perceived brightness VERY strongly
+- Completely remove all dull or dark zones
+- Open shadows aggressively (no black areas)
+- Simulate natural daylight entering from windows
+- Create directional light gradients (never flat lighting)
+- The room must feel flooded with light, airy, spacious, premium
+- Must look brighter than reality but still believable
 
-    const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS.standard;
-    const intensityPrompt = INTENSITY_PROMPTS[intensity] || INTENSITY_PROMPTS.balanced;
+COLOR & SATURATION (AIRBNB OPTIMIZED):
+- Apply warm color grading (golden hour tone)
+- Increase saturation selectively
+- Wood → richer and warmer | Plants → vibrant green | Fabrics → more depth and contrast
+- Whites must be clean, bright, slightly warm — NEVER grey
+- Goal: "vacation feeling" + "luxury comfort"
 
-    let analysisContext = "";
-    if (analysis) {
-      analysisContext = `\nAnalysis context: Room type: ${analysis.roomType}. Issues: ${(analysis.issues || []).join(", ")}. Suggestions: ${(analysis.stagingSuggestions || []).join(", ")}.`;
-    }
+CONTRAST & DEPTH:
+- Increase local contrast (NOT harsh global contrast)
+- Enhance textures (wood, fabric, floor)
+- Add depth perception with subtle micro-darkening for relief
+- Image must feel more 3D, more detailed, more premium
 
-    const editPrompt = `Transform this property photo into a high-conversion Airbnb listing image. ${stylePrompt} ${intensityPrompt}${analysisContext}
+WINDOW & LIGHT MANAGEMENT:
+- Reduce overexposed windows (recover highlights)
+- Keep visible exterior (sky slightly visible)
+- Add soft glow around window light
+- Balance: interior bright, exterior still readable
 
-Key requirements:
-- Ultra bright and clean result
-- Warm, inviting tones
-- Professional photography look
-- Highlight space and depth
-- Remove visual noise and clutter
-- Enhance natural light sources
-- Keep the image photorealistic (not AI-looking)
-- Make it scroll-stopping for Airbnb thumbnails`;
+REALISM (ANTI-AI):
+- Add subtle non-uniform grain
+- Slight chromatic aberration
+- Natural shadow gradients
+- Imperfect reflections
+- Avoid: flat lighting, artificial look, plastic textures, over-smoothing
 
+FINAL GOAL: Create an image that stops scrolling instantly, creates desire to stay, and increases booking intent. This is visual conversion engineering.`;
+
+    const editPrompt = `${BASE_PROMPT}
+
+Style: ${stylePrompt}
+Intensity: ${intensityPrompt}${analysisContext}
+
+Transform this property photo now. The result MUST be dramatically brighter and more inviting than the original.`;
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
