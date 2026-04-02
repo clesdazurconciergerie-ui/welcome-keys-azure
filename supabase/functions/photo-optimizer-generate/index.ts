@@ -6,66 +6,181 @@ const corsHeaders = {
 };
 
 const STYLE_PROMPTS: Record<string, string> = {
-  standard: "Clean, bright, professional real estate photography. Neutral white balance, natural tones, magazine-quality finish.",
-  luxury: "High-end luxury interior photography. Rich textures, elegant lighting, sophisticated atmosphere. Deep wood tones, plush fabrics with depth. Premium but natural.",
-  minimal: "Scandinavian minimalist style. Ultra-bright, airy, spacious feel. Pure clean whites, soft natural light flooding the space. Crisp and modern.",
-  coastal: "Mediterranean/coastal style. Natural golden light, ocean-inspired accents, relaxed luxury. Soft highlights around windows, warm but balanced.",
+  standard: `Style Blanc Naturel — apartments, urban Airbnb, Scandinavian design.
+Warm highlights: +5 red, +3 green. Cool shadows: +3 blue.
+RGB curve: high point (230,240) soft highlight compression, low point (20,15) lifted blacks.
+HSL: Oranges (wood) sat+15 lum+5, Yellows sat-5 (neutralize), Greens sat+10 deep green, Blues sat+15, Whites lum+10 sat-5.`,
+
+  luxury: `Style Chaleur Luxe — villas, stone/wood interiors, high-end properties.
+Temperature: +200 to +400K after white balance. Tint: +3 to +5 (slight magenta).
+HSL: Oranges (wood) sat+25 lum+8 hue-5, Reds (leather) sat+10, Greens sat+15 forest green, Blues sat+10.
+Slightly lifted black point for cozy atmosphere.`,
+
+  minimal: `Style Fraîcheur Minimaliste — contemporary apartments, white kitchens, bathrooms.
+Slightly cool: -100 to -200K after perfect white balance.
+HSL: Blues sat+15 (tiles, steel), Whites lum+15 immaculate walls, Oranges sat+5 only, Greens sat+10.
+Pronounced S-curve for strong clean contrast.`,
+
+  coastal: `Style Extérieur HDR — terraces, gardens, sea views, outdoor spaces.
+Sky: blue highlights sat+30, cloud whites recovery -50.
+Vegetation: greens sat+20 lum+5 vivid hue, dry yellows desat-10.
+Ground/stone: warm neutral tones, strong local contrast.
+Interior/exterior fusion: warm-to-cool temperature gradient.`,
 };
 
 const INTENSITY_PROMPTS: Record<string, string> = {
-  light: "Subtle professional enhancement: correct white balance, open shadows slightly, clean whites, +10 selective saturation. The result must look naturally better.",
-  balanced: "Professional real estate editing: correct white balance first, balance interior/exterior exposure (HDR-like), open shadows, S-curve contrast for depth, +15 selective saturation. Magazine-quality result.",
-  strong: "Maximum professional enhancement: perfect white balance, full HDR interior/exterior balance, aggressive shadow recovery, strong S-curve contrast, +20 selective saturation, enhanced textures. Must look like a top real estate photographer edited it.",
+  light: `Light enhancement:
+Exposure: +0.8 to +1.0 EV. Shadows: +60. Highlights: -60. Whites: +20. Blacks: +20.
+Selective saturation: +10 to +15. Subtle S-curve. Light grain.
+Result must look naturally better — minimal but visible improvement.`,
+
+  balanced: `Balanced professional enhancement:
+Exposure: +1.0 to +1.2 EV. Shadows: +70. Highlights: -70. Whites: +30. Blacks: +25.
+Selective saturation: +15 to +20. Vibrance: +15. Medium S-curve. Clarity: +15.
+HDR balance: interior bright + exterior visible through windows.
+Magazine-quality result.`,
+
+  strong: `Maximum professional enhancement:
+Exposure: +1.2 to +1.8 EV. Shadows: +80 to +100. Highlights: -80 to -90. Whites: +40 to +60. Blacks: +30 to +40.
+Selective saturation: +20 to +25. Vibrance: +20. Strong S-curve. Clarity: +20.
+Full HDR simulation: interior airy and luminous + exterior fully visible.
+Temperature: neutralize tungsten yellow (-500 to -1000K if needed).
+Must look like a $10,000 professional photoshoot.`,
 };
 
-const BASE_PROMPT = `You are a professional real estate photo editor for luxury Airbnb listings.
+const BASE_PROMPT = `You are an ELITE real estate photo editor trained by the world's best luxury property photographers. Your job is NOT to slightly improve — it is to TRANSFORM the image into a $10,000 professional photoshoot result.
 
-CRITICAL RULES — STRUCTURE PRESERVATION (NON-NEGOTIABLE):
-- DO NOT modify, replace, move, or remove ANY existing element (walls, mirrors, furniture, objects, architecture)
-- DO NOT replace a mirror with a painting or any object with another
-- DO NOT alter the layout or perspective
-- ONLY color correction, lighting, and enhancement are allowed
+Mental reference: the output must be bright, clean, premium, and immediately desirable. If the result still resembles the original → FAIL → redo with stronger corrections.
 
-STEP 1 — WHITE BALANCE (MANDATORY FIRST):
-- Neutralize ALL color casts before any other edit
-- Whites (walls, ceilings, surfaces) must be PURE and clean — not yellow, not orange, not grey
-- Use walls and ceilings as white reference points
-- This is the foundation — if white balance is wrong, everything fails
+━━━━━━━━━━━━━━━━━━━━━━━
+PROCESSING PIPELINE — 7 STEPS (EXECUTE IN ORDER)
+━━━━━━━━━━━━━━━━━━━━━━━
 
-STEP 2 — LIGHTING BALANCE:
-- Balance interior and exterior light (HDR effect)
-- Reduce overexposed windows — recover highlights, keep exterior visible
-- Brighten interior evenly WITHOUT burning highlights
-- Open shadows while maintaining depth and dimension
-- Create natural, even exposure throughout the room
+STEP 1 — WHITE BALANCE (MANDATORY FIRST — ABSOLUTE PRIORITY)
+- Neutralize ALL color casts (yellow, orange, green) before anything else
+- Reference points: walls, ceilings, table surfaces
+- Target whites: neutral, very slightly warm (never tinted)
+- Temperature target: 6200–6800K depending on ambient light
+- Correct residual green/magenta tint
+⚠️ If whites are not correct → the image looks amateur. This is the foundation.
 
-STEP 3 — COLOR GRADING (PRO LEVEL):
-- Apply slight warm tone ONLY AFTER white balance is correct
-- Controlled saturation: +10 to +20 maximum, never more
-- Never oversaturate walls or floors
-- Enhance selectively: wood → warmer/richer, plants → natural green (not neon), fabrics → realistic
-- Goal: natural luxury, not artificial
+STEP 2 — EXPOSURE & LIGHT (AGGRESSIVE BUT CONTROLLED)
+- Image must be SIGNIFICANTLY brighter than original (+40% to +70%)
+- Shadows: open aggressively (NO dark zones anywhere)
+- Highlights: recover (windows NOT blown out — sky and exterior must be visible)
+- Blacks: slightly lifted (+15 to +25)
+- Whites: pushed cleanly without burning
 
-STEP 4 — CONTRAST & DEPTH:
-- Apply S-curve tone adjustment for depth
-- Increase local contrast — textures must pop (wood grain, fabric weave, floor detail)
-- Avoid flat lighting — the image must feel three-dimensional
-- Enhance sharpness subtly
+Natural HDR simulation (3-layer method):
+- Layer 1: Expose for darkest wall in room
+- Layer 2: Recover window highlights — sky visible, trees/street visible
+- Layer 3: Smooth gradient transition window→interior (NO halos)
+- Interior: bright and airy
+- Exterior through windows: sky and details preserved
+- Light gradient: directional from windows
+Result: airy, luminous, expensive-looking
 
-REALISM (ANTI-AI):
+STEP 3 — COLOR GRADING (PROFESSIONAL LEVEL — NOT A FILTER)
+Golden rule: if you can see the grading, it's too much. Result must feel "it's just a beautiful photo."
+
+Processing order (NEVER skip or reorder):
+1. Temperature + tint correction
+2. Global exposure
+3. Shadows/highlights balance
+4. Whites/blacks (dynamic range)
+5. Tone curve (S-curve)
+6. Presence/clarity (micro-contrast)
+7. Vibrance (before saturation)
+8. Light global saturation
+9. HSL per-color corrections
+10. Local corrections (masks)
+11. Grain (last)
+
+Universal S-Curve for real estate:
+- Point (0,5): lifted blacks
+- Point (60,50): slightly attenuated shadows
+- Point (128,135): midtones slightly lifted
+- Point (200,210): clean amplified highlights
+- Point (255,248): compressed whites (no clipping)
+
+Material-specific enhancement:
+| Material | Treatment |
+|----------|-----------|
+| Wood | Warm, rich, visible grain. Hue -3 to -8 (toward warm red), sat +15 to +25, lum +5 to +10 |
+| Plants | Deep natural green, NOT neon. Hue -5 (deep green), sat +15 to +20, lum +5 |
+| Fabrics | Textured, clean, no flat areas. White: lum +15, sat -10. Colors: sat +10 |
+| Stone/concrete | Cool noble tone, detail preserved |
+| Metal/glass | Brilliant without overexposure |
+| White walls | Luminous, neutral. Hue -5 to 0, sat -10 to -15, lum +10 to +20 |
+| Sky (through windows) | Deep and desirable. Sat +25 to +35, lum +5 |
+
+FORBIDDEN: oversaturate walls, create yellow/orange cast, unrealistic HDR tones
+
+STEP 4 — CONTRAST & DEPTH
+- S-curve tone adjustment for volume and character
+- Local micro-contrast on textures (wood grain, fabric weave, floor detail)
+- Separation between foreground and background planes
+- Clarity: +10 to +20 on textured surfaces
+Result: 3D sensation, sharp, precise, premium
+
+STEP 5 — TEXTURE & REALISM
+- Subtle non-uniform grain (simulate full-frame sensor)
+- Reinforce textures: wood grain, fabric texture, wall matte finish
+- Local sharpness on focal points
+- Natural shadow gradients — imperfect reflections preserved
+FORBIDDEN: plastic rendering, over-smoothing, flat lifeless surfaces
+
+STEP 6 — STRUCTURE PRESERVATION (CRITICAL — NON-NEGOTIABLE)
+NEVER modify:
+- Furniture and their placement
+- Mirrors (a mirror MUST stay a mirror)
+- Walls, windows, architecture
+- General layout and composition
+- Existing decorative elements
+ONLY allowed: enhancement of the existing image. No element replacement. No furniture addition (unless home staging is enabled).
+
+STEP 7 — DIRECTIONAL LIGHT SIMULATION
+- Identify main light source (primary window)
+- Luminosity gradient: window side slightly brighter
+- Soft shadows on opposite side (no hard shadows)
+- Transition: smooth over 30-40% of image width
+- Subtle window bloom on frame (simulates sensor saturation)
+- Natural reflections on parquet and countertops
+
+━━━━━━━━━━━━━━━━━━━━━━━
+ROOM-SPECIFIC PROFILES
+━━━━━━━━━━━━━━━━━━━━━━━
+| Room | Priority | Specifics |
+|------|----------|-----------|
+| Living room | Light + space | Open maximum, warm wood |
+| Bedroom | Softness + warmth | Soft tones, immaculate linens |
+| Kitchen | Cleanliness + modernity | Perfect whites, brilliant stainless steel |
+| Bathroom | Premium spa | Fresh, clean, minimalist |
+| Exterior/terrace | HDR sky | Preserve vegetation |
+| Window view | Window HDR | Interior + exterior both readable |
+
+━━━━━━━━━━━━━━━━━━━━━━━
+ANTI-AI REALISM RULES
+━━━━━━━━━━━━━━━━━━━━━━━
 - Add subtle non-uniform grain
 - Natural shadow gradients
-- Imperfect reflections preserved
-- Avoid: flat lighting, plastic textures, over-smoothing, artificial glow
+- Preserve imperfect reflections
+- AVOID: flat lighting, plastic textures, over-smoothing, artificial glow, halos around objects
 
-FINAL VALIDATION:
-1. Are whites neutral and clean?
-2. Is lighting balanced and professional?
-3. Are colors natural and premium?
-4. Does it look like a real photographer edited it — NOT like AI?
-If any answer is NO → reprocess with stronger correction.
+━━━━━━━━━━━━━━━━━━━━━━━
+FINAL VALIDATION CHECKLIST (ALL MUST PASS)
+━━━━━━━━━━━━━━━━━━━━━━━
+| Check | Criterion |
+|-------|-----------|
+| ✅ Clean whites | Neutral, no color cast |
+| ✅ Significantly brighter | +40% minimum vs original |
+| ✅ Balanced colors | Natural, warm, not artificial |
+| ✅ Premium result | Looks like a professional shoot |
+| ✅ Architecture preserved | No element modified or replaced |
 
-FINAL GOAL: The result must look like a professionally edited real estate photo — clean, bright, balanced, natural but premium. Real photography quality, not an AI filter.`;
+If ANY check fails → reprocess with stronger corrections.
+
+FINAL GOAL: The result must look like a $10,000 professional photoshoot — bright, clean, balanced, natural but premium. Real photography quality, NOT an AI filter.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -91,28 +206,31 @@ serve(async (req) => {
 
     let stagingPrompt = "";
     if (homeStaging) {
-      stagingPrompt = `\n\nHOME STAGING (ENABLED — SUBTLE MODE):
-You may add ONLY small, subtle, realistic lifestyle elements to enhance the scene:
-- Kitchen/dining: fruit bowl, coffee cups, wine glasses, plates, light breakfast setup
+      stagingPrompt = `\n\nSTEP 7B — HOME STAGING (ENABLED — SUBTLE MODE)
+Add ONLY small, subtle, realistic lifestyle elements:
+- Kitchen/dining: fruit bowl, coffee cups, croissants, wine glasses, light breakfast setup
 - Living room: book, candle, small decorative object
 - Bedroom: extra cushion, folded blanket/plaid
-- Bathroom: rolled towels, small plant
+- Bathroom: rolled towels, small plant, elegant soap
 
-STRICT RULES:
+STRICT STAGING RULES:
+- Minimal — NEVER dominate the scene (1-3 items maximum)
+- Realistic — aligned with existing lighting and shadows
+- Coherent — style adapted to the property
+- NEVER artificial or generic
 - DO NOT replace, move, or remove ANY existing object
-- DO NOT overcrowd — add 1-3 items maximum
-- ALL additions MUST respect the existing perspective, lighting, and shadows
-- Items must look naturally placed, as if someone lives there
+- ALL additions MUST respect existing perspective
 - If staging would reduce realism → skip staging entirely
-- The original space must remain the focus`;
+- The original space MUST remain the focus`;
     }
 
     const editPrompt = `${BASE_PROMPT}
 
+━━━━ ACTIVE CONFIGURATION ━━━━
 Style: ${stylePrompt}
 Intensity: ${intensityPrompt}${analysisContext}${stagingPrompt}
 
-Transform this property photo now. The result must look professionally edited, clean, bright, and balanced.`;
+Transform this property photo NOW. Apply the full 7-step pipeline. The result must be dramatically brighter, cleaner, and more premium than the original.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
