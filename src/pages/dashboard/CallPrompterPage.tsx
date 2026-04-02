@@ -319,6 +319,11 @@ const CallPrompterPage = () => {
           )}
         </TabsContent>
 
+        {/* SKILLS TAB */}
+        <TabsContent value="skills" className="space-y-4">
+          <SkillsManager />
+        </TabsContent>
+
         {/* SETTINGS TAB */}
         <TabsContent value="settings" className="space-y-4">
           {/* Business Settings */}
