@@ -348,7 +348,20 @@ export default function PhotoOptimizerPage() {
                   <span className="text-[10px] font-semibold">{item.label}</span>
                 </button>
               ))}
+          </div>
+
+          {/* Home Staging Toggle */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Home Staging</span>
+              <Switch checked={homeStaging} onCheckedChange={setHomeStaging} />
             </div>
+            {homeStaging && (
+              <p className="text-[9px] text-muted-foreground leading-relaxed animate-fade-in">
+                Ajoute des éléments lifestyle subtils (petit-déjeuner, décor, ambiance) pour améliorer la projection
+              </p>
+            )}
+          </div>
           </div>
 
           {/* Thumbnails */}
