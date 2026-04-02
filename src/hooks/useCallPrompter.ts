@@ -372,9 +372,12 @@ export function useCallPrompter() {
     isTranscribingRef.current = false;
 
     if (transcriptionQueueRef.current.length > 0 && isActiveRef.current) {
-      processQueue();
+      processQueueRef.current();
     }
   }, [transcribeChunk]);
+
+  // Keep ref in sync so keyboard listeners always call the latest version
+  useEffect(() => { processQueueRef.current = processQueue; }, [processQueue]);
 
   // ─── MediaRecorder chunking (manual SPACE-only segmentation) ──
   const startRecording = useCallback((stream: MediaStream) => {
