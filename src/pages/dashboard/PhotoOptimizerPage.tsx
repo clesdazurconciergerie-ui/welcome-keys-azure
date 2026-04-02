@@ -149,6 +149,7 @@ export default function PhotoOptimizerPage() {
   const [style, setStyle] = useState<PhotoStyle>("luxury");
   const [intensity, setIntensity] = useState<PhotoIntensity>("strong");
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [homeStaging, setHomeStaging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addPhotos = useCallback((files: FileList | File[]) => {
