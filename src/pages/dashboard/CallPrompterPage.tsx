@@ -9,11 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import {
   Phone, PhoneOff, Mic, MicOff, Settings, History, Brain, MessageSquare,
-  TrendingUp, AlertTriangle, ThumbsUp, Lightbulb, ChevronDown, ChevronUp, RotateCcw,
+  TrendingUp, AlertTriangle, ThumbsUp, Lightbulb, RotateCcw,
   Volume2, Shield, Activity, User, Users, HelpCircle, Clock, Hash, Eye, ArrowLeft,
+  CheckCircle, Trash2, AudioLines,
 } from "lucide-react";
 import { useCallPrompter, CallAnalysis, CallSession, TranscriptEntry } from "@/hooks/useCallPrompter";
 import { format } from "date-fns";
@@ -22,22 +22,23 @@ import { fr } from "date-fns/locale";
 const CallPrompterPage = () => {
   const {
     settings, saveSettings,
-    sessions, currentSession,
+    sessions,
     transcript, suggestion, callStatus,
     isAnalyzing, analysis,
     loading,
     startCall, endCall, regenerateSuggestion,
     micStatus, audioLevel, sttStatus,
-    speakerState, calibrationProgress, lastDetectedSpeaker,
-    toggleSpeakerManual,
+    speakerState, lastDetectedSpeaker,
     chunksTranscribed, lastTranscriptionTime,
+    hasVoiceProfile,
+    isRecordingVoice, voiceRecordProgress,
+    startVoiceRecording, cancelVoiceRecording, deleteVoiceProfile,
   } = useCallPrompter();
 
   const [tab, setTab] = useState("prompter");
   const [editSettings, setEditSettings] = useState(settings);
   const [selectedSession, setSelectedSession] = useState<CallSession | null>(null);
 
-  // Keyboard shortcut: Space to regenerate
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.code === "Space" && callStatus === "listening" && !["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) {
@@ -51,14 +52,12 @@ const CallPrompterPage = () => {
 
   const statusLabel = {
     idle: "Prêt",
-    calibrating: "Calibration...",
     listening: "Écoute en cours...",
     processing: "Analyse IA...",
   }[callStatus];
 
   const statusColor = {
     idle: "bg-muted text-muted-foreground",
-    calibrating: "bg-yellow-500/20 text-yellow-600",
     listening: "bg-green-500/20 text-green-600",
     processing: "bg-blue-500/20 text-blue-600",
   }[callStatus];
@@ -72,9 +71,20 @@ const CallPrompterPage = () => {
               <Brain className="w-8 h-8 text-primary" />
               AI Call Prompter
             </h1>
-            <p className="text-muted-foreground mt-1">Coach de vente IA en temps réel — Whisper STT</p>
+            <p className="text-muted-foreground mt-1">Coach de vente IA en temps réel</p>
           </div>
-          <Badge className={statusColor}>{statusLabel}</Badge>
+          <div className="flex items-center gap-2">
+            {hasVoiceProfile ? (
+              <Badge className="bg-green-500/20 text-green-600 gap-1">
+                <CheckCircle className="w-3 h-3" /> Voix enregistrée
+              </Badge>
+            ) : (
+              <Badge variant="destructive" className="gap-1">
+                <MicOff className="w-3 h-3" /> Voix non enregistrée
+              </Badge>
+            )}
+            <Badge className={statusColor}>{statusLabel}</Badge>
+          </div>
         </div>
       </motion.div>
 
@@ -93,10 +103,34 @@ const CallPrompterPage = () => {
 
         {/* PROMPTER TAB */}
         <TabsContent value="prompter" className="space-y-4">
+          {/* Warning if no voice profile */}
+          {!hasVoiceProfile && callStatus === "idle" && (
+            <Card className="border-yellow-500/30 bg-yellow-500/5">
+              <CardContent className="py-4 flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Enregistrez votre voix d'abord</p>
+                  <p className="text-xs text-muted-foreground">
+                    Allez dans l'onglet <strong>Paramètres</strong> pour enregistrer votre empreinte vocale. 
+                    Cela permet au système de distinguer automatiquement votre voix de celle du prospect.
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setTab("settings")}>
+                  Configurer
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Control buttons */}
           <div className="flex gap-3">
             {callStatus === "idle" ? (
-              <Button onClick={startCall} size="lg" className="bg-green-600 hover:bg-green-700 text-white gap-2">
+              <Button
+                onClick={startCall}
+                size="lg"
+                className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                disabled={!hasVoiceProfile}
+              >
                 <Phone className="w-5 h-5" /> Démarrer l'appel
               </Button>
             ) : (
@@ -111,112 +145,68 @@ const CallPrompterPage = () => {
             )}
           </div>
 
-          {/* Debug / Status Panel */}
+          {/* Status Panel */}
           {callStatus !== "idle" && (
             <Card className="border border-border">
               <CardContent className="py-3 px-4 space-y-3">
                 <div className="flex items-center gap-6 flex-wrap text-sm">
-                  {/* Mic permission */}
                   <div className="flex items-center gap-2">
                     {micStatus === "granted" ? (
                       <Mic className="w-4 h-4 text-green-500" />
-                    ) : micStatus === "denied" ? (
-                      <MicOff className="w-4 h-4 text-destructive" />
                     ) : (
-                      <Shield className="w-4 h-4 text-muted-foreground" />
+                      <MicOff className="w-4 h-4 text-destructive" />
                     )}
                     <span className="text-muted-foreground">Micro :</span>
                     <Badge variant={micStatus === "granted" ? "default" : "destructive"} className="text-xs">
-                      {micStatus === "granted" ? "Actif" : micStatus === "denied" ? "Refusé" : micStatus === "error" ? "Erreur" : "—"}
+                      {micStatus === "granted" ? "Actif" : "Inactif"}
                     </Badge>
                   </div>
 
-                  {/* Audio level */}
                   <div className="flex items-center gap-2 min-w-[160px]">
                     <Volume2 className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Niveau :</span>
                     <Progress value={audioLevel} className="h-2 flex-1" />
                     <span className="text-xs text-muted-foreground w-8 text-right">{audioLevel}%</span>
                   </div>
 
-                  {/* STT status */}
                   <div className="flex items-center gap-2">
                     <Activity className="w-4 h-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Whisper :</span>
-                    <Badge
-                      variant={sttStatus === "active" ? "default" : "secondary"}
-                      className="text-xs"
-                    >
+                    <Badge variant={sttStatus === "active" ? "default" : "secondary"} className="text-xs">
                       {sttStatus === "active" ? "Actif" : sttStatus === "transcribing" ? "Transcription…" : "Inactif"}
                     </Badge>
                   </div>
 
-                  {/* Speaker detection */}
+                  {/* Speaker detection — automatic */}
                   <div className="flex items-center gap-2">
                     {speakerState === "listening_user" ? (
                       <User className="w-4 h-4 text-primary" />
                     ) : speakerState === "listening_prospect" ? (
                       <Users className="w-4 h-4 text-green-500" />
-                    ) : speakerState === "uncertain" ? (
-                      <HelpCircle className="w-4 h-4 text-yellow-500" />
                     ) : (
-                      <Mic className="w-4 h-4 text-yellow-500 animate-pulse" />
+                      <HelpCircle className="w-4 h-4 text-yellow-500" />
                     )}
                     <span className="text-muted-foreground">Locuteur :</span>
                     <Badge
                       variant={speakerState === "listening_prospect" ? "default" : "secondary"}
                       className="text-xs"
                     >
-                      {speakerState === "calibrating" ? "Calibration…" :
-                       speakerState === "listening_user" ? "Vous" :
+                      {speakerState === "listening_user" ? "Vous" :
                        speakerState === "listening_prospect" ? "Prospect" :
-                       "Incertain"}
+                       "Détection…"}
                     </Badge>
                   </div>
                 </div>
 
-                {/* Whisper metrics */}
                 <div className="flex items-center gap-6 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Hash className="w-3 h-3" />
-                    Chunks transcrits : <span className="font-medium text-foreground">{chunksTranscribed}</span>
+                    Chunks : <span className="font-medium text-foreground">{chunksTranscribed}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    Dernière transcription : <span className="font-medium text-foreground">{lastTranscriptionTime || "—"}</span>
+                    Dernière : <span className="font-medium text-foreground">{lastTranscriptionTime || "—"}</span>
                   </div>
                 </div>
-
-                {/* Calibration progress bar */}
-                {speakerState === "calibrating" && callStatus === "calibrating" && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Calibration vocale — parlez maintenant…</p>
-                    <Progress value={calibrationProgress} className="h-2" />
-                  </div>
-                )}
-
-                {/* Manual speaker toggle */}
-                {callStatus === "listening" && (
-                  <div className="flex items-center gap-2 pt-1 border-t border-border">
-                    <span className="text-xs text-muted-foreground">Correction manuelle :</span>
-                    <Button
-                      size="sm"
-                      variant={lastDetectedSpeaker === "user" ? "default" : "outline"}
-                      className="h-6 text-xs px-2"
-                      onClick={() => toggleSpeakerManual("user")}
-                    >
-                      <User className="w-3 h-3 mr-1" /> Moi
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={lastDetectedSpeaker === "prospect" ? "default" : "outline"}
-                      className="h-6 text-xs px-2"
-                      onClick={() => toggleSpeakerManual("prospect")}
-                    >
-                      <Users className="w-3 h-3 mr-1" /> Prospect
-                    </Button>
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}
@@ -231,14 +221,7 @@ const CallPrompterPage = () => {
               >
                 <Card className="border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5 min-h-[200px] flex items-center justify-center">
                   <CardContent className="py-10 px-8 text-center w-full">
-                    {callStatus === "calibrating" ? (
-                      <div className="space-y-3">
-                        <Mic className="w-12 h-12 text-yellow-500 mx-auto animate-pulse" />
-                        <p className="text-xl text-muted-foreground">Parlez pendant 5 secondes pour calibrer votre voix…</p>
-                        <Progress value={calibrationProgress} className="h-3 max-w-xs mx-auto" />
-                        <p className="text-sm text-muted-foreground">{calibrationProgress}%</p>
-                      </div>
-                    ) : suggestion ? (
+                    {suggestion ? (
                       <motion.p
                         key={suggestion}
                         initial={{ opacity: 0, y: 10 }}
@@ -287,7 +270,6 @@ const CallPrompterPage = () => {
             </Card>
           )}
 
-          {/* Post-call analysis */}
           {(isAnalyzing || analysis) && (
             <AnalysisSection analysis={analysis} isAnalyzing={isAnalyzing} />
           )}
@@ -348,7 +330,57 @@ const CallPrompterPage = () => {
         </TabsContent>
 
         {/* SETTINGS TAB */}
-        <TabsContent value="settings">
+        <TabsContent value="settings" className="space-y-4">
+          {/* Voice Profile Section */}
+          <Card className="border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <AudioLines className="w-5 h-5 text-primary" /> Empreinte vocale
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Enregistrez votre voix pour que le système puisse automatiquement distinguer 
+                votre voix de celle du prospect pendant les appels. Parlez normalement pendant 10 secondes.
+              </p>
+
+              {isRecordingVoice ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Mic className="w-5 h-5 text-destructive animate-pulse" />
+                    <span className="text-sm font-medium text-foreground">Enregistrement en cours… Parlez normalement</span>
+                  </div>
+                  <Progress value={voiceRecordProgress} className="h-3" />
+                  <p className="text-xs text-muted-foreground">{voiceRecordProgress}%</p>
+                  <Button variant="outline" size="sm" onClick={cancelVoiceRecording}>
+                    Annuler
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  {hasVoiceProfile ? (
+                    <>
+                      <Badge className="bg-green-500/20 text-green-600 gap-1">
+                        <CheckCircle className="w-3 h-3" /> Profil enregistré
+                      </Badge>
+                      <Button variant="outline" size="sm" onClick={startVoiceRecording} className="gap-2">
+                        <RotateCcw className="w-4 h-4" /> Ré-enregistrer
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={deleteVoiceProfile} className="gap-2 text-destructive">
+                        <Trash2 className="w-4 h-4" /> Supprimer
+                      </Button>
+                    </>
+                  ) : (
+                    <Button onClick={startVoiceRecording} className="gap-2">
+                      <Mic className="w-4 h-4" /> Enregistrer ma voix (10s)
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Business Settings */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Personnalisation IA</CardTitle>
@@ -429,9 +461,7 @@ const CallPrompterPage = () => {
 function SessionDetailView({ session, onBack }: { session: CallSession; onBack: () => void }) {
   const transcriptEntries = Array.isArray(session.transcript_json) ? session.transcript_json as TranscriptEntry[] : [];
   const analysis = session.analysis_json as CallAnalysis | null;
-
   const prospectEntries = transcriptEntries.filter(e => e.speaker === "prospect");
-  const userEntries = transcriptEntries.filter(e => e.speaker === "user");
 
   return (
     <div className="space-y-4">
@@ -439,7 +469,6 @@ function SessionDetailView({ session, onBack }: { session: CallSession; onBack: 
         <ArrowLeft className="w-4 h-4" /> Retour à l'historique
       </Button>
 
-      {/* Header */}
       <Card>
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
@@ -463,7 +492,6 @@ function SessionDetailView({ session, onBack }: { session: CallSession; onBack: 
         </CardContent>
       </Card>
 
-      {/* Conversation timeline */}
       <Card>
         <CardHeader>
           <CardTitle className="text-sm flex items-center gap-2">
@@ -472,7 +500,7 @@ function SessionDetailView({ session, onBack }: { session: CallSession; onBack: 
         </CardHeader>
         <CardContent className="space-y-3 max-h-[400px] overflow-y-auto">
           {transcriptEntries.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Aucune transcription disponible</p>
+            <p className="text-sm text-muted-foreground text-center py-4">Aucune transcription</p>
           ) : (
             transcriptEntries.map((entry, i) => (
               <div key={i} className={`flex gap-3 ${entry.speaker === "user" ? "flex-row-reverse" : ""}`}>
@@ -497,10 +525,8 @@ function SessionDetailView({ session, onBack }: { session: CallSession; onBack: 
                     )}
                   </div>
                   <p className={`text-sm p-2 rounded-lg inline-block ${
-                    entry.speaker === "user"
-                      ? "bg-primary/10 text-foreground"
-                      : "bg-secondary text-foreground"
-                  }`}>
+                    entry.speaker === "user" ? "bg-primary/10" : "bg-secondary"
+                  } text-foreground`}>
                     {entry.text}
                   </p>
                 </div>
@@ -510,7 +536,6 @@ function SessionDetailView({ session, onBack }: { session: CallSession; onBack: 
         </CardContent>
       </Card>
 
-      {/* Analysis */}
       {analysis && <AnalysisSection analysis={analysis} isAnalyzing={false} />}
     </div>
   );
