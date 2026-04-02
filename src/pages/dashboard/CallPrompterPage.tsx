@@ -227,9 +227,11 @@ const CallPrompterPage = () => {
                       <div className="space-y-3">
                         <MessageSquare className="w-10 h-10 text-muted-foreground mx-auto" />
                         <p className="text-lg text-muted-foreground">
-                          {callStatus === "processing" ? "Analyse IA en cours..." :
-                           audioLevel < 3 ? "En attente d'entrée audio…" :
-                           "Écoute du prospect…"}
+                          {callStatus === "processing"
+                            ? "Analyse IA en cours..."
+                            : userSpeaking
+                            ? "Vous parlez — continuez à lire la suggestion"
+                            : "Écoute du prospect…"}
                         </p>
                       </div>
                     )}
