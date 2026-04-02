@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Phone, PhoneOff, Mic, MicOff, Settings, History, Brain, MessageSquare,
   TrendingUp, AlertTriangle, ThumbsUp, Lightbulb, ChevronDown, ChevronUp, RotateCcw,
-  Volume2, Shield, Activity,
+  Volume2, Shield, Activity, User, Users, HelpCircle,
 } from "lucide-react";
 import { useCallPrompter, CallAnalysis } from "@/hooks/useCallPrompter";
 import { format } from "date-fns";
@@ -27,6 +27,8 @@ const CallPrompterPage = () => {
     loading,
     startCall, endCall, regenerateSuggestion,
     micStatus, audioLevel, sttStatus,
+    speakerState, calibrationProgress, lastDetectedSpeaker,
+    toggleSpeakerManual,
   } = useCallPrompter();
 
   const [tab, setTab] = useState("prompter");
@@ -111,7 +113,7 @@ const CallPrompterPage = () => {
           {/* Debug / Status Panel */}
           {callStatus !== "idle" && (
             <Card className="border border-border">
-              <CardContent className="py-3 px-4">
+              <CardContent className="py-3 px-4 space-y-3">
                 <div className="flex items-center gap-6 flex-wrap text-sm">
                   {/* Mic permission */}
                   <div className="flex items-center gap-2">
@@ -147,7 +149,61 @@ const CallPrompterPage = () => {
                       {sttStatus === "active" ? "Actif" : sttStatus === "restarting" ? "Redémarrage…" : "Inactif"}
                     </Badge>
                   </div>
+
+                  {/* Speaker detection */}
+                  <div className="flex items-center gap-2">
+                    {speakerState === "listening_user" ? (
+                      <User className="w-4 h-4 text-primary" />
+                    ) : speakerState === "listening_prospect" ? (
+                      <Users className="w-4 h-4 text-green-500" />
+                    ) : speakerState === "uncertain" ? (
+                      <HelpCircle className="w-4 h-4 text-yellow-500" />
+                    ) : (
+                      <Mic className="w-4 h-4 text-yellow-500 animate-pulse" />
+                    )}
+                    <span className="text-muted-foreground">Locuteur :</span>
+                    <Badge
+                      variant={speakerState === "listening_prospect" ? "default" : "secondary"}
+                      className="text-xs"
+                    >
+                      {speakerState === "calibrating" ? "Calibration…" :
+                       speakerState === "listening_user" ? "Vous" :
+                       speakerState === "listening_prospect" ? "Prospect" :
+                       "Incertain"}
+                    </Badge>
+                  </div>
                 </div>
+
+                {/* Calibration progress bar */}
+                {speakerState === "calibrating" && callStatus === "calibrating" && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Calibration vocale — parlez maintenant…</p>
+                    <Progress value={calibrationProgress} className="h-2" />
+                  </div>
+                )}
+
+                {/* Manual speaker toggle */}
+                {callStatus === "listening" && (
+                  <div className="flex items-center gap-2 pt-1 border-t border-border">
+                    <span className="text-xs text-muted-foreground">Correction manuelle :</span>
+                    <Button
+                      size="sm"
+                      variant={lastDetectedSpeaker === "user" ? "default" : "outline"}
+                      className="h-6 text-xs px-2"
+                      onClick={() => toggleSpeakerManual("user")}
+                    >
+                      <User className="w-3 h-3 mr-1" /> Moi
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={lastDetectedSpeaker === "prospect" ? "default" : "outline"}
+                      className="h-6 text-xs px-2"
+                      onClick={() => toggleSpeakerManual("prospect")}
+                    >
+                      <Users className="w-3 h-3 mr-1" /> Prospect
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -164,7 +220,9 @@ const CallPrompterPage = () => {
                     {callStatus === "calibrating" ? (
                       <div className="space-y-3">
                         <Mic className="w-12 h-12 text-yellow-500 mx-auto animate-pulse" />
-                        <p className="text-xl text-muted-foreground">Parlez quelques secondes pour calibrer...</p>
+                        <p className="text-xl text-muted-foreground">Parlez pendant 5 secondes pour calibrer votre voix…</p>
+                        <Progress value={calibrationProgress} className="h-3 max-w-xs mx-auto" />
+                        <p className="text-sm text-muted-foreground">{calibrationProgress}%</p>
                       </div>
                     ) : suggestion ? (
                       <motion.p
@@ -179,9 +237,10 @@ const CallPrompterPage = () => {
                       <div className="space-y-3">
                         <MessageSquare className="w-10 h-10 text-muted-foreground mx-auto" />
                         <p className="text-lg text-muted-foreground">
-                          {callStatus === "processing" ? "Analyse en cours..." : 
+                          {callStatus === "processing" ? "Analyse IA en cours..." : 
+                           speakerState === "listening_user" ? "Vous parlez — en attente du prospect…" :
                            audioLevel < 3 ? "En attente d'entrée audio…" :
-                           "Écoute en cours — parlez…"}
+                           "Écoute du prospect…"}
                         </p>
                       </div>
                     )}
