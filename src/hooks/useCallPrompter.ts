@@ -101,16 +101,10 @@ export function useCallPrompter() {
   const isActiveRef = useRef(false);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Manual segment refs — SPACE is the only speaker source of truth
+  // Whisper chunking refs
   const audioChunksRef = useRef<Blob[]>([]);
   const isTranscribingRef = useRef(false);
-  const transcriptionQueueRef = useRef<{ blob: Blob; speaker: "user" | "prospect"; triggerSuggestion: boolean }[]>([]);
-  const lastTranscribedTextRef = useRef<string>("");
-  const segmentSpeakerRef = useRef<"user" | "prospect">("prospect");
-  const processQueueRef = useRef<() => void>(() => {});
-  const recorderSwitchRef = useRef<(nextSpeaker: "user" | "prospect", triggerSuggestion: boolean) => void>(() => {});
-  const pendingSegmentMetaRef = useRef<{ speaker: "user" | "prospect"; triggerSuggestion: boolean } | null>(null);
-  const restartSpeakerRef = useRef<"user" | "prospect" | null>(null);
+  const transcriptionQueueRef = useRef<{ blob: Blob; speaker: "user" | "prospect" }[]>([]);
 
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
@@ -123,21 +117,15 @@ export function useCallPrompter() {
       if (!userSpeakingRef.current) {
         userSpeakingRef.current = true;
         setUserSpeaking(true);
-        recorderSwitchRef.current("user", true);
       }
     };
-
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.code !== "Space" || !isActiveRef.current) return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) return;
       e.preventDefault();
-      if (userSpeakingRef.current) {
-        userSpeakingRef.current = false;
-        setUserSpeaking(false);
-        recorderSwitchRef.current("prospect", false);
-      }
+      userSpeakingRef.current = false;
+      setUserSpeaking(false);
     };
-
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     return () => {
@@ -260,20 +248,16 @@ export function useCallPrompter() {
   }, []);
 
   // ─── Whisper transcription ────────────────────────────────────
-  const transcribeChunk = useCallback(async (audioBlob: Blob, speaker: "user" | "prospect", triggerSuggestion: boolean) => {
-    console.log("[CallPrompter] Transcribing chunk:", audioBlob.size, "bytes, speaker:", speaker);
-    if (audioBlob.size < 2000) {
-      console.log("[CallPrompter] Chunk too small, skipping");
-      return;
-    }
+  const transcribeChunk = useCallback(async (audioBlob: Blob, speaker: "user" | "prospect") => {
+    if (audioBlob.size < 2000) return;
 
     setSttStatus("transcribing");
     try {
       const formData = new FormData();
       formData.append("audio", audioBlob, "audio.webm");
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://otxnzjkyzkpoymeypmef.supabase.co";
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90eG56amt5emtwb3ltZXlwbWVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzMjgzODEsImV4cCI6MjA3NjkwNDM4MX0.TuYdc9Qqia-25i0XrFJWR4zyOmAMqcqtAjJ0jwO0nAQ";
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
       const response = await fetch(`${supabaseUrl}/functions/v1/call-prompter-transcribe`, {
         method: "POST",
@@ -294,20 +278,12 @@ export function useCallPrompter() {
       const hallucinations = [
         "sous-titres", "sous-titrage", "merci d'avoir regardé", "merci de votre attention",
         "subscribe", "like", "bell", "amara.org", "transcrit par", "réalisé par",
-        "merci à tous", "à bientôt", "au revoir", "music", "musique",
-        "silence", "...", "…", "vous", "oui", "non", "ok",
       ];
-      const isHallucination = text.length < 4 ||
+      const isHallucination = text.length < 3 ||
         hallucinations.some(h => text.toLowerCase().includes(h)) ||
-        /^[.\s,!?…]+$/.test(text) ||
-        /^(.{1,3}\s*){1,2}$/.test(text);
+        /^[.\s,!?]+$/.test(text);
 
-      const isDuplicate = text === lastTranscribedTextRef.current ||
-        (text.length > 5 && lastTranscribedTextRef.current.includes(text)) ||
-        (lastTranscribedTextRef.current.length > 5 && text.includes(lastTranscribedTextRef.current));
-
-      if (text && !isHallucination && !isDuplicate) {
-        lastTranscribedTextRef.current = text;
+      if (text && !isHallucination) {
         setChunksTranscribed(prev => prev + 1);
         setLastTranscriptionTime(new Date().toLocaleTimeString("fr-FR"));
 
@@ -319,7 +295,8 @@ export function useCallPrompter() {
 
         setTranscript(prev => {
           const updated = [...prev, entry];
-          if (speaker === "prospect" && triggerSuggestion && !userSpeakingRef.current) {
+          // Only trigger AI suggestion for prospect speech
+          if (speaker === "prospect") {
             getSuggestion(text, updated);
           }
           return updated;
@@ -339,134 +316,90 @@ export function useCallPrompter() {
     if (!item) return;
 
     isTranscribingRef.current = true;
-    await transcribeChunk(item.blob, item.speaker, item.triggerSuggestion);
+    await transcribeChunk(item.blob, item.speaker);
     isTranscribingRef.current = false;
 
     if (transcriptionQueueRef.current.length > 0 && isActiveRef.current) {
-      processQueueRef.current();
+      processQueue();
     }
   }, [transcribeChunk]);
 
-  useEffect(() => {
-    processQueueRef.current = processQueue;
-  }, [processQueue]);
-
-  // ─── MediaRecorder (standalone chunks, SPACE controls segments) ──
+  // ─── MediaRecorder chunking (6s chunks, skip when user speaking) ──
   const startRecording = useCallback((stream: MediaStream) => {
     try {
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/webm")
-        ? "audio/webm"
-        : "";
+        : "audio/webm";
 
-      if (!mimeType) {
-        toast.error("Format audio non supporté par ce navigateur");
-        return;
-      }
+      const recorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
 
-      const startSegmentRecorder = (speaker: "user" | "prospect") => {
-        if (!isActiveRef.current) return;
-
-        segmentSpeakerRef.current = speaker;
-        audioChunksRef.current = [];
-
-        const recorder = new MediaRecorder(stream, { mimeType });
-        mediaRecorderRef.current = recorder;
-
-        recorder.ondataavailable = (e) => {
-          if (e.data.size > 0) {
-            audioChunksRef.current.push(e.data);
-          }
-        };
-
-        recorder.onerror = (e) => {
-          console.error("[CallPrompter] MediaRecorder error:", e);
-        };
-
-        recorder.onstop = () => {
-          const meta = pendingSegmentMetaRef.current;
-          const restartSpeaker = restartSpeakerRef.current;
-          const blob = audioChunksRef.current.length > 0
-            ? new Blob(audioChunksRef.current, { type: mimeType })
-            : null;
-
-          pendingSegmentMetaRef.current = null;
-          restartSpeakerRef.current = null;
-          audioChunksRef.current = [];
-
-          if (meta && blob && blob.size > 2000) {
-            console.log("[CallPrompter] Chunk ready:", blob.size, "bytes, speaker:", meta.speaker, "triggerSuggestion:", meta.triggerSuggestion);
-            transcriptionQueueRef.current.push({
-              blob,
-              speaker: meta.speaker,
-              triggerSuggestion: meta.triggerSuggestion,
-            });
-            processQueueRef.current();
-          }
-
-          if (restartSpeaker && isActiveRef.current) {
-            startSegmentRecorder(restartSpeaker);
-          }
-        };
-
-        recorder.start();
-        setSttStatus("active");
-        console.log("[CallPrompter] Recorder started for speaker:", speaker);
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
-      recorderSwitchRef.current = (nextSpeaker, triggerSuggestion) => {
-        const currentSpeaker = segmentSpeakerRef.current;
-        const recorder = mediaRecorderRef.current;
+      // Track cumulative speaker time per chunk
+      let userTimeMs = 0;
+      let prospectTimeMs = 0;
+      let lastSampleTime = Date.now();
+      let lastSpeakerState = userSpeakingRef.current;
 
-        if (!recorder || recorder.state === "inactive") {
-          if (isActiveRef.current) startSegmentRecorder(nextSpeaker);
-          return;
+      // Sample speaker state frequently to get accurate attribution
+      const speakerSampler = setInterval(() => {
+        const now = Date.now();
+        const delta = now - lastSampleTime;
+        if (lastSpeakerState) {
+          userTimeMs += delta;
+        } else {
+          prospectTimeMs += delta;
         }
+        lastSampleTime = now;
+        lastSpeakerState = userSpeakingRef.current;
+      }, 200);
 
-        pendingSegmentMetaRef.current = {
-          speaker: currentSpeaker,
-          triggerSuggestion: currentSpeaker === "prospect" ? triggerSuggestion : false,
-        };
-        restartSpeakerRef.current = nextSpeaker;
+      recorder.start();
+      setSttStatus("active");
 
-        try {
-          recorder.stop();
-        } catch (e) {
-          console.error("[CallPrompter] Recorder stop error:", e);
-          if (isActiveRef.current) startSegmentRecorder(nextSpeaker);
-        }
-      };
-
-      startSegmentRecorder("prospect");
-
+      // 6-second chunks — always transcribe, tag with dominant speaker
       recordingIntervalRef.current = setInterval(() => {
-        if (!isActiveRef.current) return;
-        const recorder = mediaRecorderRef.current;
-        if (!recorder || recorder.state === "inactive") return;
+        if (!isActiveRef.current || recorder.state !== "recording") return;
 
-        const currentSpeaker = segmentSpeakerRef.current;
-        pendingSegmentMetaRef.current = {
-          speaker: currentSpeaker,
-          triggerSuggestion: currentSpeaker === "prospect" && !userSpeakingRef.current,
-        };
-        restartSpeakerRef.current = currentSpeaker;
+        // Determine dominant speaker for this chunk
+        const speakerForChunk: "user" | "prospect" = userTimeMs >= prospectTimeMs ? "user" : "prospect";
 
-        try {
-          recorder.stop();
-        } catch (e) {
-          console.error("[CallPrompter] Periodic recorder stop error:", e);
-          if (isActiveRef.current) startSegmentRecorder(currentSpeaker);
-        }
-      }, 3000);
+        // Reset counters for next chunk
+        userTimeMs = 0;
+        prospectTimeMs = 0;
+        lastSampleTime = Date.now();
+
+        recorder.stop();
+        setTimeout(() => {
+          if (audioChunksRef.current.length > 0) {
+            const blob = new Blob(audioChunksRef.current, { type: mimeType });
+            audioChunksRef.current = [];
+            if (blob.size > 4000) {
+              transcriptionQueueRef.current.push({ blob, speaker: speakerForChunk });
+              processQueue();
+            }
+          } else {
+            audioChunksRef.current = [];
+          }
+          if (isActiveRef.current) {
+            try { recorder.start(); } catch {}
+          }
+        }, 100);
+      }, 6000);
+
+      // Store sampler interval for cleanup in stopRecording
+      speakerSamplerRef.current = speakerSampler;
     } catch (e) {
-      console.error("[CallPrompter] MediaRecorder error:", e);
+      console.error("MediaRecorder error:", e);
       toast.error("Impossible de démarrer l'enregistrement audio");
     }
-  }, []);
+  }, [processQueue]);
 
-  const stopRecording = useCallback(async () => {
-    recorderSwitchRef.current = () => {};
+  const stopRecording = useCallback(() => {
     if (speakerSamplerRef.current) {
       clearInterval(speakerSamplerRef.current);
       speakerSamplerRef.current = null;
@@ -475,34 +408,13 @@ export function useCallPrompter() {
       clearInterval(recordingIntervalRef.current);
       recordingIntervalRef.current = null;
     }
-
-    const recorder = mediaRecorderRef.current;
-    if (recorder && recorder.state !== "inactive") {
-      pendingSegmentMetaRef.current = {
-        speaker: segmentSpeakerRef.current,
-        triggerSuggestion: false,
-      };
-      restartSpeakerRef.current = null;
-
-      await new Promise<void>((resolve) => {
-        const handleStop = () => resolve();
-        recorder.addEventListener("stop", handleStop, { once: true });
-        try {
-          recorder.stop();
-        } catch {
-          resolve();
-        }
-      });
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      try { mediaRecorderRef.current.stop(); } catch {}
     }
-
-    while (isTranscribingRef.current || transcriptionQueueRef.current.length > 0) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-
     mediaRecorderRef.current = null;
     audioChunksRef.current = [];
-    pendingSegmentMetaRef.current = null;
-    restartSpeakerRef.current = null;
+    transcriptionQueueRef.current = [];
+    isTranscribingRef.current = false;
   }, []);
 
   // ─── Start call (no calibration needed) ───────────────────────
@@ -537,10 +449,8 @@ export function useCallPrompter() {
     setAnalysis(null);
     setChunksTranscribed(0);
     setLastTranscriptionTime(null);
-    lastTranscribedTextRef.current = "";
     startTimeRef.current = new Date();
     isActiveRef.current = true;
-    segmentSpeakerRef.current = "prospect";
     userSpeakingRef.current = false;
     setUserSpeaking(false);
 
@@ -614,12 +524,6 @@ export function useCallPrompter() {
     if (lastProspect) getSuggestion(lastProspect.text, transcriptRef.current);
   }, [getSuggestion]);
 
-  const deleteSession = useCallback(async (sessionId: string) => {
-    await (supabase as any).from("call_sessions").delete().eq("id", sessionId);
-    setSessions(prev => prev.filter(s => s.id !== sessionId));
-    toast.success("Appel supprimé");
-  }, []);
-
   // ─── Cleanup ──────────────────────────────────────────────────
   useEffect(() => {
     return () => {
@@ -640,7 +544,7 @@ export function useCallPrompter() {
     isAnalyzing, analysis,
     loading,
     startCall, endCall, regenerateSuggestion,
-    fetchSessions, deleteSession,
+    fetchSessions,
     micStatus, audioLevel, sttStatus,
     chunksTranscribed, lastTranscriptionTime,
     userSpeaking,
