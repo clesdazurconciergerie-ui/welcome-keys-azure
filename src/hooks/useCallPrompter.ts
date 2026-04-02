@@ -390,12 +390,8 @@ export function useCallPrompter() {
         }, 100);
       }, 6000);
 
-      // Store sampler ref for cleanup
-      const origStop = stopRecording;
-      const cleanupSampler = () => clearInterval(speakerSampler);
-      mediaRecorderRef.current.addEventListener("stop", () => {}, { once: true });
-      // We'll clean up sampler in stopRecording via a ref
-      (mediaRecorderRef.current as any)._speakerSampler = speakerSampler;
+      // Store sampler interval for cleanup in stopRecording
+      speakerSamplerRef.current = speakerSampler;
     } catch (e) {
       console.error("MediaRecorder error:", e);
       toast.error("Impossible de démarrer l'enregistrement audio");
