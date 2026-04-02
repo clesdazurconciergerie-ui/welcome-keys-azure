@@ -111,10 +111,9 @@ CONTEXTE DE L'UTILISATEUR :
 ${learningContext}
 
 INSTRUCTION FINALE :
-Réponds UNIQUEMENT avec la phrase que l'utilisateur doit dire au prospect.
-Pas d'explication. Pas de commentaire. Pas de formatage.
-1-2 phrases max, prête à être lue à voix haute.
-Chaque mot doit servir la conversion.`;
+Génère UNIQUEMENT la phrase exacte à dire au prospect. Rien d'autre.
+INTERDIT : "Vous pourriez dire...", "Essayez de...", "Répondez avec...", instructions, commentaires, guillemets.
+Donne SEULEMENT la réplique, prête à lire à voix haute, 1-2 phrases max.`;
 
     const messages: any[] = [
       { role: "system", content: systemPrompt },
