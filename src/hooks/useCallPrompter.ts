@@ -56,14 +56,10 @@ const DEFAULT_SETTINGS: CallPrompterSettings = {
   company_name: "MyWelkom Conciergerie",
 };
 
-// RMS energy of an audio chunk — used to skip silence
-function computeRMS(analyser: AnalyserNode): number {
-  const data = new Float32Array(analyser.fftSize);
-  analyser.getFloatTimeDomainData(data);
-  let sum = 0;
-  for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
-  return Math.sqrt(sum / data.length);
-}
+// ─── Constants for latency optimization ─────────────────────────
+const CHUNK_DURATION_MS = 2500; // 2.5s chunks for faster transcription
+const MIN_BLOB_SIZE = 1500; // Lower threshold for smaller chunks
+const RECORDER_RESTART_DELAY = 20; // Minimal restart delay
 
 export function useCallPrompter() {
   const [settings, setSettings] = useState<CallPrompterSettings>(DEFAULT_SETTINGS);
@@ -83,7 +79,7 @@ export function useCallPrompter() {
   const [chunksTranscribed, setChunksTranscribed] = useState(0);
   const [lastTranscriptionTime, setLastTranscriptionTime] = useState<string | null>(null);
 
-  // Push-to-talk: true when user is holding spacebar (= user speaking, muted)
+  // Push-to-talk
   const [userSpeaking, setUserSpeaking] = useState(false);
   const userSpeakingRef = useRef(false);
 
@@ -105,6 +101,10 @@ export function useCallPrompter() {
   const audioChunksRef = useRef<Blob[]>([]);
   const isTranscribingRef = useRef(false);
   const transcriptionQueueRef = useRef<{ blob: Blob; speaker: "user" | "prospect" }[]>([]);
+
+  // Cached past analyses to avoid DB round-trip on every suggestion
+  const pastAnalysesCacheRef = useRef<any[]>([]);
+  const pastAnalysesFetchedRef = useRef(false);
 
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
@@ -178,27 +178,31 @@ export function useCallPrompter() {
 
   useEffect(() => { fetchSettings(); fetchSessions(); }, [fetchSettings, fetchSessions]);
 
-  // ─── AI suggestion ────────────────────────────────────────────
-  const getSuggestion = useCallback(async (prospectSpeech: string, history: TranscriptEntry[]) => {
-    setCallStatus("processing");
+  // ─── Pre-fetch past analyses at call start (cached) ───────────
+  const prefetchPastAnalyses = useCallback(async () => {
+    if (pastAnalysesFetchedRef.current) return;
     try {
-      const { data: recentAnalyses } = await (supabase as any)
+      const { data } = await (supabase as any)
         .from("call_sessions")
         .select("analysis_json")
         .not("analysis_json", "is", null)
         .order("created_at", { ascending: false })
         .limit(5);
+      pastAnalysesCacheRef.current = (data || []).map((s: any) => s.analysis_json).filter(Boolean);
+      pastAnalysesFetchedRef.current = true;
+    } catch {}
+  }, []);
 
-      const pastPatterns = (recentAnalyses || [])
-        .map((s: any) => s.analysis_json)
-        .filter(Boolean);
-
+  // ─── AI suggestion (optimized: no DB call, fire-and-forget) ───
+  const getSuggestion = useCallback(async (prospectSpeech: string, history: TranscriptEntry[]) => {
+    setCallStatus("processing");
+    try {
       const { data, error } = await supabase.functions.invoke("call-prompter-suggest", {
         body: {
           prospect_speech: prospectSpeech,
-          conversation_history: history,
+          conversation_history: history.slice(-6), // Only last 6 entries for speed
           settings,
-          past_analyses: pastPatterns,
+          past_analyses: pastAnalysesCacheRef.current,
         },
       });
       if (error) throw error;
@@ -219,7 +223,6 @@ export function useCallPrompter() {
       analyser.smoothingTimeConstant = 0.3;
       const source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
-
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
 
@@ -249,7 +252,7 @@ export function useCallPrompter() {
 
   // ─── Whisper transcription ────────────────────────────────────
   const transcribeChunk = useCallback(async (audioBlob: Blob, speaker: "user" | "prospect") => {
-    if (audioBlob.size < 2000) return;
+    if (audioBlob.size < MIN_BLOB_SIZE) return;
 
     setSttStatus("transcribing");
     try {
@@ -295,7 +298,6 @@ export function useCallPrompter() {
 
         setTranscript(prev => {
           const updated = [...prev, entry];
-          // Only trigger AI suggestion for prospect speech
           if (speaker === "prospect") {
             getSuggestion(text, updated);
           }
@@ -310,21 +312,25 @@ export function useCallPrompter() {
     }
   }, [getSuggestion]);
 
+  // Process queue — allow parallel transcriptions (up to 2)
+  const activeTranscriptionsRef = useRef(0);
+  const MAX_PARALLEL_TRANSCRIPTIONS = 2;
+
   const processQueue = useCallback(async () => {
-    if (isTranscribingRef.current) return;
+    if (activeTranscriptionsRef.current >= MAX_PARALLEL_TRANSCRIPTIONS) return;
     const item = transcriptionQueueRef.current.shift();
     if (!item) return;
 
-    isTranscribingRef.current = true;
+    activeTranscriptionsRef.current++;
     await transcribeChunk(item.blob, item.speaker);
-    isTranscribingRef.current = false;
+    activeTranscriptionsRef.current--;
 
     if (transcriptionQueueRef.current.length > 0 && isActiveRef.current) {
       processQueue();
     }
   }, [transcribeChunk]);
 
-  // ─── MediaRecorder chunking (6s chunks, skip when user speaking) ──
+  // ─── MediaRecorder chunking (2.5s fast chunks) ────────────────
   const startRecording = useCallback((stream: MediaStream) => {
     try {
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
@@ -345,30 +351,23 @@ export function useCallPrompter() {
       let lastSampleTime = Date.now();
       let lastSpeakerState = userSpeakingRef.current;
 
-      // Sample speaker state frequently to get accurate attribution
       const speakerSampler = setInterval(() => {
         const now = Date.now();
         const delta = now - lastSampleTime;
-        if (lastSpeakerState) {
-          userTimeMs += delta;
-        } else {
-          prospectTimeMs += delta;
-        }
+        if (lastSpeakerState) userTimeMs += delta;
+        else prospectTimeMs += delta;
         lastSampleTime = now;
         lastSpeakerState = userSpeakingRef.current;
-      }, 200);
+      }, 100); // Sample every 100ms for better accuracy with shorter chunks
 
       recorder.start();
       setSttStatus("active");
 
-      // 6-second chunks — always transcribe, tag with dominant speaker
+      // Fast 2.5s chunks
       recordingIntervalRef.current = setInterval(() => {
         if (!isActiveRef.current || recorder.state !== "recording") return;
 
-        // Determine dominant speaker for this chunk
         const speakerForChunk: "user" | "prospect" = userTimeMs >= prospectTimeMs ? "user" : "prospect";
-
-        // Reset counters for next chunk
         userTimeMs = 0;
         prospectTimeMs = 0;
         lastSampleTime = Date.now();
@@ -378,9 +377,11 @@ export function useCallPrompter() {
           if (audioChunksRef.current.length > 0) {
             const blob = new Blob(audioChunksRef.current, { type: mimeType });
             audioChunksRef.current = [];
-            if (blob.size > 4000) {
+            if (blob.size > MIN_BLOB_SIZE) {
               transcriptionQueueRef.current.push({ blob, speaker: speakerForChunk });
               processQueue();
+              // Try to start a second parallel transcription
+              if (transcriptionQueueRef.current.length > 0) processQueue();
             }
           } else {
             audioChunksRef.current = [];
@@ -388,10 +389,9 @@ export function useCallPrompter() {
           if (isActiveRef.current) {
             try { recorder.start(); } catch {}
           }
-        }, 100);
-      }, 6000);
+        }, RECORDER_RESTART_DELAY);
+      }, CHUNK_DURATION_MS);
 
-      // Store sampler interval for cleanup in stopRecording
       speakerSamplerRef.current = speakerSampler;
     } catch (e) {
       console.error("MediaRecorder error:", e);
@@ -414,10 +414,10 @@ export function useCallPrompter() {
     mediaRecorderRef.current = null;
     audioChunksRef.current = [];
     transcriptionQueueRef.current = [];
-    isTranscribingRef.current = false;
+    activeTranscriptionsRef.current = 0;
   }, []);
 
-  // ─── Start call (no calibration needed) ───────────────────────
+  // ─── Start call ───────────────────────────────────────────────
   const startCall = useCallback(async () => {
     let stream: MediaStream;
     try {
@@ -435,11 +435,17 @@ export function useCallPrompter() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("Non connecté"); return; }
 
-    const { data: session, error } = await (supabase as any)
+    // Pre-fetch past analyses in parallel with session creation
+    const sessionPromise = (supabase as any)
       .from("call_sessions")
       .insert({ user_id: user.id, status: "active" })
       .select()
       .single();
+
+    pastAnalysesFetchedRef.current = false;
+    prefetchPastAnalyses();
+
+    const { data: session, error } = await sessionPromise;
     if (error) { toast.error("Erreur création session"); return; }
 
     sessionIdRef.current = session.id;
@@ -458,7 +464,7 @@ export function useCallPrompter() {
     startRecording(stream);
     setCallStatus("listening");
     toast.success("🎙️ Appel démarré — Maintenez [Espace] quand vous parlez");
-  }, [startAudioMonitoring, startRecording]);
+  }, [startAudioMonitoring, startRecording, prefetchPastAnalyses]);
 
   // ─── End call ─────────────────────────────────────────────────
   const endCall = useCallback(async () => {
@@ -513,6 +519,7 @@ export function useCallPrompter() {
       }
 
       sessionIdRef.current = null;
+      pastAnalysesFetchedRef.current = false;
       fetchSessions();
     }
 

@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Fallback core prompt if no skills are loaded
 const FALLBACK_CORE = `Tu es un closer d'élite spécialisé dans la gestion locative courte durée. Tu assistes en temps réel lors d'appels commerciaux.
 FORMAT : 1-2 phrases MAX, naturelles, prêtes à dire à voix haute. Terminer par une question si possible.`;
 
@@ -18,7 +17,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // Load user skills and script from DB
+    // Load user skills and script from DB (parallel)
     let skillsPrompt = "";
     let scriptPrompt = "";
 
@@ -29,40 +28,39 @@ serve(async (req) => {
     if (supabaseUrl && supabaseKey) {
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      // Get user from JWT
       if (authHeader) {
         const token = authHeader.replace("Bearer ", "");
         const { data: { user } } = await supabase.auth.getUser(token);
 
         if (user) {
-          // Load active skills sorted by priority (high first) then order_index
-          const { data: skills } = await supabase
-            .from("call_prompter_skills")
-            .select("name, prompt_content, priority")
-            .eq("user_id", user.id)
-            .eq("is_active", true)
-            .order("order_index", { ascending: true });
+          // Fetch skills and script in parallel
+          const [skillsResult, scriptResult] = await Promise.all([
+            supabase
+              .from("call_prompter_skills")
+              .select("name, prompt_content, priority")
+              .eq("user_id", user.id)
+              .eq("is_active", true)
+              .order("order_index", { ascending: true }),
+            supabase
+              .from("call_prompter_scripts")
+              .select("pitch, key_phrases, unique_selling_points")
+              .eq("user_id", user.id)
+              .maybeSingle(),
+          ]);
 
+          const skills = skillsResult.data;
           if (skills && skills.length > 0) {
-            // Sort: high > medium > low
             const priorityOrder = { high: 0, medium: 1, low: 2 };
             const sorted = [...skills].sort((a, b) =>
               (priorityOrder[a.priority as keyof typeof priorityOrder] || 2) -
               (priorityOrder[b.priority as keyof typeof priorityOrder] || 2)
             );
-
             skillsPrompt = sorted.map((s: any) =>
               `═══ SKILL [${s.priority.toUpperCase()}] : ${s.name} ═══\n${s.prompt_content}`
             ).join("\n\n");
           }
 
-          // Load custom script
-          const { data: scriptData } = await supabase
-            .from("call_prompter_scripts")
-            .select("pitch, key_phrases, unique_selling_points")
-            .eq("user_id", user.id)
-            .maybeSingle();
-
+          const scriptData = scriptResult.data;
           if (scriptData) {
             const parts: string[] = [];
             if (scriptData.pitch) parts.push(`PITCH : ${scriptData.pitch}`);
@@ -76,20 +74,17 @@ serve(async (req) => {
       }
     }
 
-    // Build adaptive learning context from past analyses
+    // Build learning context from cached past analyses
     let learningContext = "";
     if (past_analyses && past_analyses.length > 0) {
       const commonObjections = past_analyses
-        .flatMap((a: any) => a.objections || [])
-        .filter(Boolean);
+        .flatMap((a: any) => a.objections || []).filter(Boolean);
       const successfulApproaches = past_analyses
         .filter((a: any) => a.conversion_probability >= 60)
-        .flatMap((a: any) => a.strengths || [])
-        .filter(Boolean);
+        .flatMap((a: any) => a.strengths || []).filter(Boolean);
       const failedPatterns = past_analyses
         .filter((a: any) => a.conversion_probability < 30)
-        .flatMap((a: any) => a.improvements || [])
-        .filter(Boolean);
+        .flatMap((a: any) => a.improvements || []).filter(Boolean);
 
       if (commonObjections.length > 0) {
         learningContext += `\nOBJECTIONS FRÉQUENTES :\n- ${[...new Set(commonObjections)].slice(0, 5).join("\n- ")}`;
@@ -125,8 +120,9 @@ Chaque mot doit servir la conversion.`;
       { role: "system", content: systemPrompt },
     ];
 
+    // Only include last few conversation entries for speed
     if (conversation_history && conversation_history.length > 0) {
-      for (const entry of conversation_history.slice(-10)) {
+      for (const entry of conversation_history.slice(-6)) {
         messages.push({
           role: entry.speaker === "user" ? "assistant" : "user",
           content: entry.text,
@@ -136,6 +132,7 @@ Chaque mot doit servir la conversion.`;
 
     messages.push({ role: "user", content: `Le prospect vient de dire : "${prospect_speech}"\n\nQuelle est la meilleure réponse à donner maintenant ?` });
 
+    // Use flash-lite for maximum speed
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -143,9 +140,10 @@ Chaque mot doit servir la conversion.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash-lite",
         messages,
         stream: false,
+        max_tokens: 150,
       }),
     });
 
