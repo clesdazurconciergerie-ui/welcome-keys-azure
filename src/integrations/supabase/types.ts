@@ -781,6 +781,36 @@ export type Database = {
           },
         ]
       }
+      call_prompter_scripts: {
+        Row: {
+          created_at: string
+          id: string
+          key_phrases: string | null
+          pitch: string | null
+          unique_selling_points: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_phrases?: string | null
+          pitch?: string | null
+          unique_selling_points?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_phrases?: string | null
+          pitch?: string | null
+          unique_selling_points?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       call_prompter_settings: {
         Row: {
           commission_rate: string | null
@@ -823,6 +853,48 @@ export type Database = {
           updated_at?: string
           user_id?: string
           voice_profile?: Json | null
+        }
+        Relationships: []
+      }
+      call_prompter_skills: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          order_index: number
+          priority: string
+          prompt_content: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          order_index?: number
+          priority?: string
+          prompt_content: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          order_index?: number
+          priority?: string
+          prompt_content?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

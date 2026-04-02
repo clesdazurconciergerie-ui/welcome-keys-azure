@@ -28,8 +28,19 @@ Analyse cette conversation téléphonique et génère un rapport structuré en J
   "conversion_probability": 0-100,
   "strengths": ["Ce que l'utilisateur a bien fait"],
   "improvements": ["Ce qui pourrait être amélioré"],
-  "better_responses": [{"original": "Ce qui a été dit", "suggested": "Meilleure alternative"}]
+  "better_responses": [{"original": "Ce qui a été dit", "suggested": "Meilleure alternative"}],
+  "patterns_detected": ["Schéma récurrent 1", "Schéma 2"],
+  "skill_recommendations": ["Recommendation de skill à ajouter ou modifier"],
+  "failed_strategies": ["Stratégie qui n'a pas marché"],
+  "successful_techniques": ["Technique qui a fonctionné"]
 }
+
+ANALYSE APPROFONDIE :
+- Identifier les objections récurrentes et les techniques qui ont échoué
+- Détecter les moments où l'utilisateur a parlé trop longtemps
+- Repérer les signaux d'achat manqués
+- Proposer des réponses plus courtes et percutantes
+- Évaluer si le closing a été tenté au bon moment
 
 Contexte : ${settings?.company_name || "Conciergerie"}, zone ${settings?.geographic_area || "non précisée"}.
 Réponds UNIQUEMENT avec le JSON, sans markdown.`;
@@ -59,15 +70,13 @@ Réponds UNIQUEMENT avec le JSON, sans markdown.`;
 
     const data = await response.json();
     let analysisText = data.choices?.[0]?.message?.content || "{}";
-    
-    // Clean markdown code blocks if present
     analysisText = analysisText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
 
     let analysis;
     try {
       analysis = JSON.parse(analysisText);
     } catch {
-      analysis = { summary: analysisText, key_moments: [], objections: [], interest_level: "medium", conversion_probability: 50, strengths: [], improvements: [], better_responses: [] };
+      analysis = { summary: analysisText, key_moments: [], objections: [], interest_level: "medium", conversion_probability: 50, strengths: [], improvements: [], better_responses: [], patterns_detected: [], skill_recommendations: [], failed_strategies: [], successful_techniques: [] };
     }
 
     return new Response(JSON.stringify({ analysis }), {

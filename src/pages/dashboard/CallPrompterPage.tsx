@@ -13,9 +13,10 @@ import {
   Phone, PhoneOff, Mic, MicOff, Settings, History, Brain, MessageSquare,
   TrendingUp, AlertTriangle, ThumbsUp, Lightbulb, RotateCcw,
   Volume2, Activity, User, Users, Clock, Hash, Eye, ArrowLeft,
-  Keyboard,
+  Keyboard, Zap,
 } from "lucide-react";
 import { useCallPrompter, CallAnalysis, CallSession, TranscriptEntry } from "@/hooks/useCallPrompter";
+import { SkillsManager } from "@/components/call-prompter/SkillsManager";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -70,6 +71,9 @@ const CallPrompterPage = () => {
           </TabsTrigger>
           <TabsTrigger value="history" className="gap-2">
             <History className="w-4 h-4" /> Historique
+          </TabsTrigger>
+          <TabsTrigger value="skills" className="gap-2">
+            <Zap className="w-4 h-4" /> Skills
           </TabsTrigger>
           <TabsTrigger value="settings" className="gap-2">
             <Settings className="w-4 h-4" /> Paramètres
@@ -313,6 +317,11 @@ const CallPrompterPage = () => {
               )}
             </>
           )}
+        </TabsContent>
+
+        {/* SKILLS TAB */}
+        <TabsContent value="skills" className="space-y-4">
+          <SkillsManager />
         </TabsContent>
 
         {/* SETTINGS TAB */}
@@ -604,6 +613,28 @@ function AnalysisSection({ analysis, isAnalyzing }: { analysis: CallAnalysis | n
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {analysis.patterns_detected && analysis.patterns_detected.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" /> Schémas détectés
+            </p>
+            <ul className="text-sm space-y-1">
+              {analysis.patterns_detected.map((p, i) => <li key={i} className="text-foreground">• {p}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {analysis.skill_recommendations && analysis.skill_recommendations.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+              <Zap className="w-3 h-3" /> Recommandations Skills
+            </p>
+            <ul className="text-sm space-y-1">
+              {analysis.skill_recommendations.map((r, i) => <li key={i} className="text-foreground">• {r}</li>)}
+            </ul>
           </div>
         )}
       </CardContent>

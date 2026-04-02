@@ -38,6 +38,10 @@ export interface CallAnalysis {
   strengths: string[];
   improvements: string[];
   better_responses: { original: string; suggested: string }[];
+  patterns_detected?: string[];
+  skill_recommendations?: string[];
+  failed_strategies?: string[];
+  successful_techniques?: string[];
 }
 
 export type MicStatus = "not_requested" | "granted" | "denied" | "error";
