@@ -106,6 +106,11 @@ export function useCallPrompter() {
   const pastAnalysesCacheRef = useRef<any[]>([]);
   const pastAnalysesFetchedRef = useRef(false);
 
+  // Prospect speech accumulator — triggers AI after silence
+  const pendingProspectTextRef = useRef<string[]>([]);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const SILENCE_THRESHOLD_MS = 400;
+
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
   // ─── Push-to-talk keyboard listeners ──────────────────────────
@@ -117,6 +122,11 @@ export function useCallPrompter() {
       if (!userSpeakingRef.current) {
         userSpeakingRef.current = true;
         setUserSpeaking(true);
+        // User starts speaking — cancel any pending prospect AI trigger
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = null;
+        }
       }
     };
     const onKeyUp = (e: KeyboardEvent) => {
@@ -296,13 +306,22 @@ export function useCallPrompter() {
           timestamp: new Date().toISOString(),
         };
 
-        setTranscript(prev => {
-          const updated = [...prev, entry];
-          if (speaker === "prospect") {
-            getSuggestion(text, updated);
-          }
-          return updated;
-        });
+        setTranscript(prev => [...prev, entry]);
+
+        // Accumulate prospect text and schedule AI trigger after silence
+        if (speaker === "prospect") {
+          pendingProspectTextRef.current.push(text);
+          // Reset silence timer on each new prospect chunk
+          if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = setTimeout(() => {
+            const combinedText = pendingProspectTextRef.current.join(" ").trim();
+            if (combinedText && !userSpeakingRef.current) {
+              getSuggestion(combinedText, transcriptRef.current);
+            }
+            pendingProspectTextRef.current = [];
+            silenceTimerRef.current = null;
+          }, SILENCE_THRESHOLD_MS);
+        }
       }
 
       setSttStatus("active");
@@ -408,6 +427,10 @@ export function useCallPrompter() {
       clearInterval(recordingIntervalRef.current);
       recordingIntervalRef.current = null;
     }
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       try { mediaRecorderRef.current.stop(); } catch {}
     }
@@ -415,6 +438,7 @@ export function useCallPrompter() {
     audioChunksRef.current = [];
     transcriptionQueueRef.current = [];
     activeTranscriptionsRef.current = 0;
+    pendingProspectTextRef.current = [];
   }, []);
 
   // ─── Start call ───────────────────────────────────────────────
