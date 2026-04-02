@@ -122,6 +122,11 @@ export function useCallPrompter() {
       if (!userSpeakingRef.current) {
         userSpeakingRef.current = true;
         setUserSpeaking(true);
+        // User starts speaking — cancel any pending prospect AI trigger
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = null;
+        }
       }
     };
     const onKeyUp = (e: KeyboardEvent) => {
