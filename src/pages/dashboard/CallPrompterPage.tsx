@@ -26,6 +26,7 @@ const CallPrompterPage = () => {
     isAnalyzing, analysis,
     loading,
     startCall, endCall, regenerateSuggestion,
+    micStatus, audioLevel, sttStatus,
   } = useCallPrompter();
 
   const [tab, setTab] = useState("prompter");
