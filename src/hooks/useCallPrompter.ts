@@ -41,6 +41,7 @@ export interface CallAnalysis {
 }
 
 export type MicStatus = "not_requested" | "granted" | "denied" | "error";
+export type SpeakerDetection = "calibrating" | "listening_prospect" | "listening_user" | "uncertain";
 
 const DEFAULT_SETTINGS: CallPrompterSettings = {
   services_offered: "Gestion locative saisonnière complète",
@@ -51,6 +52,28 @@ const DEFAULT_SETTINGS: CallPrompterSettings = {
   tone: "premium",
   company_name: "MyWelkom Conciergerie",
 };
+
+// ─── Voice profile helpers ──────────────────────────────────────
+function computeSpectralProfile(analyser: AnalyserNode): Float32Array {
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(data);
+  const profile = new Float32Array(data.length);
+  const max = Math.max(...data) || 1;
+  for (let i = 0; i < data.length; i++) profile[i] = data[i] / max;
+  return profile;
+}
+
+function cosineSimilarity(a: Float32Array, b: Float32Array): number {
+  let dot = 0, magA = 0, magB = 0;
+  const len = Math.min(a.length, b.length);
+  for (let i = 0; i < len; i++) {
+    dot += a[i] * b[i];
+    magA += a[i] * a[i];
+    magB += b[i] * b[i];
+  }
+  if (magA === 0 || magB === 0) return 0;
+  return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+}
 
 export function useCallPrompter() {
   const [settings, setSettings] = useState<CallPrompterSettings>(DEFAULT_SETTINGS);
@@ -67,9 +90,13 @@ export function useCallPrompter() {
   const [micStatus, setMicStatus] = useState<MicStatus>("not_requested");
   const [audioLevel, setAudioLevel] = useState(0);
   const [sttStatus, setSttStatus] = useState<"inactive" | "active" | "restarting">("inactive");
+  
+  // Speaker detection state
+  const [speakerState, setSpeakerState] = useState<SpeakerDetection>("calibrating");
+  const [calibrationProgress, setCalibrationProgress] = useState(0);
+  const [lastDetectedSpeaker, setLastDetectedSpeaker] = useState<"user" | "prospect" | null>(null);
 
   const recognitionRef = useRef<any>(null);
-  const isUserRef = useRef(false);
   const sessionIdRef = useRef<string | null>(null);
   const startTimeRef = useRef<Date | null>(null);
   const transcriptRef = useRef<TranscriptEntry[]>([]);
@@ -82,12 +109,20 @@ export function useCallPrompter() {
   const restartCountRef = useRef(0);
   const isActiveRef = useRef(false);
 
+  // Voice calibration refs
+  const userVoiceProfileRef = useRef<Float32Array | null>(null);
+  const calibrationSamplesRef = useRef<Float32Array[]>([]);
+  const calibrationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const CALIBRATION_DURATION = 5000; // 5 seconds
+  const CALIBRATION_INTERVAL = 200; // sample every 200ms
+  const SIMILARITY_THRESHOLD = 0.75; // above = user, below = prospect
+
   // Keep transcriptRef in sync
   useEffect(() => {
     transcriptRef.current = transcript;
   }, [transcript]);
 
-  // Fetch settings
+  // ─── Settings / Sessions CRUD ─────────────────────────────────
   const fetchSettings = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -110,7 +145,6 @@ export function useCallPrompter() {
     setLoading(false);
   }, []);
 
-  // Save settings
   const saveSettings = async (newSettings: CallPrompterSettings) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -121,7 +155,6 @@ export function useCallPrompter() {
     toast.success("Paramètres sauvegardés");
   };
 
-  // Fetch sessions
   const fetchSessions = useCallback(async () => {
     const { data } = await (supabase as any)
       .from("call_sessions")
@@ -133,7 +166,7 @@ export function useCallPrompter() {
 
   useEffect(() => { fetchSettings(); fetchSessions(); }, [fetchSettings, fetchSessions]);
 
-  // Get AI suggestion
+  // ─── AI suggestion ────────────────────────────────────────────
   const getSuggestion = useCallback(async (prospectSpeech: string, history: TranscriptEntry[]) => {
     setCallStatus("processing");
     try {
@@ -149,12 +182,12 @@ export function useCallPrompter() {
     if (isActiveRef.current) setCallStatus("listening");
   }, [settings]);
 
-  // Start audio level monitoring
+  // ─── Audio level monitoring ───────────────────────────────────
   const startAudioMonitoring = useCallback((stream: MediaStream) => {
     try {
       const audioContext = new AudioContext();
       const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256;
+      analyser.fftSize = 512;
       analyser.smoothingTimeConstant = 0.5;
       const source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
@@ -176,7 +209,6 @@ export function useCallPrompter() {
     }
   }, []);
 
-  // Stop audio monitoring
   const stopAudioMonitoring = useCallback(() => {
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     if (audioContextRef.current) {
@@ -187,7 +219,75 @@ export function useCallPrompter() {
     setAudioLevel(0);
   }, []);
 
-  // Create and start speech recognition
+  // ─── Voice calibration ────────────────────────────────────────
+  const startCalibration = useCallback(() => {
+    calibrationSamplesRef.current = [];
+    setCalibrationProgress(0);
+    setSpeakerState("calibrating");
+
+    let elapsed = 0;
+    calibrationTimerRef.current = setInterval(() => {
+      elapsed += CALIBRATION_INTERVAL;
+      setCalibrationProgress(Math.min(100, Math.round((elapsed / CALIBRATION_DURATION) * 100)));
+
+      if (analyserRef.current) {
+        const profile = computeSpectralProfile(analyserRef.current);
+        // Only add if there's actual audio (not silence)
+        const energy = profile.reduce((a, b) => a + b, 0);
+        if (energy > 1) {
+          calibrationSamplesRef.current.push(profile);
+        }
+      }
+
+      if (elapsed >= CALIBRATION_DURATION) {
+        if (calibrationTimerRef.current) clearInterval(calibrationTimerRef.current);
+        calibrationTimerRef.current = null;
+
+        // Average the samples into a voice profile
+        const samples = calibrationSamplesRef.current;
+        if (samples.length >= 3) {
+          const len = samples[0].length;
+          const avg = new Float32Array(len);
+          for (const s of samples) {
+            for (let i = 0; i < len; i++) avg[i] += s[i];
+          }
+          for (let i = 0; i < len; i++) avg[i] /= samples.length;
+          userVoiceProfileRef.current = avg;
+          console.log(`[CALIBRATION] Voice profile created from ${samples.length} samples`);
+          toast.success("✅ Profil vocal enregistré — l'IA ne répondra qu'au prospect !");
+        } else {
+          console.warn("[CALIBRATION] Not enough voiced samples, using fallback");
+          toast.warning("Calibration partielle — parlez plus fort. Vous pouvez basculer manuellement.");
+          userVoiceProfileRef.current = null;
+        }
+        setSpeakerState("listening_prospect");
+      }
+    }, CALIBRATION_INTERVAL);
+  }, []);
+
+  // ─── Speaker detection ────────────────────────────────────────
+  const detectSpeaker = useCallback((): "user" | "prospect" | "uncertain" => {
+    if (!analyserRef.current || !userVoiceProfileRef.current) return "uncertain";
+    
+    const currentProfile = computeSpectralProfile(analyserRef.current);
+    const energy = currentProfile.reduce((a, b) => a + b, 0);
+    if (energy < 0.5) return "uncertain"; // silence
+
+    const similarity = cosineSimilarity(currentProfile, userVoiceProfileRef.current);
+    console.log(`[SPEAKER] Similarity: ${similarity.toFixed(3)}`);
+
+    if (similarity >= SIMILARITY_THRESHOLD) return "user";
+    if (similarity < SIMILARITY_THRESHOLD - 0.1) return "prospect";
+    return "uncertain";
+  }, []);
+
+  // Manual speaker toggle
+  const toggleSpeakerManual = useCallback((speaker: "user" | "prospect") => {
+    setLastDetectedSpeaker(speaker);
+    setSpeakerState(speaker === "user" ? "listening_user" : "listening_prospect");
+  }, []);
+
+  // ─── Speech recognition ───────────────────────────────────────
   const createRecognition = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return null;
@@ -201,59 +301,67 @@ export function useCallPrompter() {
     recognition.onstart = () => {
       setSttStatus("active");
       restartCountRef.current = 0;
-      console.log("[STT] Recognition started");
     };
 
     recognition.onresult = (event: any) => {
       const result = event.results[event.results.length - 1];
-      if (result.isFinal) {
-        const text = result[0].transcript.trim();
-        if (!text || text.length < 2) return;
+      if (!result.isFinal) return;
 
-        const speaker = isUserRef.current ? "user" : "prospect";
-        isUserRef.current = !isUserRef.current;
+      const text = result[0].transcript.trim();
+      if (!text || text.length < 2) return;
 
-        const entry: TranscriptEntry = { speaker, text, timestamp: new Date().toISOString() };
-        setTranscript(prev => {
-          const updated = [...prev, entry];
-          if (speaker === "prospect") {
-            getSuggestion(text, updated);
-          }
-          return updated;
-        });
-        console.log(`[STT] ${speaker}: ${text}`);
+      // Detect who is speaking using voice profile
+      const detected = detectSpeaker();
+      let speaker: "user" | "prospect";
+
+      if (detected === "uncertain") {
+        // If uncertain, default to prospect (safer — AI only generates for prospect)
+        // But if last was prospect, assume this is user now
+        const lastSpeaker = transcriptRef.current.length > 0
+          ? transcriptRef.current[transcriptRef.current.length - 1].speaker
+          : null;
+        speaker = lastSpeaker === "prospect" ? "user" : "prospect";
+        setSpeakerState("uncertain");
+      } else {
+        speaker = detected;
+        setSpeakerState(speaker === "user" ? "listening_user" : "listening_prospect");
       }
+
+      setLastDetectedSpeaker(speaker);
+      const entry: TranscriptEntry = { speaker, text, timestamp: new Date().toISOString() };
+      
+      setTranscript(prev => {
+        const updated = [...prev, entry];
+        // CRITICAL: Only trigger AI when PROSPECT finishes speaking
+        if (speaker === "prospect") {
+          getSuggestion(text, updated);
+        }
+        return updated;
+      });
+      console.log(`[STT] ${speaker}: ${text}`);
     };
 
     recognition.onerror = (event: any) => {
-      console.warn("[STT] Error:", event.error);
       if (event.error === "not-allowed") {
         setMicStatus("denied");
         setSttStatus("inactive");
-        toast.error("Accès au microphone refusé. Vérifiez les permissions du navigateur.");
+        toast.error("Accès au microphone refusé.");
         return;
       }
-      // For other errors (no-speech, network, aborted), we'll restart
       if (event.error !== "no-speech" && event.error !== "aborted") {
         setSttStatus("restarting");
       }
     };
 
     recognition.onend = () => {
-      console.log("[STT] Recognition ended, active:", isActiveRef.current);
       if (isActiveRef.current) {
         restartCountRef.current++;
         if (restartCountRef.current > 50) {
-          console.warn("[STT] Too many restarts, pausing 3s...");
           setSttStatus("restarting");
           setTimeout(() => {
             if (isActiveRef.current) {
               restartCountRef.current = 0;
-              try {
-                recognition.start();
-              } catch (e) {
-                console.error("[STT] Restart failed:", e);
-              }
+              try { recognition.start(); } catch {}
             }
           }, 3000);
           return;
@@ -261,12 +369,7 @@ export function useCallPrompter() {
         setSttStatus("restarting");
         setTimeout(() => {
           if (isActiveRef.current) {
-            try {
-              recognition.start();
-              console.log("[STT] Restarted");
-            } catch (e) {
-              console.error("[STT] Restart failed:", e);
-            }
+            try { recognition.start(); } catch {}
           }
         }, 300);
       } else {
@@ -275,38 +378,34 @@ export function useCallPrompter() {
     };
 
     return recognition;
-  }, [getSuggestion]);
+  }, [getSuggestion, detectSpeaker]);
 
-  // Start call
+  // ─── Start call ───────────────────────────────────────────────
   const startCall = useCallback(async () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      toast.error("La reconnaissance vocale n'est pas supportée. Utilisez Chrome ou Edge.");
+      toast.error("Reconnaissance vocale non supportée. Utilisez Chrome ou Edge.");
       return;
     }
 
-    // Request microphone permission first
     setCallStatus("calibrating");
     let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
       });
       setMicStatus("granted");
       mediaStreamRef.current = stream;
-      console.log("[MIC] Permission granted, tracks:", stream.getAudioTracks().length);
     } catch (e: any) {
-      console.error("[MIC] Permission error:", e);
       setMicStatus(e.name === "NotAllowedError" ? "denied" : "error");
       setCallStatus("idle");
-      toast.error("Impossible d'accéder au microphone. Vérifiez vos permissions.");
+      toast.error("Impossible d'accéder au microphone.");
       return;
     }
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("Non connecté"); setCallStatus("idle"); return; }
 
-    // Create session
     const { data: session, error } = await (supabase as any)
       .from("call_sessions")
       .insert({ user_id: user.id, status: "active" })
@@ -320,43 +419,49 @@ export function useCallPrompter() {
     setSuggestion("");
     setAnalysis(null);
     startTimeRef.current = new Date();
-    isUserRef.current = false;
     isActiveRef.current = true;
     restartCountRef.current = 0;
+    userVoiceProfileRef.current = null;
+    setLastDetectedSpeaker(null);
 
-    // Start audio level monitoring
+    // Start audio monitoring first
     startAudioMonitoring(stream);
 
-    toast.info("Calibration du micro en cours...");
+    // Start voice calibration
+    toast.info("🎙️ Parlez pendant 5 secondes pour calibrer votre voix…");
+    startCalibration();
 
-    // Short calibration then start STT
+    // After calibration, start STT
     setTimeout(() => {
       if (!isActiveRef.current) return;
-      
+
       const recognition = createRecognition();
       if (!recognition) {
         toast.error("Impossible de démarrer la reconnaissance vocale");
         setCallStatus("idle");
         return;
       }
-      
+
       recognitionRef.current = recognition;
-      
       try {
         recognition.start();
         setCallStatus("listening");
         toast.success("🎙️ Écoute active — Commencez l'appel !");
       } catch (e) {
-        console.error("[STT] Start error:", e);
-        toast.error("Erreur au démarrage de la reconnaissance vocale");
+        toast.error("Erreur au démarrage STT");
         setCallStatus("idle");
       }
-    }, 2000);
-  }, [createRecognition, startAudioMonitoring]);
+    }, CALIBRATION_DURATION + 500);
+  }, [createRecognition, startAudioMonitoring, startCalibration]);
 
-  // End call
+  // ─── End call ─────────────────────────────────────────────────
   const endCall = useCallback(async () => {
     isActiveRef.current = false;
+
+    if (calibrationTimerRef.current) {
+      clearInterval(calibrationTimerRef.current);
+      calibrationTimerRef.current = null;
+    }
 
     if (recognitionRef.current) {
       recognitionRef.current.onend = null;
@@ -365,7 +470,6 @@ export function useCallPrompter() {
       recognitionRef.current = null;
     }
 
-    // Stop media stream
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(t => t.stop());
       mediaStreamRef.current = null;
@@ -373,6 +477,8 @@ export function useCallPrompter() {
 
     stopAudioMonitoring();
     setSttStatus("inactive");
+    setSpeakerState("calibrating");
+    setLastDetectedSpeaker(null);
 
     const duration = startTimeRef.current
       ? Math.round((Date.now() - startTimeRef.current.getTime()) / 1000)
@@ -392,7 +498,6 @@ export function useCallPrompter() {
         })
         .eq("id", sessionIdRef.current);
 
-      // Generate analysis
       if (finalTranscript.length > 0) {
         setIsAnalyzing(true);
         try {
@@ -419,7 +524,7 @@ export function useCallPrompter() {
     toast.success("Appel terminé");
   }, [settings, fetchSessions, stopAudioMonitoring]);
 
-  // Regenerate suggestion
+  // ─── Regenerate ───────────────────────────────────────────────
   const regenerateSuggestion = useCallback(() => {
     const lastProspect = [...transcriptRef.current].reverse().find(t => t.speaker === "prospect");
     if (lastProspect) {
@@ -427,10 +532,11 @@ export function useCallPrompter() {
     }
   }, [getSuggestion]);
 
-  // Cleanup on unmount
+  // ─── Cleanup ──────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       isActiveRef.current = false;
+      if (calibrationTimerRef.current) clearInterval(calibrationTimerRef.current);
       if (recognitionRef.current) {
         recognitionRef.current.onend = null;
         try { recognitionRef.current.stop(); } catch {}
@@ -450,7 +556,9 @@ export function useCallPrompter() {
     loading,
     startCall, endCall, regenerateSuggestion,
     fetchSessions,
-    // Debug state
+    // Debug / speaker state
     micStatus, audioLevel, sttStatus,
+    speakerState, calibrationProgress, lastDetectedSpeaker,
+    toggleSpeakerManual,
   };
 }
