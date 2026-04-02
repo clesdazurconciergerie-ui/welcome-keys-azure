@@ -243,11 +243,8 @@ export function useCallPrompter() {
   }, []);
 
   // ─── Whisper transcription ────────────────────────────────────
-  const transcribeChunk = useCallback(async (audioBlob: Blob) => {
+  const transcribeChunk = useCallback(async (audioBlob: Blob, speaker: "user" | "prospect") => {
     if (audioBlob.size < 2000) return;
-
-    // Check RMS energy to skip silence/noise
-    // We can't check RMS of the blob directly, but we filtered at recording time
 
     setSttStatus("transcribing");
     try {
@@ -273,9 +270,6 @@ export function useCallPrompter() {
       const data = await response.json();
       const text = (data.text || "").trim();
 
-      // Filter Whisper hallucinations:
-      // - too short
-      // - common Whisper hallucination patterns
       const hallucinations = [
         "sous-titres", "sous-titrage", "merci d'avoir regardé", "merci de votre attention",
         "subscribe", "like", "bell", "amara.org", "transcrit par", "réalisé par",
@@ -288,16 +282,18 @@ export function useCallPrompter() {
         setChunksTranscribed(prev => prev + 1);
         setLastTranscriptionTime(new Date().toLocaleTimeString("fr-FR"));
 
-        // With push-to-talk: all transcribed text = prospect (user holds space to mute)
         const entry: TranscriptEntry = {
-          speaker: "prospect",
+          speaker,
           text,
           timestamp: new Date().toISOString(),
         };
 
         setTranscript(prev => {
           const updated = [...prev, entry];
-          getSuggestion(text, updated);
+          // Only trigger AI suggestion for prospect speech
+          if (speaker === "prospect") {
+            getSuggestion(text, updated);
+          }
           return updated;
         });
       }
