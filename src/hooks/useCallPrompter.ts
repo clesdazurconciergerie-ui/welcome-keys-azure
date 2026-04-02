@@ -96,6 +96,7 @@ export function useCallPrompter() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const speakerSamplerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const animFrameRef = useRef<number>(0);
   const isActiveRef = useRef(false);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -338,25 +339,45 @@ export function useCallPrompter() {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
-      // Track speaker at chunk boundaries
-      let chunkSpeaker: "user" | "prospect" = userSpeakingRef.current ? "user" : "prospect";
+      // Track cumulative speaker time per chunk
+      let userTimeMs = 0;
+      let prospectTimeMs = 0;
+      let lastSampleTime = Date.now();
+      let lastSpeakerState = userSpeakingRef.current;
+
+      // Sample speaker state frequently to get accurate attribution
+      const speakerSampler = setInterval(() => {
+        const now = Date.now();
+        const delta = now - lastSampleTime;
+        if (lastSpeakerState) {
+          userTimeMs += delta;
+        } else {
+          prospectTimeMs += delta;
+        }
+        lastSampleTime = now;
+        lastSpeakerState = userSpeakingRef.current;
+      }, 200);
 
       recorder.start();
       setSttStatus("active");
 
-      // 6-second chunks — always transcribe, tag with speaker
+      // 6-second chunks — always transcribe, tag with dominant speaker
       recordingIntervalRef.current = setInterval(() => {
         if (!isActiveRef.current || recorder.state !== "recording") return;
 
-        // Capture who was predominantly speaking during this chunk
-        const speakerForChunk = chunkSpeaker;
+        // Determine dominant speaker for this chunk
+        const speakerForChunk: "user" | "prospect" = userTimeMs >= prospectTimeMs ? "user" : "prospect";
+
+        // Reset counters for next chunk
+        userTimeMs = 0;
+        prospectTimeMs = 0;
+        lastSampleTime = Date.now();
 
         recorder.stop();
         setTimeout(() => {
           if (audioChunksRef.current.length > 0) {
             const blob = new Blob(audioChunksRef.current, { type: mimeType });
             audioChunksRef.current = [];
-            // Energy filter: skip very small blobs (silence)
             if (blob.size > 4000) {
               transcriptionQueueRef.current.push({ blob, speaker: speakerForChunk });
               processQueue();
@@ -364,13 +385,14 @@ export function useCallPrompter() {
           } else {
             audioChunksRef.current = [];
           }
-          // Update speaker for next chunk
-          chunkSpeaker = userSpeakingRef.current ? "user" : "prospect";
           if (isActiveRef.current) {
             try { recorder.start(); } catch {}
           }
         }, 100);
       }, 6000);
+
+      // Store sampler interval for cleanup in stopRecording
+      speakerSamplerRef.current = speakerSampler;
     } catch (e) {
       console.error("MediaRecorder error:", e);
       toast.error("Impossible de démarrer l'enregistrement audio");
@@ -378,6 +400,10 @@ export function useCallPrompter() {
   }, [processQueue]);
 
   const stopRecording = useCallback(() => {
+    if (speakerSamplerRef.current) {
+      clearInterval(speakerSamplerRef.current);
+      speakerSamplerRef.current = null;
+    }
     if (recordingIntervalRef.current) {
       clearInterval(recordingIntervalRef.current);
       recordingIntervalRef.current = null;
