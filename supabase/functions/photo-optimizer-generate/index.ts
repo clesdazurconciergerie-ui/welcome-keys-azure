@@ -7,45 +7,30 @@ const corsHeaders = {
 
 const STYLE_PROMPTS: Record<string, string> = {
   standard: `Style Blanc Naturel — apartments, urban Airbnb, Scandinavian design.
-Warm highlights: +5 red, +3 green. Cool shadows: +3 blue.
-RGB curve: high point (230,240) soft highlight compression, low point (20,15) lifted blacks.
-HSL: Oranges (wood) sat+15 lum+5, Yellows sat-5 (neutralize), Greens sat+10 deep green, Blues sat+15, Whites lum+10 sat-5.`,
+Warm highlights: +8 red, +5 green. Cool shadows: +5 blue.
+RGB curve: high point (225,240) soft highlight compression, low point (15,10) lifted blacks.
+HSL: Oranges (wood) sat+20 lum+8, Yellows sat-8 (neutralize casts), Greens sat+15 deep green, Blues sat+20, Whites lum+15 sat-8.
+Temperature: 6400K neutral-warm. Tint: +2 (very slight magenta for skin-friendly warmth).`,
 
-  luxury: `Style Chaleur Luxe — villas, stone/wood interiors, high-end properties.
-Temperature: +200 to +400K after white balance. Tint: +3 to +5 (slight magenta).
-HSL: Oranges (wood) sat+25 lum+8 hue-5, Reds (leather) sat+10, Greens sat+15 forest green, Blues sat+10.
-Slightly lifted black point for cozy atmosphere.`,
+  luxury: `Style Chaleur Luxe — villas, stone/wood interiors, high-end Côte d'Azur properties.
+Temperature: +250 to +450K after white balance. Tint: +5 to +8 (warm magenta glow).
+HSL: Oranges (wood) sat+30 lum+10 hue-8 (rich amber), Reds (leather/terracotta) sat+15, Greens sat+20 hue-8 (deep Mediterranean green), Blues sat+15 lum+5 (pool/sky enhancement).
+Lifted black point +15 for cozy cinematic atmosphere.
+Add subtle warm bloom on window light sources.`,
 
-  minimal: `Style Fraîcheur Minimaliste — contemporary apartments, white kitchens, bathrooms.
-Slightly cool: -100 to -200K after perfect white balance.
-HSL: Blues sat+15 (tiles, steel), Whites lum+15 immaculate walls, Oranges sat+5 only, Greens sat+10.
-Pronounced S-curve for strong clean contrast.`,
+  minimal: `Style Fraîcheur Minimaliste — contemporary apartments, white kitchens, bathrooms, modern spaces.
+Slightly cool: -150 to -250K after perfect white balance for clinical cleanliness.
+HSL: Blues sat+20 lum+5 (tiles, steel, glass), Whites lum+20 immaculate walls, Oranges sat+8 subtle warmth only, Greens sat+12.
+Strong S-curve for clean architectural contrast. Clarity +20 on hard surfaces.
+Micro-contrast emphasis on geometric lines and clean edges.`,
 
-  coastal: `Style Extérieur HDR — terraces, gardens, sea views, outdoor spaces.
-Sky: blue highlights sat+30, cloud whites recovery -50.
-Vegetation: greens sat+20 lum+5 vivid hue, dry yellows desat-10.
-Ground/stone: warm neutral tones, strong local contrast.
-Interior/exterior fusion: warm-to-cool temperature gradient.`,
-};
-
-const INTENSITY_PROMPTS: Record<string, string> = {
-  light: `Light enhancement:
-Exposure: +0.8 to +1.0 EV. Shadows: +60. Highlights: -60. Whites: +20. Blacks: +20.
-Selective saturation: +10 to +15. Subtle S-curve. Light grain.
-Result must look naturally better — minimal but visible improvement.`,
-
-  balanced: `Balanced professional enhancement:
-Exposure: +1.0 to +1.2 EV. Shadows: +70. Highlights: -70. Whites: +30. Blacks: +25.
-Selective saturation: +15 to +20. Vibrance: +15. Medium S-curve. Clarity: +15.
-HDR balance: interior bright + exterior visible through windows.
-Magazine-quality result.`,
-
-  strong: `Maximum professional enhancement:
-Exposure: +1.2 to +1.8 EV. Shadows: +80 to +100. Highlights: -80 to -90. Whites: +40 to +60. Blacks: +30 to +40.
-Selective saturation: +20 to +25. Vibrance: +20. Strong S-curve. Clarity: +20.
-Full HDR simulation: interior airy and luminous + exterior fully visible.
-Temperature: neutralize tungsten yellow (-500 to -1000K if needed).
-Must look like a $10,000 professional photoshoot.`,
+  coastal: `Style Extérieur Côte d'Azur — terraces, gardens, sea views, pool areas, Mediterranean outdoor spaces.
+Sky: blue highlights sat+35 lum+8, cloud whites recovery -60 for dramatic sky preservation.
+Sea/pool: cyan sat+25, blue sat+30, turquoise enhancement.
+Vegetation: greens sat+25 lum+8 vivid hue-5 (lush Mediterranean), dry yellows desat-15.
+Ground/stone: warm neutral tones with strong local contrast for texture.
+Interior/exterior fusion: warm-to-cool temperature gradient across window boundaries.
+Golden hour simulation: subtle warm rim light on surfaces facing windows.`,
 };
 
 const BASE_PROMPT = `You are an ELITE real estate photo editor trained by the world's best luxury property photographers. Your job is NOT to slightly improve — it is to TRANSFORM the image into a $10,000 professional photoshoot result.
