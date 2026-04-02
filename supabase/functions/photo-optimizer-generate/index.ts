@@ -215,15 +215,368 @@ If ANY check fails → reprocess with significantly stronger corrections.
 
 FINAL GOAL: The result must look like a $15,000 professional real estate photoshoot for a luxury Côte d'Azur villa listing — bright, clean, balanced, warm, natural but unmistakably premium. Real photography quality that stops scrolling and creates instant booking desire. This is NOT editing — this is visual conversion engineering.`;
 
+type PhotoAnalysis = {
+  roomType?: string;
+  issues?: string[];
+  stagingSuggestions?: string[];
+};
+
+type ValidationResult = {
+  pass: boolean;
+  summary: string;
+  violations: string[];
+  retryGuidance: string;
+  structurePreserved: boolean;
+  allowedChangesOnly: boolean;
+  stagingCompliance: boolean;
+  confidence?: number;
+};
+
+const IMAGE_EDIT_MODEL = "gpt-image-1";
+const VALIDATION_MODEL = "gpt-4o";
+const MAX_EDIT_ATTEMPTS = 3;
+
+const STRICT_EDIT_LOCK_PROMPT = `
+━━━━━━━━━━━━━━━━━━━━━━━
+STRICT EDIT LOCK — HIGHEST PRIORITY
+━━━━━━━━━━━━━━━━━━━━━━━
+This is a PHOTO EDITING task, NOT an image generation task.
+Treat the uploaded image as a LOCKED reference plate, like Lightroom or Photoshop editing.
+
+NON-NEGOTIABLE RULES:
+- Preserve the exact geometry, perspective, camera angle, crop, and composition.
+- Preserve the exact furniture, decor, objects, walls, windows, mirrors, doors, appliances, and architecture.
+- Preserve the exact object count, exact object positions, and exact room layout.
+- NEVER reinterpret, redesign, rebuild, restyle, replace, remove, move, resize, or invent any part of the scene.
+
+ALLOWED ACTIONS ONLY:
+- lighting enhancement
+- white balance / color cast correction
+- exposure balancing / HDR-style recovery
+- color grading
+- contrast / tone curve / depth refinement
+- texture and clarity improvements that keep the exact same surfaces
+
+FORBIDDEN ACTIONS:
+- changing furniture shape, style, material, or placement
+- changing decor, bedding, mirrors, art, accessories, or architecture
+- altering room dimensions, perspective, or layout
+- hallucinating new objects or removing existing ones
+
+If there is any tension between enhancement and structure preservation, ALWAYS preserve structure and make a lighter edit.
+If the output is not the same exact scene, the result is invalid.`;
+
+const VALIDATION_SYSTEM_PROMPT = `You are a strict photo QA inspector for premium real-estate image editing.
+Your only job is to compare an ORIGINAL photo and an EDITED candidate.
+
+Approve ONLY if the edited image keeps the SAME exact scene and changes ONLY photometric qualities:
+- lighting
+- white balance
+- exposure
+- color
+- contrast
+- texture / clarity
+
+Reject if ANY structural or semantic scene change appears, including:
+- furniture changes
+- object additions/removals/movements
+- decor changes
+- architecture changes
+- layout / geometry / perspective changes
+- replaced mirrors, windows, walls, appliances, or accessories
+
+Home staging rules:
+- If home staging is OFF: any new object must FAIL.
+- If home staging is ON: allow only 1-3 tiny lifestyle items placed on existing flat surfaces (table, bed, countertop) with no other scene change.
+
+Be strict. If you are uncertain, reject.`;
+
+class HttpError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "HttpError";
+    this.status = status;
+  }
+}
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function buildAnalysisContext(analysis?: PhotoAnalysis) {
+  if (!analysis) return "";
+
+  const parts: string[] = [];
+  if (analysis.roomType) parts.push(`Room type: ${analysis.roomType}.`);
+  if (Array.isArray(analysis.issues) && analysis.issues.length > 0) {
+    parts.push(`Known issues: ${analysis.issues.join(", ")}.`);
+  }
+  if (Array.isArray(analysis.stagingSuggestions) && analysis.stagingSuggestions.length > 0) {
+    parts.push(`Potential staging targets: ${analysis.stagingSuggestions.join(", ")}.`);
+  }
+
+  return parts.length > 0 ? `\nAnalysis context: ${parts.join(" ")}` : "";
+}
+
+function buildStagingPrompt(homeStaging: boolean) {
+  if (!homeStaging) {
+    return `\n\nHOME STAGING: DISABLED
+Add ZERO new objects. Do not place anything anywhere. Deliver a strict photometric edit only.`;
+  }
+
+  return `\n\nSTEP 7B — HOME STAGING (ENABLED — STRICT MICRO-STAGING)
+Only if it improves realism, add 1-3 tiny lifestyle elements on existing FLAT SURFACES ONLY:
+- Kitchen/dining: fruit bowl, coffee cups, croissants, wine glasses, light breakfast setup
+- Living room: book, candle, small decorative object
+- Bedroom: extra cushion, folded blanket/plaid
+- Bathroom: rolled towels, small plant, elegant soap
+
+STRICT STAGING RULES:
+- Minimal — NEVER dominate the scene
+- Flat surfaces only — table, bed, countertop
+- Realistic — aligned with existing lighting and shadows
+- Coherent — adapted to the property style
+- NEVER artificial or generic
+- DO NOT replace, move, remove, or alter ANY existing object
+- If staging risks realism or structure preservation → skip staging entirely
+- The original space MUST remain unchanged apart from tiny flat-surface additions`;
+}
+
+function buildEditPrompt(params: {
+  stylePrompt: string;
+  intensityPrompt: string;
+  analysisContext: string;
+  stagingPrompt: string;
+  attempt: number;
+  validationFeedback: string;
+}) {
+  const retryBlock = params.attempt > 1 && params.validationFeedback
+    ? `\n\nQC REJECTION FROM PREVIOUS ATTEMPT:
+${params.validationFeedback}
+
+Retry with an even stricter edit-only approach. Use lighter corrections if needed, but NEVER alter the scene.`
+    : "";
+
+  return `${STRICT_EDIT_LOCK_PROMPT}
+
+${BASE_PROMPT}
+
+━━━━ ACTIVE CONFIGURATION ━━━━
+Style: ${params.stylePrompt}
+Intensity: ${params.intensityPrompt}${params.analysisContext}${params.stagingPrompt}${retryBlock}
+
+FINAL EXECUTION RULE:
+Behave like a world-class Lightroom/Photoshop editor working on a locked source photo.
+Return the SAME exact scene, with stronger light/color/contrast quality only.
+If you cannot fully preserve the structure, make the edit lighter rather than changing the image.`;
+}
+
+function parseImageDataUrl(imageBase64: string) {
+  const base64Match = imageBase64.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/);
+  if (!base64Match) {
+    throw new Error("Invalid image format — expected data:image/...;base64,...");
+  }
+
+  return {
+    imageFormat: base64Match[1] === "jpg" ? "jpeg" : base64Match[1],
+    rawBase64: base64Match[2],
+  };
+}
+
+function createImageBlob(imageBase64: string) {
+  const { imageFormat, rawBase64 } = parseImageDataUrl(imageBase64);
+  const binaryString = atob(rawBase64);
+  const bytes = new Uint8Array(binaryString.length);
+
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  return {
+    imageFormat,
+    imageBlob: new Blob([bytes], { type: `image/${imageFormat}` }),
+  };
+}
+
+async function handleOpenAiFailure(response: Response, label: string): Promise<never> {
+  const errText = await response.text();
+  console.error(`${label} error:`, response.status, errText);
+
+  if (response.status === 429) {
+    throw new HttpError(429, "Trop de requêtes, réessayez dans un moment.");
+  }
+
+  if (response.status === 402 || response.status === 403) {
+    throw new HttpError(402, "Crédits OpenAI épuisés ou accès refusé.");
+  }
+
+  throw new Error(`${label}: ${response.status} — ${errText}`);
+}
+
+async function requestStrictEdit(params: {
+  apiKey: string;
+  imageBlob: Blob;
+  imageFormat: string;
+  editPrompt: string;
+}) {
+  const formData = new FormData();
+  formData.append("image", params.imageBlob, `photo.${params.imageFormat === "jpeg" ? "jpg" : params.imageFormat}`);
+  formData.append("prompt", params.editPrompt);
+  formData.append("model", IMAGE_EDIT_MODEL);
+  formData.append("size", "auto");
+  formData.append("quality", "high");
+
+  const response = await fetch("https://api.openai.com/v1/images/edits", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.apiKey}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    await handleOpenAiFailure(response, "OpenAI image edit");
+  }
+
+  const data = await response.json();
+  const generatedB64 = data.data?.[0]?.b64_json;
+  if (!generatedB64) throw new Error("No image generated by OpenAI");
+
+  return `data:image/png;base64,${generatedB64}`;
+}
+
+async function validateStrictEdit(params: {
+  apiKey: string;
+  originalImageUrl: string;
+  editedImageUrl: string;
+  homeStaging: boolean;
+}) {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: VALIDATION_MODEL,
+      temperature: 0,
+      messages: [
+        { role: "system", content: VALIDATION_SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Compare these two real-estate photos. Image 1 is the ORIGINAL locked input. Image 2 is the EDITED candidate. ${params.homeStaging
+                ? "Home staging is ON. Approve tiny flat-surface-only additions only if the rest of the scene is identical."
+                : "Home staging is OFF. Any new object or removed object must fail."}
+Approve only if geometry, layout, furniture, objects, architecture, and composition are effectively identical, and only lighting/color/contrast/texture have changed.`,
+            },
+            { type: "text", text: "ORIGINAL IMAGE" },
+            {
+              type: "image_url",
+              image_url: {
+                url: params.originalImageUrl,
+                detail: "low",
+              },
+            },
+            { type: "text", text: "EDITED IMAGE TO VALIDATE" },
+            {
+              type: "image_url",
+              image_url: {
+                url: params.editedImageUrl,
+                detail: "low",
+              },
+            },
+          ],
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "validate_photo_edit",
+            description: "Validate whether an edited property photo preserves the original structure and changes only allowed visual properties.",
+            parameters: {
+              type: "object",
+              properties: {
+                pass: { type: "boolean" },
+                confidence: { type: "number" },
+                summary: { type: "string" },
+                violations: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                retryGuidance: { type: "string" },
+                structurePreserved: { type: "boolean" },
+                allowedChangesOnly: { type: "boolean" },
+                stagingCompliance: { type: "boolean" },
+              },
+              required: [
+                "pass",
+                "confidence",
+                "summary",
+                "violations",
+                "retryGuidance",
+                "structurePreserved",
+                "allowedChangesOnly",
+                "stagingCompliance",
+              ],
+              additionalProperties: false,
+            },
+          },
+        },
+      ],
+      tool_choice: {
+        type: "function",
+        function: { name: "validate_photo_edit" },
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    await handleOpenAiFailure(response, "OpenAI validation");
+  }
+
+  const data = await response.json();
+  const rawArguments = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+  if (!rawArguments) {
+    throw new Error("OpenAI validation did not return structured output");
+  }
+
+  const parsed = JSON.parse(rawArguments);
+  return {
+    pass: Boolean(parsed.pass && parsed.structurePreserved && parsed.allowedChangesOnly && parsed.stagingCompliance),
+    summary: typeof parsed.summary === "string" ? parsed.summary : "Validation failed",
+    violations: Array.isArray(parsed.violations) ? parsed.violations.filter((item: unknown) => typeof item === "string") : [],
+    retryGuidance: typeof parsed.retryGuidance === "string" ? parsed.retryGuidance : "Keep the exact same scene and reduce the edit scope to lighting and color only.",
+    structurePreserved: Boolean(parsed.structurePreserved),
+    allowedChangesOnly: Boolean(parsed.allowedChangesOnly),
+    stagingCompliance: Boolean(parsed.stagingCompliance),
+    confidence: typeof parsed.confidence === "number" ? parsed.confidence : undefined,
+  } satisfies ValidationResult;
+}
+
+function buildValidationFeedback(validation: ValidationResult) {
+  const violations = validation.violations.length > 0
+    ? `Violations detected: ${validation.violations.join("; ")}.`
+    : "Violations detected: structural mismatch.";
+
+  return `${validation.summary} ${violations} Retry guidance: ${validation.retryGuidance}`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { imageBase64, style = "standard", intensity = "balanced", analysis, homeStaging = false } = await req.json();
     if (!imageBase64) {
-      return new Response(JSON.stringify({ error: "imageBase64 required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "imageBase64 required" }, 400);
     }
 
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
@@ -231,103 +584,60 @@ serve(async (req) => {
 
     const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS.standard;
     const intensityPrompt = INTENSITY_PROMPTS[intensity] || INTENSITY_PROMPTS.balanced;
+    const analysisContext = buildAnalysisContext(analysis as PhotoAnalysis | undefined);
+    const stagingPrompt = buildStagingPrompt(Boolean(homeStaging));
+    const { imageBlob, imageFormat } = createImageBlob(imageBase64);
 
-    let analysisContext = "";
-    if (analysis) {
-      analysisContext = `\nAnalysis context: Room type: ${analysis.roomType}. Issues: ${(analysis.issues || []).join(", ")}. Suggestions: ${(analysis.stagingSuggestions || []).join(", ")}.`;
-    }
+    let validationFeedback = "";
 
-    let stagingPrompt = "";
-    if (homeStaging) {
-      stagingPrompt = `\n\nSTEP 7B — HOME STAGING (ENABLED — SUBTLE MODE)
-Add ONLY small, subtle, realistic lifestyle elements:
-- Kitchen/dining: fruit bowl, coffee cups, croissants, wine glasses, light breakfast setup
-- Living room: book, candle, small decorative object
-- Bedroom: extra cushion, folded blanket/plaid
-- Bathroom: rolled towels, small plant, elegant soap
+    for (let attempt = 1; attempt <= MAX_EDIT_ATTEMPTS; attempt++) {
+      const editPrompt = buildEditPrompt({
+        stylePrompt,
+        intensityPrompt,
+        analysisContext,
+        stagingPrompt,
+        attempt,
+        validationFeedback,
+      });
 
-STRICT STAGING RULES:
-- Minimal — NEVER dominate the scene (1-3 items maximum)
-- Realistic — aligned with existing lighting and shadows
-- Coherent — style adapted to the property
-- NEVER artificial or generic
-- DO NOT replace, move, or remove ANY existing object
-- ALL additions MUST respect existing perspective
-- If staging would reduce realism → skip staging entirely
-- The original space MUST remain the focus`;
-    }
+      const optimizedImageUrl = await requestStrictEdit({
+        apiKey: OPENAI_API_KEY,
+        imageBlob,
+        imageFormat,
+        editPrompt,
+      });
 
-    const editPrompt = `${BASE_PROMPT}
+      const validation = await validateStrictEdit({
+        apiKey: OPENAI_API_KEY,
+        originalImageUrl: imageBase64,
+        editedImageUrl: optimizedImageUrl,
+        homeStaging: Boolean(homeStaging),
+      });
 
-━━━━ ACTIVE CONFIGURATION ━━━━
-Style: ${stylePrompt}
-Intensity: ${intensityPrompt}${analysisContext}${stagingPrompt}
-
-Transform this property photo NOW. Apply the full 7-step pipeline. The result must be dramatically brighter, cleaner, and more premium than the original.`;
-
-    // Extract raw base64 data from data URL
-    const base64Match = imageBase64.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/);
-    if (!base64Match) throw new Error("Invalid image format — expected data:image/...;base64,...");
-    
-    const imageFormat = base64Match[1] === "jpg" ? "jpeg" : base64Match[1];
-    const rawBase64 = base64Match[2];
-    
-    // Decode base64 to binary
-    const binaryString = atob(rawBase64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    const imageBlob = new Blob([bytes], { type: `image/${imageFormat}` });
-
-    // Build multipart form data for OpenAI Images Edit API
-    const formData = new FormData();
-    formData.append("image", imageBlob, `photo.${imageFormat === "jpeg" ? "jpg" : imageFormat}`);
-    formData.append("prompt", editPrompt);
-    formData.append("model", "gpt-image-1");
-    formData.append("size", "auto");
-    formData.append("quality", "high");
-
-    const response = await fetch("https://api.openai.com/v1/images/edits", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("OpenAI API error:", response.status, errText);
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Trop de requêtes, réessayez dans un moment." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (validation.pass) {
+        return jsonResponse({
+          optimizedImageUrl,
+          validation: {
+            summary: validation.summary,
+            confidence: validation.confidence,
+          },
         });
       }
-      if (response.status === 402 || response.status === 403) {
-        return new Response(JSON.stringify({ error: "Crédits OpenAI épuisés ou accès refusé." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error(`OpenAI error: ${response.status} — ${errText}`);
+
+      validationFeedback = buildValidationFeedback(validation);
+      console.warn(`photo-optimizer-generate: attempt ${attempt} rejected by QC`, validation);
     }
 
-    const data = await response.json();
-    const generatedB64 = data.data?.[0]?.b64_json;
-
-    if (!generatedB64) {
-      throw new Error("No image generated by OpenAI");
-    }
-
-    const optimizedImageUrl = `data:image/png;base64,${generatedB64}`;
-
-    return new Response(JSON.stringify({ optimizedImageUrl }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({
+      error: "Structure mismatch detected after multiple retries. Optimization was cancelled to preserve the original photo.",
+    }, 422);
   } catch (e) {
     console.error("photo-optimizer-generate error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+
+    if (e instanceof HttpError) {
+      return jsonResponse({ error: e.message }, e.status);
+    }
+
+    return jsonResponse({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }
 });
