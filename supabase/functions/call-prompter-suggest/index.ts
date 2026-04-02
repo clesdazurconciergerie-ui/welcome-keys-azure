@@ -129,7 +129,7 @@ Donne SEULEMENT la réplique, prête à lire à voix haute, 1-2 phrases max.`;
       }
     }
 
-    messages.push({ role: "user", content: `Le prospect vient de dire : "${prospect_speech}"\n\nQuelle est la meilleure réponse à donner maintenant ?` });
+    messages.push({ role: "user", content: `Le prospect dit : "${prospect_speech}"\nRéplique :` });
 
     // Use flash-lite for maximum speed
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
