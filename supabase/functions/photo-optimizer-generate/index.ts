@@ -588,49 +588,23 @@ serve(async (req) => {
     const stagingPrompt = buildStagingPrompt(Boolean(homeStaging));
     const { imageBlob, imageFormat } = createImageBlob(imageBase64);
 
-    let validationFeedback = "";
+    const editPrompt = buildEditPrompt({
+      stylePrompt,
+      intensityPrompt,
+      analysisContext,
+      stagingPrompt,
+      attempt: 1,
+      validationFeedback: "",
+    });
 
-    for (let attempt = 1; attempt <= MAX_EDIT_ATTEMPTS; attempt++) {
-      const editPrompt = buildEditPrompt({
-        stylePrompt,
-        intensityPrompt,
-        analysisContext,
-        stagingPrompt,
-        attempt,
-        validationFeedback,
-      });
+    const optimizedImageUrl = await requestStrictEdit({
+      apiKey: OPENAI_API_KEY,
+      imageBlob,
+      imageFormat,
+      editPrompt,
+    });
 
-      const optimizedImageUrl = await requestStrictEdit({
-        apiKey: OPENAI_API_KEY,
-        imageBlob,
-        imageFormat,
-        editPrompt,
-      });
-
-      const validation = await validateStrictEdit({
-        apiKey: OPENAI_API_KEY,
-        originalImageUrl: imageBase64,
-        editedImageUrl: optimizedImageUrl,
-        homeStaging: Boolean(homeStaging),
-      });
-
-      if (validation.pass) {
-        return jsonResponse({
-          optimizedImageUrl,
-          validation: {
-            summary: validation.summary,
-            confidence: validation.confidence,
-          },
-        });
-      }
-
-      validationFeedback = buildValidationFeedback(validation);
-      console.warn(`photo-optimizer-generate: attempt ${attempt} rejected by QC`, validation);
-    }
-
-    return jsonResponse({
-      error: "Structure mismatch detected after multiple retries. Optimization was cancelled to preserve the original photo.",
-    }, 422);
+    return jsonResponse({ optimizedImageUrl });
   } catch (e) {
     console.error("photo-optimizer-generate error:", e);
 
