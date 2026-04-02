@@ -101,10 +101,10 @@ export function useCallPrompter() {
   const isActiveRef = useRef(false);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Manual audio segment refs (SPACE is the only speaker source of truth)
+  // Manual segment refs — SPACE is the only speaker source of truth
   const audioChunksRef = useRef<Blob[]>([]);
   const isTranscribingRef = useRef(false);
-  const transcriptionQueueRef = useRef<{ blob: Blob; speaker: "user" | "prospect" }[]>([]);
+  const transcriptionQueueRef = useRef<{ blob: Blob; speaker: "user" | "prospect"; triggerSuggestion: boolean }[]>([]);
   const lastTranscribedTextRef = useRef<string>("");
   const segmentSpeakerRef = useRef<"user" | "prospect">("prospect");
   const segmentHadSpeechRef = useRef(false);
@@ -114,11 +114,32 @@ export function useCallPrompter() {
 
   // ─── Push-to-talk keyboard listeners ──────────────────────────
   useEffect(() => {
+    const flushBufferedSegment = (triggerSuggestion: boolean) => {
+      const chunks = audioChunksRef.current;
+      const hadSpeech = segmentHadSpeechRef.current;
+      const speaker = segmentSpeakerRef.current;
+
+      audioChunksRef.current = [];
+      segmentHadSpeechRef.current = false;
+      lastSpeechAtRef.current = null;
+
+      if (!chunks.length || !hadSpeech) return;
+
+      const mimeType = mediaRecorderRef.current?.mimeType || "audio/webm";
+      const blob = new Blob(chunks, { type: mimeType });
+      if (blob.size <= 4000) return;
+
+      transcriptionQueueRef.current.push({ blob, speaker, triggerSuggestion });
+      processQueue();
+    };
+
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space" || !isActiveRef.current) return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) return;
       e.preventDefault();
       if (!userSpeakingRef.current) {
+        flushBufferedSegment(false);
+        segmentSpeakerRef.current = "user";
         userSpeakingRef.current = true;
         setUserSpeaking(true);
       }
@@ -127,8 +148,12 @@ export function useCallPrompter() {
       if (e.code !== "Space" || !isActiveRef.current) return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) return;
       e.preventDefault();
-      userSpeakingRef.current = false;
-      setUserSpeaking(false);
+      if (userSpeakingRef.current) {
+        flushBufferedSegment(false);
+        segmentSpeakerRef.current = "prospect";
+        userSpeakingRef.current = false;
+        setUserSpeaking(false);
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
