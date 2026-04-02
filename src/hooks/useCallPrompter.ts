@@ -400,6 +400,10 @@ export function useCallPrompter() {
   }, [processQueue]);
 
   const stopRecording = useCallback(() => {
+    if (speakerSamplerRef.current) {
+      clearInterval(speakerSamplerRef.current);
+      speakerSamplerRef.current = null;
+    }
     if (recordingIntervalRef.current) {
       clearInterval(recordingIntervalRef.current);
       recordingIntervalRef.current = null;
