@@ -109,6 +109,7 @@ const App = () => (
             <Route path="parametres" element={<ParametresPage />} />
             <Route path="automatisation" element={<AutomationPage />} />
             <Route path="branding" element={<BrandingPage />} />
+            <Route path="photo-optimizer" element={<PhotoOptimizerPage />} />
             <Route path="aide" element={<HelpCenterPage />} />
           </Route>
 

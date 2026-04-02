@@ -37,6 +37,12 @@ const navGroups = [
     ],
   },
   {
+    label: "Média",
+    items: [
+      { title: "Photo Optimizer", url: "/dashboard/photo-optimizer", icon: Camera },
+    ],
+  },
+  {
     label: "Finance",
     items: [{ title: "Finance", url: "/dashboard/finance", icon: Euro }],
   },
