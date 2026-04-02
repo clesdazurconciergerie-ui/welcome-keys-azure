@@ -29,6 +29,7 @@ const CallPrompterPage = () => {
     isAnalyzing, analysis,
     loading,
     startCall, endCall, regenerateSuggestion,
+    deleteSession,
     micStatus, audioLevel, sttStatus,
     chunksTranscribed, lastTranscriptionTime,
     userSpeaking,
