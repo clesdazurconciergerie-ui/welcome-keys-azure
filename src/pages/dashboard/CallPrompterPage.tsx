@@ -8,9 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import {
-  Phone, PhoneOff, Mic, Settings, History, Brain, MessageSquare,
+  Phone, PhoneOff, Mic, MicOff, Settings, History, Brain, MessageSquare,
   TrendingUp, AlertTriangle, ThumbsUp, Lightbulb, ChevronDown, ChevronUp, RotateCcw,
+  Volume2, Shield, Activity,
 } from "lucide-react";
 import { useCallPrompter, CallAnalysis } from "@/hooks/useCallPrompter";
 import { format } from "date-fns";
