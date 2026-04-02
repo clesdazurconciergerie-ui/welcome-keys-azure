@@ -250,15 +250,16 @@ export function useCallPrompter() {
 
   // ─── Whisper transcription ────────────────────────────────────
   const transcribeChunk = useCallback(async (audioBlob: Blob, speaker: "user" | "prospect") => {
-    if (audioBlob.size < 2000) return;
+    console.log("[CallPrompter] Transcribing chunk:", audioBlob.size, "bytes, speaker:", speaker);
+    if (audioBlob.size < 2000) { console.log("[CallPrompter] Chunk too small, skipping"); return; }
 
     setSttStatus("transcribing");
     try {
       const formData = new FormData();
       formData.append("audio", audioBlob, "audio.webm");
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://otxnzjkyzkpoymeypmef.supabase.co";
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90eG56amt5emtwb3ltZXlwbWVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzMjgzODEsImV4cCI6MjA3NjkwNDM4MX0.TuYdc9Qqia-25i0XrFJWR4zyOmAMqcqtAjJ0jwO0nAQ";
 
       const response = await fetch(`${supabaseUrl}/functions/v1/call-prompter-transcribe`, {
         method: "POST",
@@ -333,46 +334,60 @@ export function useCallPrompter() {
     }
   }, [transcribeChunk]);
 
-  // ─── MediaRecorder chunking (6s chunks, skip when user speaking) ──
+  // ─── MediaRecorder chunking (6s chunks) ──
   const startRecording = useCallback((stream: MediaStream) => {
     try {
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
-        : "audio/webm";
+        : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "";
 
+      if (!mimeType) {
+        toast.error("Format audio non supporté par ce navigateur");
+        return;
+      }
+
+      console.log("[CallPrompter] Starting recorder, mimeType:", mimeType);
       const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
 
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onerror = (e) => {
+        console.error("[CallPrompter] MediaRecorder error:", e);
       };
 
       // Track cumulative speaker time per chunk
       let userTimeMs = 0;
       let prospectTimeMs = 0;
       let lastSampleTime = Date.now();
-      let lastSpeakerState = userSpeakingRef.current;
 
       // Sample speaker state frequently to get accurate attribution
       const speakerSampler = setInterval(() => {
         const now = Date.now();
         const delta = now - lastSampleTime;
-        if (lastSpeakerState) {
+        if (userSpeakingRef.current) {
           userTimeMs += delta;
         } else {
           prospectTimeMs += delta;
         }
         lastSampleTime = now;
-        lastSpeakerState = userSpeakingRef.current;
       }, 200);
 
-      recorder.start();
+      // Use timeslice to get continuous data chunks every 500ms
+      recorder.start(500);
       setSttStatus("active");
+      console.log("[CallPrompter] Recorder started with timeslice 500ms");
 
-      // 6-second chunks — always transcribe, tag with dominant speaker
+      // 6-second interval: collect all accumulated chunks, send for transcription
       recordingIntervalRef.current = setInterval(() => {
-        if (!isActiveRef.current || recorder.state !== "recording") return;
+        if (!isActiveRef.current) return;
 
         // Determine dominant speaker for this chunk
         const speakerForChunk: "user" | "prospect" = userTimeMs >= prospectTimeMs ? "user" : "prospect";
@@ -382,28 +397,22 @@ export function useCallPrompter() {
         prospectTimeMs = 0;
         lastSampleTime = Date.now();
 
-        recorder.stop();
-        setTimeout(() => {
-          if (audioChunksRef.current.length > 0) {
-            const blob = new Blob(audioChunksRef.current, { type: mimeType });
-            audioChunksRef.current = [];
-            if (blob.size > 4000) {
-              transcriptionQueueRef.current.push({ blob, speaker: speakerForChunk });
-              processQueue();
-            }
-          } else {
-            audioChunksRef.current = [];
+        // Collect accumulated chunks
+        if (audioChunksRef.current.length > 0) {
+          const blob = new Blob(audioChunksRef.current, { type: mimeType });
+          audioChunksRef.current = [];
+          console.log("[CallPrompter] Chunk ready:", blob.size, "bytes, speaker:", speakerForChunk);
+          if (blob.size > 4000) {
+            transcriptionQueueRef.current.push({ blob, speaker: speakerForChunk });
+            processQueue();
           }
-          if (isActiveRef.current) {
-            try { recorder.start(); } catch {}
-          }
-        }, 100);
+        }
       }, 6000);
 
-      // Store sampler interval for cleanup in stopRecording
+      // Store sampler interval for cleanup
       speakerSamplerRef.current = speakerSampler;
     } catch (e) {
-      console.error("MediaRecorder error:", e);
+      console.error("[CallPrompter] MediaRecorder error:", e);
       toast.error("Impossible de démarrer l'enregistrement audio");
     }
   }, [processQueue]);
