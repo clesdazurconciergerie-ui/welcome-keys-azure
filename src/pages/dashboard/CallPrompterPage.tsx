@@ -615,6 +615,28 @@ function AnalysisSection({ analysis, isAnalyzing }: { analysis: CallAnalysis | n
             </div>
           </div>
         )}
+
+        {analysis.patterns_detected && analysis.patterns_detected.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" /> Schémas détectés
+            </p>
+            <ul className="text-sm space-y-1">
+              {analysis.patterns_detected.map((p, i) => <li key={i} className="text-foreground">• {p}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {analysis.skill_recommendations && analysis.skill_recommendations.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+              <Zap className="w-3 h-3" /> Recommandations Skills
+            </p>
+            <ul className="text-sm space-y-1">
+              {analysis.skill_recommendations.map((r, i) => <li key={i} className="text-foreground">• {r}</li>)}
+            </ul>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
