@@ -559,7 +559,7 @@ export function useCallPrompter() {
     isAnalyzing, analysis,
     loading,
     startCall, endCall, regenerateSuggestion,
-    fetchSessions,
+    fetchSessions, deleteSession,
     micStatus, audioLevel, sttStatus,
     chunksTranscribed, lastTranscriptionTime,
     userSpeaking,
