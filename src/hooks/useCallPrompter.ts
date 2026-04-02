@@ -99,7 +99,7 @@ export function useCallPrompter() {
   // Whisper chunking refs
   const audioChunksRef = useRef<Blob[]>([]);
   const isTranscribingRef = useRef(false);
-  const transcriptionQueueRef = useRef<Blob[]>([]);
+  const transcriptionQueueRef = useRef<{ blob: Blob; speaker: "user" | "prospect" }[]>([]);
 
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
