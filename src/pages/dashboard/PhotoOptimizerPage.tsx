@@ -322,10 +322,10 @@ export default function PhotoOptimizerPage() {
                 {/* View Toggle */}
                 <div>
                   {selected.optimizedUrl && (
-                    <SegmentedControl
+                    <SegmentedControl<"original" | "optimized">
                       options={[
-                        { value: "original" as const, label: "Original" },
-                        { value: "optimized" as const, label: "Optimisée" },
+                        { value: "original", label: "Original" },
+                        { value: "optimized", label: "Optimisée" },
                       ]}
                       value={viewMode}
                       onChange={setViewMode}
