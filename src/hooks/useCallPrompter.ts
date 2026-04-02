@@ -307,11 +307,11 @@ export function useCallPrompter() {
 
   const processQueue = useCallback(async () => {
     if (isTranscribingRef.current) return;
-    const blob = transcriptionQueueRef.current.shift();
-    if (!blob) return;
+    const item = transcriptionQueueRef.current.shift();
+    if (!item) return;
 
     isTranscribingRef.current = true;
-    await transcribeChunk(blob);
+    await transcribeChunk(item.blob, item.speaker);
     isTranscribingRef.current = false;
 
     if (transcriptionQueueRef.current.length > 0 && isActiveRef.current) {
