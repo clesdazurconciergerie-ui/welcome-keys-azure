@@ -794,6 +794,7 @@ export type Database = {
           tone: string | null
           updated_at: string
           user_id: string
+          voice_profile: Json | null
         }
         Insert: {
           commission_rate?: string | null
@@ -807,6 +808,7 @@ export type Database = {
           tone?: string | null
           updated_at?: string
           user_id: string
+          voice_profile?: Json | null
         }
         Update: {
           commission_rate?: string | null
@@ -820,6 +822,7 @@ export type Database = {
           tone?: string | null
           updated_at?: string
           user_id?: string
+          voice_profile?: Json | null
         }
         Relationships: []
       }
