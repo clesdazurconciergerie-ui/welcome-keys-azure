@@ -108,7 +108,50 @@ const CallPrompterPage = () => {
             )}
           </div>
 
-          {/* Teleprompter */}
+          {/* Debug / Status Panel */}
+          {callStatus !== "idle" && (
+            <Card className="border border-border">
+              <CardContent className="py-3 px-4">
+                <div className="flex items-center gap-6 flex-wrap text-sm">
+                  {/* Mic permission */}
+                  <div className="flex items-center gap-2">
+                    {micStatus === "granted" ? (
+                      <Mic className="w-4 h-4 text-green-500" />
+                    ) : micStatus === "denied" ? (
+                      <MicOff className="w-4 h-4 text-destructive" />
+                    ) : (
+                      <Shield className="w-4 h-4 text-muted-foreground" />
+                    )}
+                    <span className="text-muted-foreground">Micro :</span>
+                    <Badge variant={micStatus === "granted" ? "default" : "destructive"} className="text-xs">
+                      {micStatus === "granted" ? "Actif" : micStatus === "denied" ? "Refusé" : micStatus === "error" ? "Erreur" : "—"}
+                    </Badge>
+                  </div>
+
+                  {/* Audio level */}
+                  <div className="flex items-center gap-2 min-w-[160px]">
+                    <Volume2 className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Niveau :</span>
+                    <Progress value={audioLevel} className="h-2 flex-1" />
+                    <span className="text-xs text-muted-foreground w-8 text-right">{audioLevel}%</span>
+                  </div>
+
+                  {/* STT status */}
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">STT :</span>
+                    <Badge
+                      variant={sttStatus === "active" ? "default" : "secondary"}
+                      className="text-xs"
+                    >
+                      {sttStatus === "active" ? "Actif" : sttStatus === "restarting" ? "Redémarrage…" : "Inactif"}
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <AnimatePresence mode="wait">
             {callStatus !== "idle" && (
               <motion.div
