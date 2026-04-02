@@ -41,7 +41,7 @@ export interface CallAnalysis {
 }
 
 export type MicStatus = "not_requested" | "granted" | "denied" | "error";
-export type SpeakerDetection = "calibrating" | "listening_prospect" | "listening_user" | "uncertain";
+export type SpeakerDetection = "ready" | "listening_prospect" | "listening_user" | "uncertain" | "no_profile";
 
 const DEFAULT_SETTINGS: CallPrompterSettings = {
   services_offered: "Gestion locative saisonnière complète",
@@ -57,9 +57,20 @@ const DEFAULT_SETTINGS: CallPrompterSettings = {
 function computeSpectralProfile(analyser: AnalyserNode): Float32Array {
   const data = new Uint8Array(analyser.frequencyBinCount);
   analyser.getByteFrequencyData(data);
-  const profile = new Float32Array(data.length);
-  const max = Math.max(...data) || 1;
-  for (let i = 0; i < data.length; i++) profile[i] = data[i] / max;
+  // Focus on voice-relevant frequency bands (300Hz - 3400Hz typical for voice)
+  // With 512 FFT and 44100Hz sample rate, each bin = ~86Hz
+  // Voice range bins: ~3 to ~40
+  const voiceStart = 3;
+  const voiceEnd = Math.min(40, data.length);
+  const profile = new Float32Array(voiceEnd - voiceStart);
+  let max = 0;
+  for (let i = voiceStart; i < voiceEnd; i++) {
+    if (data[i] > max) max = data[i];
+  }
+  if (max === 0) max = 1;
+  for (let i = voiceStart; i < voiceEnd; i++) {
+    profile[i - voiceStart] = data[i] / max;
+  }
   return profile;
 }
 
@@ -81,7 +92,7 @@ export function useCallPrompter() {
   const [currentSession, setCurrentSession] = useState<CallSession | null>(null);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [suggestion, setSuggestion] = useState("");
-  const [callStatus, setCallStatus] = useState<"idle" | "calibrating" | "listening" | "processing">("idle");
+  const [callStatus, setCallStatus] = useState<"idle" | "listening" | "processing">("idle");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<CallAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,9 +105,13 @@ export function useCallPrompter() {
   const [lastTranscriptionTime, setLastTranscriptionTime] = useState<string | null>(null);
 
   // Speaker detection state
-  const [speakerState, setSpeakerState] = useState<SpeakerDetection>("calibrating");
-  const [calibrationProgress, setCalibrationProgress] = useState(0);
+  const [speakerState, setSpeakerState] = useState<SpeakerDetection>("no_profile");
+  const [hasVoiceProfile, setHasVoiceProfile] = useState(false);
   const [lastDetectedSpeaker, setLastDetectedSpeaker] = useState<"user" | "prospect" | null>(null);
+
+  // Voice recording state (for settings)
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [voiceRecordProgress, setVoiceRecordProgress] = useState(0);
 
   const sessionIdRef = useRef<string | null>(null);
   const startTimeRef = useRef<Date | null>(null);
@@ -111,23 +126,22 @@ export function useCallPrompter() {
   const isActiveRef = useRef(false);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Voice calibration refs
+  // Voice profile ref (loaded from DB)
   const userVoiceProfileRef = useRef<Float32Array | null>(null);
-  const calibrationSamplesRef = useRef<Float32Array[]>([]);
-  const calibrationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const CALIBRATION_DURATION = 5000;
-  const CALIBRATION_INTERVAL = 200;
-  const SIMILARITY_THRESHOLD = 0.75;
+  const SIMILARITY_THRESHOLD = 0.70;
 
   // Whisper chunking refs
   const audioChunksRef = useRef<Blob[]>([]);
   const isTranscribingRef = useRef(false);
   const transcriptionQueueRef = useRef<Blob[]>([]);
 
-  // Keep transcriptRef in sync
-  useEffect(() => {
-    transcriptRef.current = transcript;
-  }, [transcript]);
+  // Voice recording refs (for settings)
+  const voiceRecordStreamRef = useRef<MediaStream | null>(null);
+  const voiceRecordContextRef = useRef<AudioContext | null>(null);
+  const voiceRecordAnalyserRef = useRef<AnalyserNode | null>(null);
+  const voiceRecordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
   // ─── Settings / Sessions CRUD ─────────────────────────────────
   const fetchSettings = useCallback(async () => {
@@ -148,6 +162,12 @@ export function useCallPrompter() {
         tone: data.tone || DEFAULT_SETTINGS.tone,
         company_name: data.company_name || DEFAULT_SETTINGS.company_name,
       });
+      // Load stored voice profile
+      if (data.voice_profile && Array.isArray(data.voice_profile)) {
+        userVoiceProfileRef.current = new Float32Array(data.voice_profile);
+        setHasVoiceProfile(true);
+        setSpeakerState("ready");
+      }
     }
     setLoading(false);
   }, []);
@@ -173,11 +193,123 @@ export function useCallPrompter() {
 
   useEffect(() => { fetchSettings(); fetchSessions(); }, [fetchSettings, fetchSessions]);
 
+  // ─── Voice profile recording (Settings) ───────────────────────
+  const startVoiceRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true }
+      });
+      voiceRecordStreamRef.current = stream;
+
+      const ctx = new AudioContext();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.3;
+      const source = ctx.createMediaStreamSource(stream);
+      source.connect(analyser);
+      voiceRecordContextRef.current = ctx;
+      voiceRecordAnalyserRef.current = analyser;
+
+      setIsRecordingVoice(true);
+      setVoiceRecordProgress(0);
+
+      const samples: Float32Array[] = [];
+      const DURATION = 10000; // 10 seconds
+      const INTERVAL = 150;
+      let elapsed = 0;
+
+      voiceRecordTimerRef.current = setInterval(async () => {
+        elapsed += INTERVAL;
+        setVoiceRecordProgress(Math.min(100, Math.round((elapsed / DURATION) * 100)));
+
+        if (voiceRecordAnalyserRef.current) {
+          const profile = computeSpectralProfile(voiceRecordAnalyserRef.current);
+          const energy = profile.reduce((a, b) => a + b, 0);
+          if (energy > 0.5) {
+            samples.push(profile);
+          }
+        }
+
+        if (elapsed >= DURATION) {
+          // Stop recording
+          if (voiceRecordTimerRef.current) clearInterval(voiceRecordTimerRef.current);
+          voiceRecordTimerRef.current = null;
+
+          stream.getTracks().forEach(t => t.stop());
+          ctx.close().catch(() => {});
+          voiceRecordStreamRef.current = null;
+          voiceRecordContextRef.current = null;
+          voiceRecordAnalyserRef.current = null;
+          setIsRecordingVoice(false);
+
+          if (samples.length >= 10) {
+            // Average all samples into a stable voice profile
+            const len = samples[0].length;
+            const avg = new Float32Array(len);
+            for (const s of samples) {
+              for (let i = 0; i < len; i++) avg[i] += s[i];
+            }
+            for (let i = 0; i < len; i++) avg[i] /= samples.length;
+
+            userVoiceProfileRef.current = avg;
+            setHasVoiceProfile(true);
+            setSpeakerState("ready");
+
+            // Save to database
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              const profileArray = Array.from(avg);
+              await (supabase as any)
+                .from("call_prompter_settings")
+                .upsert({
+                  user_id: user.id,
+                  voice_profile: profileArray,
+                }, { onConflict: "user_id" });
+            }
+
+            toast.success(`✅ Profil vocal enregistré (${samples.length} échantillons) — détection automatique activée`);
+          } else {
+            toast.error("Pas assez de données vocales captées. Parlez plus fort et réessayez.");
+          }
+        }
+      }, INTERVAL);
+    } catch (e: any) {
+      toast.error("Impossible d'accéder au microphone");
+      setIsRecordingVoice(false);
+    }
+  }, []);
+
+  const cancelVoiceRecording = useCallback(() => {
+    if (voiceRecordTimerRef.current) clearInterval(voiceRecordTimerRef.current);
+    if (voiceRecordStreamRef.current) voiceRecordStreamRef.current.getTracks().forEach(t => t.stop());
+    if (voiceRecordContextRef.current) voiceRecordContextRef.current.close().catch(() => {});
+    voiceRecordTimerRef.current = null;
+    voiceRecordStreamRef.current = null;
+    voiceRecordContextRef.current = null;
+    voiceRecordAnalyserRef.current = null;
+    setIsRecordingVoice(false);
+    setVoiceRecordProgress(0);
+  }, []);
+
+  const deleteVoiceProfile = useCallback(async () => {
+    userVoiceProfileRef.current = null;
+    setHasVoiceProfile(false);
+    setSpeakerState("no_profile");
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await (supabase as any)
+        .from("call_prompter_settings")
+        .update({ voice_profile: null })
+        .eq("user_id", user.id);
+    }
+    toast.success("Profil vocal supprimé");
+  }, []);
+
   // ─── AI suggestion with adaptive learning ─────────────────────
   const getSuggestion = useCallback(async (prospectSpeech: string, history: TranscriptEntry[]) => {
     setCallStatus("processing");
     try {
-      // Fetch recent analyses for adaptive learning
       const { data: recentAnalyses } = await (supabase as any)
         .from("call_sessions")
         .select("analysis_json")
@@ -212,7 +344,7 @@ export function useCallPrompter() {
       const audioContext = new AudioContext();
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.5;
+      analyser.smoothingTimeConstant = 0.3;
       const source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
 
@@ -243,71 +375,24 @@ export function useCallPrompter() {
     setAudioLevel(0);
   }, []);
 
-  // ─── Voice calibration ────────────────────────────────────────
-  const startCalibration = useCallback(() => {
-    calibrationSamplesRef.current = [];
-    setCalibrationProgress(0);
-    setSpeakerState("calibrating");
-
-    let elapsed = 0;
-    calibrationTimerRef.current = setInterval(() => {
-      elapsed += CALIBRATION_INTERVAL;
-      setCalibrationProgress(Math.min(100, Math.round((elapsed / CALIBRATION_DURATION) * 100)));
-
-      if (analyserRef.current) {
-        const profile = computeSpectralProfile(analyserRef.current);
-        const energy = profile.reduce((a, b) => a + b, 0);
-        if (energy > 1) {
-          calibrationSamplesRef.current.push(profile);
-        }
-      }
-
-      if (elapsed >= CALIBRATION_DURATION) {
-        if (calibrationTimerRef.current) clearInterval(calibrationTimerRef.current);
-        calibrationTimerRef.current = null;
-
-        const samples = calibrationSamplesRef.current;
-        if (samples.length >= 3) {
-          const len = samples[0].length;
-          const avg = new Float32Array(len);
-          for (const s of samples) {
-            for (let i = 0; i < len; i++) avg[i] += s[i];
-          }
-          for (let i = 0; i < len; i++) avg[i] /= samples.length;
-          userVoiceProfileRef.current = avg;
-          toast.success("✅ Profil vocal enregistré — l'IA ne répondra qu'au prospect !");
-        } else {
-          toast.warning("Calibration partielle — parlez plus fort. Basculez manuellement si besoin.");
-          userVoiceProfileRef.current = null;
-        }
-        setSpeakerState("listening_prospect");
-      }
-    }, CALIBRATION_INTERVAL);
-  }, []);
-
-  // ─── Speaker detection ────────────────────────────────────────
+  // ─── Speaker detection (automatic, uses stored profile) ───────
   const detectSpeaker = useCallback((): "user" | "prospect" | "uncertain" => {
     if (!analyserRef.current || !userVoiceProfileRef.current) return "uncertain";
 
     const currentProfile = computeSpectralProfile(analyserRef.current);
     const energy = currentProfile.reduce((a, b) => a + b, 0);
-    if (energy < 0.5) return "uncertain";
+    if (energy < 0.3) return "uncertain"; // silence
 
     const similarity = cosineSimilarity(currentProfile, userVoiceProfileRef.current);
 
     if (similarity >= SIMILARITY_THRESHOLD) return "user";
-    if (similarity < SIMILARITY_THRESHOLD - 0.1) return "prospect";
+    if (similarity < SIMILARITY_THRESHOLD - 0.12) return "prospect";
     return "uncertain";
-  }, []);
-
-  const toggleSpeakerManual = useCallback((speaker: "user" | "prospect") => {
-    setLastDetectedSpeaker(speaker);
-    setSpeakerState(speaker === "user" ? "listening_user" : "listening_prospect");
   }, []);
 
   // ─── Whisper transcription via edge function ──────────────────
   const transcribeChunk = useCallback(async (audioBlob: Blob) => {
-    if (audioBlob.size < 1000) return; // skip tiny/silent chunks
+    if (audioBlob.size < 1000) return;
 
     setSttStatus("transcribing");
     try {
@@ -319,15 +404,12 @@ export function useCallPrompter() {
 
       const response = await fetch(`${supabaseUrl}/functions/v1/call-prompter-transcribe`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${supabaseKey}`,
-        },
+        headers: { Authorization: `Bearer ${supabaseKey}` },
         body: formData,
       });
 
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        console.error("Transcription error:", errData);
+        console.error("Transcription error:", response.status);
         if (response.status === 429) toast.error("Limite de requêtes atteinte");
         setSttStatus("active");
         return;
@@ -340,11 +422,12 @@ export function useCallPrompter() {
         setChunksTranscribed(prev => prev + 1);
         setLastTranscriptionTime(new Date().toLocaleTimeString("fr-FR"));
 
-        // Detect speaker at moment of transcription
+        // Automatic speaker detection
         const detected = detectSpeaker();
         let speaker: "user" | "prospect";
 
         if (detected === "uncertain") {
+          // Fallback: alternate based on last speaker
           const lastSpeaker = transcriptRef.current.length > 0
             ? transcriptRef.current[transcriptRef.current.length - 1].speaker
             : null;
@@ -360,13 +443,11 @@ export function useCallPrompter() {
 
         setTranscript(prev => {
           const updated = [...prev, entry];
-          // Only trigger AI when PROSPECT speaks
           if (speaker === "prospect") {
             getSuggestion(text, updated);
           }
           return updated;
         });
-        console.log(`[WHISPER] ${speaker}: ${text}`);
       }
 
       setSttStatus("active");
@@ -376,7 +457,6 @@ export function useCallPrompter() {
     }
   }, [detectSpeaker, getSuggestion]);
 
-  // Process transcription queue sequentially
   const processQueue = useCallback(async () => {
     if (isTranscribingRef.current) return;
     const blob = transcriptionQueueRef.current.shift();
@@ -386,7 +466,6 @@ export function useCallPrompter() {
     await transcribeChunk(blob);
     isTranscribingRef.current = false;
 
-    // Process next in queue
     if (transcriptionQueueRef.current.length > 0 && isActiveRef.current) {
       processQueue();
     }
@@ -404,43 +483,30 @@ export function useCallPrompter() {
       audioChunksRef.current = [];
 
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
-        }
-      };
-
-      recorder.onstop = () => {
-        // Do nothing here — we handle chunks via interval
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
       recorder.start();
       setSttStatus("active");
 
-      // Every 3 seconds: stop, collect, restart, send to Whisper
       recordingIntervalRef.current = setInterval(() => {
         if (!isActiveRef.current || recorder.state !== "recording") return;
 
         recorder.stop();
-
-        // Small delay to let ondataavailable fire
         setTimeout(() => {
           if (audioChunksRef.current.length > 0) {
             const blob = new Blob(audioChunksRef.current, { type: mimeType });
             audioChunksRef.current = [];
-
-            // Only queue if there's likely speech (check audio level)
             if (blob.size > 2000) {
               transcriptionQueueRef.current.push(blob);
               processQueue();
             }
           }
-
           if (isActiveRef.current) {
             try { recorder.start(); } catch {}
           }
         }, 100);
       }, 3000);
-
     } catch (e) {
       console.error("MediaRecorder error:", e);
       toast.error("Impossible de démarrer l'enregistrement audio");
@@ -461,9 +527,13 @@ export function useCallPrompter() {
     isTranscribingRef.current = false;
   }, []);
 
-  // ─── Start call ───────────────────────────────────────────────
+  // ─── Start call (no calibration — uses stored profile) ────────
   const startCall = useCallback(async () => {
-    setCallStatus("calibrating");
+    if (!hasVoiceProfile) {
+      toast.error("⚠️ Enregistrez votre voix dans les Paramètres avant de commencer un appel.");
+      return;
+    }
+
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -473,20 +543,19 @@ export function useCallPrompter() {
       mediaStreamRef.current = stream;
     } catch (e: any) {
       setMicStatus(e.name === "NotAllowedError" ? "denied" : "error");
-      setCallStatus("idle");
       toast.error("Impossible d'accéder au microphone.");
       return;
     }
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { toast.error("Non connecté"); setCallStatus("idle"); return; }
+    if (!user) { toast.error("Non connecté"); return; }
 
     const { data: session, error } = await (supabase as any)
       .from("call_sessions")
       .insert({ user_id: user.id, status: "active" })
       .select()
       .single();
-    if (error) { toast.error("Erreur création session"); setCallStatus("idle"); return; }
+    if (error) { toast.error("Erreur création session"); return; }
 
     sessionIdRef.current = session.id;
     setCurrentSession(session);
@@ -497,34 +566,18 @@ export function useCallPrompter() {
     setLastTranscriptionTime(null);
     startTimeRef.current = new Date();
     isActiveRef.current = true;
-    userVoiceProfileRef.current = null;
     setLastDetectedSpeaker(null);
+    setSpeakerState("ready");
 
-    // Start audio monitoring
     startAudioMonitoring(stream);
-
-    // Start voice calibration
-    toast.info("🎙️ Parlez pendant 5 secondes pour calibrer votre voix…");
-    startCalibration();
-
-    // After calibration, start Whisper recording
-    setTimeout(() => {
-      if (!isActiveRef.current) return;
-      startRecording(stream);
-      setCallStatus("listening");
-      toast.success("🎙️ Écoute active — Transcription Whisper en cours !");
-    }, CALIBRATION_DURATION + 500);
-  }, [startAudioMonitoring, startCalibration, startRecording]);
+    startRecording(stream);
+    setCallStatus("listening");
+    toast.success("🎙️ Appel démarré — détection vocale automatique activée");
+  }, [hasVoiceProfile, startAudioMonitoring, startRecording]);
 
   // ─── End call ─────────────────────────────────────────────────
   const endCall = useCallback(async () => {
     isActiveRef.current = false;
-
-    if (calibrationTimerRef.current) {
-      clearInterval(calibrationTimerRef.current);
-      calibrationTimerRef.current = null;
-    }
-
     stopRecording();
 
     if (mediaStreamRef.current) {
@@ -534,7 +587,7 @@ export function useCallPrompter() {
 
     stopAudioMonitoring();
     setSttStatus("inactive");
-    setSpeakerState("calibrating");
+    setSpeakerState(hasVoiceProfile ? "ready" : "no_profile");
     setLastDetectedSpeaker(null);
 
     const duration = startTimeRef.current
@@ -579,28 +632,24 @@ export function useCallPrompter() {
     }
 
     toast.success("Appel terminé");
-  }, [settings, fetchSessions, stopAudioMonitoring, stopRecording]);
+  }, [settings, fetchSessions, stopAudioMonitoring, stopRecording, hasVoiceProfile]);
 
-  // ─── Regenerate ───────────────────────────────────────────────
   const regenerateSuggestion = useCallback(() => {
     const lastProspect = [...transcriptRef.current].reverse().find(t => t.speaker === "prospect");
-    if (lastProspect) {
-      getSuggestion(lastProspect.text, transcriptRef.current);
-    }
+    if (lastProspect) getSuggestion(lastProspect.text, transcriptRef.current);
   }, [getSuggestion]);
 
   // ─── Cleanup ──────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       isActiveRef.current = false;
-      if (calibrationTimerRef.current) clearInterval(calibrationTimerRef.current);
       if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+      if (voiceRecordTimerRef.current) clearInterval(voiceRecordTimerRef.current);
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         try { mediaRecorderRef.current.stop(); } catch {}
       }
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(t => t.stop());
-      }
+      if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach(t => t.stop());
+      if (voiceRecordStreamRef.current) voiceRecordStreamRef.current.getTracks().forEach(t => t.stop());
       stopAudioMonitoring();
     };
   }, [stopAudioMonitoring]);
@@ -613,10 +662,12 @@ export function useCallPrompter() {
     loading,
     startCall, endCall, regenerateSuggestion,
     fetchSessions,
-    // Debug / speaker state
     micStatus, audioLevel, sttStatus,
-    speakerState, calibrationProgress, lastDetectedSpeaker,
-    toggleSpeakerManual,
+    speakerState, lastDetectedSpeaker,
     chunksTranscribed, lastTranscriptionTime,
+    // Voice profile
+    hasVoiceProfile,
+    isRecordingVoice, voiceRecordProgress,
+    startVoiceRecording, cancelVoiceRecording, deleteVoiceProfile,
   };
 }
