@@ -8,9 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import {
-  Phone, PhoneOff, Mic, Settings, History, Brain, MessageSquare,
+  Phone, PhoneOff, Mic, MicOff, Settings, History, Brain, MessageSquare,
   TrendingUp, AlertTriangle, ThumbsUp, Lightbulb, ChevronDown, ChevronUp, RotateCcw,
+  Volume2, Shield, Activity,
 } from "lucide-react";
 import { useCallPrompter, CallAnalysis } from "@/hooks/useCallPrompter";
 import { format } from "date-fns";
@@ -24,6 +26,7 @@ const CallPrompterPage = () => {
     isAnalyzing, analysis,
     loading,
     startCall, endCall, regenerateSuggestion,
+    micStatus, audioLevel, sttStatus,
   } = useCallPrompter();
 
   const [tab, setTab] = useState("prompter");
@@ -105,7 +108,50 @@ const CallPrompterPage = () => {
             )}
           </div>
 
-          {/* Teleprompter */}
+          {/* Debug / Status Panel */}
+          {callStatus !== "idle" && (
+            <Card className="border border-border">
+              <CardContent className="py-3 px-4">
+                <div className="flex items-center gap-6 flex-wrap text-sm">
+                  {/* Mic permission */}
+                  <div className="flex items-center gap-2">
+                    {micStatus === "granted" ? (
+                      <Mic className="w-4 h-4 text-green-500" />
+                    ) : micStatus === "denied" ? (
+                      <MicOff className="w-4 h-4 text-destructive" />
+                    ) : (
+                      <Shield className="w-4 h-4 text-muted-foreground" />
+                    )}
+                    <span className="text-muted-foreground">Micro :</span>
+                    <Badge variant={micStatus === "granted" ? "default" : "destructive"} className="text-xs">
+                      {micStatus === "granted" ? "Actif" : micStatus === "denied" ? "Refusé" : micStatus === "error" ? "Erreur" : "—"}
+                    </Badge>
+                  </div>
+
+                  {/* Audio level */}
+                  <div className="flex items-center gap-2 min-w-[160px]">
+                    <Volume2 className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Niveau :</span>
+                    <Progress value={audioLevel} className="h-2 flex-1" />
+                    <span className="text-xs text-muted-foreground w-8 text-right">{audioLevel}%</span>
+                  </div>
+
+                  {/* STT status */}
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">STT :</span>
+                    <Badge
+                      variant={sttStatus === "active" ? "default" : "secondary"}
+                      className="text-xs"
+                    >
+                      {sttStatus === "active" ? "Actif" : sttStatus === "restarting" ? "Redémarrage…" : "Inactif"}
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <AnimatePresence mode="wait">
             {callStatus !== "idle" && (
               <motion.div
@@ -133,7 +179,9 @@ const CallPrompterPage = () => {
                       <div className="space-y-3">
                         <MessageSquare className="w-10 h-10 text-muted-foreground mx-auto" />
                         <p className="text-lg text-muted-foreground">
-                          {callStatus === "processing" ? "Analyse en cours..." : "En attente du prospect..."}
+                          {callStatus === "processing" ? "Analyse en cours..." : 
+                           audioLevel < 3 ? "En attente d'entrée audio…" :
+                           "Écoute en cours — parlez…"}
                         </p>
                       </div>
                     )}
