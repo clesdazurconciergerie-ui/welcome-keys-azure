@@ -70,6 +70,7 @@ import SPSettingsPage from "./pages/service-provider/SPSettingsPage";
 import SPAccountPage from "./pages/service-provider/SPAccountPage";
 import FinancePage from "./pages/dashboard/FinancePage";
 import InspectionsPage from "./pages/dashboard/InspectionsPage";
+import PhotoOptimizerPage from "./pages/dashboard/PhotoOptimizerPage";
 import OwnerFinancesPage from "./pages/owner/OwnerFinancesPage";
 
 const queryClient = new QueryClient();
