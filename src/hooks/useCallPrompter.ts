@@ -301,13 +301,22 @@ export function useCallPrompter() {
           timestamp: new Date().toISOString(),
         };
 
-        setTranscript(prev => {
-          const updated = [...prev, entry];
-          if (speaker === "prospect") {
-            getSuggestion(text, updated);
-          }
-          return updated;
-        });
+        setTranscript(prev => [...prev, entry]);
+
+        // Accumulate prospect text and schedule AI trigger after silence
+        if (speaker === "prospect") {
+          pendingProspectTextRef.current.push(text);
+          // Reset silence timer on each new prospect chunk
+          if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = setTimeout(() => {
+            const combinedText = pendingProspectTextRef.current.join(" ").trim();
+            if (combinedText && !userSpeakingRef.current) {
+              getSuggestion(combinedText, transcriptRef.current);
+            }
+            pendingProspectTextRef.current = [];
+            silenceTimerRef.current = null;
+          }, SILENCE_THRESHOLD_MS);
+        }
       }
 
       setSttStatus("active");
