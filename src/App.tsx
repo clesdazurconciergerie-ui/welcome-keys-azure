@@ -46,6 +46,7 @@ import ProspectionPage from "./pages/dashboard/ProspectionPage";
 import PerformancePage from "./pages/dashboard/PerformancePage";
 import AbonnementPage from "./pages/dashboard/AbonnementPage";
 import ParametresPage from "./pages/dashboard/ParametresPage";
+import CallPrompterPage from "./pages/dashboard/CallPrompterPage";
 import AutomationPage from "./pages/dashboard/AutomationPage";
 import BrandingPage from "./pages/dashboard/BrandingPage";
 import HelpCenterPage from "./pages/dashboard/HelpCenterPage";
@@ -101,6 +102,7 @@ const App = () => (
             <Route path="prospection" element={<ProspectionPage />} />
             <Route path="finance" element={<FinancePage />} />
             <Route path="demandes-proprietaires" element={<OwnerRequestsAdminPage />} />
+            <Route path="call-prompter" element={<CallPrompterPage />} />
             <Route path="performance" element={<PerformancePage />} />
             <Route path="abonnement" element={<AbonnementPage />} />
             <Route path="parametres" element={<ParametresPage />} />

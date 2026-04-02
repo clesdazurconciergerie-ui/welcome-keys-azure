@@ -83,3 +83,9 @@ verify_jwt = false
 
 [functions.send-provider-notification]
 verify_jwt = false
+
+[functions.call-prompter-suggest]
+verify_jwt = false
+
+[functions.call-prompter-analyze]
+verify_jwt = false

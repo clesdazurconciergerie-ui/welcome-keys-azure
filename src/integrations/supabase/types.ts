@@ -781,6 +781,95 @@ export type Database = {
           },
         ]
       }
+      call_prompter_settings: {
+        Row: {
+          commission_rate: string | null
+          company_name: string | null
+          created_at: string
+          geographic_area: string | null
+          id: string
+          selling_points: string | null
+          services_offered: string | null
+          target_client: string | null
+          tone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          commission_rate?: string | null
+          company_name?: string | null
+          created_at?: string
+          geographic_area?: string | null
+          id?: string
+          selling_points?: string | null
+          services_offered?: string | null
+          target_client?: string | null
+          tone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          commission_rate?: string | null
+          company_name?: string | null
+          created_at?: string
+          geographic_area?: string | null
+          id?: string
+          selling_points?: string | null
+          services_offered?: string | null
+          target_client?: string | null
+          tone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      call_sessions: {
+        Row: {
+          analysis_json: Json | null
+          created_at: string
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          prospect_id: string | null
+          status: string
+          transcript_json: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_json?: Json | null
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          prospect_id?: string | null
+          status?: string
+          transcript_json?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_json?: Json | null
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          prospect_id?: string | null
+          status?: string
+          transcript_json?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_sessions_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_incomes: {
         Row: {
           amount: number
