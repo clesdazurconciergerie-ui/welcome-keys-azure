@@ -338,40 +338,34 @@ export function useCallPrompter() {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
+      // Track speaker at chunk boundaries
+      let chunkSpeaker: "user" | "prospect" = userSpeakingRef.current ? "user" : "prospect";
+
       recorder.start();
       setSttStatus("active");
 
-      // 6-second chunks for better Whisper accuracy
+      // 6-second chunks — always transcribe, tag with speaker
       recordingIntervalRef.current = setInterval(() => {
         if (!isActiveRef.current || recorder.state !== "recording") return;
 
+        // Capture who was predominantly speaking during this chunk
+        const speakerForChunk = chunkSpeaker;
+
         recorder.stop();
         setTimeout(() => {
-          const wasUserSpeaking = userSpeakingRef.current;
-
-          if (audioChunksRef.current.length > 0 && !wasUserSpeaking) {
+          if (audioChunksRef.current.length > 0) {
             const blob = new Blob(audioChunksRef.current, { type: mimeType });
             audioChunksRef.current = [];
             // Energy filter: skip very small blobs (silence)
             if (blob.size > 4000) {
-              transcriptionQueueRef.current.push(blob);
+              transcriptionQueueRef.current.push({ blob, speaker: speakerForChunk });
               processQueue();
             }
           } else {
-            // Discard: user was speaking or no data
             audioChunksRef.current = [];
-            if (wasUserSpeaking) {
-              // Add a "user spoke" marker in transcript
-              const lastEntry = transcriptRef.current[transcriptRef.current.length - 1];
-              if (!lastEntry || lastEntry.speaker !== "user" || lastEntry.text !== "(vous parliez)") {
-                setTranscript(prev => [...prev, {
-                  speaker: "user",
-                  text: "(vous parliez)",
-                  timestamp: new Date().toISOString(),
-                }]);
-              }
-            }
           }
+          // Update speaker for next chunk
+          chunkSpeaker = userSpeakingRef.current ? "user" : "prospect";
           if (isActiveRef.current) {
             try { recorder.start(); } catch {}
           }
