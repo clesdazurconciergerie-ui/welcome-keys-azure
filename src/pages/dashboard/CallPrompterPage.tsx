@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Phone, PhoneOff, Mic, MicOff, Settings, History, Brain, MessageSquare,
   TrendingUp, AlertTriangle, ThumbsUp, Lightbulb, ChevronDown, ChevronUp, RotateCcw,
-  Volume2, Shield, Activity,
+  Volume2, Shield, Activity, User, Users, HelpCircle,
 } from "lucide-react";
 import { useCallPrompter, CallAnalysis } from "@/hooks/useCallPrompter";
 import { format } from "date-fns";
