@@ -197,14 +197,18 @@ const CallPrompterPage = () => {
                     : "border-green-500/20 bg-gradient-to-br from-card to-green-500/5"
                 }`}>
                   <CardContent className="py-10 px-8 text-center w-full">
-                    {userSpeaking ? (
-                      <div className="space-y-3">
-                        <User className="w-10 h-10 text-primary mx-auto" />
-                        <p className="text-lg text-muted-foreground">
-                          Vous parlez — relâchez Espace pour écouter le prospect
-                        </p>
-                      </div>
-                    ) : suggestion ? (
+                    {/* Speaker mode indicator — small, top */}
+                    <div className="mb-4">
+                      <Badge className={userSpeaking
+                        ? "bg-primary/20 text-primary text-xs"
+                        : "bg-green-500/20 text-green-600 text-xs"
+                      }>
+                        {userSpeaking ? "🗣️ Vous parlez — lisez la suggestion ci-dessous" : "🎙️ Écoute du prospect…"}
+                      </Badge>
+                    </div>
+
+                    {/* Suggestion always visible */}
+                    {suggestion ? (
                       <motion.p
                         key={suggestion}
                         initial={{ opacity: 0, y: 10 }}
