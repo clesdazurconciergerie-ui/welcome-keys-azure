@@ -59,12 +59,35 @@ REALISM (ANTI-AI):
 
 FINAL GOAL: Create an image that stops scrolling instantly, creates desire to stay, and increases booking intent. This is visual conversion engineering.`;
 
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const { imageBase64, style = "standard", intensity = "balanced", analysis } = await req.json();
+    if (!imageBase64) {
+      return new Response(JSON.stringify({ error: "imageBase64 required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS.standard;
+    const intensityPrompt = INTENSITY_PROMPTS[intensity] || INTENSITY_PROMPTS.balanced;
+
+    let analysisContext = "";
+    if (analysis) {
+      analysisContext = `\nAnalysis context: Room type: ${analysis.roomType}. Issues: ${(analysis.issues || []).join(", ")}. Suggestions: ${(analysis.stagingSuggestions || []).join(", ")}.`;
+    }
+
     const editPrompt = `${BASE_PROMPT}
 
 Style: ${stylePrompt}
 Intensity: ${intensityPrompt}${analysisContext}
 
 Transform this property photo now. The result MUST be dramatically brighter and more inviting than the original.`;
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
