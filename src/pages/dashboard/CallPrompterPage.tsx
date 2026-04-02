@@ -1,0 +1,418 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Phone, PhoneOff, Mic, Settings, History, Brain, MessageSquare,
+  TrendingUp, AlertTriangle, ThumbsUp, Lightbulb, ChevronDown, ChevronUp, RotateCcw,
+} from "lucide-react";
+import { useCallPrompter, CallAnalysis } from "@/hooks/useCallPrompter";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+
+const CallPrompterPage = () => {
+  const {
+    settings, saveSettings,
+    sessions, currentSession,
+    transcript, suggestion, callStatus,
+    isAnalyzing, analysis,
+    loading,
+    startCall, endCall, regenerateSuggestion,
+  } = useCallPrompter();
+
+  const [tab, setTab] = useState("prompter");
+  const [editSettings, setEditSettings] = useState(settings);
+  const [expandedSession, setExpandedSession] = useState<string | null>(null);
+
+  // Sync editSettings when settings load
+  const settingsReady = !loading;
+
+  const statusLabel = {
+    idle: "Prêt",
+    calibrating: "Calibration...",
+    listening: "Écoute en cours...",
+    processing: "Analyse IA...",
+  }[callStatus];
+
+  const statusColor = {
+    idle: "bg-muted text-muted-foreground",
+    calibrating: "bg-yellow-500/20 text-yellow-600",
+    listening: "bg-green-500/20 text-green-600",
+    processing: "bg-blue-500/20 text-blue-600",
+  }[callStatus];
+
+  return (
+    <div className="space-y-6 max-w-5xl">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+              <Brain className="w-8 h-8 text-primary" />
+              AI Call Prompter
+            </h1>
+            <p className="text-muted-foreground mt-1">Coach de vente IA en temps réel</p>
+          </div>
+          <Badge className={statusColor}>{statusLabel}</Badge>
+        </div>
+      </motion.div>
+
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="prompter" className="gap-2">
+            <Phone className="w-4 h-4" /> Appel
+          </TabsTrigger>
+          <TabsTrigger value="history" className="gap-2">
+            <History className="w-4 h-4" /> Historique
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="gap-2">
+            <Settings className="w-4 h-4" /> Paramètres
+          </TabsTrigger>
+        </TabsList>
+
+        {/* PROMPTER TAB */}
+        <TabsContent value="prompter" className="space-y-4">
+          {/* Control buttons */}
+          <div className="flex gap-3">
+            {callStatus === "idle" ? (
+              <Button onClick={startCall} size="lg" className="bg-green-600 hover:bg-green-700 text-white gap-2">
+                <Phone className="w-5 h-5" /> Démarrer l'appel
+              </Button>
+            ) : (
+              <Button onClick={endCall} size="lg" variant="destructive" className="gap-2">
+                <PhoneOff className="w-5 h-5" /> Terminer l'appel
+              </Button>
+            )}
+            {callStatus === "listening" && (
+              <Button onClick={regenerateSuggestion} variant="outline" className="gap-2">
+                <RotateCcw className="w-4 h-4" /> Régénérer (Espace)
+              </Button>
+            )}
+          </div>
+
+          {/* Teleprompter */}
+          <AnimatePresence mode="wait">
+            {callStatus !== "idle" && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+              >
+                <Card className="border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5 min-h-[200px] flex items-center justify-center">
+                  <CardContent className="py-10 px-8 text-center w-full">
+                    {callStatus === "calibrating" ? (
+                      <div className="space-y-3">
+                        <Mic className="w-12 h-12 text-yellow-500 mx-auto animate-pulse" />
+                        <p className="text-xl text-muted-foreground">Parlez quelques secondes pour calibrer...</p>
+                      </div>
+                    ) : suggestion ? (
+                      <motion.p
+                        key={suggestion}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-2xl md:text-3xl font-medium leading-relaxed text-foreground"
+                      >
+                        {suggestion}
+                      </motion.p>
+                    ) : (
+                      <div className="space-y-3">
+                        <MessageSquare className="w-10 h-10 text-muted-foreground mx-auto" />
+                        <p className="text-lg text-muted-foreground">
+                          {callStatus === "processing" ? "Analyse en cours..." : "En attente du prospect..."}
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Live transcript */}
+          {transcript.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Mic className="w-4 h-4" /> Transcription en direct
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="max-h-60 overflow-y-auto space-y-2">
+                {transcript.map((entry, i) => (
+                  <div key={i} className={`flex gap-2 text-sm ${entry.speaker === "user" ? "justify-end" : ""}`}>
+                    <Badge variant={entry.speaker === "user" ? "default" : "secondary"} className="shrink-0">
+                      {entry.speaker === "user" ? "Vous" : "Prospect"}
+                    </Badge>
+                    <span className={`${entry.speaker === "user" ? "text-right" : ""} text-foreground`}>
+                      {entry.text}
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Post-call analysis */}
+          {(isAnalyzing || analysis) && (
+            <AnalysisSection analysis={analysis} isAnalyzing={isAnalyzing} />
+          )}
+        </TabsContent>
+
+        {/* HISTORY TAB */}
+        <TabsContent value="history" className="space-y-3">
+          {sessions.length === 0 ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <History className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                <p className="text-muted-foreground">Aucun appel enregistré</p>
+              </CardContent>
+            </Card>
+          ) : (
+            sessions.map((s) => (
+              <Card key={s.id} className="cursor-pointer" onClick={() => setExpandedSession(expandedSession === s.id ? null : s.id)}>
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">
+                          {format(new Date(s.created_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Durée : {s.duration_seconds ? `${Math.floor(s.duration_seconds / 60)}min ${s.duration_seconds % 60}s` : "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={s.status === "completed" ? "default" : "secondary"}>
+                        {s.status === "completed" ? "Terminé" : "Actif"}
+                      </Badge>
+                      {expandedSession === s.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </div>
+                  </div>
+
+                  {expandedSession === s.id && (
+                    <div className="mt-4 space-y-3 border-t pt-4">
+                      {/* Transcript */}
+                      {Array.isArray(s.transcript_json) && s.transcript_json.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground mb-2">TRANSCRIPTION</p>
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
+                            {(s.transcript_json as any[]).map((entry: any, i: number) => (
+                              <div key={i} className="text-xs">
+                                <span className="font-medium">{entry.speaker === "user" ? "Vous" : "Prospect"} :</span>{" "}
+                                {entry.text}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {/* Analysis */}
+                      {s.analysis_json && (
+                        <AnalysisSection analysis={s.analysis_json as CallAnalysis} isAnalyzing={false} />
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+
+        {/* SETTINGS TAB */}
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Personnalisation IA</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Nom de l'entreprise</Label>
+                  <Input
+                    value={editSettings.company_name || settings.company_name}
+                    onChange={(e) => setEditSettings({ ...settings, ...editSettings, company_name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Taux de commission</Label>
+                  <Input
+                    value={editSettings.commission_rate || settings.commission_rate}
+                    onChange={(e) => setEditSettings({ ...settings, ...editSettings, commission_rate: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Zone géographique</Label>
+                  <Input
+                    value={editSettings.geographic_area || settings.geographic_area}
+                    onChange={(e) => setEditSettings({ ...settings, ...editSettings, geographic_area: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Client cible</Label>
+                  <Input
+                    value={editSettings.target_client || settings.target_client}
+                    onChange={(e) => setEditSettings({ ...settings, ...editSettings, target_client: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Ton de la voix</Label>
+                  <Select
+                    value={editSettings.tone || settings.tone}
+                    onValueChange={(v) => setEditSettings({ ...settings, ...editSettings, tone: v })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="premium">Premium & Expert</SelectItem>
+                      <SelectItem value="friendly">Amical & Chaleureux</SelectItem>
+                      <SelectItem value="direct">Direct & Professionnel</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Services proposés</Label>
+                <Textarea
+                  value={editSettings.services_offered || settings.services_offered}
+                  onChange={(e) => setEditSettings({ ...settings, ...editSettings, services_offered: e.target.value })}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label>Arguments de vente clés</Label>
+                <Textarea
+                  value={editSettings.selling_points || settings.selling_points}
+                  onChange={(e) => setEditSettings({ ...settings, ...editSettings, selling_points: e.target.value })}
+                  rows={2}
+                />
+              </div>
+              <Button onClick={() => saveSettings({ ...settings, ...editSettings })}>
+                Sauvegarder
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+// Analysis sub-component
+function AnalysisSection({ analysis, isAnalyzing }: { analysis: CallAnalysis | null; isAnalyzing: boolean }) {
+  if (isAnalyzing) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center">
+          <Brain className="w-8 h-8 text-primary mx-auto animate-pulse mb-2" />
+          <p className="text-muted-foreground">Analyse de l'appel en cours...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  if (!analysis) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Brain className="w-5 h-5 text-primary" /> Analyse post-appel
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Summary */}
+        <div>
+          <p className="text-sm font-semibold text-muted-foreground mb-1">RÉSUMÉ</p>
+          <p className="text-sm text-foreground">{analysis.summary}</p>
+        </div>
+
+        {/* Metrics row */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 rounded-lg bg-secondary/50">
+            <p className="text-xs text-muted-foreground">Niveau d'intérêt</p>
+            <Badge variant={
+              analysis.interest_level === "very_high" ? "default" :
+              analysis.interest_level === "high" ? "default" : "secondary"
+            }>
+              {analysis.interest_level === "very_high" ? "Très élevé" :
+               analysis.interest_level === "high" ? "Élevé" :
+               analysis.interest_level === "medium" ? "Moyen" : "Faible"}
+            </Badge>
+          </div>
+          <div className="p-3 rounded-lg bg-secondary/50">
+            <p className="text-xs text-muted-foreground">Probabilité conversion</p>
+            <p className="text-lg font-bold text-foreground">{analysis.conversion_probability}%</p>
+          </div>
+        </div>
+
+        {/* Key moments */}
+        {analysis.key_moments?.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" /> Moments clés
+            </p>
+            <ul className="text-sm space-y-1">
+              {analysis.key_moments.map((m, i) => <li key={i} className="text-foreground">• {m}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {/* Objections */}
+        {analysis.objections?.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" /> Objections détectées
+            </p>
+            <ul className="text-sm space-y-1">
+              {analysis.objections.map((o, i) => <li key={i} className="text-foreground">• {o}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {/* Strengths */}
+        {analysis.strengths?.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+              <ThumbsUp className="w-3 h-3" /> Points forts
+            </p>
+            <ul className="text-sm space-y-1">
+              {analysis.strengths.map((s, i) => <li key={i} className="text-foreground">• {s}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {/* Improvements */}
+        {analysis.improvements?.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+              <Lightbulb className="w-3 h-3" /> À améliorer
+            </p>
+            <ul className="text-sm space-y-1">
+              {analysis.improvements.map((s, i) => <li key={i} className="text-foreground">• {s}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {/* Better responses */}
+        {analysis.better_responses?.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-muted-foreground mb-2">RÉPONSES ALTERNATIVES</p>
+            <div className="space-y-2">
+              {analysis.better_responses.map((r, i) => (
+                <div key={i} className="text-xs p-2 rounded bg-secondary/30">
+                  <p className="text-muted-foreground line-through">{r.original}</p>
+                  <p className="text-foreground font-medium mt-1">→ {r.suggested}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export default CallPrompterPage;
