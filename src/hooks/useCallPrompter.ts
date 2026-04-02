@@ -109,36 +109,42 @@ export function useCallPrompter() {
   const segmentSpeakerRef = useRef<"user" | "prospect">("prospect");
   const segmentHadSpeechRef = useRef(false);
   const lastSpeechAtRef = useRef<number | null>(null);
+  const processQueueRef = useRef<() => void>(() => {});
 
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
+  // Flush buffered audio into transcription queue
+  const flushBufferedSegment = useCallback((triggerSuggestion: boolean) => {
+    const chunks = audioChunksRef.current;
+    const hadSpeech = segmentHadSpeechRef.current;
+    const speaker = segmentSpeakerRef.current;
+
+    audioChunksRef.current = [];
+    segmentHadSpeechRef.current = false;
+    lastSpeechAtRef.current = null;
+
+    if (!chunks.length) return;
+
+    const mimeType = mediaRecorderRef.current?.mimeType || "audio/webm";
+    const blob = new Blob(chunks, { type: mimeType });
+    console.log("[CallPrompter] Flushing segment:", blob.size, "bytes, speaker:", speaker, "hadSpeech:", hadSpeech, "trigger:", triggerSuggestion);
+    if (blob.size <= 2000) return;
+
+    transcriptionQueueRef.current.push({ blob, speaker, triggerSuggestion });
+    processQueueRef.current();
+  }, []);
+
   // ─── Push-to-talk keyboard listeners ──────────────────────────
   useEffect(() => {
-    const flushBufferedSegment = (triggerSuggestion: boolean) => {
-      const chunks = audioChunksRef.current;
-      const hadSpeech = segmentHadSpeechRef.current;
-      const speaker = segmentSpeakerRef.current;
-
-      audioChunksRef.current = [];
-      segmentHadSpeechRef.current = false;
-      lastSpeechAtRef.current = null;
-
-      if (!chunks.length || !hadSpeech) return;
-
-      const mimeType = mediaRecorderRef.current?.mimeType || "audio/webm";
-      const blob = new Blob(chunks, { type: mimeType });
-      if (blob.size <= 4000) return;
-
-      transcriptionQueueRef.current.push({ blob, speaker, triggerSuggestion });
-      processQueue();
-    };
-
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space" || !isActiveRef.current) return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) return;
       e.preventDefault();
       if (!userSpeakingRef.current) {
-        flushBufferedSegment(false);
+        // Prospect was speaking → flush prospect segment WITH suggestion trigger
+        if (segmentSpeakerRef.current === "prospect") {
+          flushBufferedSegment(true);
+        }
         segmentSpeakerRef.current = "user";
         userSpeakingRef.current = true;
         setUserSpeaking(true);
@@ -149,6 +155,7 @@ export function useCallPrompter() {
       if (["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) return;
       e.preventDefault();
       if (userSpeakingRef.current) {
+        // User was speaking → flush user segment (no suggestion)
         flushBufferedSegment(false);
         segmentSpeakerRef.current = "prospect";
         userSpeakingRef.current = false;
@@ -161,7 +168,7 @@ export function useCallPrompter() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, []);
+  }, [flushBufferedSegment]);
 
   // ─── Settings / Sessions CRUD ─────────────────────────────────
   const fetchSettings = useCallback(async () => {
@@ -365,11 +372,14 @@ export function useCallPrompter() {
     isTranscribingRef.current = false;
 
     if (transcriptionQueueRef.current.length > 0 && isActiveRef.current) {
-      processQueue();
+      processQueueRef.current();
     }
   }, [transcribeChunk]);
 
-  // ─── MediaRecorder chunking (manual SPACE-only segmentation) ──
+  // Keep ref in sync so keyboard listeners always call the latest version
+  useEffect(() => { processQueueRef.current = processQueue; }, [processQueue]);
+
+  // ─── MediaRecorder (continuous recording, SPACE controls segments) ──
   const startRecording = useCallback((stream: MediaStream) => {
     try {
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
@@ -383,26 +393,6 @@ export function useCallPrompter() {
         return;
       }
 
-      const flushCurrentSegment = (triggerSuggestion: boolean) => {
-        const chunks = audioChunksRef.current;
-        const hadSpeech = segmentHadSpeechRef.current;
-        const speaker = segmentSpeakerRef.current;
-
-        audioChunksRef.current = [];
-        segmentHadSpeechRef.current = false;
-        lastSpeechAtRef.current = null;
-
-        if (!chunks.length || !hadSpeech) return;
-
-        const blob = new Blob(chunks, { type: mimeType });
-        console.log("[CallPrompter] Chunk ready:", blob.size, "bytes, speaker:", speaker, "triggerSuggestion:", triggerSuggestion);
-
-        if (blob.size > 4000) {
-          transcriptionQueueRef.current.push({ blob, speaker, triggerSuggestion });
-          processQueue();
-        }
-      };
-
       console.log("[CallPrompter] Starting recorder, mimeType:", mimeType);
       const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
@@ -413,6 +403,7 @@ export function useCallPrompter() {
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
           audioChunksRef.current.push(e.data);
+          console.log("[CallPrompter] Audio data chunk received:", e.data.size, "bytes, total chunks:", audioChunksRef.current.length);
         }
       };
 
@@ -420,30 +411,27 @@ export function useCallPrompter() {
         console.error("[CallPrompter] MediaRecorder error:", e);
       };
 
-      recorder.start(500);
+      // Continuous recording with 1s timeslice for reliable data
+      recorder.start(1000);
       setSttStatus("active");
-      console.log("[CallPrompter] Recorder started with timeslice 500ms");
+      console.log("[CallPrompter] Recorder started with timeslice 1000ms");
 
+      // Safety flush every 8s — ensures long prospect/user segments still get transcribed
       recordingIntervalRef.current = setInterval(() => {
-        if (!isActiveRef.current || userSpeakingRef.current) return;
-        if (!lastSpeechAtRef.current) return;
-
-        const silenceMs = Date.now() - lastSpeechAtRef.current;
-        if (segmentSpeakerRef.current === "prospect" && silenceMs >= 900) {
-          flushCurrentSegment(true);
-        }
-      }, 300);
-
-      speakerSamplerRef.current = setInterval(() => {
         if (!isActiveRef.current) return;
         if (audioChunksRef.current.length === 0) return;
-        flushCurrentSegment(segmentSpeakerRef.current === "prospect" && !userSpeakingRef.current);
-      }, 10000);
+
+        const speaker = segmentSpeakerRef.current;
+        const isProspect = speaker === "prospect" && !userSpeakingRef.current;
+        console.log("[CallPrompter] Safety flush — speaker:", speaker, "chunks:", audioChunksRef.current.length);
+        flushBufferedSegment(isProspect);
+      }, 8000);
+
     } catch (e) {
       console.error("[CallPrompter] MediaRecorder error:", e);
       toast.error("Impossible de démarrer l'enregistrement audio");
     }
-  }, [processQueue]);
+  }, [flushBufferedSegment]);
 
   const stopRecording = useCallback(() => {
     if (speakerSamplerRef.current) {
