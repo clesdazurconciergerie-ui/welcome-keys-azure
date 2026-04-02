@@ -105,6 +105,7 @@ export function useCallPrompter() {
   const audioChunksRef = useRef<Blob[]>([]);
   const isTranscribingRef = useRef(false);
   const transcriptionQueueRef = useRef<{ blob: Blob; speaker: "user" | "prospect" }[]>([]);
+  const lastTranscribedTextRef = useRef<string>("");
 
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
@@ -278,12 +279,21 @@ export function useCallPrompter() {
       const hallucinations = [
         "sous-titres", "sous-titrage", "merci d'avoir regardé", "merci de votre attention",
         "subscribe", "like", "bell", "amara.org", "transcrit par", "réalisé par",
+        "merci à tous", "à bientôt", "au revoir", "music", "musique",
+        "silence", "...", "…", "vous", "oui", "non", "ok",
       ];
-      const isHallucination = text.length < 3 ||
+      const isHallucination = text.length < 4 ||
         hallucinations.some(h => text.toLowerCase().includes(h)) ||
-        /^[.\s,!?]+$/.test(text);
+        /^[.\s,!?…]+$/.test(text) ||
+        /^(.{1,3}\s*){1,2}$/.test(text); // Very short repeated fragments
 
-      if (text && !isHallucination) {
+      // Duplicate detection: skip if identical or very similar to last transcription
+      const isDuplicate = text === lastTranscribedTextRef.current ||
+        (text.length > 5 && lastTranscribedTextRef.current.includes(text)) ||
+        (lastTranscribedTextRef.current.length > 5 && text.includes(lastTranscribedTextRef.current));
+
+      if (text && !isHallucination && !isDuplicate) {
+        lastTranscribedTextRef.current = text;
         setChunksTranscribed(prev => prev + 1);
         setLastTranscriptionTime(new Date().toLocaleTimeString("fr-FR"));
 
@@ -295,7 +305,6 @@ export function useCallPrompter() {
 
         setTranscript(prev => {
           const updated = [...prev, entry];
-          // Only trigger AI suggestion for prospect speech
           if (speaker === "prospect") {
             getSuggestion(text, updated);
           }
@@ -449,6 +458,7 @@ export function useCallPrompter() {
     setAnalysis(null);
     setChunksTranscribed(0);
     setLastTranscriptionTime(null);
+    lastTranscribedTextRef.current = "";
     startTimeRef.current = new Date();
     isActiveRef.current = true;
     userSpeakingRef.current = false;
@@ -524,6 +534,12 @@ export function useCallPrompter() {
     if (lastProspect) getSuggestion(lastProspect.text, transcriptRef.current);
   }, [getSuggestion]);
 
+  const deleteSession = useCallback(async (sessionId: string) => {
+    await (supabase as any).from("call_sessions").delete().eq("id", sessionId);
+    setSessions(prev => prev.filter(s => s.id !== sessionId));
+    toast.success("Appel supprimé");
+  }, []);
+
   // ─── Cleanup ──────────────────────────────────────────────────
   useEffect(() => {
     return () => {
@@ -544,7 +560,7 @@ export function useCallPrompter() {
     isAnalyzing, analysis,
     loading,
     startCall, endCall, regenerateSuggestion,
-    fetchSessions,
+    fetchSessions, deleteSession,
     micStatus, audioLevel, sttStatus,
     chunksTranscribed, lastTranscriptionTime,
     userSpeaking,

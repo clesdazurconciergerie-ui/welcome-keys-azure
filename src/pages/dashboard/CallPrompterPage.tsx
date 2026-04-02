@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +14,7 @@ import {
   Phone, PhoneOff, Mic, MicOff, Settings, History, Brain, MessageSquare,
   TrendingUp, AlertTriangle, ThumbsUp, Lightbulb, RotateCcw,
   Volume2, Activity, User, Users, Clock, Hash, Eye, ArrowLeft,
-  Keyboard, Zap,
+  Keyboard, Zap, Trash2,
 } from "lucide-react";
 import { useCallPrompter, CallAnalysis, CallSession, TranscriptEntry } from "@/hooks/useCallPrompter";
 import { SkillsManager } from "@/components/call-prompter/SkillsManager";
@@ -28,6 +29,7 @@ const CallPrompterPage = () => {
     isAnalyzing, analysis,
     loading,
     startCall, endCall, regenerateSuggestion,
+    deleteSession,
     micStatus, audioLevel, sttStatus,
     chunksTranscribed, lastTranscriptionTime,
     userSpeaking,
@@ -309,6 +311,35 @@ const CallPrompterPage = () => {
                             {s.status === "completed" ? "Terminé" : "Actif"}
                           </Badge>
                           <Eye className="w-4 h-4 text-muted-foreground" />
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Supprimer cet appel ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Cette action est irréversible. La transcription et l'analyse seront définitivement supprimées.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Supprimer
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     </CardContent>
