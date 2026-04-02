@@ -107,32 +107,12 @@ export function useCallPrompter() {
   const transcriptionQueueRef = useRef<{ blob: Blob; speaker: "user" | "prospect"; triggerSuggestion: boolean }[]>([]);
   const lastTranscribedTextRef = useRef<string>("");
   const segmentSpeakerRef = useRef<"user" | "prospect">("prospect");
-  const segmentHadSpeechRef = useRef(false);
-  const lastSpeechAtRef = useRef<number | null>(null);
   const processQueueRef = useRef<() => void>(() => {});
+  const recorderSwitchRef = useRef<(nextSpeaker: "user" | "prospect", triggerSuggestion: boolean) => void>(() => {});
+  const pendingSegmentMetaRef = useRef<{ speaker: "user" | "prospect"; triggerSuggestion: boolean } | null>(null);
+  const restartSpeakerRef = useRef<"user" | "prospect" | null>(null);
 
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
-
-  // Flush buffered audio into transcription queue
-  const flushBufferedSegment = useCallback((triggerSuggestion: boolean) => {
-    const chunks = audioChunksRef.current;
-    const hadSpeech = segmentHadSpeechRef.current;
-    const speaker = segmentSpeakerRef.current;
-
-    audioChunksRef.current = [];
-    segmentHadSpeechRef.current = false;
-    lastSpeechAtRef.current = null;
-
-    if (!chunks.length) return;
-
-    const mimeType = mediaRecorderRef.current?.mimeType || "audio/webm";
-    const blob = new Blob(chunks, { type: mimeType });
-    console.log("[CallPrompter] Flushing segment:", blob.size, "bytes, speaker:", speaker, "hadSpeech:", hadSpeech, "trigger:", triggerSuggestion);
-    if (blob.size <= 2000) return;
-
-    transcriptionQueueRef.current.push({ blob, speaker, triggerSuggestion });
-    processQueueRef.current();
-  }, []);
 
   // ─── Push-to-talk keyboard listeners ──────────────────────────
   useEffect(() => {
@@ -141,34 +121,30 @@ export function useCallPrompter() {
       if (["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) return;
       e.preventDefault();
       if (!userSpeakingRef.current) {
-        // Prospect was speaking → flush prospect segment WITH suggestion trigger
-        if (segmentSpeakerRef.current === "prospect") {
-          flushBufferedSegment(true);
-        }
-        segmentSpeakerRef.current = "user";
         userSpeakingRef.current = true;
         setUserSpeaking(true);
+        recorderSwitchRef.current("user", true);
       }
     };
+
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.code !== "Space" || !isActiveRef.current) return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) return;
       e.preventDefault();
       if (userSpeakingRef.current) {
-        // User was speaking → flush user segment (no suggestion)
-        flushBufferedSegment(false);
-        segmentSpeakerRef.current = "prospect";
         userSpeakingRef.current = false;
         setUserSpeaking(false);
+        recorderSwitchRef.current("prospect", false);
       }
     };
+
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [flushBufferedSegment]);
+  }, []);
 
   // ─── Settings / Sessions CRUD ─────────────────────────────────
   const fetchSettings = useCallback(async () => {
