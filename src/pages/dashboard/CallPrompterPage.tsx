@@ -72,6 +72,9 @@ const CallPrompterPage = () => {
           <TabsTrigger value="history" className="gap-2">
             <History className="w-4 h-4" /> Historique
           </TabsTrigger>
+          <TabsTrigger value="skills" className="gap-2">
+            <Zap className="w-4 h-4" /> Skills
+          </TabsTrigger>
           <TabsTrigger value="settings" className="gap-2">
             <Settings className="w-4 h-4" /> Paramètres
           </TabsTrigger>
