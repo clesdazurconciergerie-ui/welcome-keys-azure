@@ -101,11 +101,14 @@ export function useCallPrompter() {
   const isActiveRef = useRef(false);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Whisper chunking refs
+  // Manual audio segment refs (SPACE is the only speaker source of truth)
   const audioChunksRef = useRef<Blob[]>([]);
   const isTranscribingRef = useRef(false);
   const transcriptionQueueRef = useRef<{ blob: Blob; speaker: "user" | "prospect" }[]>([]);
   const lastTranscribedTextRef = useRef<string>("");
+  const segmentSpeakerRef = useRef<"user" | "prospect">("prospect");
+  const segmentHadSpeechRef = useRef(false);
+  const lastSpeechAtRef = useRef<number | null>(null);
 
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
