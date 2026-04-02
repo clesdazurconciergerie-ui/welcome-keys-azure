@@ -352,10 +352,11 @@ export function useCallPrompter() {
     }
   }, [transcribeChunk]);
 
-  // Keep ref in sync so keyboard listeners always call the latest version
-  useEffect(() => { processQueueRef.current = processQueue; }, [processQueue]);
+  useEffect(() => {
+    processQueueRef.current = processQueue;
+  }, [processQueue]);
 
-  // ─── MediaRecorder (continuous recording, SPACE controls segments) ──
+  // ─── MediaRecorder (standalone chunks, SPACE controls segments) ──
   const startRecording = useCallback((stream: MediaStream) => {
     try {
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
@@ -369,47 +370,108 @@ export function useCallPrompter() {
         return;
       }
 
-      console.log("[CallPrompter] Starting recorder, mimeType:", mimeType);
-      const recorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = recorder;
-      audioChunksRef.current = [];
-      segmentHadSpeechRef.current = false;
-      lastSpeechAtRef.current = null;
+      const startSegmentRecorder = (speaker: "user" | "prospect") => {
+        if (!isActiveRef.current) return;
 
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
-          console.log("[CallPrompter] Audio data chunk received:", e.data.size, "bytes, total chunks:", audioChunksRef.current.length);
+        segmentSpeakerRef.current = speaker;
+        audioChunksRef.current = [];
+
+        const recorder = new MediaRecorder(stream, { mimeType });
+        mediaRecorderRef.current = recorder;
+
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
+          }
+        };
+
+        recorder.onerror = (e) => {
+          console.error("[CallPrompter] MediaRecorder error:", e);
+        };
+
+        recorder.onstop = () => {
+          const meta = pendingSegmentMetaRef.current;
+          const restartSpeaker = restartSpeakerRef.current;
+          const blob = audioChunksRef.current.length > 0
+            ? new Blob(audioChunksRef.current, { type: mimeType })
+            : null;
+
+          pendingSegmentMetaRef.current = null;
+          restartSpeakerRef.current = null;
+          audioChunksRef.current = [];
+
+          if (meta && blob && blob.size > 2000) {
+            console.log("[CallPrompter] Chunk ready:", blob.size, "bytes, speaker:", meta.speaker, "triggerSuggestion:", meta.triggerSuggestion);
+            transcriptionQueueRef.current.push({
+              blob,
+              speaker: meta.speaker,
+              triggerSuggestion: meta.triggerSuggestion,
+            });
+            processQueueRef.current();
+          }
+
+          if (restartSpeaker && isActiveRef.current) {
+            startSegmentRecorder(restartSpeaker);
+          }
+        };
+
+        recorder.start();
+        setSttStatus("active");
+        console.log("[CallPrompter] Recorder started for speaker:", speaker);
+      };
+
+      recorderSwitchRef.current = (nextSpeaker, triggerSuggestion) => {
+        const currentSpeaker = segmentSpeakerRef.current;
+        const recorder = mediaRecorderRef.current;
+
+        if (!recorder || recorder.state === "inactive") {
+          if (isActiveRef.current) startSegmentRecorder(nextSpeaker);
+          return;
+        }
+
+        pendingSegmentMetaRef.current = {
+          speaker: currentSpeaker,
+          triggerSuggestion: currentSpeaker === "prospect" ? triggerSuggestion : false,
+        };
+        restartSpeakerRef.current = nextSpeaker;
+
+        try {
+          recorder.stop();
+        } catch (e) {
+          console.error("[CallPrompter] Recorder stop error:", e);
+          if (isActiveRef.current) startSegmentRecorder(nextSpeaker);
         }
       };
 
-      recorder.onerror = (e) => {
-        console.error("[CallPrompter] MediaRecorder error:", e);
-      };
+      startSegmentRecorder("prospect");
 
-      // Continuous recording with 1s timeslice for reliable data
-      recorder.start(1000);
-      setSttStatus("active");
-      console.log("[CallPrompter] Recorder started with timeslice 1000ms");
-
-      // Safety flush every 8s — ensures long prospect/user segments still get transcribed
       recordingIntervalRef.current = setInterval(() => {
         if (!isActiveRef.current) return;
-        if (audioChunksRef.current.length === 0) return;
+        const recorder = mediaRecorderRef.current;
+        if (!recorder || recorder.state === "inactive") return;
 
-        const speaker = segmentSpeakerRef.current;
-        const isProspect = speaker === "prospect" && !userSpeakingRef.current;
-        console.log("[CallPrompter] Safety flush — speaker:", speaker, "chunks:", audioChunksRef.current.length);
-        flushBufferedSegment(isProspect);
-      }, 8000);
+        const currentSpeaker = segmentSpeakerRef.current;
+        pendingSegmentMetaRef.current = {
+          speaker: currentSpeaker,
+          triggerSuggestion: currentSpeaker === "prospect" && !userSpeakingRef.current,
+        };
+        restartSpeakerRef.current = currentSpeaker;
 
+        try {
+          recorder.stop();
+        } catch (e) {
+          console.error("[CallPrompter] Periodic recorder stop error:", e);
+          if (isActiveRef.current) startSegmentRecorder(currentSpeaker);
+        }
+      }, 3000);
     } catch (e) {
       console.error("[CallPrompter] MediaRecorder error:", e);
       toast.error("Impossible de démarrer l'enregistrement audio");
     }
-  }, [flushBufferedSegment]);
+  }, []);
 
-  const stopRecording = useCallback(() => {
+  const stopRecording = useCallback(async () => {
+    recorderSwitchRef.current = () => {};
     if (speakerSamplerRef.current) {
       clearInterval(speakerSamplerRef.current);
       speakerSamplerRef.current = null;
@@ -418,15 +480,34 @@ export function useCallPrompter() {
       clearInterval(recordingIntervalRef.current);
       recordingIntervalRef.current = null;
     }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      try { mediaRecorderRef.current.stop(); } catch {}
+
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      pendingSegmentMetaRef.current = {
+        speaker: segmentSpeakerRef.current,
+        triggerSuggestion: false,
+      };
+      restartSpeakerRef.current = null;
+
+      await new Promise<void>((resolve) => {
+        const handleStop = () => resolve();
+        recorder.addEventListener("stop", handleStop, { once: true });
+        try {
+          recorder.stop();
+        } catch {
+          resolve();
+        }
+      });
     }
+
+    while (isTranscribingRef.current || transcriptionQueueRef.current.length > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
     mediaRecorderRef.current = null;
     audioChunksRef.current = [];
-    transcriptionQueueRef.current = [];
-    isTranscribingRef.current = false;
-    segmentHadSpeechRef.current = false;
-    lastSpeechAtRef.current = null;
+    pendingSegmentMetaRef.current = null;
+    restartSpeakerRef.current = null;
   }, []);
 
   // ─── Start call (no calibration needed) ───────────────────────
@@ -464,6 +545,7 @@ export function useCallPrompter() {
     lastTranscribedTextRef.current = "";
     startTimeRef.current = new Date();
     isActiveRef.current = true;
+    segmentSpeakerRef.current = "prospect";
     userSpeakingRef.current = false;
     setUserSpeaking(false);
 
