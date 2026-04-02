@@ -106,6 +106,11 @@ export function useCallPrompter() {
   const pastAnalysesCacheRef = useRef<any[]>([]);
   const pastAnalysesFetchedRef = useRef(false);
 
+  // Prospect speech accumulator — triggers AI after silence
+  const pendingProspectTextRef = useRef<string[]>([]);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const SILENCE_THRESHOLD_MS = 400;
+
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
   // ─── Push-to-talk keyboard listeners ──────────────────────────
