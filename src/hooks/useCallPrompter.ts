@@ -232,7 +232,12 @@ export function useCallPrompter() {
         if (!isActiveRef.current) return;
         analyser.getByteFrequencyData(dataArray);
         const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-        setAudioLevel(Math.round((avg / 255) * 100));
+        const nextLevel = Math.round((avg / 255) * 100);
+        setAudioLevel(nextLevel);
+        segmentHadSpeechRef.current = nextLevel >= 3;
+        if (segmentHadSpeechRef.current) {
+          lastSpeechAtRef.current = Date.now();
+        }
         animFrameRef.current = requestAnimationFrame(updateLevel);
       };
       updateLevel();
