@@ -71,7 +71,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { imageBase64, style = "standard", intensity = "balanced", analysis } = await req.json();
+    const { imageBase64, style = "standard", intensity = "balanced", analysis, homeStaging = false } = await req.json();
     if (!imageBase64) {
       return new Response(JSON.stringify({ error: "imageBase64 required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -89,12 +89,30 @@ serve(async (req) => {
       analysisContext = `\nAnalysis context: Room type: ${analysis.roomType}. Issues: ${(analysis.issues || []).join(", ")}. Suggestions: ${(analysis.stagingSuggestions || []).join(", ")}.`;
     }
 
+    let stagingPrompt = "";
+    if (homeStaging) {
+      stagingPrompt = `\n\nHOME STAGING (ENABLED — SUBTLE MODE):
+You may add ONLY small, subtle, realistic lifestyle elements to enhance the scene:
+- Kitchen/dining: fruit bowl, coffee cups, wine glasses, plates, light breakfast setup
+- Living room: book, candle, small decorative object
+- Bedroom: extra cushion, folded blanket/plaid
+- Bathroom: rolled towels, small plant
+
+STRICT RULES:
+- DO NOT replace, move, or remove ANY existing object
+- DO NOT overcrowd — add 1-3 items maximum
+- ALL additions MUST respect the existing perspective, lighting, and shadows
+- Items must look naturally placed, as if someone lives there
+- If staging would reduce realism → skip staging entirely
+- The original space must remain the focus`;
+    }
+
     const editPrompt = `${BASE_PROMPT}
 
 Style: ${stylePrompt}
-Intensity: ${intensityPrompt}${analysisContext}
+Intensity: ${intensityPrompt}${analysisContext}${stagingPrompt}
 
-Transform this property photo now. The result MUST be dramatically brighter and more inviting than the original.`;
+Transform this property photo now. The result must look professionally edited, clean, bright, and balanced.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

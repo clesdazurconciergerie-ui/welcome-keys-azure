@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -148,6 +149,7 @@ export default function PhotoOptimizerPage() {
   const [style, setStyle] = useState<PhotoStyle>("luxury");
   const [intensity, setIntensity] = useState<PhotoIntensity>("strong");
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [homeStaging, setHomeStaging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addPhotos = useCallback((files: FileList | File[]) => {
@@ -209,7 +211,7 @@ export default function PhotoOptimizerPage() {
       const photo = photos.find((p) => p.id === id)!;
       const base64 = await fileToBase64(photo.file);
       const { data, error } = await supabase.functions.invoke("photo-optimizer-generate", {
-        body: { imageBase64: base64, style, intensity, analysis: photo.analysis },
+        body: { imageBase64: base64, style, intensity, analysis: photo.analysis, homeStaging },
       });
       if (error) throw error;
       setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, status: "optimized", optimizedUrl: data.optimizedImageUrl } : p)));
@@ -346,7 +348,20 @@ export default function PhotoOptimizerPage() {
                   <span className="text-[10px] font-semibold">{item.label}</span>
                 </button>
               ))}
+          </div>
+
+          {/* Home Staging Toggle */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Home Staging</span>
+              <Switch checked={homeStaging} onCheckedChange={setHomeStaging} />
             </div>
+            {homeStaging && (
+              <p className="text-[9px] text-muted-foreground leading-relaxed animate-fade-in">
+                Ajoute des éléments lifestyle subtils (petit-déjeuner, décor, ambiance) pour améliorer la projection
+              </p>
+            )}
+          </div>
           </div>
 
           {/* Thumbnails */}
