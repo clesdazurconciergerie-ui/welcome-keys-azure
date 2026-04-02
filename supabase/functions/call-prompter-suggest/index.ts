@@ -9,36 +9,68 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { prospect_speech, conversation_history, settings } = await req.json();
+    const { prospect_speech, conversation_history, settings, past_analyses } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const systemPrompt = `Tu es un coach de vente d'élite spécialisé dans les conciergeries immobilières et la location saisonnière.
+    // Build adaptive learning context from past analyses
+    let learningContext = "";
+    if (past_analyses && past_analyses.length > 0) {
+      const commonObjections = past_analyses
+        .flatMap((a: any) => a.objections || [])
+        .filter(Boolean);
+      const failedApproaches = past_analyses
+        .flatMap((a: any) => (a.better_responses || []).map((r: any) => r.original))
+        .filter(Boolean);
+      const successfulApproaches = past_analyses
+        .filter((a: any) => a.conversion_probability >= 60)
+        .flatMap((a: any) => a.strengths || [])
+        .filter(Boolean);
+
+      if (commonObjections.length > 0) {
+        learningContext += `\nOBJECTIONS FRÉQUENTES (prépare des réponses percutantes) :\n- ${[...new Set(commonObjections)].slice(0, 5).join("\n- ")}`;
+      }
+      if (failedApproaches.length > 0) {
+        learningContext += `\nAPPROCHES À ÉVITER (ont échoué dans le passé) :\n- ${[...new Set(failedApproaches)].slice(0, 3).join("\n- ")}`;
+      }
+      if (successfulApproaches.length > 0) {
+        learningContext += `\nAPPROCHES GAGNANTES (ont fonctionné) :\n- ${[...new Set(successfulApproaches)].slice(0, 3).join("\n- ")}`;
+      }
+    }
+
+    const systemPrompt = `Tu es un closer d'élite spécialisé dans les conciergeries immobilières et la location saisonnière haut de gamme.
 
 RÔLE : Générer la MEILLEURE réponse possible que l'utilisateur doit dire au prospect, en temps réel.
 
-RÈGLES :
-- Phrases naturelles, fluides, humaines — jamais robotiques
-- Optimisées pour la persuasion et la conversion
-- Réponses courtes si le prospect pose une question simple
-- Réponses plus développées pour traiter les objections
-- Toujours orienter vers la prise de rendez-vous ou la signature
-- Adapter le ton selon le contexte (cold call vs closing)
+STYLE DE RÉPONSE :
+- Ultra court et percutant (1-2 phrases max)
+- Direct, pas de blabla
+- Focus sur la douleur du prospect et la valeur différenciante
+- Orientation systématique vers le closing (RDV ou signature)
+- Ton de closer confiant, jamais défensif
+
+TECHNIQUES DE CLOSING :
+- Inversion de l'objection ("Justement, c'est pour ça que…")
+- Urgence ("Les propriétaires qui hésitent perdent X€ par mois")
+- Preuve sociale ("Nos 15 propriétaires sur la zone font en moyenne…")
+- Question de closing ("On se voit jeudi ou vendredi ?")
 
 CONTEXTE UTILISATEUR :
 - Entreprise : ${settings?.company_name || "Conciergerie"}
 - Services : ${settings?.services_offered || "Gestion locative saisonnière"}
 - Commission : ${settings?.commission_rate || "Non précisé"}
-- Zone géographique : ${settings?.geographic_area || "Non précisé"}
-- Arguments clés : ${settings?.selling_points || "Revenus optimisés, gestion complète"}
-- Client cible : ${settings?.target_client || "Propriétaires de biens saisonniers"}
+- Zone : ${settings?.geographic_area || "Non précisé"}
+- Arguments : ${settings?.selling_points || "Revenus optimisés, gestion complète"}
+- Cible : ${settings?.target_client || "Propriétaires de biens saisonniers"}
 - Ton : ${settings?.tone === "friendly" ? "Amical et chaleureux" : settings?.tone === "direct" ? "Direct et professionnel" : "Premium et expert"}
+${learningContext}
 
 INSTRUCTIONS :
 - Réponds UNIQUEMENT avec la phrase que l'utilisateur doit dire. Pas d'explication.
-- Une seule réponse, prête à être lue à voix haute.`;
+- Une seule réponse, prête à être lue à voix haute.
+- Sois BRUTAL en efficacité — chaque mot doit servir la conversion.`;
 
-    const messages = [
+    const messages: any[] = [
       { role: "system", content: systemPrompt },
     ];
 

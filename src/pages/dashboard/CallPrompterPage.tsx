@@ -9,12 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import {
   Phone, PhoneOff, Mic, MicOff, Settings, History, Brain, MessageSquare,
   TrendingUp, AlertTriangle, ThumbsUp, Lightbulb, ChevronDown, ChevronUp, RotateCcw,
-  Volume2, Shield, Activity, User, Users, HelpCircle,
+  Volume2, Shield, Activity, User, Users, HelpCircle, Clock, Hash, Eye, ArrowLeft,
 } from "lucide-react";
-import { useCallPrompter, CallAnalysis } from "@/hooks/useCallPrompter";
+import { useCallPrompter, CallAnalysis, CallSession, TranscriptEntry } from "@/hooks/useCallPrompter";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -29,11 +30,12 @@ const CallPrompterPage = () => {
     micStatus, audioLevel, sttStatus,
     speakerState, calibrationProgress, lastDetectedSpeaker,
     toggleSpeakerManual,
+    chunksTranscribed, lastTranscriptionTime,
   } = useCallPrompter();
 
   const [tab, setTab] = useState("prompter");
   const [editSettings, setEditSettings] = useState(settings);
-  const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const [selectedSession, setSelectedSession] = useState<CallSession | null>(null);
 
   // Keyboard shortcut: Space to regenerate
   useEffect(() => {
@@ -46,7 +48,6 @@ const CallPrompterPage = () => {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [callStatus, regenerateSuggestion]);
-  const settingsReady = !loading;
 
   const statusLabel = {
     idle: "Prêt",
@@ -71,7 +72,7 @@ const CallPrompterPage = () => {
               <Brain className="w-8 h-8 text-primary" />
               AI Call Prompter
             </h1>
-            <p className="text-muted-foreground mt-1">Coach de vente IA en temps réel</p>
+            <p className="text-muted-foreground mt-1">Coach de vente IA en temps réel — Whisper STT</p>
           </div>
           <Badge className={statusColor}>{statusLabel}</Badge>
         </div>
@@ -141,12 +142,12 @@ const CallPrompterPage = () => {
                   {/* STT status */}
                   <div className="flex items-center gap-2">
                     <Activity className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">STT :</span>
+                    <span className="text-muted-foreground">Whisper :</span>
                     <Badge
                       variant={sttStatus === "active" ? "default" : "secondary"}
                       className="text-xs"
                     >
-                      {sttStatus === "active" ? "Actif" : sttStatus === "restarting" ? "Redémarrage…" : "Inactif"}
+                      {sttStatus === "active" ? "Actif" : sttStatus === "transcribing" ? "Transcription…" : "Inactif"}
                     </Badge>
                   </div>
 
@@ -171,6 +172,18 @@ const CallPrompterPage = () => {
                        speakerState === "listening_prospect" ? "Prospect" :
                        "Incertain"}
                     </Badge>
+                  </div>
+                </div>
+
+                {/* Whisper metrics */}
+                <div className="flex items-center gap-6 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Hash className="w-3 h-3" />
+                    Chunks transcrits : <span className="font-medium text-foreground">{chunksTranscribed}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Dernière transcription : <span className="font-medium text-foreground">{lastTranscriptionTime || "—"}</span>
                   </div>
                 </div>
 
@@ -208,6 +221,7 @@ const CallPrompterPage = () => {
             </Card>
           )}
 
+          {/* Teleprompter */}
           <AnimatePresence mode="wait">
             {callStatus !== "idle" && (
               <motion.div
@@ -237,7 +251,7 @@ const CallPrompterPage = () => {
                       <div className="space-y-3">
                         <MessageSquare className="w-10 h-10 text-muted-foreground mx-auto" />
                         <p className="text-lg text-muted-foreground">
-                          {callStatus === "processing" ? "Analyse IA en cours..." : 
+                          {callStatus === "processing" ? "Analyse IA en cours..." :
                            speakerState === "listening_user" ? "Vous parlez — en attente du prospect…" :
                            audioLevel < 3 ? "En attente d'entrée audio…" :
                            "Écoute du prospect…"}
@@ -281,62 +295,55 @@ const CallPrompterPage = () => {
 
         {/* HISTORY TAB */}
         <TabsContent value="history" className="space-y-3">
-          {sessions.length === 0 ? (
-            <Card className="text-center py-12">
-              <CardContent>
-                <History className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                <p className="text-muted-foreground">Aucun appel enregistré</p>
-              </CardContent>
-            </Card>
+          {selectedSession ? (
+            <SessionDetailView session={selectedSession} onBack={() => setSelectedSession(null)} />
           ) : (
-            sessions.map((s) => (
-              <Card key={s.id} className="cursor-pointer" onClick={() => setExpandedSession(expandedSession === s.id ? null : s.id)}>
-                <CardContent className="py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Phone className="w-4 h-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">
-                          {format(new Date(s.created_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Durée : {s.duration_seconds ? `${Math.floor(s.duration_seconds / 60)}min ${s.duration_seconds % 60}s` : "—"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={s.status === "completed" ? "default" : "secondary"}>
-                        {s.status === "completed" ? "Terminé" : "Actif"}
-                      </Badge>
-                      {expandedSession === s.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </div>
-                  </div>
-
-                  {expandedSession === s.id && (
-                    <div className="mt-4 space-y-3 border-t pt-4">
-                      {/* Transcript */}
-                      {Array.isArray(s.transcript_json) && s.transcript_json.length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground mb-2">TRANSCRIPTION</p>
-                          <div className="space-y-1 max-h-40 overflow-y-auto">
-                            {(s.transcript_json as any[]).map((entry: any, i: number) => (
-                              <div key={i} className="text-xs">
-                                <span className="font-medium">{entry.speaker === "user" ? "Vous" : "Prospect"} :</span>{" "}
-                                {entry.text}
-                              </div>
-                            ))}
+            <>
+              {sessions.length === 0 ? (
+                <Card className="text-center py-12">
+                  <CardContent>
+                    <History className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">Aucun appel enregistré</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                sessions.map((s) => (
+                  <Card
+                    key={s.id}
+                    className="cursor-pointer hover:border-primary/30 transition-colors"
+                    onClick={() => setSelectedSession(s)}
+                  >
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Phone className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">
+                              {format(new Date(s.created_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Durée : {s.duration_seconds ? `${Math.floor(s.duration_seconds / 60)}min ${s.duration_seconds % 60}s` : "—"}
+                              {Array.isArray(s.transcript_json) && ` • ${s.transcript_json.length} échanges`}
+                            </p>
                           </div>
                         </div>
-                      )}
-                      {/* Analysis */}
-                      {s.analysis_json && (
-                        <AnalysisSection analysis={s.analysis_json as CallAnalysis} isAnalyzing={false} />
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
+                        <div className="flex items-center gap-2">
+                          {s.analysis_json && (
+                            <Badge variant="secondary" className="text-xs">
+                              {(s.analysis_json as any).conversion_probability}% conv.
+                            </Badge>
+                          )}
+                          <Badge variant={s.status === "completed" ? "default" : "secondary"}>
+                            {s.status === "completed" ? "Terminé" : "Actif"}
+                          </Badge>
+                          <Eye className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </>
           )}
         </TabsContent>
 
@@ -418,7 +425,98 @@ const CallPrompterPage = () => {
   );
 };
 
-// Analysis sub-component
+// ─── Session Detail View ────────────────────────────────────────
+function SessionDetailView({ session, onBack }: { session: CallSession; onBack: () => void }) {
+  const transcriptEntries = Array.isArray(session.transcript_json) ? session.transcript_json as TranscriptEntry[] : [];
+  const analysis = session.analysis_json as CallAnalysis | null;
+
+  const prospectEntries = transcriptEntries.filter(e => e.speaker === "prospect");
+  const userEntries = transcriptEntries.filter(e => e.speaker === "user");
+
+  return (
+    <div className="space-y-4">
+      <Button variant="ghost" onClick={onBack} className="gap-2">
+        <ArrowLeft className="w-4 h-4" /> Retour à l'historique
+      </Button>
+
+      {/* Header */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">
+                Appel du {format(new Date(session.created_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
+              </h2>
+              <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                <span>Durée : {session.duration_seconds ? `${Math.floor(session.duration_seconds / 60)}min ${session.duration_seconds % 60}s` : "—"}</span>
+                <span>{transcriptEntries.length} échanges</span>
+                <span>{prospectEntries.length} interventions prospect</span>
+              </div>
+            </div>
+            {analysis && (
+              <div className="text-right">
+                <p className="text-2xl font-bold text-foreground">{analysis.conversion_probability}%</p>
+                <p className="text-xs text-muted-foreground">Probabilité conversion</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Conversation timeline */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" /> Timeline de la conversation
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 max-h-[400px] overflow-y-auto">
+          {transcriptEntries.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Aucune transcription disponible</p>
+          ) : (
+            transcriptEntries.map((entry, i) => (
+              <div key={i} className={`flex gap-3 ${entry.speaker === "user" ? "flex-row-reverse" : ""}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                  entry.speaker === "user" ? "bg-primary/10" : "bg-secondary"
+                }`}>
+                  {entry.speaker === "user" ? (
+                    <User className="w-4 h-4 text-primary" />
+                  ) : (
+                    <Users className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </div>
+                <div className={`flex-1 max-w-[80%] ${entry.speaker === "user" ? "text-right" : ""}`}>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {entry.speaker === "user" ? "Vous" : "Prospect"}
+                    </span>
+                    {entry.timestamp && (
+                      <span className="text-xs text-muted-foreground/60">
+                        {format(new Date(entry.timestamp), "HH:mm:ss")}
+                      </span>
+                    )}
+                  </div>
+                  <p className={`text-sm p-2 rounded-lg inline-block ${
+                    entry.speaker === "user"
+                      ? "bg-primary/10 text-foreground"
+                      : "bg-secondary text-foreground"
+                  }`}>
+                    {entry.text}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Analysis */}
+      {analysis && <AnalysisSection analysis={analysis} isAnalyzing={false} />}
+    </div>
+  );
+}
+
+// ─── Analysis sub-component ─────────────────────────────────────
 function AnalysisSection({ analysis, isAnalyzing }: { analysis: CallAnalysis | null; isAnalyzing: boolean }) {
   if (isAnalyzing) {
     return (
@@ -440,19 +538,16 @@ function AnalysisSection({ analysis, isAnalyzing }: { analysis: CallAnalysis | n
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Summary */}
         <div>
           <p className="text-sm font-semibold text-muted-foreground mb-1">RÉSUMÉ</p>
           <p className="text-sm text-foreground">{analysis.summary}</p>
         </div>
 
-        {/* Metrics row */}
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 rounded-lg bg-secondary/50">
             <p className="text-xs text-muted-foreground">Niveau d'intérêt</p>
             <Badge variant={
-              analysis.interest_level === "very_high" ? "default" :
-              analysis.interest_level === "high" ? "default" : "secondary"
+              analysis.interest_level === "very_high" || analysis.interest_level === "high" ? "default" : "secondary"
             }>
               {analysis.interest_level === "very_high" ? "Très élevé" :
                analysis.interest_level === "high" ? "Élevé" :
@@ -465,19 +560,6 @@ function AnalysisSection({ analysis, isAnalyzing }: { analysis: CallAnalysis | n
           </div>
         </div>
 
-        {/* Key moments */}
-        {analysis.key_moments?.length > 0 && (
-          <div>
-            <p className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" /> Moments clés
-            </p>
-            <ul className="text-sm space-y-1">
-              {analysis.key_moments.map((m, i) => <li key={i} className="text-foreground">• {m}</li>)}
-            </ul>
-          </div>
-        )}
-
-        {/* Objections */}
         {analysis.objections?.length > 0 && (
           <div>
             <p className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1">
@@ -489,7 +571,17 @@ function AnalysisSection({ analysis, isAnalyzing }: { analysis: CallAnalysis | n
           </div>
         )}
 
-        {/* Strengths */}
+        {analysis.key_moments?.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" /> Moments clés
+            </p>
+            <ul className="text-sm space-y-1">
+              {analysis.key_moments.map((m, i) => <li key={i} className="text-foreground">• {m}</li>)}
+            </ul>
+          </div>
+        )}
+
         {analysis.strengths?.length > 0 && (
           <div>
             <p className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1">
@@ -501,7 +593,6 @@ function AnalysisSection({ analysis, isAnalyzing }: { analysis: CallAnalysis | n
           </div>
         )}
 
-        {/* Improvements */}
         {analysis.improvements?.length > 0 && (
           <div>
             <p className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1">
@@ -513,7 +604,6 @@ function AnalysisSection({ analysis, isAnalyzing }: { analysis: CallAnalysis | n
           </div>
         )}
 
-        {/* Better responses */}
         {analysis.better_responses?.length > 0 && (
           <div>
             <p className="text-sm font-semibold text-muted-foreground mb-2">RÉPONSES ALTERNATIVES</p>

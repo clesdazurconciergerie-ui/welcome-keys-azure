@@ -89,33 +89,40 @@ export function useCallPrompter() {
   // Audio debug state
   const [micStatus, setMicStatus] = useState<MicStatus>("not_requested");
   const [audioLevel, setAudioLevel] = useState(0);
-  const [sttStatus, setSttStatus] = useState<"inactive" | "active" | "restarting">("inactive");
-  
+  const [sttStatus, setSttStatus] = useState<"inactive" | "active" | "transcribing">("inactive");
+  const [chunksTranscribed, setChunksTranscribed] = useState(0);
+  const [lastTranscriptionTime, setLastTranscriptionTime] = useState<string | null>(null);
+
   // Speaker detection state
   const [speakerState, setSpeakerState] = useState<SpeakerDetection>("calibrating");
   const [calibrationProgress, setCalibrationProgress] = useState(0);
   const [lastDetectedSpeaker, setLastDetectedSpeaker] = useState<"user" | "prospect" | null>(null);
 
-  const recognitionRef = useRef<any>(null);
   const sessionIdRef = useRef<string | null>(null);
   const startTimeRef = useRef<Date | null>(null);
   const transcriptRef = useRef<TranscriptEntry[]>([]);
 
-  // Audio monitoring refs
+  // Audio refs
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const animFrameRef = useRef<number>(0);
-  const restartCountRef = useRef(0);
   const isActiveRef = useRef(false);
+  const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Voice calibration refs
   const userVoiceProfileRef = useRef<Float32Array | null>(null);
   const calibrationSamplesRef = useRef<Float32Array[]>([]);
   const calibrationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const CALIBRATION_DURATION = 5000; // 5 seconds
-  const CALIBRATION_INTERVAL = 200; // sample every 200ms
-  const SIMILARITY_THRESHOLD = 0.75; // above = user, below = prospect
+  const CALIBRATION_DURATION = 5000;
+  const CALIBRATION_INTERVAL = 200;
+  const SIMILARITY_THRESHOLD = 0.75;
+
+  // Whisper chunking refs
+  const audioChunksRef = useRef<Blob[]>([]);
+  const isTranscribingRef = useRef(false);
+  const transcriptionQueueRef = useRef<Blob[]>([]);
 
   // Keep transcriptRef in sync
   useEffect(() => {
@@ -166,12 +173,29 @@ export function useCallPrompter() {
 
   useEffect(() => { fetchSettings(); fetchSessions(); }, [fetchSettings, fetchSessions]);
 
-  // ─── AI suggestion ────────────────────────────────────────────
+  // ─── AI suggestion with adaptive learning ─────────────────────
   const getSuggestion = useCallback(async (prospectSpeech: string, history: TranscriptEntry[]) => {
     setCallStatus("processing");
     try {
+      // Fetch recent analyses for adaptive learning
+      const { data: recentAnalyses } = await (supabase as any)
+        .from("call_sessions")
+        .select("analysis_json")
+        .not("analysis_json", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      const pastPatterns = (recentAnalyses || [])
+        .map((s: any) => s.analysis_json)
+        .filter(Boolean);
+
       const { data, error } = await supabase.functions.invoke("call-prompter-suggest", {
-        body: { prospect_speech: prospectSpeech, conversation_history: history, settings },
+        body: {
+          prospect_speech: prospectSpeech,
+          conversation_history: history,
+          settings,
+          past_analyses: pastPatterns,
+        },
       });
       if (error) throw error;
       setSuggestion(data.suggestion || "");
@@ -232,7 +256,6 @@ export function useCallPrompter() {
 
       if (analyserRef.current) {
         const profile = computeSpectralProfile(analyserRef.current);
-        // Only add if there's actual audio (not silence)
         const energy = profile.reduce((a, b) => a + b, 0);
         if (energy > 1) {
           calibrationSamplesRef.current.push(profile);
@@ -243,7 +266,6 @@ export function useCallPrompter() {
         if (calibrationTimerRef.current) clearInterval(calibrationTimerRef.current);
         calibrationTimerRef.current = null;
 
-        // Average the samples into a voice profile
         const samples = calibrationSamplesRef.current;
         if (samples.length >= 3) {
           const len = samples[0].length;
@@ -253,11 +275,9 @@ export function useCallPrompter() {
           }
           for (let i = 0; i < len; i++) avg[i] /= samples.length;
           userVoiceProfileRef.current = avg;
-          console.log(`[CALIBRATION] Voice profile created from ${samples.length} samples`);
           toast.success("✅ Profil vocal enregistré — l'IA ne répondra qu'au prospect !");
         } else {
-          console.warn("[CALIBRATION] Not enough voiced samples, using fallback");
-          toast.warning("Calibration partielle — parlez plus fort. Vous pouvez basculer manuellement.");
+          toast.warning("Calibration partielle — parlez plus fort. Basculez manuellement si besoin.");
           userVoiceProfileRef.current = null;
         }
         setSpeakerState("listening_prospect");
@@ -268,126 +288,181 @@ export function useCallPrompter() {
   // ─── Speaker detection ────────────────────────────────────────
   const detectSpeaker = useCallback((): "user" | "prospect" | "uncertain" => {
     if (!analyserRef.current || !userVoiceProfileRef.current) return "uncertain";
-    
+
     const currentProfile = computeSpectralProfile(analyserRef.current);
     const energy = currentProfile.reduce((a, b) => a + b, 0);
-    if (energy < 0.5) return "uncertain"; // silence
+    if (energy < 0.5) return "uncertain";
 
     const similarity = cosineSimilarity(currentProfile, userVoiceProfileRef.current);
-    console.log(`[SPEAKER] Similarity: ${similarity.toFixed(3)}`);
 
     if (similarity >= SIMILARITY_THRESHOLD) return "user";
     if (similarity < SIMILARITY_THRESHOLD - 0.1) return "prospect";
     return "uncertain";
   }, []);
 
-  // Manual speaker toggle
   const toggleSpeakerManual = useCallback((speaker: "user" | "prospect") => {
     setLastDetectedSpeaker(speaker);
     setSpeakerState(speaker === "user" ? "listening_user" : "listening_prospect");
   }, []);
 
-  // ─── Speech recognition ───────────────────────────────────────
-  const createRecognition = useCallback(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return null;
+  // ─── Whisper transcription via edge function ──────────────────
+  const transcribeChunk = useCallback(async (audioBlob: Blob) => {
+    if (audioBlob.size < 1000) return; // skip tiny/silent chunks
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = "fr-FR";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
+    setSttStatus("transcribing");
+    try {
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "audio.webm");
 
-    recognition.onstart = () => {
-      setSttStatus("active");
-      restartCountRef.current = 0;
-    };
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-    recognition.onresult = (event: any) => {
-      const result = event.results[event.results.length - 1];
-      if (!result.isFinal) return;
-
-      const text = result[0].transcript.trim();
-      if (!text || text.length < 2) return;
-
-      // Detect who is speaking using voice profile
-      const detected = detectSpeaker();
-      let speaker: "user" | "prospect";
-
-      if (detected === "uncertain") {
-        // If uncertain, default to prospect (safer — AI only generates for prospect)
-        // But if last was prospect, assume this is user now
-        const lastSpeaker = transcriptRef.current.length > 0
-          ? transcriptRef.current[transcriptRef.current.length - 1].speaker
-          : null;
-        speaker = lastSpeaker === "prospect" ? "user" : "prospect";
-        setSpeakerState("uncertain");
-      } else {
-        speaker = detected;
-        setSpeakerState(speaker === "user" ? "listening_user" : "listening_prospect");
-      }
-
-      setLastDetectedSpeaker(speaker);
-      const entry: TranscriptEntry = { speaker, text, timestamp: new Date().toISOString() };
-      
-      setTranscript(prev => {
-        const updated = [...prev, entry];
-        // CRITICAL: Only trigger AI when PROSPECT finishes speaking
-        if (speaker === "prospect") {
-          getSuggestion(text, updated);
-        }
-        return updated;
+      const response = await fetch(`${supabaseUrl}/functions/v1/call-prompter-transcribe`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+        body: formData,
       });
-      console.log(`[STT] ${speaker}: ${text}`);
-    };
 
-    recognition.onerror = (event: any) => {
-      if (event.error === "not-allowed") {
-        setMicStatus("denied");
-        setSttStatus("inactive");
-        toast.error("Accès au microphone refusé.");
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        console.error("Transcription error:", errData);
+        if (response.status === 429) toast.error("Limite de requêtes atteinte");
+        setSttStatus("active");
         return;
       }
-      if (event.error !== "no-speech" && event.error !== "aborted") {
-        setSttStatus("restarting");
-      }
-    };
 
-    recognition.onend = () => {
-      if (isActiveRef.current) {
-        restartCountRef.current++;
-        if (restartCountRef.current > 50) {
-          setSttStatus("restarting");
-          setTimeout(() => {
-            if (isActiveRef.current) {
-              restartCountRef.current = 0;
-              try { recognition.start(); } catch {}
-            }
-          }, 3000);
-          return;
+      const data = await response.json();
+      const text = (data.text || "").trim();
+
+      if (text && text.length >= 2) {
+        setChunksTranscribed(prev => prev + 1);
+        setLastTranscriptionTime(new Date().toLocaleTimeString("fr-FR"));
+
+        // Detect speaker at moment of transcription
+        const detected = detectSpeaker();
+        let speaker: "user" | "prospect";
+
+        if (detected === "uncertain") {
+          const lastSpeaker = transcriptRef.current.length > 0
+            ? transcriptRef.current[transcriptRef.current.length - 1].speaker
+            : null;
+          speaker = lastSpeaker === "prospect" ? "user" : "prospect";
+          setSpeakerState("uncertain");
+        } else {
+          speaker = detected;
+          setSpeakerState(speaker === "user" ? "listening_user" : "listening_prospect");
         }
-        setSttStatus("restarting");
-        setTimeout(() => {
-          if (isActiveRef.current) {
-            try { recognition.start(); } catch {}
-          }
-        }, 300);
-      } else {
-        setSttStatus("inactive");
-      }
-    };
 
-    return recognition;
-  }, [getSuggestion, detectSpeaker]);
+        setLastDetectedSpeaker(speaker);
+        const entry: TranscriptEntry = { speaker, text, timestamp: new Date().toISOString() };
+
+        setTranscript(prev => {
+          const updated = [...prev, entry];
+          // Only trigger AI when PROSPECT speaks
+          if (speaker === "prospect") {
+            getSuggestion(text, updated);
+          }
+          return updated;
+        });
+        console.log(`[WHISPER] ${speaker}: ${text}`);
+      }
+
+      setSttStatus("active");
+    } catch (e) {
+      console.error("Transcription failed:", e);
+      setSttStatus("active");
+    }
+  }, [detectSpeaker, getSuggestion]);
+
+  // Process transcription queue sequentially
+  const processQueue = useCallback(async () => {
+    if (isTranscribingRef.current) return;
+    const blob = transcriptionQueueRef.current.shift();
+    if (!blob) return;
+
+    isTranscribingRef.current = true;
+    await transcribeChunk(blob);
+    isTranscribingRef.current = false;
+
+    // Process next in queue
+    if (transcriptionQueueRef.current.length > 0 && isActiveRef.current) {
+      processQueue();
+    }
+  }, [transcribeChunk]);
+
+  // ─── MediaRecorder chunking ───────────────────────────────────
+  const startRecording = useCallback((stream: MediaStream) => {
+    try {
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+
+      const recorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        // Do nothing here — we handle chunks via interval
+      };
+
+      recorder.start();
+      setSttStatus("active");
+
+      // Every 3 seconds: stop, collect, restart, send to Whisper
+      recordingIntervalRef.current = setInterval(() => {
+        if (!isActiveRef.current || recorder.state !== "recording") return;
+
+        recorder.stop();
+
+        // Small delay to let ondataavailable fire
+        setTimeout(() => {
+          if (audioChunksRef.current.length > 0) {
+            const blob = new Blob(audioChunksRef.current, { type: mimeType });
+            audioChunksRef.current = [];
+
+            // Only queue if there's likely speech (check audio level)
+            if (blob.size > 2000) {
+              transcriptionQueueRef.current.push(blob);
+              processQueue();
+            }
+          }
+
+          if (isActiveRef.current) {
+            try { recorder.start(); } catch {}
+          }
+        }, 100);
+      }, 3000);
+
+    } catch (e) {
+      console.error("MediaRecorder error:", e);
+      toast.error("Impossible de démarrer l'enregistrement audio");
+    }
+  }, [processQueue]);
+
+  const stopRecording = useCallback(() => {
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      try { mediaRecorderRef.current.stop(); } catch {}
+    }
+    mediaRecorderRef.current = null;
+    audioChunksRef.current = [];
+    transcriptionQueueRef.current = [];
+    isTranscribingRef.current = false;
+  }, []);
 
   // ─── Start call ───────────────────────────────────────────────
   const startCall = useCallback(async () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast.error("Reconnaissance vocale non supportée. Utilisez Chrome ou Edge.");
-      return;
-    }
-
     setCallStatus("calibrating");
     let stream: MediaStream;
     try {
@@ -418,41 +493,28 @@ export function useCallPrompter() {
     setTranscript([]);
     setSuggestion("");
     setAnalysis(null);
+    setChunksTranscribed(0);
+    setLastTranscriptionTime(null);
     startTimeRef.current = new Date();
     isActiveRef.current = true;
-    restartCountRef.current = 0;
     userVoiceProfileRef.current = null;
     setLastDetectedSpeaker(null);
 
-    // Start audio monitoring first
+    // Start audio monitoring
     startAudioMonitoring(stream);
 
     // Start voice calibration
     toast.info("🎙️ Parlez pendant 5 secondes pour calibrer votre voix…");
     startCalibration();
 
-    // After calibration, start STT
+    // After calibration, start Whisper recording
     setTimeout(() => {
       if (!isActiveRef.current) return;
-
-      const recognition = createRecognition();
-      if (!recognition) {
-        toast.error("Impossible de démarrer la reconnaissance vocale");
-        setCallStatus("idle");
-        return;
-      }
-
-      recognitionRef.current = recognition;
-      try {
-        recognition.start();
-        setCallStatus("listening");
-        toast.success("🎙️ Écoute active — Commencez l'appel !");
-      } catch (e) {
-        toast.error("Erreur au démarrage STT");
-        setCallStatus("idle");
-      }
+      startRecording(stream);
+      setCallStatus("listening");
+      toast.success("🎙️ Écoute active — Transcription Whisper en cours !");
     }, CALIBRATION_DURATION + 500);
-  }, [createRecognition, startAudioMonitoring, startCalibration]);
+  }, [startAudioMonitoring, startCalibration, startRecording]);
 
   // ─── End call ─────────────────────────────────────────────────
   const endCall = useCallback(async () => {
@@ -463,12 +525,7 @@ export function useCallPrompter() {
       calibrationTimerRef.current = null;
     }
 
-    if (recognitionRef.current) {
-      recognitionRef.current.onend = null;
-      recognitionRef.current.onerror = null;
-      try { recognitionRef.current.stop(); } catch {}
-      recognitionRef.current = null;
-    }
+    stopRecording();
 
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(t => t.stop());
@@ -522,7 +579,7 @@ export function useCallPrompter() {
     }
 
     toast.success("Appel terminé");
-  }, [settings, fetchSessions, stopAudioMonitoring]);
+  }, [settings, fetchSessions, stopAudioMonitoring, stopRecording]);
 
   // ─── Regenerate ───────────────────────────────────────────────
   const regenerateSuggestion = useCallback(() => {
@@ -537,9 +594,9 @@ export function useCallPrompter() {
     return () => {
       isActiveRef.current = false;
       if (calibrationTimerRef.current) clearInterval(calibrationTimerRef.current);
-      if (recognitionRef.current) {
-        recognitionRef.current.onend = null;
-        try { recognitionRef.current.stop(); } catch {}
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        try { mediaRecorderRef.current.stop(); } catch {}
       }
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(t => t.stop());
@@ -560,5 +617,6 @@ export function useCallPrompter() {
     micStatus, audioLevel, sttStatus,
     speakerState, calibrationProgress, lastDetectedSpeaker,
     toggleSpeakerManual,
+    chunksTranscribed, lastTranscriptionTime,
   };
 }
