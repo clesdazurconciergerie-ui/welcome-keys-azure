@@ -222,8 +222,8 @@ export default function PhotoOptimizerPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <SegmentedControl options={STYLES} value={style} onChange={setStyle} />
-          <SegmentedControl options={INTENSITIES} value={intensity} onChange={setIntensity} />
+          <SegmentedControl<PhotoStyle> options={STYLES} value={style} onChange={setStyle} />
+          <SegmentedControl<PhotoIntensity> options={INTENSITIES} value={intensity} onChange={setIntensity} />
           {photos.length > 1 && (
             <Button onClick={processAll} size="sm" className="gap-1.5 rounded-lg">
               <Sparkles className="h-3.5 w-3.5" />
