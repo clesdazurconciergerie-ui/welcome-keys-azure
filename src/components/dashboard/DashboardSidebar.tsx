@@ -33,6 +33,7 @@ const navGroups = [
     items: [
       { title: "Prospection", url: "/dashboard/prospection", icon: Target },
       { title: "Demandes", url: "/dashboard/demandes-proprietaires", icon: MessageCircle },
+      { title: "Call Prompter", url: "/dashboard/call-prompter", icon: Brain },
     ],
   },
   {

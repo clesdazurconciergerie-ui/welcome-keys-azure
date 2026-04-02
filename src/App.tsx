@@ -102,6 +102,7 @@ const App = () => (
             <Route path="prospection" element={<ProspectionPage />} />
             <Route path="finance" element={<FinancePage />} />
             <Route path="demandes-proprietaires" element={<OwnerRequestsAdminPage />} />
+            <Route path="call-prompter" element={<CallPrompterPage />} />
             <Route path="performance" element={<PerformancePage />} />
             <Route path="abonnement" element={<AbonnementPage />} />
             <Route path="parametres" element={<ParametresPage />} />
