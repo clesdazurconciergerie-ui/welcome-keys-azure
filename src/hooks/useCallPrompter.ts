@@ -234,8 +234,8 @@ export function useCallPrompter() {
         const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
         const nextLevel = Math.round((avg / 255) * 100);
         setAudioLevel(nextLevel);
-        segmentHadSpeechRef.current = nextLevel >= 3;
-        if (segmentHadSpeechRef.current) {
+        if (nextLevel >= 3) {
+          segmentHadSpeechRef.current = true;
           lastSpeechAtRef.current = Date.now();
         }
         animFrameRef.current = requestAnimationFrame(updateLevel);
