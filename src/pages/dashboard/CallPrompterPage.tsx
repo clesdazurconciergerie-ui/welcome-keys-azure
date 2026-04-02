@@ -160,7 +160,7 @@ const CallPrompterPage = () => {
                         : "bg-green-500/20 text-green-600 text-xs"
                       }
                     >
-                      {userSpeaking ? "🔇 Vous parlez (muté)" : "🎙️ Écoute prospect"}
+                      {userSpeaking ? "🗣️ Vous parlez" : "🎙️ Écoute prospect"}
                     </Badge>
                   </div>
                 </div>
