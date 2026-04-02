@@ -46,6 +46,7 @@ import ProspectionPage from "./pages/dashboard/ProspectionPage";
 import PerformancePage from "./pages/dashboard/PerformancePage";
 import AbonnementPage from "./pages/dashboard/AbonnementPage";
 import ParametresPage from "./pages/dashboard/ParametresPage";
+import CallPrompterPage from "./pages/dashboard/CallPrompterPage";
 import AutomationPage from "./pages/dashboard/AutomationPage";
 import BrandingPage from "./pages/dashboard/BrandingPage";
 import HelpCenterPage from "./pages/dashboard/HelpCenterPage";
