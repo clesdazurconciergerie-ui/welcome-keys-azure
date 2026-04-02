@@ -105,6 +105,7 @@ export function useCallPrompter() {
   const audioChunksRef = useRef<Blob[]>([]);
   const isTranscribingRef = useRef(false);
   const transcriptionQueueRef = useRef<{ blob: Blob; speaker: "user" | "prospect" }[]>([]);
+  const lastTranscribedTextRef = useRef<string>("");
 
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
