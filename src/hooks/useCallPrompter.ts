@@ -109,36 +109,42 @@ export function useCallPrompter() {
   const segmentSpeakerRef = useRef<"user" | "prospect">("prospect");
   const segmentHadSpeechRef = useRef(false);
   const lastSpeechAtRef = useRef<number | null>(null);
+  const processQueueRef = useRef<() => void>(() => {});
 
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
+  // Flush buffered audio into transcription queue
+  const flushBufferedSegment = useCallback((triggerSuggestion: boolean) => {
+    const chunks = audioChunksRef.current;
+    const hadSpeech = segmentHadSpeechRef.current;
+    const speaker = segmentSpeakerRef.current;
+
+    audioChunksRef.current = [];
+    segmentHadSpeechRef.current = false;
+    lastSpeechAtRef.current = null;
+
+    if (!chunks.length) return;
+
+    const mimeType = mediaRecorderRef.current?.mimeType || "audio/webm";
+    const blob = new Blob(chunks, { type: mimeType });
+    console.log("[CallPrompter] Flushing segment:", blob.size, "bytes, speaker:", speaker, "hadSpeech:", hadSpeech, "trigger:", triggerSuggestion);
+    if (blob.size <= 2000) return;
+
+    transcriptionQueueRef.current.push({ blob, speaker, triggerSuggestion });
+    processQueueRef.current();
+  }, []);
+
   // ─── Push-to-talk keyboard listeners ──────────────────────────
   useEffect(() => {
-    const flushBufferedSegment = (triggerSuggestion: boolean) => {
-      const chunks = audioChunksRef.current;
-      const hadSpeech = segmentHadSpeechRef.current;
-      const speaker = segmentSpeakerRef.current;
-
-      audioChunksRef.current = [];
-      segmentHadSpeechRef.current = false;
-      lastSpeechAtRef.current = null;
-
-      if (!chunks.length || !hadSpeech) return;
-
-      const mimeType = mediaRecorderRef.current?.mimeType || "audio/webm";
-      const blob = new Blob(chunks, { type: mimeType });
-      if (blob.size <= 4000) return;
-
-      transcriptionQueueRef.current.push({ blob, speaker, triggerSuggestion });
-      processQueue();
-    };
-
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space" || !isActiveRef.current) return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) return;
       e.preventDefault();
       if (!userSpeakingRef.current) {
-        flushBufferedSegment(false);
+        // Prospect was speaking → flush prospect segment WITH suggestion trigger
+        if (segmentSpeakerRef.current === "prospect") {
+          flushBufferedSegment(true);
+        }
         segmentSpeakerRef.current = "user";
         userSpeakingRef.current = true;
         setUserSpeaking(true);
@@ -149,6 +155,7 @@ export function useCallPrompter() {
       if (["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) return;
       e.preventDefault();
       if (userSpeakingRef.current) {
+        // User was speaking → flush user segment (no suggestion)
         flushBufferedSegment(false);
         segmentSpeakerRef.current = "prospect";
         userSpeakingRef.current = false;
@@ -161,7 +168,7 @@ export function useCallPrompter() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, []);
+  }, [flushBufferedSegment]);
 
   // ─── Settings / Sessions CRUD ─────────────────────────────────
   const fetchSettings = useCallback(async () => {
