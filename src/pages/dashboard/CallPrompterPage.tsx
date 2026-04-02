@@ -220,7 +220,9 @@ const CallPrompterPage = () => {
                     {callStatus === "calibrating" ? (
                       <div className="space-y-3">
                         <Mic className="w-12 h-12 text-yellow-500 mx-auto animate-pulse" />
-                        <p className="text-xl text-muted-foreground">Parlez quelques secondes pour calibrer...</p>
+                        <p className="text-xl text-muted-foreground">Parlez pendant 5 secondes pour calibrer votre voix…</p>
+                        <Progress value={calibrationProgress} className="h-3 max-w-xs mx-auto" />
+                        <p className="text-sm text-muted-foreground">{calibrationProgress}%</p>
                       </div>
                     ) : suggestion ? (
                       <motion.p
