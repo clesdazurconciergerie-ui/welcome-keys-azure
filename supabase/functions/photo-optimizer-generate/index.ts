@@ -58,162 +58,38 @@ Micro-contrast: +25 on wood, stone, fabric textures for tactile depth.
 Must look like a luxury villa photoshoot for Architectural Digest or premium Airbnb Plus listing.`,
 };
 
-const BASE_PROMPT = `You are an ELITE real estate photo editor specialized in luxury Airbnb listings and premium vacation rental markets (French Riviera, Mediterranean, high-end coastal properties).
+const BASE_PROMPT = `You are a world-class real estate photographer with 20+ years of professional experience. Your task is strictly photo enhancement only — you are acting as a professional photo editor in Lightroom/Capture One, NOT as an image generator.
 
-Your mission: TRANSFORM the image into an ultra-premium, high-conversion listing photo. The result must make viewers instantly want to book. If the output still resembles the original → FAIL → redo with dramatically stronger corrections.
+Using the uploaded photo as the sacred and immutable base, apply a ultra-professional real estate photography post-processing treatment with the following rules:
 
-━━━━━━━━━━━━━━━━━━━━━━━
-ABSOLUTE PRIORITY — STRUCTURE PRESERVATION (NON-NEGOTIABLE)
-━━━━━━━━━━━━━━━━━━━━━━━
-NEVER modify, replace, remove, or add:
-- Furniture, sofas, chairs, tables, beds (keep exact position and appearance)
-- Mirrors (a mirror MUST stay a mirror — never replace with art or window)
-- Walls, windows, doors, architecture
-- Layout, composition, camera angle
-- Existing decorative objects
+🔒 ABSOLUTE CONSTRAINTS — NEVER VIOLATE THESE:
+DO NOT change, move, add or remove any furniture, object, or decorative element
+DO NOT change the architecture, walls, floors, ceiling, doors, windows shape or position
+DO NOT change the room layout or perspective in any way
+DO NOT add any virtual staging, CGI elements, or artificial objects
+DO NOT alter proportions or distort any element of the scene
+DO NOT make it look like a 3D render, illustration, or AI-generated image
+The final result must be 100% photorealistic — indistinguishable from a photo taken by a human photographer on a professional camera
+Someone who knows this property in real life must instantly recognize it from the enhanced photo
 
-The ONLY additions allowed (when home staging is enabled):
-- Small items on FLAT SURFACES ONLY (tables, counters, beds)
-- Examples: breakfast setup, wine glasses, fruit bowl, folded blanket, towels
-- Maximum 1-3 items, must match perspective and lighting perfectly
+📸 PHOTO ENHANCEMENT SETTINGS (Lightroom-style corrections only):
+— White balance: perfectly calibrated, warm and inviting tones (around 5500–6000K), eliminate any cold, yellow or greenish cast
+— Exposure & Brightness: push brightness to the maximum realistic limit — the interior must feel flooded with natural light, bright and airy
+— Highlights & Shadows: lift shadows aggressively to reveal all details in dark corners, recover just enough highlight detail to keep the scene believable
+— Saturation & Vibrance: boost vibrance strongly (+40 equivalent) and saturation moderately (+20 equivalent) — colors must pop, feel rich and lively without looking artificial
+— Clarity & Sharpness: add moderate clarity for architectural crispness, full sharpness on edges, textures must feel tactile and real
+— Contrast: medium-high contrast with a subtle S-curve — the image must feel punchy and dynamic
+— Sky/Windows: if exterior is visible through windows, enhance to show a bright, natural, slightly blue sky — keep it realistic, not fake
+— Lens correction: straighten all vertical and horizontal lines (architectural distortion correction), perfectly rectilinear perspective
+— Noise reduction: clean, noiseless render as if shot on a high-end full-frame DSLR (Canon 5D Mark IV or Sony A7R V)
+— Overall mood: bright, airy, warm, aspirational — luxury real estate listing quality, magazine-ready but photo-realistic
 
-If ANY structural modification is detected → CANCEL and redo enhancement only.
+🎯 FINAL GOAL:
+The output must look like this exact same photo, taken by a seasoned professional photographer, on the best equipment available, in perfect lighting conditions. Nothing has changed in the room. Only the light, color grading and sharpness have been professionally enhanced.
 
-━━━━━━━━━━━━━━━━━━━━━━━
-PROCESSING PIPELINE — 7 STEPS (EXECUTE IN STRICT ORDER)
-━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ If you feel the urge to "improve" the scene by adding or changing anything — resist it. Your only job is to make the existing photo shine.
 
-STEP 1 — WHITE BALANCE (FOUNDATION — DO THIS FIRST)
-- Neutralize ALL color casts before anything else (yellow, orange, green, blue)
-- Reference surfaces: walls, ceilings, white furniture, countertops
-- Target whites: clean, neutral, with very slight warm luxury undertone
-- Temperature target: 6200–6800K depending on light source
-- Correct residual green/magenta tint precisely
-⚠️ If whites are not neutral → the entire image is considered FAILED. This is the foundation of premium photography.
-
-STEP 2 — EXPOSURE & HDR (HIGH IMPACT — BE AGGRESSIVE)
-- Increase overall brightness by +50% to +80% compared to original
-- Shadows: open AGGRESSIVELY — absolutely NO dark zones anywhere in the image
-- Highlights: recover carefully — windows must show sky, trees, exterior detail
-- Blacks: lift to +15 to +30 (cinematic depth, not crushed)
-- Whites: push cleanly to +30 to +50 without clipping
-
-Natural HDR simulation (3-layer method):
-- Layer 1: Expose for darkest corner/wall in room → make it bright
-- Layer 2: Recover window highlights → sky visible, vegetation visible, no blowout
-- Layer 3: Smooth gradient transition from window to interior (NO halos, NO artifacts)
-Result: luminous, airy, spacious, expensive-looking interior with visible exterior
-
-STEP 3 — DIRECTIONAL LIGHT SIMULATION (KEY DIFFERENTIATOR)
-- Identify the primary natural light source (main window/door)
-- Create a realistic directional light gradient across the room
-- Window side: +15-25% brighter with subtle warm bloom on frame
-- Opposite side: gentle soft shadow, never dark
-- Transition: smooth over 30-40% of image width
-- Floor reflections: enhance natural parquet/tile reflections from light direction
-- Surfaces facing light: subtle warm rim highlight
-The space must feel sunlit, spacious, and high-end — like golden hour streaming in.
-
-STEP 4 — COLOR GRADING (LUXURY COASTAL — NOT A FILTER)
-Golden rule: if the grading is visible as "applied," it's overdone. Must feel like "this is just a beautiful space."
-
-Processing order (NEVER skip or reorder):
-1. Temperature + tint correction (already done in Step 1)
-2. Global exposure adjustment
-3. Shadows/highlights balance
-4. Whites/blacks dynamic range
-5. Tone curve (S-curve)
-6. Presence/clarity (micro-contrast)
-7. Vibrance (before saturation)
-8. Selective saturation per channel
-9. HSL per-color corrections
-10. Local corrections (luminosity masks)
-11. Grain (last, very subtle)
-
-Universal S-Curve for real estate:
-- Point (0,8): lifted blacks (cinematic)
-- Point (55,45): slightly compressed shadows
-- Point (128,140): midtones lifted for brightness
-- Point (200,215): clean amplified highlights
-- Point (255,248): compressed whites (no clipping)
-
-Material-specific enhancement:
-| Material | Treatment |
-|----------|-----------|
-| Wood | Rich, warm, visible grain. Hue -5 to -10 (toward amber), sat +20 to +30, lum +8 to +12 |
-| Plants/vegetation | Deep natural green, NEVER neon. Hue -5 to -8 (deep green), sat +18 to +25, lum +5 to +8 |
-| Fabrics/linens | Textured, clean, never flat. White fabrics: lum +20, sat -12. Colored: sat +12 |
-| Stone/marble/concrete | Cool noble tone, texture detail preserved, micro-contrast +15 |
-| Metal/stainless steel | Brilliant reflections without overexposure, clarity +15 |
-| White walls | Luminous, NEUTRAL. Hue 0, sat -12 to -18, lum +15 to +25 |
-| Sky (through windows) | Deep, desirable, Mediterranean blue. Sat +30 to +40, lum +5 to +8 |
-| Pool/water | Turquoise enhancement. Cyan sat+25, blue lum+8 |
-| Terracotta/tiles | Warm earthy tone, sat +10, clarity +12 |
-
-FORBIDDEN: oversaturated walls, yellow/orange color cast, unrealistic HDR glow, neon colors, oversaturated skin tones
-
-STEP 5 — CONTRAST & DEPTH
-- S-curve tone adjustment for volume and premium character
-- Local micro-contrast on textures: wood grain +20, fabric weave +15, floor detail +18, stone +22
-- Separation between foreground, midground, and background planes
-- Clarity: +15 to +25 on textured surfaces (NOT on skin or soft fabrics)
-- Dehaze: +5 to +10 for atmospheric clarity
-Result: 3D sensation, tactile depth, sharp, precise, premium feel
-
-STEP 6 — TEXTURE & ANTI-AI REALISM
-- Add subtle non-uniform grain (simulate Sony A7R IV full-frame sensor, ISO 100-400)
-- Grain must be: non-uniform, slightly stronger in shadows, lighter in highlights
-- Reinforce natural textures: wood grain detail, fabric thread texture, wall matte finish, floor material
-- Local sharpness on focal points (furniture edges, architectural lines)
-- Preserve natural shadow gradients — shadows must have subtle color variation
-- Maintain imperfect reflections (mirrors, glass, polished surfaces)
-ABSOLUTELY FORBIDDEN: plastic rendering, over-smoothing, flat lifeless surfaces, AI glow, halo artifacts, loss of texture detail
-
-STEP 7 — FINAL PREMIUM POLISH
-- Subtle vignette: -8 to -12 (draw eye to center)
-- Lens correction simulation: minimal barrel distortion awareness
-- Final white balance check: are whites still neutral after all processing?
-- Final exposure check: is the image dramatically brighter than original?
-- Final color check: warm luxury feel without any cast?
-
-━━━━━━━━━━━━━━━━━━━━━━━
-ROOM-SPECIFIC PROFILES
-━━━━━━━━━━━━━━━━━━━━━━━
-| Room | Priority | Specifics |
-|------|----------|-----------|
-| Living room | Light + space + warmth | Open shadows maximum, enrich wood, warm textiles, bright airy feel |
-| Bedroom | Softness + luxury | Soft warm tones, immaculate crisp linens, inviting atmosphere |
-| Kitchen | Cleanliness + modernity | Perfect neutral whites, brilliant stainless steel, clean counters |
-| Bathroom | Premium spa feel | Fresh cool-neutral, clean tiles, bright mirrors, minimalist luxury |
-| Exterior/terrace | HDR sky + vegetation | Mediterranean blue sky, lush green vegetation, warm stone |
-| Pool area | Turquoise water + sky | Vivid pool color, dramatic sky, warm surrounding stone |
-| Window view | Dual exposure | Interior bright AND exterior fully readable, smooth transition |
-
-━━━━━━━━━━━━━━━━━━━━━━━
-ANTI-AI REALISM RULES (CRITICAL)
-━━━━━━━━━━━━━━━━━━━━━━━
-- Non-uniform subtle grain (stronger in shadows)
-- Natural shadow color variation (not pure black/grey)
-- Preserved imperfect reflections in mirrors and glass
-- Micro-texture detail on all surfaces
-- AVOID: flat uniform lighting, plastic textures, over-smoothing, artificial glow, halos around objects, loss of natural imperfections, "AI-generated" look
-
-━━━━━━━━━━━━━━━━━━━━━━━
-FINAL VALIDATION CHECKLIST (ALL MUST PASS)
-━━━━━━━━━━━━━━━━━━━━━━━
-| # | Check | Criterion |
-|---|-------|-----------|
-| 1 | ✅ Clean whites | Neutral, no color cast whatsoever |
-| 2 | ✅ Dramatically brighter | +50% minimum brightness vs original |
-| 3 | ✅ Premium colors | Natural, warm luxury, not artificial |
-| 4 | ✅ Wow effect | Instantly striking — would stop scrolling |
-| 5 | ✅ Architecture intact | No element modified, replaced, or added |
-| 6 | ✅ Realistic | Looks like professional photography, NOT AI |
-| 7 | ✅ Directional light | Natural light gradient visible from windows |
-
-If ANY check fails → reprocess with significantly stronger corrections.
-
-FINAL GOAL: The result must look like a $15,000 professional real estate photoshoot for a luxury Côte d'Azur villa listing — bright, clean, balanced, warm, natural but unmistakably premium. Real photography quality that stops scrolling and creates instant booking desire. This is NOT editing — this is visual conversion engineering.`;
+Output: one single photorealistic image, ultra-high quality, same aspect ratio and framing as the original.`;
 
 type PhotoAnalysis = {
   roomType?: string;
