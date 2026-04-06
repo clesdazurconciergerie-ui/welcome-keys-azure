@@ -610,10 +610,8 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
 
 /* ─── Mission Detail ─── */
 
-function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, onDelete, onValidate, onMarkPaid }: {
+function MissionDetail({ mission: m, onPublish, onCancel, onDelete, onValidate, onMarkPaid }: {
   mission: NewMission;
-  onAccept: (missionId: string, appId: string, providerId: string) => void;
-  onReject: (appId: string) => void;
   onPublish: (id: string) => void;
   onCancel: (id: string) => void;
   onDelete: (id: string) => void;
@@ -621,8 +619,6 @@ function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, on
   onMarkPaid: (id: string) => void;
 }) {
   const cfg = statusConfig[m.status] || statusConfig.draft;
-  const pendingApps = m.applications?.filter(a => a.status === 'pending') || [];
-  const allApps = m.applications || [];
 
   return (
     <>
@@ -651,6 +647,13 @@ function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, on
         {m.selected_provider && (
           <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm">
             <p className="font-medium text-emerald-800">Prestataire assigné : {m.selected_provider.first_name} {m.selected_provider.last_name}</p>
+          </div>
+        )}
+
+        {m.status === 'open' && !m.selected_provider && (
+          <div className="text-center py-6 text-muted-foreground text-sm">
+            <p>En attente qu'un prestataire prenne la mission...</p>
+            <p className="text-xs mt-1">Le premier prestataire à cliquer « Prendre la mission » sera assigné automatiquement.</p>
           </div>
         )}
 
@@ -684,7 +687,7 @@ function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, on
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Supprimer cette mission ?</AlertDialogTitle>
-                <AlertDialogDescription>Cette action est irréversible. La mission et ses candidatures seront supprimées.</AlertDialogDescription>
+                <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Annuler</AlertDialogCancel>
@@ -693,49 +696,6 @@ function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, on
             </AlertDialogContent>
           </AlertDialog>
         </div>
-
-        {allApps.length > 0 && (
-          <div>
-            <h3 className="font-semibold mb-3">Candidatures ({allApps.length})</h3>
-            <div className="space-y-3">
-              {allApps.map(app => (
-                <div key={app.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{app.provider?.first_name} {app.provider?.last_name}</span>
-                      {app.provider?.score_global != null && (
-                        <span className="flex items-center gap-0.5 text-xs text-amber-600">
-                          <Star className="w-3 h-3 fill-amber-500" /> {app.provider.score_global}
-                        </span>
-                      )}
-                      <Badge variant={app.status === 'accepted' ? 'default' : app.status === 'rejected' ? 'destructive' : 'secondary'}>
-                        {app.status === 'pending' ? 'En attente' : app.status === 'accepted' ? 'Acceptée' : 'Refusée'}
-                      </Badge>
-                    </div>
-                    {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}
-                  </div>
-                  {app.status === 'pending' && m.status === 'open' && (
-                    <div className="flex gap-2 ml-3">
-                      <Button size="sm" onClick={() => onAccept(m.id, app.id, app.provider_id)}>
-                        <CheckCircle className="w-3 h-3 mr-1" /> Accepter
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => onReject(app.id)}>
-                        <XCircle className="w-3 h-3 mr-1" /> Refuser
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {m.status === 'open' && pendingApps.length === 0 && (
-          <div className="text-center py-6 text-muted-foreground text-sm">
-            <p>En attente de candidatures...</p>
-            <p className="text-xs mt-1">Les prestataires actifs verront cette mission dans leur espace.</p>
-          </div>
-        )}
       </div>
     </>
   );
