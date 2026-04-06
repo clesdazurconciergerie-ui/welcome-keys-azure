@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   ClipboardList, Play, CheckCircle, Upload, Camera, AlertTriangle,
   Send, MapPin, Calendar, Euro, Loader2, List, CalendarDays, ChevronLeft, ChevronRight,
-  AlertCircle, Clock, Briefcase, TrendingUp,
+  AlertCircle, Clock, Briefcase, TrendingUp, Zap,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
@@ -407,7 +407,7 @@ export default function SPMissionsUnifiedPage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Missions</h1>
         <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-          Postulez aux missions ouvertes ou gérez vos missions acceptées.
+          Prenez les missions ouvertes ou gérez vos missions en cours.
         </p>
       </motion.div>
 
@@ -566,9 +566,9 @@ export default function SPMissionsUnifiedPage() {
                     <div className="w-16 h-16 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">
                       <ClipboardList className="w-7 h-7 text-muted-foreground" />
                     </div>
-                    <h3 className="font-semibold text-lg text-foreground mb-1">Aucune mission acceptée pour le moment</h3>
+                    <h3 className="font-semibold text-lg text-foreground mb-1">Aucune mission en cours</h3>
                     <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-                      Postulez aux missions ouvertes pour recevoir du travail.
+                      Prenez une mission ouverte pour commencer.
                     </p>
                   </CardContent>
                 </Card>
