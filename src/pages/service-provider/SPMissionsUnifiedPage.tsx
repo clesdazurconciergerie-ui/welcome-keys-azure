@@ -17,6 +17,7 @@ import { useNewMissions, type NewMission } from "@/hooks/useNewMissions";
 import { useMissions, useChecklistItems, type Mission } from "@/hooks/useMissions";
 import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
 import { useMissionPhotos } from "@/hooks/useMissionPhotos";
+import { PhotoGuide } from "@/components/mission/PhotoGuide";
 
 function getPropertyPhoto(mission: NewMission): string | null {
   const photos = mission.property?.property_photos;
@@ -292,6 +293,7 @@ export default function SPMissionsUnifiedPage() {
   const [uploading, setUploading] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [providerComment, setProviderComment] = useState("");
+  const [photoGuideReady, setPhotoGuideReady] = useState(true);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const { items: checklistItems } = useChecklistItems(legacySelected?.property_id);
   const { photos: missionPhotos, uploading: uploadingNewPhoto, uploadProgress, uploadPhoto: uploadMissionPhoto } = useMissionPhotos(selectedNewMission?.id || null);
