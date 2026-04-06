@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { usePhotoRequirements, useMissionPhotoCompletions } from '@/hooks/usePhotoRequirements';
 import { supabase } from '@/integrations/supabase/client';
-import { Camera, CheckCircle2, ImageIcon, Loader2, Upload } from 'lucide-react';
+import { Camera, CheckCircle2, ImageIcon, Loader2, Upload, Image } from 'lucide-react';
 import { toast } from 'sonner';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface PhotoGuideProps {
   missionId: string;
@@ -20,6 +21,8 @@ export function PhotoGuide({ missionId, propertyId, userId, providerId, readOnly
   const { requirements, loading: loadingReqs } = usePhotoRequirements(propertyId);
   const { completions, addCompletion, getPhotosForRequirement, loading: loadingComp } = useMissionPhotoCompletions(missionId);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [previewPhotos, setPreviewPhotos] = useState<{ urls: string[]; label: string } | null>(null);
+  const prevReady = useRef<boolean | null>(null);
 
   const loading = loadingReqs || loadingComp;
 
@@ -28,13 +31,16 @@ export function PhotoGuide({ missionId, propertyId, userId, providerId, readOnly
   const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   const requiredReqs = requirements.filter(r => r.required);
-  const allRequiredDone = requiredReqs.every(r => getPhotosForRequirement(r.id).length > 0);
+  const allRequiredDone = requiredReqs.length === 0 || requiredReqs.every(r => getPhotosForRequirement(r.id).length > 0);
   const missingRequired = requiredReqs.filter(r => getPhotosForRequirement(r.id).length === 0);
 
-  // Notify parent of progress changes
-  if (onProgressChange) {
-    onProgressChange(allRequiredDone);
-  }
+  // Notify parent only on change
+  useEffect(() => {
+    if (onProgressChange && prevReady.current !== allRequiredDone) {
+      prevReady.current = allRequiredDone;
+      onProgressChange(allRequiredDone);
+    }
+  }, [allRequiredDone, onProgressChange]);
 
   const handleUpload = async (requirementId: string, file: File) => {
     setUploadingId(requirementId);
@@ -53,7 +59,7 @@ export function PhotoGuide({ missionId, propertyId, userId, providerId, readOnly
         .getPublicUrl(path);
 
       await addCompletion(requirementId, publicUrl);
-      toast.success('Photo ajoutée');
+      toast.success('Photo ajoutée ✓');
     } catch (err: any) {
       toast.error('Erreur upload: ' + (err.message || 'Erreur'));
     } finally {
@@ -74,116 +80,150 @@ export function PhotoGuide({ missionId, propertyId, userId, providerId, readOnly
   if (requirements.length === 0) return null;
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
+    <>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Camera className="w-5 h-5 text-primary" />
             Photos de preuve
           </CardTitle>
-          <span className="text-sm font-medium text-muted-foreground">
-            {completedCount} / {totalCount}
-          </span>
-        </div>
-        <Progress value={progress} className="mt-2 h-2" />
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {requirements.map((req) => {
-          const photos = getPhotosForRequirement(req.id);
-          const isDone = photos.length > 0;
-          const isUploading = uploadingId === req.id;
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Ajoutez les photos demandées pour valider la mission.
+          </p>
+          {/* Progress */}
+          <div className="flex items-center gap-3 mt-3">
+            <Progress value={progress} className="h-2.5 flex-1" />
+            <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+              {completedCount} / {totalCount}
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2 pt-2">
+          {requirements.map((req) => {
+            const photos = getPhotosForRequirement(req.id);
+            const isDone = photos.length > 0;
+            const isUploading = uploadingId === req.id;
 
-          return (
-            <div
-              key={req.id}
-              className={`rounded-xl border transition-all ${
-                isDone
-                  ? 'border-emerald-200 bg-emerald-50/50'
-                  : 'border-border'
-              }`}
-            >
-              <div className="p-3 flex items-start gap-3">
-                {/* Status icon */}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                  isDone ? 'bg-emerald-100' : 'bg-muted'
-                }`}>
-                  {isDone ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  ) : (
-                    <Camera className="w-4 h-4 text-muted-foreground" />
-                  )}
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className={`text-sm font-medium ${isDone ? 'text-emerald-700' : 'text-foreground'}`}>
-                      {req.label}
-                    </p>
-                    {req.required && !isDone && (
-                      <Badge variant="destructive" className="text-[9px] h-4">Obligatoire</Badge>
+            return (
+              <div
+                key={req.id}
+                className={`rounded-xl border transition-all ${
+                  isDone
+                    ? 'border-emerald-200 bg-emerald-50/50'
+                    : 'border-border'
+                }`}
+              >
+                <div className="p-3 sm:p-4 flex items-center gap-3">
+                  {/* Status icon — large tap target */}
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                    isDone ? 'bg-emerald-100' : 'bg-muted'
+                  }`}>
+                    {isDone ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    ) : (
+                      <Camera className="w-5 h-5 text-muted-foreground" />
                     )}
                   </div>
-                  {req.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{req.description}</p>
-                  )}
 
-                  {/* Photo thumbnails */}
-                  {photos.length > 0 && (
-                    <div className="flex gap-1.5 mt-2">
-                      {photos.map(p => (
-                        <div key={p.id} className="w-14 h-14 rounded-lg overflow-hidden border border-border">
-                          <img src={p.photo_url} alt="" className="w-full h-full object-cover" />
-                        </div>
-                      ))}
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className={`text-sm font-medium ${isDone ? 'text-emerald-700' : 'text-foreground'}`}>
+                        {req.label}
+                      </p>
+                      {req.required && !isDone && (
+                        <Badge variant="destructive" className="text-[9px] h-4 px-1.5">Obligatoire</Badge>
+                      )}
                     </div>
-                  )}
+                    {req.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{req.description}</p>
+                    )}
 
-                  {/* Upload button */}
-                  {!readOnly && (
-                    <label className="cursor-pointer inline-block mt-2">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleUpload(req.id, file);
-                          e.target.value = '';
-                        }}
-                        disabled={isUploading}
-                      />
-                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        isDone
-                          ? 'text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
-                          : 'text-primary hover:bg-primary/10 border border-primary/20'
-                      }`}>
-                        {isUploading ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : isDone ? (
-                          <Upload className="w-3 h-3" />
-                        ) : (
-                          <Camera className="w-3 h-3" />
+                    {/* Thumbnail row */}
+                    {photos.length > 0 && (
+                      <div
+                        className="flex gap-1.5 mt-2 cursor-pointer"
+                        onClick={() => setPreviewPhotos({ urls: photos.map(p => p.photo_url), label: req.label })}
+                      >
+                        {photos.slice(0, 3).map(p => (
+                          <div key={p.id} className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden border border-border">
+                            <img src={p.photo_url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                        {photos.length > 3 && (
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg border border-border bg-muted flex items-center justify-center">
+                            <span className="text-xs font-medium text-muted-foreground">+{photos.length - 3}</span>
+                          </div>
                         )}
-                        {isUploading ? 'Upload…' : isDone ? 'Ajouter' : 'Prendre la photo'}
                       </div>
-                    </label>
+                    )}
+                  </div>
+
+                  {/* Upload action — right side */}
+                  {!readOnly && (
+                    <div className="shrink-0">
+                      {isUploading ? (
+                        <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer block">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="sr-only"
+                            style={{ position: 'absolute', inset: 0, opacity: 0 }}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleUpload(req.id, file);
+                              e.target.value = '';
+                            }}
+                            disabled={isUploading}
+                          />
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
+                            isDone
+                              ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-600'
+                              : 'bg-primary/10 hover:bg-primary/20 text-primary'
+                          }`}>
+                            {isDone ? <Upload className="w-4 h-4" /> : <Camera className="w-5 h-5" />}
+                          </div>
+                        </label>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-        {/* Missing items warning */}
-        {!readOnly && missingRequired.length > 0 && (
-          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
-            <p className="font-medium">⚠️ Photos manquantes :</p>
-            <p className="text-xs mt-1">{missingRequired.map(r => r.label).join(', ')}</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          {/* Missing items warning */}
+          {!readOnly && missingRequired.length > 0 && (
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800">
+              <p className="font-medium">⚠️ Photos manquantes :</p>
+              <p className="text-xs mt-1">{missingRequired.map(r => r.label).join(', ')}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Photo preview dialog */}
+      <Dialog open={!!previewPhotos} onOpenChange={open => { if (!open) setPreviewPhotos(null); }}>
+        <DialogContent className="max-w-lg p-4">
+          {previewPhotos && (
+            <div className="space-y-3">
+              <p className="font-semibold text-sm">{previewPhotos.label}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {previewPhotos.urls.map((url, i) => (
+                  <div key={i} className="aspect-square rounded-xl overflow-hidden border border-border">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
