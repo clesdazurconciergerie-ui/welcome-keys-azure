@@ -49,7 +49,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = ["00", "15", "30", "45"];
 
 export default function MissionsPage() {
-  const { missions, isLoading, createMission, publishMission, cancelMission, deleteMission, acceptApplication, rejectApplication, validateMission, markAsPaid, sendMissionEmail, refetch } = useNewMissions('concierge');
+  const { missions, isLoading, createMission, publishMission, cancelMission, deleteMission, validateMission, markAsPaid, sendMissionEmail, refetch } = useNewMissions('concierge');
   const { properties } = useProperties();
   const { providers } = useServiceProviders();
   const [createOpen, setCreateOpen] = useState(false);
@@ -110,7 +110,7 @@ export default function MissionsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Missions</h1>
-            <p className="text-muted-foreground mt-1">Publiez des missions — vos prestataires postulent</p>
+            <p className="text-muted-foreground mt-1">Publiez des missions — vos prestataires les prennent instantanément</p>
           </div>
           <div className="flex items-center gap-2">
             {/* Test Email Button - DEV */}
@@ -227,12 +227,12 @@ export default function MissionsPage() {
                 <CardContent><p className="text-muted-foreground">Aucune mission active. Créez-en une !</p></CardContent>
               </Card>
             ) : activeMissions.map((m, i) => (
-              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onAcceptApp={acceptApplication} onRejectApp={rejectApplication} onSendEmail={sendMissionEmail} />
+              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onSendEmail={sendMissionEmail} />
             ))}
           </TabsContent>
           <TabsContent value="archived" className="space-y-3 mt-4">
             {archivedMissions.map((m, i) => (
-              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onAcceptApp={acceptApplication} onRejectApp={rejectApplication} onSendEmail={sendMissionEmail} />
+              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onSendEmail={sendMissionEmail} />
             ))}
           </TabsContent>
         </Tabs>
@@ -241,7 +241,7 @@ export default function MissionsPage() {
       <Dialog open={!!detailMission} onOpenChange={open => { if (!open) setDetailMission(null); }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-auto">
           {currentDetail && (
-            <MissionDetail mission={currentDetail} onAccept={acceptApplication} onReject={rejectApplication} onPublish={publishMission} onCancel={cancelMission} onDelete={async (id) => { await deleteMission(id); setDetailMission(null); }} onValidate={validateMission} onMarkPaid={markAsPaid} />
+            <MissionDetail mission={currentDetail} onPublish={publishMission} onCancel={cancelMission} onDelete={async (id) => { await deleteMission(id); setDetailMission(null); }} onValidate={validateMission} onMarkPaid={markAsPaid} />
           )}
         </DialogContent>
       </Dialog>
