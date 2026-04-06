@@ -629,6 +629,8 @@ export default function SPMissionsUnifiedPage() {
               })}
             </div>
           )}
+        </TabsContent>
+      </Tabs>
 
       {/* ── Legacy Mission Detail Dialog ──────────────────────── */}
       <Dialog open={!!legacySelected} onOpenChange={open => { if (!open) { setLegacySelected(null); setCheckedItems({}); } }}>
