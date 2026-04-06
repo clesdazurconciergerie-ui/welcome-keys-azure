@@ -820,13 +820,20 @@ export default function SPMissionsUnifiedPage() {
                   </div>
 
                   {selectedNewMission.status === "assigned" && (
-                    <Button
-                      onClick={() => { markDone(selectedNewMission.id); setSelectedNewMission(null); }}
-                      className="w-full h-12 text-base font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl"
-                      disabled={!photoGuideReady}
-                    >
-                      <CheckCircle className="w-5 h-5 mr-2" /> Mission terminée
-                    </Button>
+                    <div className="space-y-2">
+                      <Button
+                        onClick={() => { markDone(selectedNewMission.id); setSelectedNewMission(null); }}
+                        className="w-full h-12 text-base font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl"
+                        disabled={!photoGuideReady}
+                      >
+                        <CheckCircle className="w-5 h-5 mr-2" /> Mission terminée
+                      </Button>
+                      {!photoGuideReady && (
+                        <p className="text-xs text-center text-muted-foreground">
+                          Ajoutez toutes les photos obligatoires pour terminer la mission.
+                        </p>
+                      )}
+                    </div>
                   )}
                 </>
               )}
