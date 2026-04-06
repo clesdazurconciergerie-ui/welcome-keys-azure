@@ -461,20 +461,15 @@ function getPropertyPhoto(mission: NewMission): string | null {
 
 /* ─── Mission Card ─── */
 
-function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete, onValidate, onMarkPaid, onAcceptApp, onRejectApp, onSendEmail }: {
+function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete, onValidate, onMarkPaid, onSendEmail }: {
   mission: NewMission; index: number;
   onView: () => void; onPublish: (id: string) => void; onCancel: (id: string) => void; onDelete: (id: string) => void; onValidate: (id: string) => void; onMarkPaid: (id: string) => void;
-  onAcceptApp: (missionId: string, appId: string, providerId: string) => void;
-  onRejectApp: (appId: string) => void;
   onSendEmail: (mission: NewMission) => Promise<{ sent: number; failed: number; providers: string[] }>;
 }) {
-  const [candidaturesOpen, setCandidaturesOpen] = useState(false);
   const [emailConfirmOpen, setEmailConfirmOpen] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
   const [lastEmailSent, setLastEmailSent] = useState<string | null>(null);
   const cfg = statusConfig[m.status] || statusConfig.draft;
-  const pendingApps = m.applications?.filter(a => a.status === 'pending') || [];
-  const appCount = pendingApps.length;
   const photoUrl = getPropertyPhoto(m);
 
   const handleSendEmail = async () => {
@@ -501,7 +496,7 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
-      <Card className={cn("hover:shadow-md transition-shadow cursor-pointer", appCount > 0 && "ring-1 ring-primary/20")} onClick={onView}>
+      <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={onView}>
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
             {/* Property thumbnail */}
