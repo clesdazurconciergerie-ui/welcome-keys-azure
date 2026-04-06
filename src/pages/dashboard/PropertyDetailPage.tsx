@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { useProperties, type Property, type PropertyPhoto, type PropertyDocument } from "@/hooks/useProperties";
 import { EditPropertyDialog } from "@/components/dashboard/properties/EditPropertyDialog";
 import { PropertyCalendar } from "@/components/dashboard/properties/PropertyCalendar";
+import { PhotoRequirementsAdmin } from "@/components/property/PhotoRequirementsAdmin";
 import { PropertyFinanceSettings } from "@/components/finance/PropertyFinanceSettings";
 import { CleaningAutomationSection } from "@/components/property/CleaningAutomationSection";
 
@@ -278,6 +279,7 @@ const PropertyDetailPage = () => {
           <TabsTrigger value="owners">Propriétaires</TabsTrigger>
           <TabsTrigger value="finance">Finance</TabsTrigger>
           <TabsTrigger value="cleaning">Ménage auto</TabsTrigger>
+          <TabsTrigger value="photo-checklist">Checklist photos</TabsTrigger>
         </TabsList>
 
         {/* PHOTOS TAB */}
@@ -721,6 +723,11 @@ const PropertyDetailPage = () => {
         {/* CLEANING AUTOMATION TAB */}
         <TabsContent value="cleaning">
           {id && <CleaningAutomationSection propertyId={id} />}
+        </TabsContent>
+
+        {/* PHOTO CHECKLIST TAB */}
+        <TabsContent value="photo-checklist" className="mt-4">
+          {id && <PhotoRequirementsAdmin propertyId={id} />}
         </TabsContent>
       </Tabs>
 

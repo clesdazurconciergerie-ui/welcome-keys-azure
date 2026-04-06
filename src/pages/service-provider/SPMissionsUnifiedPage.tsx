@@ -514,11 +514,6 @@ export default function SPMissionsUnifiedPage() {
                         actions={
                           <>
                             {m.status === "assigned" && (
-                              <Button size="sm" onClick={(e) => { e.stopPropagation(); confirmMission(m.id); }}>
-                                <CheckCircle className="w-3.5 h-3.5 mr-1" /> Confirmer
-                              </Button>
-                            )}
-                            {m.status === "confirmed" && (
                               <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedNewMission(m); }}>
                                 <Camera className="w-3.5 h-3.5 mr-1" /> Détail & Photos
                               </Button>
@@ -765,19 +760,23 @@ export default function SPMissionsUnifiedPage() {
                 </div>
               )}
 
-              {selectedNewMission.status === "assigned" && (
-                <Button
-                  onClick={() => { confirmMission(selectedNewMission.id); setSelectedNewMission(null); }}
-                  className="w-full h-12 text-base font-bold rounded-xl"
-                >
-                  <CheckCircle className="w-5 h-5 mr-2" /> Confirmer la mission
-                </Button>
-              )}
-
-              {(selectedNewMission.status === "confirmed" || selectedNewMission.status === "done") && (
+              {(["assigned", "done", "approved"].includes(selectedNewMission.status)) && (
                 <>
+                  {/* Photo Guide System */}
+                  {spId && (
+                    <PhotoGuide
+                      missionId={selectedNewMission.id}
+                      propertyId={selectedNewMission.property_id}
+                      userId={selectedNewMission.user_id}
+                      providerId={spId}
+                      readOnly={["done", "approved"].includes(selectedNewMission.status)}
+                      onProgressChange={setPhotoGuideReady}
+                    />
+                  )}
+
+                  {/* Additional photos (free-form) */}
                   <div className="space-y-3">
-                    <h3 className="font-semibold text-sm">📸 Photos de preuve ({missionPhotos.length})</h3>
+                    <h3 className="font-semibold text-sm">📸 Photos supplémentaires ({missionPhotos.length})</h3>
                     {missionPhotos.length > 0 && (
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {missionPhotos.map(p => (
@@ -798,36 +797,31 @@ export default function SPMissionsUnifiedPage() {
                       </div>
                     )}
 
-                    <label className="cursor-pointer block">
-                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleNewMissionPhotoUpload(e, 'after')} disabled={uploadingNewPhoto} />
-                      <div className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-primary/30 rounded-xl hover:bg-primary/5 bg-muted/30 transition-colors">
-                        <Camera className="w-7 h-7 text-primary/60" />
-                        <span className="text-sm font-medium text-primary">{uploadingNewPhoto ? "Upload…" : "📷 Ajouter des photos de preuve"}</span>
+                    {!["done", "approved"].includes(selectedNewMission.status) && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="cursor-pointer block">
+                          <input type="file" accept="image/*" multiple className="hidden" onChange={e => handleNewMissionPhotoUpload(e, 'after')} disabled={uploadingNewPhoto} />
+                          <div className="flex items-center justify-center gap-2 p-3 border border-dashed border-primary/30 rounded-xl hover:bg-primary/5 transition-colors">
+                            <Upload className="w-4 h-4 text-primary" />
+                            <span className="text-xs font-medium text-primary">Galerie</span>
+                          </div>
+                        </label>
+                        <label className="cursor-pointer block">
+                          <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleNewMissionPhotoUpload(e, 'incident')} disabled={uploadingNewPhoto} />
+                          <div className="flex items-center justify-center gap-2 p-3 border border-dashed border-destructive/30 rounded-xl hover:bg-destructive/5 transition-colors">
+                            <AlertTriangle className="w-4 h-4 text-destructive" />
+                            <span className="text-xs font-medium text-destructive">Incident</span>
+                          </div>
+                        </label>
                       </div>
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="cursor-pointer block">
-                        <input type="file" accept="image/*" multiple className="hidden" onChange={e => handleNewMissionPhotoUpload(e, 'after')} disabled={uploadingNewPhoto} />
-                        <div className="flex items-center justify-center gap-2 p-3 border border-dashed border-primary/30 rounded-xl hover:bg-primary/5 transition-colors">
-                          <Upload className="w-4 h-4 text-primary" />
-                          <span className="text-xs font-medium text-primary">Galerie</span>
-                        </div>
-                      </label>
-                      <label className="cursor-pointer block">
-                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleNewMissionPhotoUpload(e, 'incident')} disabled={uploadingNewPhoto} />
-                        <div className="flex items-center justify-center gap-2 p-3 border border-dashed border-destructive/30 rounded-xl hover:bg-destructive/5 transition-colors">
-                          <AlertTriangle className="w-4 h-4 text-destructive" />
-                          <span className="text-xs font-medium text-destructive">Incident</span>
-                        </div>
-                      </label>
-                    </div>
+                    )}
                   </div>
 
-                  {selectedNewMission.status === "confirmed" && (
+                  {selectedNewMission.status === "assigned" && (
                     <Button
                       onClick={() => { markDone(selectedNewMission.id); setSelectedNewMission(null); }}
                       className="w-full h-12 text-base font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl"
-                      disabled={missionPhotos.length < 1}
+                      disabled={!photoGuideReady}
                     >
                       <CheckCircle className="w-5 h-5 mr-2" /> Mission terminée
                     </Button>
