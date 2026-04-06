@@ -2035,6 +2035,45 @@ export type Database = {
           },
         ]
       }
+      mission_photo_completions: {
+        Row: {
+          id: string
+          mission_id: string
+          photo_url: string
+          requirement_id: string
+          uploaded_at: string
+        }
+        Insert: {
+          id?: string
+          mission_id: string
+          photo_url: string
+          requirement_id: string
+          uploaded_at?: string
+        }
+        Update: {
+          id?: string
+          mission_id?: string
+          photo_url?: string
+          requirement_id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_photo_completions_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_photo_completions_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "photo_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mission_photos: {
         Row: {
           created_at: string
@@ -2573,6 +2612,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      photo_requirements: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          order_index: number
+          property_id: string
+          required: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          label: string
+          order_index?: number
+          property_id: string
+          required?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          order_index?: number
+          property_id?: string
+          required?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_requirements_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pins: {
         Row: {
