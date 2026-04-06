@@ -531,12 +531,7 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
 
             {/* Actions */}
             <div className="flex items-center gap-2 ml-auto shrink-0" onClick={e => e.stopPropagation()}>
-              {appCount > 0 && (
-                <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/10 font-medium gap-1.5" onClick={() => setCandidaturesOpen(true)}>
-                  <Users className="w-3.5 h-3.5" />
-                  Candidatures ({appCount})
-                </Button>
-              )}
+              
               {m.status === 'draft' && (
                 <Button size="sm" variant="outline" onClick={() => onPublish(m.id)}>
                   <Send className="w-3 h-3 mr-1" /> Publier
@@ -593,7 +588,7 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Supprimer cette mission ?</AlertDialogTitle>
-                    <AlertDialogDescription>Cette action est irréversible. La mission et ses candidatures seront supprimées.</AlertDialogDescription>
+                    <AlertDialogDescription>Cette action est irréversible. La mission sera supprimée.</AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Annuler</AlertDialogCancel>
@@ -609,74 +604,6 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
         </CardContent>
       </Card>
 
-      {/* Candidatures Sheet */}
-      <Sheet open={candidaturesOpen} onOpenChange={setCandidaturesOpen}>
-        <SheetContent className="sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              Candidatures — {m.title}
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-6 space-y-4">
-            {pendingApps.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="w-10 h-10 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">Aucune candidature en attente</p>
-              </div>
-            ) : (
-              pendingApps.map(app => (
-                <Card key={app.id} className="border shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold text-foreground">{app.provider?.first_name} {app.provider?.last_name}</p>
-                        {app.provider?.score_global != null && (
-                          <span className="inline-flex items-center gap-1 text-xs text-amber-600 mt-0.5">
-                            <Star className="w-3 h-3 fill-amber-500" /> {app.provider.score_global.toFixed(1)}
-                          </span>
-                        )}
-                      </div>
-                      <Badge variant="secondary" className="text-xs">En attente</Badge>
-                    </div>
-
-                    {app.message && (
-                      <div className="flex gap-2 p-2.5 bg-muted/60 rounded-lg text-sm">
-                        <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-                        <p className="text-muted-foreground">{app.message}</p>
-                      </div>
-                    )}
-
-                    {/* Contact info */}
-                    <div className="flex gap-3 text-xs text-muted-foreground">
-                      {app.provider?.email && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3" /> {app.provider.email}
-                        </span>
-                      )}
-                      {app.provider?.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3 h-3" /> {app.provider.phone}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2 pt-1">
-                      <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { onAcceptApp(m.id, app.id, app.provider_id); setCandidaturesOpen(false); }}>
-                        <CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Accepter
-                      </Button>
-                      <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => onRejectApp(app.id)}>
-                        <XCircle className="w-3.5 h-3.5 mr-1.5" /> Refuser
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
     </motion.div>
   );
 }
