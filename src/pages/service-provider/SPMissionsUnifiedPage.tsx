@@ -280,14 +280,12 @@ function MiniCalendar({ missions, onSelect }: { missions: NewMission[]; onSelect
 /* ── Main Page ────────────────────────────────────────────────── */
 
 export default function SPMissionsUnifiedPage() {
-  const { missions: newMissions, isLoading: loadingNew, applyToMission, confirmMission, markDone } = useNewMissions("provider");
+  const { missions: newMissions, isLoading: loadingNew, claimMission, confirmMission, markDone } = useNewMissions("provider");
   const { missions: legacyMissions, isLoading: loadingLegacy, startMission, completeMission, uploadPhoto, refetch } = useMissions("service_provider");
   const { spId } = useIsServiceProvider();
 
   const [myView, setMyView] = useState<"list" | "calendar">("list");
-  const [applyTarget, setApplyTarget] = useState<NewMission | null>(null);
-  const [applyMessage, setApplyMessage] = useState("");
-  const [applying, setApplying] = useState(false);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
 
   const [selectedNewMission, setSelectedNewMission] = useState<NewMission | null>(null);
   const [legacySelected, setLegacySelected] = useState<Mission | null>(null);
@@ -321,7 +319,7 @@ export default function SPMissionsUnifiedPage() {
   const myMissionsCount = myNewMissions.filter(m => ["assigned", "confirmed"].includes(m.status)).length
     + myLegacyMissions.filter(m => ["scheduled", "in_progress"].includes(m.status)).length;
 
-  const hasApplied = (m: NewMission) => m.applications?.some(a => a.provider_id === spId) || false;
+  const isMyClaim = (m: NewMission) => m.selected_provider_id === spId;
 
   const getConflict = (mission: NewMission): string | null => {
     const mStart = new Date(mission.start_at);
@@ -338,13 +336,10 @@ export default function SPMissionsUnifiedPage() {
     return null;
   };
 
-  const handleApply = async () => {
-    if (!applyTarget) return;
-    setApplying(true);
-    await applyToMission(applyTarget.id, applyMessage);
-    setApplying(false);
-    setApplyMessage("");
-    setApplyTarget(null);
+  const handleClaim = async (missionId: string) => {
+    setClaimingId(missionId);
+    await claimMission(missionId);
+    setClaimingId(null);
   };
 
   const handleNewMissionPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, kind: string = 'after') => {
