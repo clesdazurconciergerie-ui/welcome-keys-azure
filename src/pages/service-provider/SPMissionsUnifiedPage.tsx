@@ -594,7 +594,6 @@ export default function SPMissionsUnifiedPage() {
           ) : (
             <div className="space-y-3">
               {openMissions.map((m, i) => {
-                const applied = hasApplied(m);
                 const conflict = getConflict(m);
                 return (
                   <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
@@ -608,23 +607,21 @@ export default function SPMissionsUnifiedPage() {
                       instructions={m.instructions}
                       status={m.status}
                       propertyPhotoUrl={getPropertyPhoto(m)}
-                      applied={applied}
                       conflictWarning={conflict}
                       actions={
-                        applied ? (
-                          <Badge className="bg-primary/10 text-primary border-primary/20 text-[11px] px-3 py-1.5" variant="outline">
-                            ✓ Candidature envoyée
-                          </Badge>
-                        ) : (
-                          <Button
-                            size="sm"
-                            className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                            onClick={(e) => { e.stopPropagation(); setApplyTarget(m); setApplyMessage(""); }}
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                            Postuler
-                          </Button>
-                        )
+                        <Button
+                          size="sm"
+                          className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                          disabled={claimingId === m.id}
+                          onClick={(e) => { e.stopPropagation(); handleClaim(m.id); }}
+                        >
+                          {claimingId === m.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Zap className="w-3.5 h-3.5" />
+                          )}
+                          Prendre la mission
+                        </Button>
                       }
                     />
                   </motion.div>
@@ -632,48 +629,6 @@ export default function SPMissionsUnifiedPage() {
               })}
             </div>
           )}
-        </TabsContent>
-      </Tabs>
-
-      {/* ── Apply Dialog ──────────────────────────────────────── */}
-      <Dialog open={!!applyTarget} onOpenChange={open => { if (!open) setApplyTarget(null); }}>
-        <DialogContent>
-          {applyTarget && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Postuler : {applyTarget.title}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="text-sm space-y-1">
-                  <p><span className="text-muted-foreground">Logement :</span> {applyTarget.property?.name}</p>
-                  <p><span className="text-muted-foreground">Date :</span> {fmtDate(applyTarget.start_at)}</p>
-                  <p><span className="text-muted-foreground">Montant :</span> <span className="font-bold text-emerald-600">{applyTarget.payout_amount}€</span></p>
-                </div>
-                {applyTarget.instructions && (
-                  <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                    <p className="font-medium mb-1">Instructions :</p>
-                    <p className="whitespace-pre-wrap">{applyTarget.instructions}</p>
-                  </div>
-                )}
-                {getConflict(applyTarget) && (
-                  <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{getConflict(applyTarget)}</span>
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm font-medium mb-2">Message (optionnel)</p>
-                  <Textarea value={applyMessage} onChange={e => setApplyMessage(e.target.value)} placeholder="Précisez vos disponibilités…" rows={3} />
-                </div>
-                <Button onClick={handleApply} disabled={applying} className="w-full gap-2">
-                  {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  Envoyer ma candidature
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* ── Legacy Mission Detail Dialog ──────────────────────── */}
       <Dialog open={!!legacySelected} onOpenChange={open => { if (!open) { setLegacySelected(null); setCheckedItems({}); } }}>
