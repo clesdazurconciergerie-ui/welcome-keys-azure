@@ -49,7 +49,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = ["00", "15", "30", "45"];
 
 export default function MissionsPage() {
-  const { missions, isLoading, createMission, publishMission, cancelMission, deleteMission, acceptApplication, rejectApplication, validateMission, markAsPaid, sendMissionEmail, refetch } = useNewMissions('concierge');
+  const { missions, isLoading, createMission, publishMission, cancelMission, deleteMission, validateMission, markAsPaid, sendMissionEmail, refetch } = useNewMissions('concierge');
   const { properties } = useProperties();
   const { providers } = useServiceProviders();
   const [createOpen, setCreateOpen] = useState(false);
@@ -110,7 +110,7 @@ export default function MissionsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Missions</h1>
-            <p className="text-muted-foreground mt-1">Publiez des missions — vos prestataires postulent</p>
+            <p className="text-muted-foreground mt-1">Publiez des missions — vos prestataires les prennent instantanément</p>
           </div>
           <div className="flex items-center gap-2">
             {/* Test Email Button - DEV */}
@@ -227,12 +227,12 @@ export default function MissionsPage() {
                 <CardContent><p className="text-muted-foreground">Aucune mission active. Créez-en une !</p></CardContent>
               </Card>
             ) : activeMissions.map((m, i) => (
-              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onAcceptApp={acceptApplication} onRejectApp={rejectApplication} onSendEmail={sendMissionEmail} />
+              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onSendEmail={sendMissionEmail} />
             ))}
           </TabsContent>
           <TabsContent value="archived" className="space-y-3 mt-4">
             {archivedMissions.map((m, i) => (
-              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onAcceptApp={acceptApplication} onRejectApp={rejectApplication} onSendEmail={sendMissionEmail} />
+              <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onSendEmail={sendMissionEmail} />
             ))}
           </TabsContent>
         </Tabs>
@@ -241,7 +241,7 @@ export default function MissionsPage() {
       <Dialog open={!!detailMission} onOpenChange={open => { if (!open) setDetailMission(null); }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-auto">
           {currentDetail && (
-            <MissionDetail mission={currentDetail} onAccept={acceptApplication} onReject={rejectApplication} onPublish={publishMission} onCancel={cancelMission} onDelete={async (id) => { await deleteMission(id); setDetailMission(null); }} onValidate={validateMission} onMarkPaid={markAsPaid} />
+            <MissionDetail mission={currentDetail} onPublish={publishMission} onCancel={cancelMission} onDelete={async (id) => { await deleteMission(id); setDetailMission(null); }} onValidate={validateMission} onMarkPaid={markAsPaid} />
           )}
         </DialogContent>
       </Dialog>
@@ -461,20 +461,15 @@ function getPropertyPhoto(mission: NewMission): string | null {
 
 /* ─── Mission Card ─── */
 
-function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete, onValidate, onMarkPaid, onAcceptApp, onRejectApp, onSendEmail }: {
+function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete, onValidate, onMarkPaid, onSendEmail }: {
   mission: NewMission; index: number;
   onView: () => void; onPublish: (id: string) => void; onCancel: (id: string) => void; onDelete: (id: string) => void; onValidate: (id: string) => void; onMarkPaid: (id: string) => void;
-  onAcceptApp: (missionId: string, appId: string, providerId: string) => void;
-  onRejectApp: (appId: string) => void;
   onSendEmail: (mission: NewMission) => Promise<{ sent: number; failed: number; providers: string[] }>;
 }) {
-  const [candidaturesOpen, setCandidaturesOpen] = useState(false);
   const [emailConfirmOpen, setEmailConfirmOpen] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
   const [lastEmailSent, setLastEmailSent] = useState<string | null>(null);
   const cfg = statusConfig[m.status] || statusConfig.draft;
-  const pendingApps = m.applications?.filter(a => a.status === 'pending') || [];
-  const appCount = pendingApps.length;
   const photoUrl = getPropertyPhoto(m);
 
   const handleSendEmail = async () => {
@@ -501,7 +496,7 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
-      <Card className={cn("hover:shadow-md transition-shadow cursor-pointer", appCount > 0 && "ring-1 ring-primary/20")} onClick={onView}>
+      <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={onView}>
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
             {/* Property thumbnail */}
@@ -536,12 +531,7 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
 
             {/* Actions */}
             <div className="flex items-center gap-2 ml-auto shrink-0" onClick={e => e.stopPropagation()}>
-              {appCount > 0 && (
-                <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/10 font-medium gap-1.5" onClick={() => setCandidaturesOpen(true)}>
-                  <Users className="w-3.5 h-3.5" />
-                  Candidatures ({appCount})
-                </Button>
-              )}
+              
               {m.status === 'draft' && (
                 <Button size="sm" variant="outline" onClick={() => onPublish(m.id)}>
                   <Send className="w-3 h-3 mr-1" /> Publier
@@ -598,7 +588,7 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Supprimer cette mission ?</AlertDialogTitle>
-                    <AlertDialogDescription>Cette action est irréversible. La mission et ses candidatures seront supprimées.</AlertDialogDescription>
+                    <AlertDialogDescription>Cette action est irréversible. La mission sera supprimée.</AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Annuler</AlertDialogCancel>
@@ -614,84 +604,14 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
         </CardContent>
       </Card>
 
-      {/* Candidatures Sheet */}
-      <Sheet open={candidaturesOpen} onOpenChange={setCandidaturesOpen}>
-        <SheetContent className="sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              Candidatures — {m.title}
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-6 space-y-4">
-            {pendingApps.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="w-10 h-10 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">Aucune candidature en attente</p>
-              </div>
-            ) : (
-              pendingApps.map(app => (
-                <Card key={app.id} className="border shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold text-foreground">{app.provider?.first_name} {app.provider?.last_name}</p>
-                        {app.provider?.score_global != null && (
-                          <span className="inline-flex items-center gap-1 text-xs text-amber-600 mt-0.5">
-                            <Star className="w-3 h-3 fill-amber-500" /> {app.provider.score_global.toFixed(1)}
-                          </span>
-                        )}
-                      </div>
-                      <Badge variant="secondary" className="text-xs">En attente</Badge>
-                    </div>
-
-                    {app.message && (
-                      <div className="flex gap-2 p-2.5 bg-muted/60 rounded-lg text-sm">
-                        <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-                        <p className="text-muted-foreground">{app.message}</p>
-                      </div>
-                    )}
-
-                    {/* Contact info */}
-                    <div className="flex gap-3 text-xs text-muted-foreground">
-                      {app.provider?.email && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3" /> {app.provider.email}
-                        </span>
-                      )}
-                      {app.provider?.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3 h-3" /> {app.provider.phone}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2 pt-1">
-                      <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { onAcceptApp(m.id, app.id, app.provider_id); setCandidaturesOpen(false); }}>
-                        <CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Accepter
-                      </Button>
-                      <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => onRejectApp(app.id)}>
-                        <XCircle className="w-3.5 h-3.5 mr-1.5" /> Refuser
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
     </motion.div>
   );
 }
 
 /* ─── Mission Detail ─── */
 
-function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, onDelete, onValidate, onMarkPaid }: {
+function MissionDetail({ mission: m, onPublish, onCancel, onDelete, onValidate, onMarkPaid }: {
   mission: NewMission;
-  onAccept: (missionId: string, appId: string, providerId: string) => void;
-  onReject: (appId: string) => void;
   onPublish: (id: string) => void;
   onCancel: (id: string) => void;
   onDelete: (id: string) => void;
@@ -699,8 +619,6 @@ function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, on
   onMarkPaid: (id: string) => void;
 }) {
   const cfg = statusConfig[m.status] || statusConfig.draft;
-  const pendingApps = m.applications?.filter(a => a.status === 'pending') || [];
-  const allApps = m.applications || [];
 
   return (
     <>
@@ -729,6 +647,13 @@ function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, on
         {m.selected_provider && (
           <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm">
             <p className="font-medium text-emerald-800">Prestataire assigné : {m.selected_provider.first_name} {m.selected_provider.last_name}</p>
+          </div>
+        )}
+
+        {m.status === 'open' && !m.selected_provider && (
+          <div className="text-center py-6 text-muted-foreground text-sm">
+            <p>En attente qu'un prestataire prenne la mission...</p>
+            <p className="text-xs mt-1">Le premier prestataire à cliquer « Prendre la mission » sera assigné automatiquement.</p>
           </div>
         )}
 
@@ -762,7 +687,7 @@ function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, on
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Supprimer cette mission ?</AlertDialogTitle>
-                <AlertDialogDescription>Cette action est irréversible. La mission et ses candidatures seront supprimées.</AlertDialogDescription>
+                <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Annuler</AlertDialogCancel>
@@ -771,49 +696,6 @@ function MissionDetail({ mission: m, onAccept, onReject, onPublish, onCancel, on
             </AlertDialogContent>
           </AlertDialog>
         </div>
-
-        {allApps.length > 0 && (
-          <div>
-            <h3 className="font-semibold mb-3">Candidatures ({allApps.length})</h3>
-            <div className="space-y-3">
-              {allApps.map(app => (
-                <div key={app.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{app.provider?.first_name} {app.provider?.last_name}</span>
-                      {app.provider?.score_global != null && (
-                        <span className="flex items-center gap-0.5 text-xs text-amber-600">
-                          <Star className="w-3 h-3 fill-amber-500" /> {app.provider.score_global}
-                        </span>
-                      )}
-                      <Badge variant={app.status === 'accepted' ? 'default' : app.status === 'rejected' ? 'destructive' : 'secondary'}>
-                        {app.status === 'pending' ? 'En attente' : app.status === 'accepted' ? 'Acceptée' : 'Refusée'}
-                      </Badge>
-                    </div>
-                    {app.message && <p className="text-sm text-muted-foreground mt-1">{app.message}</p>}
-                  </div>
-                  {app.status === 'pending' && m.status === 'open' && (
-                    <div className="flex gap-2 ml-3">
-                      <Button size="sm" onClick={() => onAccept(m.id, app.id, app.provider_id)}>
-                        <CheckCircle className="w-3 h-3 mr-1" /> Accepter
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => onReject(app.id)}>
-                        <XCircle className="w-3 h-3 mr-1" /> Refuser
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {m.status === 'open' && pendingApps.length === 0 && (
-          <div className="text-center py-6 text-muted-foreground text-sm">
-            <p>En attente de candidatures...</p>
-            <p className="text-xs mt-1">Les prestataires actifs verront cette mission dans leur espace.</p>
-          </div>
-        )}
       </div>
     </>
   );

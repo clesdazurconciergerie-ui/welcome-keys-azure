@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   ClipboardList, Play, CheckCircle, Upload, Camera, AlertTriangle,
   Send, MapPin, Calendar, Euro, Loader2, List, CalendarDays, ChevronLeft, ChevronRight,
-  AlertCircle, Clock, Briefcase, TrendingUp,
+  AlertCircle, Clock, Briefcase, TrendingUp, Zap,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
@@ -280,14 +280,12 @@ function MiniCalendar({ missions, onSelect }: { missions: NewMission[]; onSelect
 /* ── Main Page ────────────────────────────────────────────────── */
 
 export default function SPMissionsUnifiedPage() {
-  const { missions: newMissions, isLoading: loadingNew, applyToMission, confirmMission, markDone } = useNewMissions("provider");
+  const { missions: newMissions, isLoading: loadingNew, claimMission, confirmMission, markDone } = useNewMissions("provider");
   const { missions: legacyMissions, isLoading: loadingLegacy, startMission, completeMission, uploadPhoto, refetch } = useMissions("service_provider");
   const { spId } = useIsServiceProvider();
 
   const [myView, setMyView] = useState<"list" | "calendar">("list");
-  const [applyTarget, setApplyTarget] = useState<NewMission | null>(null);
-  const [applyMessage, setApplyMessage] = useState("");
-  const [applying, setApplying] = useState(false);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
 
   const [selectedNewMission, setSelectedNewMission] = useState<NewMission | null>(null);
   const [legacySelected, setLegacySelected] = useState<Mission | null>(null);
@@ -321,7 +319,7 @@ export default function SPMissionsUnifiedPage() {
   const myMissionsCount = myNewMissions.filter(m => ["assigned", "confirmed"].includes(m.status)).length
     + myLegacyMissions.filter(m => ["scheduled", "in_progress"].includes(m.status)).length;
 
-  const hasApplied = (m: NewMission) => m.applications?.some(a => a.provider_id === spId) || false;
+  const isMyClaim = (m: NewMission) => m.selected_provider_id === spId;
 
   const getConflict = (mission: NewMission): string | null => {
     const mStart = new Date(mission.start_at);
@@ -338,13 +336,10 @@ export default function SPMissionsUnifiedPage() {
     return null;
   };
 
-  const handleApply = async () => {
-    if (!applyTarget) return;
-    setApplying(true);
-    await applyToMission(applyTarget.id, applyMessage);
-    setApplying(false);
-    setApplyMessage("");
-    setApplyTarget(null);
+  const handleClaim = async (missionId: string) => {
+    setClaimingId(missionId);
+    await claimMission(missionId);
+    setClaimingId(null);
   };
 
   const handleNewMissionPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, kind: string = 'after') => {
@@ -412,7 +407,7 @@ export default function SPMissionsUnifiedPage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Missions</h1>
         <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-          Postulez aux missions ouvertes ou gérez vos missions acceptées.
+          Prenez les missions ouvertes ou gérez vos missions en cours.
         </p>
       </motion.div>
 
@@ -571,9 +566,9 @@ export default function SPMissionsUnifiedPage() {
                     <div className="w-16 h-16 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">
                       <ClipboardList className="w-7 h-7 text-muted-foreground" />
                     </div>
-                    <h3 className="font-semibold text-lg text-foreground mb-1">Aucune mission acceptée pour le moment</h3>
+                    <h3 className="font-semibold text-lg text-foreground mb-1">Aucune mission en cours</h3>
                     <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-                      Postulez aux missions ouvertes pour recevoir du travail.
+                      Prenez une mission ouverte pour commencer.
                     </p>
                   </CardContent>
                 </Card>
@@ -599,7 +594,6 @@ export default function SPMissionsUnifiedPage() {
           ) : (
             <div className="space-y-3">
               {openMissions.map((m, i) => {
-                const applied = hasApplied(m);
                 const conflict = getConflict(m);
                 return (
                   <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
@@ -613,23 +607,21 @@ export default function SPMissionsUnifiedPage() {
                       instructions={m.instructions}
                       status={m.status}
                       propertyPhotoUrl={getPropertyPhoto(m)}
-                      applied={applied}
                       conflictWarning={conflict}
                       actions={
-                        applied ? (
-                          <Badge className="bg-primary/10 text-primary border-primary/20 text-[11px] px-3 py-1.5" variant="outline">
-                            ✓ Candidature envoyée
-                          </Badge>
-                        ) : (
-                          <Button
-                            size="sm"
-                            className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                            onClick={(e) => { e.stopPropagation(); setApplyTarget(m); setApplyMessage(""); }}
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                            Postuler
-                          </Button>
-                        )
+                        <Button
+                          size="sm"
+                          className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                          disabled={claimingId === m.id}
+                          onClick={(e) => { e.stopPropagation(); handleClaim(m.id); }}
+                        >
+                          {claimingId === m.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Zap className="w-3.5 h-3.5" />
+                          )}
+                          Prendre la mission
+                        </Button>
                       }
                     />
                   </motion.div>
@@ -639,46 +631,6 @@ export default function SPMissionsUnifiedPage() {
           )}
         </TabsContent>
       </Tabs>
-
-      {/* ── Apply Dialog ──────────────────────────────────────── */}
-      <Dialog open={!!applyTarget} onOpenChange={open => { if (!open) setApplyTarget(null); }}>
-        <DialogContent>
-          {applyTarget && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Postuler : {applyTarget.title}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="text-sm space-y-1">
-                  <p><span className="text-muted-foreground">Logement :</span> {applyTarget.property?.name}</p>
-                  <p><span className="text-muted-foreground">Date :</span> {fmtDate(applyTarget.start_at)}</p>
-                  <p><span className="text-muted-foreground">Montant :</span> <span className="font-bold text-emerald-600">{applyTarget.payout_amount}€</span></p>
-                </div>
-                {applyTarget.instructions && (
-                  <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                    <p className="font-medium mb-1">Instructions :</p>
-                    <p className="whitespace-pre-wrap">{applyTarget.instructions}</p>
-                  </div>
-                )}
-                {getConflict(applyTarget) && (
-                  <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{getConflict(applyTarget)}</span>
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm font-medium mb-2">Message (optionnel)</p>
-                  <Textarea value={applyMessage} onChange={e => setApplyMessage(e.target.value)} placeholder="Précisez vos disponibilités…" rows={3} />
-                </div>
-                <Button onClick={handleApply} disabled={applying} className="w-full gap-2">
-                  {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  Envoyer ma candidature
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* ── Legacy Mission Detail Dialog ──────────────────────── */}
       <Dialog open={!!legacySelected} onOpenChange={open => { if (!open) { setLegacySelected(null); setCheckedItems({}); } }}>

@@ -3638,6 +3638,10 @@ export type Database = {
         Returns: boolean
       }
       check_booklet_quota: { Args: { p_user_id: string }; Returns: boolean }
+      claim_mission: {
+        Args: { _mission_id: string; _provider_id: string }
+        Returns: Json
+      }
       cleanup_demo_users: { Args: never; Returns: undefined }
       expire_demo_trials: { Args: never; Returns: undefined }
       generate_pin_code: { Args: never; Returns: string }
