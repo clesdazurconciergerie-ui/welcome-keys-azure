@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
         platform: cal.platform,
         status: "confirmed",
         ical_uid: e.uid || null,
-        event_type: e.eventType,
+        event_type: classifyWithPlatform(e.eventType, cal.platform, e.summary),
       }));
 
       const { error: insertErr } = await supabase
@@ -172,6 +172,15 @@ function classifyEvent(summary: string, description: string, uid: string): "rese
   const s = summary.toLowerCase();
   const d = description.toLowerCase();
 
+  // Manual block indicators (check FIRST to avoid false positives)
+  if (
+    s.includes("blocked") || s.includes("not available") || s.includes("bloqué") ||
+    s.includes("indisponible") || s.includes("block") || s === "airbnb (not available)" ||
+    s.includes("closed") || s.includes("fermé")
+  ) {
+    return "manual_block";
+  }
+
   // Reservation indicators
   if (
     s.includes("reserved") || s.includes("reservation") || s.includes("réservation") ||
@@ -183,15 +192,33 @@ function classifyEvent(summary: string, description: string, uid: string): "rese
     return "reservation";
   }
 
-  // Manual block indicators
+  return "unknown";
+}
+
+/**
+ * Re-classify using platform context.
+ * Booking.com iCal feeds typically use just the guest name as SUMMARY
+ * for real reservations, so "unknown" events from booking/vrbo platforms
+ * with a non-empty summary should be treated as reservations.
+ */
+function classifyWithPlatform(
+  eventType: "reservation" | "manual_block" | "unknown",
+  platform: string,
+  summary: string
+): "reservation" | "manual_block" | "unknown" {
+  if (eventType !== "unknown") return eventType;
+
+  const p = platform.toLowerCase();
+  // For known OTA platforms, if the event wasn't classified as a block
+  // and has a meaningful summary (likely a guest name), treat as reservation
   if (
-    s.includes("blocked") || s.includes("not available") || s.includes("bloqué") ||
-    s.includes("indisponible") || s.includes("block") || s === "airbnb (not available)"
+    (p === "booking" || p === "booking.com" || p === "vrbo" || p === "abritel" || p === "expedia") &&
+    summary && summary.trim().length > 0
   ) {
-    return "manual_block";
+    return "reservation";
   }
 
-  return "unknown";
+  return eventType;
 }
 
 function parseICalDate(line: string): string {
