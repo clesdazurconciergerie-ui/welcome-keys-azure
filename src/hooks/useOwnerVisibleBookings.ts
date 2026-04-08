@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeCalendarEvent, normalizeCalendarPlatform } from "@/lib/calendar-event-utils";
 
 export interface OwnerCalEvent {
   id: string;
@@ -57,8 +58,11 @@ export function useOwnerVisibleBookings(propertyIds: string[]) {
         .eq("override_type", "hide"),
     ]);
 
-    const rawBookings = bkRes.data || [];
-    const rawEvents = ceRes.data || [];
+    const rawBookings = (bkRes.data || []).map((booking: any) => ({
+      ...booking,
+      source: normalizeCalendarPlatform(booking.source),
+    }));
+    const rawEvents = (ceRes.data || []).map((event: any) => normalizeCalendarEvent(event));
     const overrides = ovRes.data || [];
 
     const hiddenIds = new Set<string>(overrides.map((o: any) => o.source_event_id));
