@@ -26,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 const platformColors: Record<string, string> = {
   airbnb: "bg-[#FF5A5F]/10 text-[#FF5A5F] border-[#FF5A5F]/20",
   booking: "bg-[#003580]/10 text-[#003580] border-[#003580]/20",
+  abritel: "bg-[#1F5AA6]/10 text-[#1F5AA6] border-[#1F5AA6]/20",
   vrbo: "bg-[#3B5998]/10 text-[#3B5998] border-[#3B5998]/20",
   manual: "bg-muted text-muted-foreground border-border",
   other: "bg-accent/50 text-accent-foreground border-accent",
@@ -42,6 +43,7 @@ const eventTypeStyles: Record<string, { bg: string; label: string; icon: string 
 const platformLabels: Record<string, string> = {
   airbnb: "Airbnb",
   booking: "Booking.com",
+  abritel: "Abritel",
   vrbo: "VRBO",
   manual: "Manuel",
   other: "Autre",

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { normalizeCalendarEvent, normalizeCalendarPlatform } from "@/lib/calendar-event-utils";
 
 export interface ICalCalendar {
   id: string;
@@ -40,7 +41,10 @@ export function useICalCalendar(propertyId: string | undefined) {
       .select("*")
       .eq("property_id", propertyId)
       .order("created_at");
-    setCalendars(data || []);
+    setCalendars((data || []).map((calendar: ICalCalendar) => ({
+      ...calendar,
+      platform: normalizeCalendarPlatform(calendar.platform),
+    })));
   }, [propertyId]);
 
   const fetchEvents = useCallback(async () => {
@@ -50,7 +54,7 @@ export function useICalCalendar(propertyId: string | undefined) {
       .select("*")
       .eq("property_id", propertyId)
       .order("start_date");
-    setEvents(data || []);
+    setEvents((data || []).map((event: CalendarEvent) => normalizeCalendarEvent(event)));
   }, [propertyId]);
 
   const refresh = useCallback(async () => {

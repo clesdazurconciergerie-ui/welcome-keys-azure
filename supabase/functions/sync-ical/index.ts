@@ -206,13 +206,19 @@ function classifyWithPlatform(
   platform: string,
   summary: string
 ): "reservation" | "manual_block" | "unknown" {
+  const p = platform.toLowerCase();
+  const normalizedSummary = summary.trim().toLowerCase();
+
+  // Booking.com often exports real reservations as "CLOSED - Not available"
+  // in iCal feeds. Treat these as reservations for availability calendars.
+  if ((p === "booking" || p === "booking.com") && normalizedSummary === "closed - not available") {
+    return "reservation";
+  }
+
   if (eventType !== "unknown") return eventType;
 
-  const p = platform.toLowerCase();
-  // For known OTA platforms, if the event wasn't classified as a block
-  // and has a meaningful summary (likely a guest name), treat as reservation
   if (
-    (p === "booking" || p === "booking.com" || p === "vrbo" || p === "abritel" || p === "expedia") &&
+    (p === "booking" || p === "booking.com" || p === "vrbo" || p === "abritel" || p === "homeaway" || p === "expedia") &&
     summary && summary.trim().length > 0
   ) {
     return "reservation";
