@@ -5,171 +5,94 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const STYLE_PROMPTS: Record<string, string> = {
-  standard: `Style Blanc Naturel — apartments, urban Airbnb, Scandinavian design.
-Warm highlights: +8 red, +5 green. Cool shadows: +5 blue.
-RGB curve: high point (225,240) soft highlight compression, low point (15,10) lifted blacks.
-HSL: Oranges (wood) sat+20 lum+8, Yellows sat-8 (neutralize casts), Greens sat+15 deep green, Blues sat+20, Whites lum+15 sat-8.
-Temperature: 6400K neutral-warm. Tint: +2 (very slight magenta for skin-friendly warmth).`,
+// ══════════════════════════════════════════════════════
+// NODALVIEW-INSPIRED PROMPT
+// Based on how Nodalview processes real estate photos:
+//   → Bright, airy interiors
+//   → Windows visible with sky detail
+//   → Clean whites, zero noise
+//   → Natural warmth without orange cast
+//   → Magazine-quality listing aesthetic
+// ══════════════════════════════════════════════════════
 
-  luxury: `Style Chaleur Luxe — villas, stone/wood interiors, high-end Côte d'Azur properties.
-Temperature: +250 to +450K after white balance. Tint: +5 to +8 (warm magenta glow).
-HSL: Oranges (wood) sat+30 lum+10 hue-8 (rich amber), Reds (leather/terracotta) sat+15, Greens sat+20 hue-8 (deep Mediterranean green), Blues sat+15 lum+5 (pool/sky enhancement).
-Lifted black point +15 for cozy cinematic atmosphere.
-Add subtle warm bloom on window light sources.`,
+const NODALVIEW_PROMPT = `You are a world-class real estate photo editor. Your job is to transform this property photo into a premium listing image — the kind you see on Airbnb Plus, Booking.com Preferred, or luxury real estate agency websites.
 
-  minimal: `Style Fraîcheur Minimaliste — contemporary apartments, white kitchens, bathrooms, modern spaces.
-Slightly cool: -150 to -250K after perfect white balance for clinical cleanliness.
-HSL: Blues sat+20 lum+5 (tiles, steel, glass), Whites lum+20 immaculate walls, Oranges sat+8 subtle warmth only, Greens sat+12.
-Strong S-curve for clean architectural contrast. Clarity +20 on hard surfaces.
-Micro-contrast emphasis on geometric lines and clean edges.`,
+Study how Nodalview, a professional real estate photography platform, produces its images. Their signature look is:
+- EXTREMELY bright and airy interiors — rooms feel flooded with natural light
+- Windows show the exterior clearly (sky, trees, garden) — never blown out white
+- Walls are clean, bright white or their true color — never grey or dingy
+- Colors are vivid but natural — wood looks warm, tiles look clean, fabrics look soft
+- Zero noise, zero grain — as clean as a medium format camera
+- Perfect vertical lines — no wide-angle distortion
+- The overall feeling is: "I want to live here"
 
-  coastal: `Style Extérieur Côte d'Azur — terraces, gardens, sea views, pool areas, Mediterranean outdoor spaces.
-Sky: blue highlights sat+35 lum+8, cloud whites recovery -60 for dramatic sky preservation.
-Sea/pool: cyan sat+25, blue sat+30, turquoise enhancement.
-Vegetation: greens sat+25 lum+8 vivid hue-5 (lush Mediterranean), dry yellows desat-15.
-Ground/stone: warm neutral tones with strong local contrast for texture.
-Interior/exterior fusion: warm-to-cool temperature gradient across window boundaries.
-Golden hour simulation: subtle warm rim light on surfaces facing windows.`,
+━━━━ STRICT RULES ━━━━
+🔒 DO NOT change, add, remove, or move ANY furniture, object, decoration, or architectural element
+🔒 DO NOT alter the room layout, perspective, or composition
+🔒 DO NOT add virtual staging elements (unless home staging is explicitly enabled below)
+🔒 The result must be the EXACT same scene — only light, color, and clarity are enhanced
+🔒 Someone who knows this property must instantly recognize it
+
+━━━━ ENHANCEMENT STEPS ━━━━
+
+1. WHITE BALANCE: Set to neutral daylight (5500-6200K). Eliminate any yellow, orange, or green color cast from artificial lighting. Whites must look white.
+
+2. EXPOSURE & BRIGHTNESS: This is the #1 priority. Push the interior brightness to maximum realistic level. The room must feel bathed in natural light. Dark corners are unacceptable — lift every shadow aggressively.
+
+3. WINDOW RECOVERY: If windows are visible, balance interior and exterior exposure. The sky and outdoor scenery must be visible through windows — not blown out white. This is the Nodalview signature look: bright interior + visible exterior.
+
+4. SHADOWS & HIGHLIGHTS:
+   - Shadows: lift +80 to +100 (reveal ALL detail in dark areas)
+   - Highlights: recover -40 to -60 (preserve window views and bright surfaces)
+   - Result: flat, even lighting across the entire room
+
+5. COLOR GRADING:
+   - Vibrance: +30 to +40 (colors must pop and feel alive)
+   - Saturation: +15 to +20 (moderate, natural boost)
+   - Wood tones: warm and rich amber
+   - White walls: clean, bright, neutral
+   - Tiles/stone: crisp and defined
+   - Fabrics/textiles: soft and inviting
+
+6. CONTRAST & CLARITY:
+   - Apply medium S-curve for depth and dimension
+   - Clarity +15 to +20 on architectural elements (edges, lines, textures)
+   - Micro-contrast on materials for tactile quality
+
+7. NOISE REDUCTION: Full denoise — the result must look shot on a Sony A7R V or Hasselblad. Zero grain, especially in shadow areas.
+
+8. LENS CORRECTION: Straighten all vertical lines. Correct wide-angle barrel distortion. The image must have perfect architectural geometry.
+
+9. FINAL MOOD: Bright, warm, aspirational, premium. The image must make someone want to book immediately.
+
+━━━━ CRITICAL RULE ━━━━
+A slightly over-bright image is ALWAYS better than a dark or dull one.
+If in doubt, add more light. Nodalview images are consistently brighter than what most people would expect — and that's exactly what sells.
+
+Output: one single photorealistic image, ultra-high quality, same aspect ratio as the original.`;
+
+const STYLE_ADDONS: Record<string, string> = {
+  standard: "",
+  luxury: `\n\nADDITIONAL STYLE — LUXURY: Add a subtle warm luxury glow. Wood should look rich and expensive. Enhance the feeling of premium craftsmanship. Think Architectural Digest or Côte d'Azur villa listing.`,
+  minimal: `\n\nADDITIONAL STYLE — MINIMAL: Emphasize clean lines, white spaces, and contemporary aesthetics. Slightly cooler color temperature for a fresh, modern feel. Think Scandinavian design magazine.`,
+  coastal: `\n\nADDITIONAL STYLE — COASTAL/EXTERIOR: Enhance sky blues and vegetation greens. Pool/sea water should look turquoise and inviting. Warm Mediterranean light on stone and terrace surfaces. Think luxury seaside property listing.`,
 };
 
-const INTENSITY_PROMPTS: Record<string, string> = {
-  light: `Light enhancement — subtle but visible improvement:
-Exposure: +0.8 to +1.0 EV. Shadows: +60. Highlights: -60. Whites: +25. Blacks: +20.
-Selective saturation: +12 to +18. Vibrance: +10. Subtle S-curve. Light grain.
-Clarity: +10 on textures only. Color temperature: correct only, minimal shift.
-Result must look naturally better — like a good photographer's quick edit.`,
+function buildPrompt(style: string, homeStaging: boolean): string {
+  let prompt = NODALVIEW_PROMPT;
+  prompt += STYLE_ADDONS[style] || "";
+  
+  if (homeStaging) {
+    prompt += `\n\nHOME STAGING (ENABLED): You may add 1-3 tiny lifestyle elements on existing flat surfaces ONLY (table, bed, countertop). Examples: fruit bowl, coffee cups, folded towel, small plant. They must match the existing lighting and style. DO NOT move or replace anything — only add tiny touches.`;
+  } else {
+    prompt += `\n\nHOME STAGING: DISABLED. Add ZERO new objects. Pure photo enhancement only.`;
+  }
 
-  balanced: `Balanced professional enhancement — magazine-quality result:
-Exposure: +1.0 to +1.4 EV. Shadows: +75. Highlights: -75. Whites: +35. Blacks: +25.
-Selective saturation: +18 to +25. Vibrance: +18. Medium-strong S-curve. Clarity: +18.
-HDR balance: interior bright and airy + exterior visible through windows with sky detail.
-Directional light enhancement from primary window source.
-Color grading: warm luxury tone without cast. Wood enrichment, wall neutralization.
-Result: professional real estate photography level.`,
-
-  strong: `Maximum professional enhancement — luxury listing visual impact:
-Exposure: +1.4 to +2.0 EV. Shadows: +85 to +100. Highlights: -85 to -95. Whites: +45 to +65. Blacks: +35 to +45.
-Selective saturation: +22 to +30. Vibrance: +25. Strong S-curve with lifted blacks. Clarity: +22.
-Full HDR simulation: interior luminous and airy + exterior fully visible with sky and vegetation detail.
-Temperature: aggressively neutralize tungsten yellow (-600 to -1200K if needed), then add +150K warm luxury tone.
-Directional sunlight simulation: strong gradient from windows, natural floor reflections, subtle bloom.
-Micro-contrast: +25 on wood, stone, fabric textures for tactile depth.
-Must look like a luxury villa photoshoot for Architectural Digest or premium Airbnb Plus listing.`,
-};
-
-const BASE_PROMPT = `You are a world-class real estate photographer with 20+ years of professional experience. Your task is strictly photo enhancement only — you are acting as a professional photo editor in Lightroom/Capture One, NOT as an image generator.
-
-Using the uploaded photo as the sacred and immutable base, apply a ultra-professional real estate photography post-processing treatment with the following rules:
-
-🔒 ABSOLUTE CONSTRAINTS — NEVER VIOLATE THESE:
-DO NOT change, move, add or remove any furniture, object, or decorative element
-DO NOT change the architecture, walls, floors, ceiling, doors, windows shape or position
-DO NOT change the room layout or perspective in any way
-DO NOT add any virtual staging, CGI elements, or artificial objects
-DO NOT alter proportions or distort any element of the scene
-DO NOT make it look like a 3D render, illustration, or AI-generated image
-The final result must be 100% photorealistic — indistinguishable from a photo taken by a human photographer on a professional camera
-Someone who knows this property in real life must instantly recognize it from the enhanced photo
-
-📸 PHOTO ENHANCEMENT SETTINGS (Lightroom-style corrections only):
-— White balance: perfectly calibrated, warm and inviting tones (around 5500–6000K), eliminate any cold, yellow or greenish cast
-— Exposure & Brightness: push brightness to the maximum realistic limit — the interior must feel flooded with natural light, bright and airy
-— Highlights & Shadows: lift shadows aggressively to reveal all details in dark corners, recover just enough highlight detail to keep the scene believable
-— Saturation & Vibrance: boost vibrance strongly (+40 equivalent) and saturation moderately (+20 equivalent) — colors must pop, feel rich and lively without looking artificial
-— Clarity & Sharpness: add moderate clarity for architectural crispness, full sharpness on edges, textures must feel tactile and real
-— Contrast: medium-high contrast with a subtle S-curve — the image must feel punchy and dynamic
-— Sky/Windows: if exterior is visible through windows, enhance to show a bright, natural, slightly blue sky — keep it realistic, not fake
-— Lens correction: straighten all vertical and horizontal lines (architectural distortion correction), perfectly rectilinear perspective
-— Noise reduction: clean, noiseless render as if shot on a high-end full-frame DSLR (Canon 5D Mark IV or Sony A7R V)
-— Overall mood: bright, airy, warm, aspirational — luxury real estate listing quality, magazine-ready but photo-realistic
-
-🎯 FINAL GOAL:
-The output must look like this exact same photo, taken by a seasoned professional photographer, on the best equipment available, in perfect lighting conditions. Nothing has changed in the room. Only the light, color grading and sharpness have been professionally enhanced.
-
-⚠️ If you feel the urge to "improve" the scene by adding or changing anything — resist it. Your only job is to make the existing photo shine.
-
-Output: one single photorealistic image, ultra-high quality, same aspect ratio and framing as the original.`;
-
-type PhotoAnalysis = {
-  roomType?: string;
-  issues?: string[];
-  stagingSuggestions?: string[];
-};
-
-type ValidationResult = {
-  pass: boolean;
-  summary: string;
-  violations: string[];
-  retryGuidance: string;
-  structurePreserved: boolean;
-  allowedChangesOnly: boolean;
-  stagingCompliance: boolean;
-  confidence?: number;
-};
-
-const IMAGE_EDIT_MODEL = "gpt-image-1";
-const VALIDATION_MODEL = "gpt-4o";
-const MAX_EDIT_ATTEMPTS = 3;
-
-const STRICT_EDIT_LOCK_PROMPT = `
-━━━━━━━━━━━━━━━━━━━━━━━
-STRICT EDIT LOCK — HIGHEST PRIORITY
-━━━━━━━━━━━━━━━━━━━━━━━
-This is a PHOTO EDITING task, NOT an image generation task.
-Treat the uploaded image as a LOCKED reference plate, like Lightroom or Photoshop editing.
-
-NON-NEGOTIABLE RULES:
-- Preserve the exact geometry, perspective, camera angle, crop, and composition.
-- Preserve the exact furniture, decor, objects, walls, windows, mirrors, doors, appliances, and architecture.
-- Preserve the exact object count, exact object positions, and exact room layout.
-- NEVER reinterpret, redesign, rebuild, restyle, replace, remove, move, resize, or invent any part of the scene.
-
-ALLOWED ACTIONS ONLY:
-- lighting enhancement
-- white balance / color cast correction
-- exposure balancing / HDR-style recovery
-- color grading
-- contrast / tone curve / depth refinement
-- texture and clarity improvements that keep the exact same surfaces
-
-FORBIDDEN ACTIONS:
-- changing furniture shape, style, material, or placement
-- changing decor, bedding, mirrors, art, accessories, or architecture
-- altering room dimensions, perspective, or layout
-- hallucinating new objects or removing existing ones
-
-If there is any tension between enhancement and structure preservation, ALWAYS preserve structure and make a lighter edit.
-If the output is not the same exact scene, the result is invalid.`;
-
-const VALIDATION_SYSTEM_PROMPT = `You are a strict photo QA inspector for premium real-estate image editing.
-Your only job is to compare an ORIGINAL photo and an EDITED candidate.
-
-Approve ONLY if the edited image keeps the SAME exact scene and changes ONLY photometric qualities:
-- lighting
-- white balance
-- exposure
-- color
-- contrast
-- texture / clarity
-
-Reject if ANY structural or semantic scene change appears, including:
-- furniture changes
-- object additions/removals/movements
-- decor changes
-- architecture changes
-- layout / geometry / perspective changes
-- replaced mirrors, windows, walls, appliances, or accessories
-
-Home staging rules:
-- If home staging is OFF: any new object must FAIL.
-- If home staging is ON: allow only 1-3 tiny lifestyle items placed on existing flat surfaces (table, bed, countertop) with no other scene change.
-
-Be strict. If you are uncertain, reject.`;
+  return prompt;
+}
 
 class HttpError extends Error {
   status: number;
-
   constructor(status: number, message: string) {
     super(message);
     this.name = "HttpError";
@@ -184,94 +107,14 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-function buildAnalysisContext(analysis?: PhotoAnalysis) {
-  if (!analysis) return "";
-
-  const parts: string[] = [];
-  if (analysis.roomType) parts.push(`Room type: ${analysis.roomType}.`);
-  if (Array.isArray(analysis.issues) && analysis.issues.length > 0) {
-    parts.push(`Known issues: ${analysis.issues.join(", ")}.`);
-  }
-  if (Array.isArray(analysis.stagingSuggestions) && analysis.stagingSuggestions.length > 0) {
-    parts.push(`Potential staging targets: ${analysis.stagingSuggestions.join(", ")}.`);
-  }
-
-  return parts.length > 0 ? `\nAnalysis context: ${parts.join(" ")}` : "";
-}
-
-function buildStagingPrompt(homeStaging: boolean) {
-  if (!homeStaging) {
-    return `\n\nHOME STAGING: DISABLED
-Add ZERO new objects. Do not place anything anywhere. Deliver a strict photometric edit only.`;
-  }
-
-  return `\n\nSTEP 7B — HOME STAGING (ENABLED — STRICT MICRO-STAGING)
-Only if it improves realism, add 1-3 tiny lifestyle elements on existing FLAT SURFACES ONLY:
-- Kitchen/dining: fruit bowl, coffee cups, croissants, wine glasses, light breakfast setup
-- Living room: book, candle, small decorative object
-- Bedroom: extra cushion, folded blanket/plaid
-- Bathroom: rolled towels, small plant, elegant soap
-
-STRICT STAGING RULES:
-- Minimal — NEVER dominate the scene
-- Flat surfaces only — table, bed, countertop
-- Realistic — aligned with existing lighting and shadows
-- Coherent — adapted to the property style
-- NEVER artificial or generic
-- DO NOT replace, move, remove, or alter ANY existing object
-- If staging risks realism or structure preservation → skip staging entirely
-- The original space MUST remain unchanged apart from tiny flat-surface additions`;
-}
-
-function buildEditPrompt(params: {
-  stylePrompt: string;
-  intensityPrompt: string;
-  analysisContext: string;
-  stagingPrompt: string;
-  attempt: number;
-  validationFeedback: string;
-}) {
-  const retryBlock = params.attempt > 1 && params.validationFeedback
-    ? `\n\nQC REJECTION FROM PREVIOUS ATTEMPT:
-${params.validationFeedback}
-
-Retry with an even stricter edit-only approach. Use lighter corrections if needed, but NEVER alter the scene.`
-    : "";
-
-  return `${STRICT_EDIT_LOCK_PROMPT}
-
-${BASE_PROMPT}
-
-━━━━ ACTIVE CONFIGURATION ━━━━
-Style: ${params.stylePrompt}
-Intensity: ${params.intensityPrompt}${params.analysisContext}${params.stagingPrompt}${retryBlock}
-
-FINAL EXECUTION RULE:
-Behave like a world-class Lightroom/Photoshop editor working on a locked source photo.
-Return the SAME exact scene, with stronger light/color/contrast quality only.
-If you cannot fully preserve the structure, make the edit lighter rather than changing the image.`;
-}
-
-function parseImageDataUrl(imageBase64: string) {
-  const base64Match = imageBase64.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/);
-  if (!base64Match) {
-    throw new Error("Invalid image format — expected data:image/...;base64,...");
-  }
-
-  return {
-    imageFormat: base64Match[1] === "jpg" ? "jpeg" : base64Match[1],
-    rawBase64: base64Match[2],
-  };
-}
-
 function createImageBlob(imageBase64: string) {
-  const { imageFormat, rawBase64 } = parseImageDataUrl(imageBase64);
-  const binaryString = atob(rawBase64);
-  const bytes = new Uint8Array(binaryString.length);
+  const base64Match = imageBase64.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/);
+  if (!base64Match) throw new Error("Invalid image format");
 
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
+  const imageFormat = base64Match[1] === "jpg" ? "jpeg" : base64Match[1];
+  const binaryString = atob(base64Match[2]);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
 
   return {
     imageFormat,
@@ -279,215 +122,49 @@ function createImageBlob(imageBase64: string) {
   };
 }
 
-async function handleOpenAiFailure(response: Response, label: string): Promise<never> {
-  const errText = await response.text();
-  console.error(`${label} error:`, response.status, errText);
-
-  if (response.status === 429) {
-    throw new HttpError(429, "Trop de requêtes, réessayez dans un moment.");
-  }
-
-  if (response.status === 402 || response.status === 403) {
-    throw new HttpError(402, "Crédits OpenAI épuisés ou accès refusé.");
-  }
-
-  throw new Error(`${label}: ${response.status} — ${errText}`);
-}
-
-async function requestStrictEdit(params: {
-  apiKey: string;
-  imageBlob: Blob;
-  imageFormat: string;
-  editPrompt: string;
-}) {
-  const formData = new FormData();
-  formData.append("image", params.imageBlob, `photo.${params.imageFormat === "jpeg" ? "jpg" : params.imageFormat}`);
-  formData.append("prompt", params.editPrompt);
-  formData.append("model", IMAGE_EDIT_MODEL);
-  formData.append("size", "auto");
-  formData.append("quality", "high");
-
-  const response = await fetch("https://api.openai.com/v1/images/edits", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${params.apiKey}`,
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    await handleOpenAiFailure(response, "OpenAI image edit");
-  }
-
-  const data = await response.json();
-  const generatedB64 = data.data?.[0]?.b64_json;
-  if (!generatedB64) throw new Error("No image generated by OpenAI");
-
-  return `data:image/png;base64,${generatedB64}`;
-}
-
-async function validateStrictEdit(params: {
-  apiKey: string;
-  originalImageUrl: string;
-  editedImageUrl: string;
-  homeStaging: boolean;
-}) {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${params.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: VALIDATION_MODEL,
-      temperature: 0,
-      messages: [
-        { role: "system", content: VALIDATION_SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Compare these two real-estate photos. Image 1 is the ORIGINAL locked input. Image 2 is the EDITED candidate. ${params.homeStaging
-                ? "Home staging is ON. Approve tiny flat-surface-only additions only if the rest of the scene is identical."
-                : "Home staging is OFF. Any new object or removed object must fail."}
-Approve only if geometry, layout, furniture, objects, architecture, and composition are effectively identical, and only lighting/color/contrast/texture have changed.`,
-            },
-            { type: "text", text: "ORIGINAL IMAGE" },
-            {
-              type: "image_url",
-              image_url: {
-                url: params.originalImageUrl,
-                detail: "low",
-              },
-            },
-            { type: "text", text: "EDITED IMAGE TO VALIDATE" },
-            {
-              type: "image_url",
-              image_url: {
-                url: params.editedImageUrl,
-                detail: "low",
-              },
-            },
-          ],
-        },
-      ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "validate_photo_edit",
-            description: "Validate whether an edited property photo preserves the original structure and changes only allowed visual properties.",
-            parameters: {
-              type: "object",
-              properties: {
-                pass: { type: "boolean" },
-                confidence: { type: "number" },
-                summary: { type: "string" },
-                violations: {
-                  type: "array",
-                  items: { type: "string" },
-                },
-                retryGuidance: { type: "string" },
-                structurePreserved: { type: "boolean" },
-                allowedChangesOnly: { type: "boolean" },
-                stagingCompliance: { type: "boolean" },
-              },
-              required: [
-                "pass",
-                "confidence",
-                "summary",
-                "violations",
-                "retryGuidance",
-                "structurePreserved",
-                "allowedChangesOnly",
-                "stagingCompliance",
-              ],
-              additionalProperties: false,
-            },
-          },
-        },
-      ],
-      tool_choice: {
-        type: "function",
-        function: { name: "validate_photo_edit" },
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    await handleOpenAiFailure(response, "OpenAI validation");
-  }
-
-  const data = await response.json();
-  const rawArguments = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-  if (!rawArguments) {
-    throw new Error("OpenAI validation did not return structured output");
-  }
-
-  const parsed = JSON.parse(rawArguments);
-  return {
-    pass: Boolean(parsed.pass && parsed.structurePreserved && parsed.allowedChangesOnly && parsed.stagingCompliance),
-    summary: typeof parsed.summary === "string" ? parsed.summary : "Validation failed",
-    violations: Array.isArray(parsed.violations) ? parsed.violations.filter((item: unknown) => typeof item === "string") : [],
-    retryGuidance: typeof parsed.retryGuidance === "string" ? parsed.retryGuidance : "Keep the exact same scene and reduce the edit scope to lighting and color only.",
-    structurePreserved: Boolean(parsed.structurePreserved),
-    allowedChangesOnly: Boolean(parsed.allowedChangesOnly),
-    stagingCompliance: Boolean(parsed.stagingCompliance),
-    confidence: typeof parsed.confidence === "number" ? parsed.confidence : undefined,
-  } satisfies ValidationResult;
-}
-
-function buildValidationFeedback(validation: ValidationResult) {
-  const violations = validation.violations.length > 0
-    ? `Violations detected: ${validation.violations.join("; ")}.`
-    : "Violations detected: structural mismatch.";
-
-  return `${validation.summary} ${violations} Retry guidance: ${validation.retryGuidance}`;
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { imageBase64, style = "standard", intensity = "balanced", analysis, homeStaging = false } = await req.json();
-    if (!imageBase64) {
-      return jsonResponse({ error: "imageBase64 required" }, 400);
-    }
+    const { imageBase64, style = "standard", homeStaging = false } = await req.json();
+    if (!imageBase64) return jsonResponse({ error: "imageBase64 required" }, 400);
 
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
 
-    const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS.standard;
-    const intensityPrompt = INTENSITY_PROMPTS[intensity] || INTENSITY_PROMPTS.balanced;
-    const analysisContext = buildAnalysisContext(analysis as PhotoAnalysis | undefined);
-    const stagingPrompt = buildStagingPrompt(Boolean(homeStaging));
     const { imageBlob, imageFormat } = createImageBlob(imageBase64);
+    const editPrompt = buildPrompt(style, Boolean(homeStaging));
 
-    const editPrompt = buildEditPrompt({
-      stylePrompt,
-      intensityPrompt,
-      analysisContext,
-      stagingPrompt,
-      attempt: 1,
-      validationFeedback: "",
+    // Single-pass edit with GPT-image-1
+    const formData = new FormData();
+    formData.append("image", imageBlob, `photo.${imageFormat === "jpeg" ? "jpg" : imageFormat}`);
+    formData.append("prompt", editPrompt);
+    formData.append("model", "gpt-image-1");
+    formData.append("size", "auto");
+    formData.append("quality", "high");
+
+    const response = await fetch("https://api.openai.com/v1/images/edits", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+      body: formData,
     });
 
-    const optimizedImageUrl = await requestStrictEdit({
-      apiKey: OPENAI_API_KEY,
-      imageBlob,
-      imageFormat,
-      editPrompt,
-    });
-
-    return jsonResponse({ optimizedImageUrl });
-  } catch (e) {
-    console.error("photo-optimizer-generate error:", e);
-
-    if (e instanceof HttpError) {
-      return jsonResponse({ error: e.message }, e.status);
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("OpenAI error:", response.status, errText);
+      if (response.status === 429) throw new HttpError(429, "Trop de requêtes, réessayez dans un moment.");
+      if (response.status === 402 || response.status === 403) throw new HttpError(402, "Crédits OpenAI épuisés.");
+      throw new Error(`OpenAI: ${response.status}`);
     }
 
+    const data = await response.json();
+    const generatedB64 = data.data?.[0]?.b64_json;
+    if (!generatedB64) throw new Error("No image generated");
+
+    return jsonResponse({ optimizedImageUrl: `data:image/png;base64,${generatedB64}` });
+  } catch (e) {
+    console.error("photo-optimizer-generate error:", e);
+    if (e instanceof HttpError) return jsonResponse({ error: e.message }, e.status);
     return jsonResponse({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }
 });
