@@ -255,11 +255,14 @@ export default function PhotoOptimizerPage() {
         body: { imageBase64: base64, style, homeStaging },
       });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.optimizedImageUrl) throw new Error("Aucune image retournée");
       setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, status: "optimized", optimizedUrl: data.optimizedImageUrl } : p)));
       toast.success("Photo optimisée !");
-    } catch {
-      setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, status: "error", error: "Erreur de génération" } : p)));
-      toast.error("Erreur lors de la génération");
+    } catch (err: any) {
+      const msg = err?.message || "Erreur de génération";
+      setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, status: "error", error: msg } : p)));
+      toast.error(msg);
     }
   };
 
