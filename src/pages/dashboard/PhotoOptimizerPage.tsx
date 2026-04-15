@@ -363,6 +363,12 @@ export default function PhotoOptimizerPage() {
   // ── Main Layout ──
   return (
     <div className="h-full flex flex-col">
+      <SmartCaptureModal
+        open={smartCaptureOpen}
+        onClose={() => setSmartCaptureOpen(false)}
+        onCapture={handleOneClickPro}
+      />
+
       {/* ── Top Bar ── */}
       <div className="flex items-center justify-between px-1 pb-4 flex-shrink-0">
         <div className="flex items-center gap-3">
@@ -376,12 +382,17 @@ export default function PhotoOptimizerPage() {
             </p>
           </div>
         </div>
-        {photos.length > 1 && (
-          <Button onClick={processAll} size="sm" className="gap-2 rounded-xl shadow-sm">
-            <Sparkles className="h-3.5 w-3.5" />
-            Tout traiter
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setSmartCaptureOpen(true)} variant="outline" size="sm" className="gap-2 rounded-xl">
+            <Zap className="h-3.5 w-3.5" /> Photo Pro
           </Button>
-        )}
+          {photos.length > 1 && (
+            <Button onClick={processAll} size="sm" className="gap-2 rounded-xl shadow-sm">
+              <Sparkles className="h-3.5 w-3.5" />
+              Tout traiter
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* ── Main Content ── */}
