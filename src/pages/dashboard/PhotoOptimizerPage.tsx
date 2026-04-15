@@ -13,6 +13,9 @@ import {
 import SmartCaptureModal from "@/components/photo-optimizer/SmartCaptureModal";
 import type { HDRResult } from "@/lib/hdr-processor";
 
+// Note: 'intensity' and 'analysis' params removed — the new Nodalview-grade
+// prompt handles everything in one pass without needing analysis or intensity levels.
+
 // ── Types ──────────────────────────────────────────────
 interface PhotoItem {
   id: string;
@@ -36,19 +39,12 @@ interface PhotoAnalysis {
 }
 
 type PhotoStyle = "standard" | "luxury" | "minimal" | "coastal";
-type PhotoIntensity = "light" | "balanced" | "strong";
 
 const STYLES: { value: PhotoStyle; label: string; desc: string; icon: React.ReactNode }[] = [
   { value: "standard", label: "Standard", desc: "Pro naturel", icon: <Camera className="h-4 w-4" /> },
   { value: "luxury", label: "Luxe", desc: "Haut de gamme", icon: <Sparkles className="h-4 w-4" /> },
   { value: "minimal", label: "Minimal", desc: "Épuré & clair", icon: <Sun className="h-4 w-4" /> },
   { value: "coastal", label: "Côte d'Azur", desc: "Lumière dorée", icon: <Palette className="h-4 w-4" /> },
-];
-
-const INTENSITIES: { value: PhotoIntensity; label: string; desc: string }[] = [
-  { value: "light", label: "Light", desc: "Subtil" },
-  { value: "balanced", label: "Balanced", desc: "Pro" },
-  { value: "strong", label: "Strong", desc: "Maximum" },
 ];
 
 // ── Before/After Slider ────────────────────────────────
@@ -149,7 +145,6 @@ function PremiumLoader({ label }: { label: string }) {
 export default function PhotoOptimizerPage() {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [style, setStyle] = useState<PhotoStyle>("luxury");
-  const [intensity, setIntensity] = useState<PhotoIntensity>("strong");
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [homeStaging, setHomeStaging] = useState(false);
   const [smartCaptureOpen, setSmartCaptureOpen] = useState(false);
@@ -157,7 +152,7 @@ export default function PhotoOptimizerPage() {
 
   // Handle HDR capture from SmartCaptureModal
   const handleSmartCapture = useCallback(async (result: HDRResult) => {
-    const file = new File([result.blob], `hdr-capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    const file = new File([result.blob], `photo-pro-${Date.now()}.jpg`, { type: 'image/jpeg' });
     const photoItem: PhotoItem = {
       id: crypto.randomUUID(),
       file,
@@ -166,45 +161,37 @@ export default function PhotoOptimizerPage() {
     };
     setPhotos(prev => [...prev, photoItem]);
     setSelectedPhoto(photoItem.id);
-    toast.success(`Photo HDR capturée (${result.bracketCount} expositions, ${Math.round(result.processingTimeMs)}ms)`);
+    toast.success("Photo capturée !");
   }, []);
 
   // One-click pro: capture → auto analyze → auto generate
   const handleOneClickPro = useCallback(async (result: HDRResult) => {
-    const file = new File([result.blob], `hdr-capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    const file = new File([result.blob], `photo-pro-${Date.now()}.jpg`, { type: 'image/jpeg' });
     const id = crypto.randomUUID();
     const photoItem: PhotoItem = {
       id,
       file,
       previewUrl: result.dataUrl,
-      status: "analyzing",
+      status: "generating",
     };
     setPhotos(prev => [...prev, photoItem]);
     setSelectedPhoto(id);
 
     try {
-      // Auto-analyze
       const base64 = result.dataUrl;
-      const { data: analysisData, error: analysisErr } = await supabase.functions.invoke("photo-optimizer-analyze", {
-        body: { imageBase64: base64 },
-      });
-      if (analysisErr) throw analysisErr;
-
-      setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "generating", analysis: analysisData.analysis } : p));
-
-      // Auto-generate
+      // Send clean photo directly to AI — no local degradation
       const { data: genData, error: genErr } = await supabase.functions.invoke("photo-optimizer-generate", {
-        body: { imageBase64: base64, style, intensity, analysis: analysisData.analysis, homeStaging },
+        body: { imageBase64: base64, style, homeStaging },
       });
       if (genErr) throw genErr;
 
       setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "optimized", optimizedUrl: genData.optimizedImageUrl } : p));
-      toast.success("Photo pro générée automatiquement !");
+      toast.success("Photo optimisée !");
     } catch {
       setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "error", error: "Erreur de traitement" } : p));
-      toast.error("Erreur lors du traitement automatique");
+      toast.error("Erreur lors du traitement");
     }
-  }, [style, intensity, homeStaging]);
+  }, [style, homeStaging]);
 
   const addPhotos = useCallback((files: FileList | File[]) => {
     const newPhotos: PhotoItem[] = Array.from(files)
@@ -265,7 +252,7 @@ export default function PhotoOptimizerPage() {
       const photo = photos.find((p) => p.id === id)!;
       const base64 = await fileToBase64(photo.file);
       const { data, error } = await supabase.functions.invoke("photo-optimizer-generate", {
-        body: { imageBase64: base64, style, intensity, analysis: photo.analysis, homeStaging },
+        body: { imageBase64: base64, style, homeStaging },
       });
       if (error) throw error;
       setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, status: "optimized", optimizedUrl: data.optimizedImageUrl } : p)));
