@@ -302,7 +302,7 @@ export default function PhotoOptimizerPage() {
               Prendre une photo pro
             </p>
             <p className="text-sm text-muted-foreground mt-2 max-w-sm text-center">
-              Capture HDR intelligente — Fusion multi-exposition + optimisation IA automatique
+              Capture intelligente + optimisation IA automatique style Nodalview
             </p>
             <div className="mt-5">
               <span className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold shadow-md group-hover:shadow-lg transition-all duration-300">
@@ -401,8 +401,6 @@ export default function PhotoOptimizerPage() {
                 </button>
               ))}
             </div>
-          </div>
-
           </div>
 
           {/* Home Staging Toggle */}
@@ -517,7 +515,7 @@ export default function PhotoOptimizerPage() {
                 {isProcessing && (
                   <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-md">
                     <PremiumLoader
-                      label={selected.status === "analyzing" ? "Analyse en cours…" : "Génération de l'image optimisée…"}
+                      label="Optimisation IA en cours…"
                     />
                   </div>
                 )}
@@ -546,11 +544,6 @@ export default function PhotoOptimizerPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   {selected.status === "uploaded" && (
-                    <Button onClick={() => analyzePhoto(selected.id)} size="sm" className="gap-2 rounded-xl shadow-sm">
-                      <Wand2 className="h-3.5 w-3.5" /> Analyser
-                    </Button>
-                  )}
-                  {selected.status === "analyzed" && (
                     <Button onClick={() => generateOptimized(selected.id)} size="sm" className="gap-2 rounded-xl shadow-sm">
                       <Sparkles className="h-3.5 w-3.5" /> Optimiser
                     </Button>
@@ -570,7 +563,7 @@ export default function PhotoOptimizerPage() {
                     </>
                   )}
                   {selected.status === "error" && (
-                    <Button variant="outline" onClick={() => analyzePhoto(selected.id)} size="sm" className="gap-2 rounded-xl">
+                    <Button variant="outline" onClick={() => generateOptimized(selected.id)} size="sm" className="gap-2 rounded-xl">
                       <RotateCcw className="h-3.5 w-3.5" /> Réessayer
                     </Button>
                   )}
