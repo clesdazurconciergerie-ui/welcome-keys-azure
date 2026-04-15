@@ -8,8 +8,10 @@ import { cn } from "@/lib/utils";
 import {
   Upload, Sparkles, Download, X, CheckCircle2,
   Sun, Palette, Trash2, Camera, Image as ImageIcon,
-  Wand2, RotateCcw, GripVertical,
+  Wand2, RotateCcw, GripVertical, Zap,
 } from "lucide-react";
+import SmartCaptureModal from "@/components/photo-optimizer/SmartCaptureModal";
+import type { HDRResult } from "@/lib/hdr-processor";
 
 // ── Types ──────────────────────────────────────────────
 interface PhotoItem {
