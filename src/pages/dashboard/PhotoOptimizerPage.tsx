@@ -8,8 +8,10 @@ import { cn } from "@/lib/utils";
 import {
   Upload, Sparkles, Download, X, CheckCircle2,
   Sun, Palette, Trash2, Camera, Image as ImageIcon,
-  Wand2, RotateCcw, GripVertical,
+  Wand2, RotateCcw, GripVertical, Zap,
 } from "lucide-react";
+import SmartCaptureModal from "@/components/photo-optimizer/SmartCaptureModal";
+import type { HDRResult } from "@/lib/hdr-processor";
 
 // ── Types ──────────────────────────────────────────────
 interface PhotoItem {
@@ -150,7 +152,59 @@ export default function PhotoOptimizerPage() {
   const [intensity, setIntensity] = useState<PhotoIntensity>("strong");
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [homeStaging, setHomeStaging] = useState(false);
+  const [smartCaptureOpen, setSmartCaptureOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle HDR capture from SmartCaptureModal
+  const handleSmartCapture = useCallback(async (result: HDRResult) => {
+    const file = new File([result.blob], `hdr-capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    const photoItem: PhotoItem = {
+      id: crypto.randomUUID(),
+      file,
+      previewUrl: result.dataUrl,
+      status: "uploaded",
+    };
+    setPhotos(prev => [...prev, photoItem]);
+    setSelectedPhoto(photoItem.id);
+    toast.success(`Photo HDR capturée (${result.bracketCount} expositions, ${Math.round(result.processingTimeMs)}ms)`);
+  }, []);
+
+  // One-click pro: capture → auto analyze → auto generate
+  const handleOneClickPro = useCallback(async (result: HDRResult) => {
+    const file = new File([result.blob], `hdr-capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    const id = crypto.randomUUID();
+    const photoItem: PhotoItem = {
+      id,
+      file,
+      previewUrl: result.dataUrl,
+      status: "analyzing",
+    };
+    setPhotos(prev => [...prev, photoItem]);
+    setSelectedPhoto(id);
+
+    try {
+      // Auto-analyze
+      const base64 = result.dataUrl;
+      const { data: analysisData, error: analysisErr } = await supabase.functions.invoke("photo-optimizer-analyze", {
+        body: { imageBase64: base64 },
+      });
+      if (analysisErr) throw analysisErr;
+
+      setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "generating", analysis: analysisData.analysis } : p));
+
+      // Auto-generate
+      const { data: genData, error: genErr } = await supabase.functions.invoke("photo-optimizer-generate", {
+        body: { imageBase64: base64, style, intensity, analysis: analysisData.analysis, homeStaging },
+      });
+      if (genErr) throw genErr;
+
+      setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "optimized", optimizedUrl: genData.optimizedImageUrl } : p));
+      toast.success("Photo pro générée automatiquement !");
+    } catch {
+      setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "error", error: "Erreur de traitement" } : p));
+      toast.error("Erreur lors du traitement automatique");
+    }
+  }, [style, intensity, homeStaging]);
 
   const addPhotos = useCallback((files: FileList | File[]) => {
     const newPhotos: PhotoItem[] = Array.from(files)
@@ -247,42 +301,74 @@ export default function PhotoOptimizerPage() {
   // ── Empty State (No Photos) ──
   if (photos.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center p-8">
-        <label
-          onDrop={handleDrop}
-          onDragOver={(e) => e.preventDefault()}
-          className="relative flex flex-col items-center justify-center w-full max-w-2xl aspect-[16/9] rounded-3xl border-2 border-dashed border-border/60 cursor-pointer group transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={(e) => e.target.files && addPhotos(e.target.files)}
-            className="absolute inset-0 opacity-0 cursor-pointer"
-          />
-          <div className="h-20 w-20 rounded-3xl bg-muted/40 flex items-center justify-center mb-6 group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300">
-            <Camera className="h-9 w-9 text-muted-foreground/40 group-hover:text-primary/60 transition-colors duration-300" />
-          </div>
-          <p className="text-base font-semibold text-foreground/80">
-            Déposez vos photos ici
-          </p>
-          <p className="text-sm text-muted-foreground mt-2 max-w-xs text-center">
-            Nous les transformerons en visuels haute conversion pour vos annonces
-          </p>
-          <div className="mt-6">
-            <span className="px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-semibold group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
-              Sélectionner des photos
-            </span>
-          </div>
-        </label>
-      </div>
+      <>
+        <SmartCaptureModal
+          open={smartCaptureOpen}
+          onClose={() => setSmartCaptureOpen(false)}
+          onCapture={handleOneClickPro}
+        />
+        <div className="h-full flex flex-col items-center justify-center p-8 gap-8">
+          {/* Pro Capture CTA */}
+          <button
+            onClick={() => setSmartCaptureOpen(true)}
+            className="flex flex-col items-center justify-center w-full max-w-2xl py-12 rounded-3xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 cursor-pointer group transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10"
+          >
+            <div className="h-20 w-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
+              <Zap className="h-9 w-9 text-primary/60 group-hover:text-primary transition-colors duration-300" />
+            </div>
+            <p className="text-lg font-bold text-foreground">
+              Prendre une photo pro
+            </p>
+            <p className="text-sm text-muted-foreground mt-2 max-w-sm text-center">
+              Capture HDR intelligente — Fusion multi-exposition + optimisation IA automatique
+            </p>
+            <div className="mt-5">
+              <span className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold shadow-md group-hover:shadow-lg transition-all duration-300">
+                Ouvrir la caméra
+              </span>
+            </div>
+          </button>
+
+          {/* Classic upload */}
+          <label
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            className="relative flex flex-col items-center justify-center w-full max-w-2xl py-8 rounded-2xl border-2 border-dashed border-border/60 cursor-pointer group transition-all duration-300 hover:border-primary/40"
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => e.target.files && addPhotos(e.target.files)}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+            <div className="flex items-center gap-3">
+              <Upload className="h-5 w-5 text-muted-foreground/50" />
+              <div>
+                <p className="text-sm font-medium text-foreground/70">
+                  Ou importez vos photos existantes
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Glissez-déposez ou cliquez pour sélectionner
+                </p>
+              </div>
+            </div>
+          </label>
+        </div>
+      </>
     );
   }
 
   // ── Main Layout ──
   return (
     <div className="h-full flex flex-col">
+      <SmartCaptureModal
+        open={smartCaptureOpen}
+        onClose={() => setSmartCaptureOpen(false)}
+        onCapture={handleOneClickPro}
+      />
+
       {/* ── Top Bar ── */}
       <div className="flex items-center justify-between px-1 pb-4 flex-shrink-0">
         <div className="flex items-center gap-3">
@@ -296,12 +382,17 @@ export default function PhotoOptimizerPage() {
             </p>
           </div>
         </div>
-        {photos.length > 1 && (
-          <Button onClick={processAll} size="sm" className="gap-2 rounded-xl shadow-sm">
-            <Sparkles className="h-3.5 w-3.5" />
-            Tout traiter
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setSmartCaptureOpen(true)} variant="outline" size="sm" className="gap-2 rounded-xl">
+            <Zap className="h-3.5 w-3.5" /> Photo Pro
           </Button>
-        )}
+          {photos.length > 1 && (
+            <Button onClick={processAll} size="sm" className="gap-2 rounded-xl shadow-sm">
+              <Sparkles className="h-3.5 w-3.5" />
+              Tout traiter
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* ── Main Content ── */}
