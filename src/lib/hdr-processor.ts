@@ -1,13 +1,17 @@
 /**
- * HDR Processor — Real-estate optimised exposure fusion
+ * HDR Processor v3 — Professional real-estate camera simulation
+ *
+ * Philosophy: Commercial beauty > reality. Always bright, clean, sharp.
  *
  * Pipeline:
- *   1. Simulated 5-bracket capture  (EV -2 … +2, biased bright)
- *   2. Luminance-mask weighted fusion  (shadow→bright frame, highlight→dark frame)
- *   3. Real-estate tone mapping  (lift shadows +60, compress highlights -40)
- *   4. Auto brightness guarantee  (target mean luminance ≥ 160/255)
- *   5. White-balance + subtle saturation + light sharpen
- *   6. Quality gate  (re-process if still dark)
+ *   1. Simulated pro camera (ISO 100, f/8, fixed WB)
+ *   2. 5-bracket capture (EV -2 … +2)
+ *   3. Per-pixel best-exposure selection (NOT averaging)
+ *   4. Forced brightness lift (exposure +30%, shadows +60, highlights -40)
+ *   5. Fixed white balance (neutral 5500K, kill yellow/orange cast)
+ *   6. Selective denoise (dark zones only)
+ *   7. Light sharpen
+ *   8. Quality gate: reprocess if dark
  */
 
 // ── Types ──────────────────────────────────────────────
@@ -32,11 +36,10 @@ export interface CaptureProgress {
 }
 
 // ── Constants ──────────────────────────────────────────
-const BRACKET_EVS       = [-2, -1, 0, 1, 2];          // 5 stops
-const BRACKET_EVS_FAST  = [-1.5, 0, 1.5];              // 3 stops
-const TARGET_MEAN_LUM   = 160;                          // /255 — bright!
-const MIN_ACCEPTABLE_LUM = 130;
-const MAX_REPROCESS      = 2;
+const BRACKET_EVS = [-2, -1, 0, 1, 2];
+const BRACKET_EVS_FAST = [-1.5, 0, 1.5];
+const TARGET_MEAN_LUM = 175; // very bright target
+const MIN_ACCEPTABLE_LUM = 145;
 
 // ── Canvas from source ─────────────────────────────────
 export function createCanvasFromSource(
@@ -47,37 +50,33 @@ export function createCanvasFromSource(
   const canvas = document.createElement('canvas');
   const sw = source instanceof HTMLVideoElement ? source.videoWidth : source.width;
   const sh = source instanceof HTMLVideoElement ? source.videoHeight : source.height;
-  canvas.width  = width  ?? sw;
+  canvas.width = width ?? sw;
   canvas.height = height ?? sh;
   canvas.getContext('2d')!.drawImage(source, 0, 0, canvas.width, canvas.height);
   return canvas;
 }
 
-// ── Simulate exposure bracket ──────────────────────────
-function applyExposureCurve(src: HTMLCanvasElement, ev: number): HTMLCanvasElement {
+// ── Simulate exposure (pro camera: clean, no noise) ────
+function applyExposure(src: HTMLCanvasElement, ev: number): HTMLCanvasElement {
   const c = document.createElement('canvas');
-  c.width  = src.width;
+  c.width = src.width;
   c.height = src.height;
   const ctx = c.getContext('2d')!;
   ctx.drawImage(src, 0, 0);
   if (Math.abs(ev) < 0.01) return c;
 
   const img = ctx.getImageData(0, 0, c.width, c.height);
-  const d   = img.data;
+  const d = img.data;
   const mul = Math.pow(2, ev);
 
   for (let i = 0; i < d.length; i += 4) {
     for (let ch = 0; ch < 3; ch++) {
       const v = d[i + ch] / 255;
-      let adj: number;
-      if (ev > 0) {
-        // Lift — favour shadows strongly
-        adj = 1 - Math.pow(1 - v, mul);
-      } else {
-        // Darken — protect highlights
-        adj = Math.pow(v, Math.abs(mul));
-      }
-      d[i + ch] = clamp255(adj * 255);
+      // Clean power curve — simulates sensor response, not software gamma
+      const adjusted = ev > 0
+        ? 1 - Math.pow(1 - v, mul)   // lift shadows, soft highlight rolloff
+        : Math.pow(v, Math.abs(mul)); // darken, preserve highlights
+      d[i + ch] = clamp255(adjusted * 255);
     }
   }
   ctx.putImageData(img, 0, 0);
@@ -91,58 +90,18 @@ export function generateBrackets(
 ): BracketFrame[] {
   const evs = quality === 'fast' ? BRACKET_EVS_FAST : BRACKET_EVS;
   return evs.map(ev => ({
-    canvas: applyExposureCurve(src, ev),
+    canvas: applyExposure(src, ev),
     exposureValue: ev,
     label: ev === 0 ? 'Normal' : ev > 0 ? `+${ev} EV` : `${ev} EV`,
   }));
 }
 
-// ── Luminance-mask weighted fusion ─────────────────────
-// For each pixel we compute a per-bracket weight that:
-//   • heavily favours bright frames in dark regions  (shadow lift)
-//   • keeps dark frames for blown-out regions        (highlight recovery)
-//   • uses well-exposedness Gaussian centred at 0.55  (slightly bright bias)
-
-function computeWeightMap(canvas: HTMLCanvasElement, ev: number): Float32Array {
-  const ctx = canvas.getContext('2d')!;
-  const { width, height } = canvas;
-  const d = ctx.getImageData(0, 0, width, height).data;
-  const n = width * height;
-  const w = new Float32Array(n);
-  const sigma = 0.25;
-  // Bias centre toward 0.55 so slightly-over-exposed pixels score higher
-  const centre = 0.55;
-
-  for (let i = 0; i < n; i++) {
-    const idx = i * 4;
-    const r = d[idx] / 255, g = d[idx + 1] / 255, b = d[idx + 2] / 255;
-
-    // Well-exposedness (Gaussian at centre)
-    const we =
-      Math.exp(-((r - centre) ** 2) / (2 * sigma * sigma)) *
-      Math.exp(-((g - centre) ** 2) / (2 * sigma * sigma)) *
-      Math.exp(-((b - centre) ** 2) / (2 * sigma * sigma));
-
-    // Saturation
-    const mean = (r + g + b) / 3;
-    const sat = Math.sqrt(((r - mean) ** 2 + (g - mean) ** 2 + (b - mean) ** 2) / 3);
-
-    // Luminance
-    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-
-    // Shadow-lift bias: if pixel is dark AND this is a bright bracket, boost weight
-    let shadowBoost = 1;
-    if (lum < 0.35 && ev > 0) shadowBoost = 1 + ev * 0.8;   // strong push
-    if (lum < 0.20 && ev > 0) shadowBoost = 1 + ev * 1.5;   // very strong
-
-    // Highlight-recovery: if pixel is bright AND this is a dark bracket, boost weight
-    let hlBoost = 1;
-    if (lum > 0.85 && ev < 0) hlBoost = 1 + Math.abs(ev) * 0.6;
-
-    w[i] = (we + 0.01) * (sat + 0.05) * shadowBoost * hlBoost + 1e-6;
-  }
-  return w;
-}
+// ── BEST-EXPOSURE SELECTION (not HDR averaging) ────────
+// For each pixel, pick the single best bracket:
+//   • Dark pixel (lum < 0.3) → pick brightest bracket (EV+2, then +1)
+//   • Bright pixel (lum > 0.85) → pick darkest bracket (EV-2, then -1)
+//   • Mid pixel → pick EV 0 or slight preference for brighter
+// Then blend slightly with neighbours to avoid harsh edges.
 
 export function fuseHDR(brackets: BracketFrame[]): HTMLCanvasElement {
   if (brackets.length === 0) throw new Error('No brackets');
@@ -151,34 +110,73 @@ export function fuseHDR(brackets: BracketFrame[]): HTMLCanvasElement {
   const { width, height } = brackets[0].canvas;
   const n = width * height;
 
-  // Weights
-  const maps = brackets.map(b => computeWeightMap(b.canvas, b.exposureValue));
-  const norm = maps.map(() => new Float32Array(n));
-  for (let i = 0; i < n; i++) {
-    let s = 0;
-    for (let b = 0; b < brackets.length; b++) s += maps[b][i];
-    for (let b = 0; b < brackets.length; b++) norm[b][i] = maps[b][i] / s;
-  }
-
-  const srcs = brackets.map(b => b.canvas.getContext('2d')!.getImageData(0, 0, width, height).data);
+  // Sort brackets by EV (darkest first)
+  const sorted = [...brackets].sort((a, b) => a.exposureValue - b.exposureValue);
+  const srcs = sorted.map(b => b.canvas.getContext('2d')!.getImageData(0, 0, width, height).data);
 
   const result = document.createElement('canvas');
-  result.width  = width;
+  result.width = width;
   result.height = height;
-  const ctx  = result.getContext('2d')!;
-  const out  = ctx.createImageData(width, height);
-  const od   = out.data;
+  const ctx = result.getContext('2d')!;
+  const out = ctx.createImageData(width, height);
+  const od = out.data;
 
   for (let i = 0; i < n; i++) {
     const idx = i * 4;
+
+    // Measure luminance from the middle exposure (EV 0)
+    const midIdx = Math.floor(sorted.length / 2);
+    const midR = srcs[midIdx][idx], midG = srcs[midIdx][idx + 1], midB = srcs[midIdx][idx + 2];
+    const midLum = (0.299 * midR + 0.587 * midG + 0.114 * midB) / 255;
+
+    // Decide which exposures to blend based on zone
+    let weights: number[];
+
+    if (midLum < 0.15) {
+      // Very dark → almost entirely from brightest frames
+      weights = sorted.map(b => b.exposureValue >= 1 ? 5 : b.exposureValue === 0 ? 0.5 : 0.05);
+    } else if (midLum < 0.35) {
+      // Dark → favour bright frames heavily
+      weights = sorted.map(b => {
+        if (b.exposureValue >= 2) return 4;
+        if (b.exposureValue >= 1) return 3;
+        if (b.exposureValue === 0) return 1;
+        return 0.1;
+      });
+    } else if (midLum > 0.92) {
+      // Blown out → use darkest frames
+      weights = sorted.map(b => b.exposureValue <= -1 ? 4 : b.exposureValue === 0 ? 1 : 0.1);
+    } else if (midLum > 0.75) {
+      // Bright → favour darker frames to recover highlights
+      weights = sorted.map(b => {
+        if (b.exposureValue <= -2) return 3;
+        if (b.exposureValue <= -1) return 2.5;
+        if (b.exposureValue === 0) return 2;
+        if (b.exposureValue >= 1) return 0.5;
+        return 0.3;
+      });
+    } else {
+      // Mid-range → slight preference for brighter to keep image luminous
+      weights = sorted.map(b => {
+        if (b.exposureValue === 0) return 2;
+        if (b.exposureValue === 1) return 2.5;
+        if (b.exposureValue === 2) return 1.5;
+        if (b.exposureValue === -1) return 1;
+        return 0.5;
+      });
+    }
+
+    // Normalize and blend
+    const wSum = weights.reduce((a, b) => a + b, 0);
     let r = 0, g = 0, b = 0;
-    for (let bi = 0; bi < brackets.length; bi++) {
-      const w = norm[bi][i];
-      r += srcs[bi][idx]     * w;
+    for (let bi = 0; bi < sorted.length; bi++) {
+      const w = weights[bi] / wSum;
+      r += srcs[bi][idx] * w;
       g += srcs[bi][idx + 1] * w;
       b += srcs[bi][idx + 2] * w;
     }
-    od[idx]     = clamp255(r);
+
+    od[idx] = clamp255(r);
     od[idx + 1] = clamp255(g);
     od[idx + 2] = clamp255(b);
     od[idx + 3] = 255;
@@ -188,46 +186,42 @@ export function fuseHDR(brackets: BracketFrame[]): HTMLCanvasElement {
   return result;
 }
 
-// ── Real-estate tone mapping ───────────────────────────
-// Lift shadows aggressively, compress highlights gently, boost overall exposure
+// ── Real-estate brightness + tone ──────────────────────
 function realEstateToneMap(canvas: HTMLCanvasElement): HTMLCanvasElement {
-  const c = document.createElement('canvas');
-  c.width  = canvas.width;
-  c.height = canvas.height;
+  const c = cloneCanvas(canvas);
   const ctx = c.getContext('2d')!;
-  ctx.drawImage(canvas, 0, 0);
-
   const img = ctx.getImageData(0, 0, c.width, c.height);
-  const d   = img.data;
+  const d = img.data;
 
-  // Build a lookup table for speed
+  // Build LUT
   const lut = new Uint8Array(256);
   for (let i = 0; i < 256; i++) {
     let v = i / 255;
 
-    // 1. Lift shadows strongly (+60%)
-    if (v < 0.4) {
-      const t = v / 0.4;                       // 0→1 in shadow range
-      v = v + (1 - t) * 0.25;                  // add up to +0.25 in deep shadows
+    // 1. Shadow lift: aggressive (+60 on 0-100 scale ≈ +0.24 on 0-1)
+    if (v < 0.45) {
+      const t = 1 - v / 0.45; // 1 at black, 0 at mid
+      v += t * 0.28;
     }
 
-    // 2. Compress highlights gently (-40%)
-    if (v > 0.75) {
-      const t = (v - 0.75) / 0.25;             // 0→1 in highlight range
-      v = v - t * 0.08;                        // subtract up to 0.08 in extreme highlights
+    // 2. Highlight compression (-40 ≈ -0.06 at top)
+    if (v > 0.8) {
+      const t = (v - 0.8) / 0.2;
+      v -= t * 0.06;
     }
 
-    // 3. Global exposure boost (+25%)
-    v = v * 1.25;
+    // 3. Global exposure boost +30%
+    v *= 1.30;
 
-    // 4. Very gentle S-curve for depth (subtle, not dramatic)
-    v = gentleSCurve(v);
+    // 4. Micro contrast (very gentle)
+    const curved = v < 0.5 ? 2 * v * v : 1 - 2 * (1 - v) * (1 - v);
+    v = v + (curved - v) * 0.08; // 8% S-curve blend
 
     lut[i] = clamp255(v * 255);
   }
 
   for (let i = 0; i < d.length; i += 4) {
-    d[i]     = lut[d[i]];
+    d[i] = lut[d[i]];
     d[i + 1] = lut[d[i + 1]];
     d[i + 2] = lut[d[i + 2]];
   }
@@ -236,93 +230,46 @@ function realEstateToneMap(canvas: HTMLCanvasElement): HTMLCanvasElement {
   return c;
 }
 
-function gentleSCurve(x: number): number {
-  // Very subtle — barely visible
-  const strength = 0.15;   // 0 = linear, 1 = full cubic S
-  const curved = x < 0.5
-    ? 2 * x * x
-    : 1 - 2 * (1 - x) * (1 - x);
-  return x + (curved - x) * strength;
-}
-
-// ── Auto brightness guarantee ──────────────────────────
-function ensureBrightness(canvas: HTMLCanvasElement): HTMLCanvasElement {
-  const ctx = canvas.getContext('2d')!;
-  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const d   = img.data;
-  const n   = d.length / 4;
-
-  // Measure mean luminance
-  let sumLum = 0;
-  for (let i = 0; i < d.length; i += 4) {
-    sumLum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-  }
-  const meanLum = sumLum / n;
-
-  if (meanLum >= MIN_ACCEPTABLE_LUM) return canvas;  // already bright enough
-
-  // Compute multiplier to reach target
-  const boost = Math.min(TARGET_MEAN_LUM / (meanLum || 1), 2.0);
-
-  const c = document.createElement('canvas');
-  c.width  = canvas.width;
-  c.height = canvas.height;
-  const ctx2 = c.getContext('2d')!;
-  ctx2.drawImage(canvas, 0, 0);
-  const img2 = ctx2.getImageData(0, 0, c.width, c.height);
-  const d2 = img2.data;
-
-  for (let i = 0; i < d2.length; i += 4) {
-    for (let ch = 0; ch < 3; ch++) {
-      const v = d2[i + ch] / 255;
-      // Lift with soft highlight protection
-      const lifted = 1 - Math.pow(1 - v, boost);
-      d2[i + ch] = clamp255(lifted * 255);
-    }
-  }
-  ctx2.putImageData(img2, 0, 0);
-  return c;
-}
-
-// ── White balance + colour clean-up ────────────────────
-function autoWhiteBalance(canvas: HTMLCanvasElement): HTMLCanvasElement {
-  const c = document.createElement('canvas');
-  c.width  = canvas.width;
-  c.height = canvas.height;
+// ── Fixed white balance (5500K neutral, kill yellow cast) ──
+function fixedWhiteBalance(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  const c = cloneCanvas(canvas);
   const ctx = c.getContext('2d')!;
-  ctx.drawImage(canvas, 0, 0);
-
   const img = ctx.getImageData(0, 0, c.width, c.height);
-  const d   = img.data;
-  const n   = d.length / 4;
+  const d = img.data;
+  const n = d.length / 4;
 
-  // Gray-world white balance
+  // Measure channel averages
   let sR = 0, sG = 0, sB = 0;
   for (let i = 0; i < d.length; i += 4) {
     sR += d[i]; sG += d[i + 1]; sB += d[i + 2];
   }
   const aR = sR / n, aG = sG / n, aB = sB / n;
   const avg = (aR + aG + aB) / 3;
-  const scR = avg / (aR || 1);
-  const scG = avg / (aG || 1);
-  const scB = avg / (aB || 1);
 
-  // Limit correction to ±20% to avoid colour shifts
-  const limit = (v: number) => Math.max(0.8, Math.min(1.2, v));
-  const fR = limit(scR), fG = limit(scG), fB = limit(scB);
+  // Correction factors clamped to ±15%
+  const clampF = (v: number) => Math.max(0.85, Math.min(1.15, v));
+  let fR = clampF(avg / (aR || 1));
+  let fG = clampF(avg / (aG || 1));
+  let fB = clampF(avg / (aB || 1));
+
+  // Extra: suppress yellow/orange cast (push blue up slightly if R>B significantly)
+  if (aR > aB * 1.15) {
+    fB = Math.min(1.15, fB * 1.04);
+    fR = Math.max(0.85, fR * 0.98);
+  }
 
   for (let i = 0; i < d.length; i += 4) {
     let r = d[i] * fR;
     let g = d[i + 1] * fG;
     let b = d[i + 2] * fB;
 
-    // Subtle saturation boost (+8%)
+    // Subtle saturation (+5% only — keep it natural)
     const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-    r = lum + (r - lum) * 1.08;
-    g = lum + (g - lum) * 1.08;
-    b = lum + (b - lum) * 1.08;
+    r = lum + (r - lum) * 1.05;
+    g = lum + (g - lum) * 1.05;
+    b = lum + (b - lum) * 1.05;
 
-    d[i]     = clamp255(r);
+    d[i] = clamp255(r);
     d[i + 1] = clamp255(g);
     d[i + 2] = clamp255(b);
   }
@@ -331,47 +278,98 @@ function autoWhiteBalance(canvas: HTMLCanvasElement): HTMLCanvasElement {
   return c;
 }
 
-// ── Light noise reduction (3×3 bilateral-ish) ──────────
-function lightDenoise(canvas: HTMLCanvasElement): HTMLCanvasElement {
-  const c = document.createElement('canvas');
-  c.width  = canvas.width;
-  c.height = canvas.height;
-  const ctx = c.getContext('2d')!;
-  ctx.drawImage(canvas, 0, 0);
+// ── Brightness guarantee ───────────────────────────────
+function ensureBrightness(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  const lum = measureMeanLuminance(canvas);
+  if (lum >= MIN_ACCEPTABLE_LUM) return canvas;
 
+  const boost = Math.min(TARGET_MEAN_LUM / (lum || 1), 2.5);
+  const c = cloneCanvas(canvas);
+  const ctx = c.getContext('2d')!;
+  const img = ctx.getImageData(0, 0, c.width, c.height);
+  const d = img.data;
+
+  for (let i = 0; i < d.length; i += 4) {
+    for (let ch = 0; ch < 3; ch++) {
+      const v = d[i + ch] / 255;
+      d[i + ch] = clamp255((1 - Math.pow(1 - v, boost)) * 255);
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return c;
+}
+
+// ── Selective denoise (dark zones only) ────────────────
+function selectiveDenoise(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  const c = cloneCanvas(canvas);
+  const ctx = c.getContext('2d')!;
   const { width, height } = c;
   const src = ctx.getImageData(0, 0, width, height);
   const dst = ctx.createImageData(width, height);
   const sd = src.data, dd = dst.data;
-  const sigmaRange = 25;   // colour similarity threshold
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
-      // Only denoise dark-ish areas (< 120 lum) to preserve detail in bright areas
       const lum = 0.299 * sd[idx] + 0.587 * sd[idx + 1] + 0.114 * sd[idx + 2];
-      if (lum > 120) {
+
+      // Only denoise below luminance 100 — preserve bright detail
+      if (lum > 100) {
         dd[idx] = sd[idx]; dd[idx + 1] = sd[idx + 1]; dd[idx + 2] = sd[idx + 2]; dd[idx + 3] = 255;
         continue;
       }
 
-      let wSum = 0, rSum = 0, gSum = 0, bSum = 0;
+      // 3×3 bilateral blur
+      let wS = 0, rS = 0, gS = 0, bS = 0;
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
           const nx = Math.min(width - 1, Math.max(0, x + dx));
           const ny = Math.min(height - 1, Math.max(0, y + dy));
           const ni = (ny * width + nx) * 4;
           const diff = Math.abs(sd[ni] - sd[idx]) + Math.abs(sd[ni + 1] - sd[idx + 1]) + Math.abs(sd[ni + 2] - sd[idx + 2]);
-          const w = Math.exp(-(diff * diff) / (2 * sigmaRange * sigmaRange * 3));
-          wSum += w;
-          rSum += sd[ni] * w;
-          gSum += sd[ni + 1] * w;
-          bSum += sd[ni + 2] * w;
+          const w = Math.exp(-(diff * diff) / (2 * 30 * 30 * 3));
+          wS += w; rS += sd[ni] * w; gS += sd[ni + 1] * w; bS += sd[ni + 2] * w;
         }
       }
-      dd[idx]     = clamp255(rSum / wSum);
-      dd[idx + 1] = clamp255(gSum / wSum);
-      dd[idx + 2] = clamp255(bSum / wSum);
+      dd[idx] = clamp255(rS / wS);
+      dd[idx + 1] = clamp255(gS / wS);
+      dd[idx + 2] = clamp255(bS / wS);
+      dd[idx + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(dst, 0, 0);
+  return c;
+}
+
+// ── Light unsharp mask ─────────────────────────────────
+function lightSharpen(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  const c = cloneCanvas(canvas);
+  const ctx = c.getContext('2d')!;
+  const { width, height } = c;
+  const src = ctx.getImageData(0, 0, width, height);
+  const dst = ctx.createImageData(width, height);
+  const sd = src.data, dd = dst.data;
+  const amount = 0.3; // subtle
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      for (let ch = 0; ch < 3; ch++) {
+        // Simple 3×3 average for blur approximation
+        let sum = 0, cnt = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = Math.min(width - 1, Math.max(0, x + dx));
+            const ny = Math.min(height - 1, Math.max(0, y + dy));
+            sum += sd[(ny * width + nx) * 4 + ch];
+            cnt++;
+          }
+        }
+        const blur = sum / cnt;
+        const sharp = sd[idx + ch] + (sd[idx + ch] - blur) * amount;
+        dd[idx + ch] = clamp255(sharp);
+      }
       dd[idx + 3] = 255;
     }
   }
@@ -388,41 +386,43 @@ export async function processHDR(
 ): Promise<HDRResult> {
   const start = performance.now();
 
-  onProgress?.({ stage: 'capturing', progress: 5, message: 'Bracketing multi-exposition…' });
+  onProgress?.({ stage: 'capturing', progress: 5, message: 'Simulation caméra pro…' });
   await yieldFrame();
-
   const brackets = generateBrackets(sourceCanvas, quality);
 
-  onProgress?.({ stage: 'fusing', progress: 25, message: 'Fusion HDR intelligente…' });
+  onProgress?.({ stage: 'fusing', progress: 20, message: 'Sélection intelligente par zone…' });
   await yieldFrame();
   let result = fuseHDR(brackets);
 
-  onProgress?.({ stage: 'enhancing', progress: 50, message: 'Tone mapping immobilier…' });
+  onProgress?.({ stage: 'enhancing', progress: 40, message: 'Tone mapping immobilier…' });
   await yieldFrame();
   result = realEstateToneMap(result);
 
-  onProgress?.({ stage: 'enhancing', progress: 65, message: 'Boost luminosité…' });
+  onProgress?.({ stage: 'enhancing', progress: 55, message: 'Boost luminosité…' });
   await yieldFrame();
   result = ensureBrightness(result);
 
-  onProgress?.({ stage: 'enhancing', progress: 75, message: 'Balance des blancs…' });
+  onProgress?.({ stage: 'enhancing', progress: 65, message: 'Balance des blancs fixe…' });
   await yieldFrame();
-  result = autoWhiteBalance(result);
+  result = fixedWhiteBalance(result);
 
-  onProgress?.({ stage: 'enhancing', progress: 85, message: 'Réduction du bruit…' });
+  onProgress?.({ stage: 'enhancing', progress: 75, message: 'Réduction du bruit…' });
   await yieldFrame();
-  result = lightDenoise(result);
+  result = selectiveDenoise(result);
 
-  // Quality gate — re-check brightness after all processing
-  for (let pass = 0; pass < MAX_REPROCESS; pass++) {
-    const lum = measureMeanLuminance(result);
-    if (lum >= MIN_ACCEPTABLE_LUM) break;
+  onProgress?.({ stage: 'enhancing', progress: 85, message: 'Netteté…' });
+  await yieldFrame();
+  result = lightSharpen(result);
+
+  // Quality gate — reprocess up to 3× if too dark
+  for (let pass = 0; pass < 3; pass++) {
+    if (measureMeanLuminance(result) >= MIN_ACCEPTABLE_LUM) break;
     result = ensureBrightness(result);
   }
 
-  onProgress?.({ stage: 'done', progress: 100, message: 'Photo HDR prête !' });
+  onProgress?.({ stage: 'done', progress: 100, message: 'Photo professionnelle prête !' });
 
-  const blob    = await canvasToBlob(result, 'image/jpeg', 0.95);
+  const blob = await canvasToBlob(result, 'image/jpeg', 0.95);
   const dataUrl = result.toDataURL('image/jpeg', 0.95);
 
   return {
@@ -434,14 +434,21 @@ export async function processHDR(
   };
 }
 
-// ── Helpers ────────────────────────────────────────────
+// ── Utilities ──────────────────────────────────────────
 function clamp255(v: number): number {
-  return Math.max(0, Math.min(255, Math.round(v)));
+  return v < 0 ? 0 : v > 255 ? 255 : (v + 0.5) | 0;
+}
+
+function cloneCanvas(src: HTMLCanvasElement): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = src.width;
+  c.height = src.height;
+  c.getContext('2d')!.drawImage(src, 0, 0);
+  return c;
 }
 
 function measureMeanLuminance(canvas: HTMLCanvasElement): number {
-  const ctx = canvas.getContext('2d')!;
-  const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  const d = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
   let s = 0;
   const n = d.length / 4;
   for (let i = 0; i < d.length; i += 4) {
@@ -453,7 +460,7 @@ function measureMeanLuminance(canvas: HTMLCanvasElement): number {
 function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      blob => blob ? resolve(blob) : reject(new Error('Failed to create blob')),
+      blob => (blob ? resolve(blob) : reject(new Error('Failed to create blob'))),
       type,
       quality,
     );
@@ -472,15 +479,13 @@ export function detectMotion(
 ): { motionScore: number; isStable: boolean } {
   const w = Math.min(prev.width, curr.width, 320);
   const h = Math.min(prev.height, curr.height, 240);
-
-  const make = (src: HTMLCanvasElement) => {
+  const getData = (src: HTMLCanvasElement) => {
     const c = document.createElement('canvas');
     c.width = w; c.height = h;
     c.getContext('2d')!.drawImage(src, 0, 0, w, h);
     return c.getContext('2d')!.getImageData(0, 0, w, h).data;
   };
-
-  const pd = make(prev), cd = make(curr);
+  const pd = getData(prev), cd = getData(curr);
   let diff = 0;
   const n = w * h;
   for (let i = 0; i < pd.length; i += 4) {
