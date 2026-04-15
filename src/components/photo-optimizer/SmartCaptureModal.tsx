@@ -4,23 +4,22 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Camera, X, RotateCcw, CheckCircle2,
-  Smartphone, Hand, Loader2,
+  Smartphone, Hand, Loader2, Download,
 } from "lucide-react";
 import {
   createCanvasFromSource,
-  processHDR,
-  detectMotion,
-  type CaptureProgress,
-  type HDRResult,
-} from "@/lib/hdr-processor";
+  processPhoto,
+  type ProcessingProgress,
+  type ProcessedResult,
+} from "@/lib/photo-engine";
 
 interface SmartCaptureModalProps {
   open: boolean;
   onClose: () => void;
-  onCapture: (result: HDRResult) => void;
+  onCapture: (result: ProcessedResult) => void;
 }
 
-type CaptureStage = 'init' | 'stabilizing' | 'countdown' | 'capturing' | 'processing' | 'preview' | 'error';
+type CaptureStage = 'init' | 'stabilizing' | 'capturing' | 'processing' | 'preview' | 'error';
 
 export default function SmartCaptureModal({ open, onClose, onCapture }: SmartCaptureModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -28,9 +27,9 @@ export default function SmartCaptureModal({ open, onClose, onCapture }: SmartCap
   const prevFrameRef = useRef<HTMLCanvasElement | null>(null);
 
   const [stage, setStage] = useState<CaptureStage>('init');
-  const [countdown, setCountdown] = useState(3);
   const [isStable, setIsStable] = useState(false);
-  const [hdrResult, setHdrResult] = useState<HDRResult | null>(null);
+  const [result, setResult] = useState<ProcessedResult | null>(null);
+  const [progress, setProgress] = useState<ProcessingProgress | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
 
@@ -57,7 +56,7 @@ export default function SmartCaptureModal({ open, onClose, onCapture }: SmartCap
     }
   }, [facingMode]);
 
-  // Stability detection
+  // Simple stability detection
   useEffect(() => {
     if (stage !== 'stabilizing' || !videoRef.current) return;
     let animId: number;
@@ -70,7 +69,7 @@ export default function SmartCaptureModal({ open, onClose, onCapture }: SmartCap
       }
       const currentFrame = createCanvasFromSource(videoRef.current, 320, 240);
       if (prevFrameRef.current) {
-        const { isStable: stable } = detectMotion(prevFrameRef.current, currentFrame, 15);
+        const stable = isFrameStable(prevFrameRef.current, currentFrame);
         if (stable) {
           stableFrames++;
           if (stableFrames >= 8) setIsStable(true);
@@ -97,46 +96,42 @@ export default function SmartCaptureModal({ open, onClose, onCapture }: SmartCap
         streamRef.current = null;
       }
       setStage('init');
-      setHdrResult(null);
+      setResult(null);
       setIsStable(false);
+      setProgress(null);
       prevFrameRef.current = null;
     }
   }, [open, startCamera]);
 
-  // Countdown & capture
-  const startCapture = useCallback(async () => {
-    setStage('countdown');
-    for (let i = 3; i > 0; i--) {
-      setCountdown(i);
-      await new Promise(r => setTimeout(r, 800));
-    }
-
+  // AUTO-CAPTURE: when stable, capture and process automatically
+  const captureAndProcess = useCallback(async () => {
+    if (!videoRef.current) return;
+    
     setStage('capturing');
-    if (!videoRef.current) {
-      setStage('error');
-      setErrorMsg('Vidéo non disponible');
-      return;
-    }
-
+    
+    // Brief flash effect, then capture
+    await new Promise(r => setTimeout(r, 150));
+    
     const sourceCanvas = createCanvasFromSource(videoRef.current);
     setStage('processing');
 
     try {
-      const result = await processHDR(sourceCanvas);
-      setHdrResult(result);
+      const processed = await processPhoto(sourceCanvas, (p) => setProgress(p));
+      setResult(processed);
       setStage('preview');
     } catch {
       setStage('error');
-      setErrorMsg('Erreur lors de la capture');
+      setErrorMsg('Erreur lors du traitement');
     }
   }, []);
 
   const handleAccept = () => {
-    if (hdrResult) { onCapture(hdrResult); onClose(); }
+    if (result) { onCapture(result); onClose(); }
   };
 
   const handleRetry = () => {
-    setHdrResult(null);
+    setResult(null);
+    setProgress(null);
     setStage('stabilizing');
     setIsStable(false);
   };
@@ -162,28 +157,29 @@ export default function SmartCaptureModal({ open, onClose, onCapture }: SmartCap
           <div className="flex-1 relative overflow-hidden bg-black">
             <video ref={videoRef} autoPlay playsInline muted className={cn("w-full h-full object-cover transition-opacity duration-300", stage === 'preview' && "opacity-0")} />
 
-            {stage === 'preview' && hdrResult && (
-              <img src={hdrResult.dataUrl} alt="Preview" className="absolute inset-0 w-full h-full object-contain bg-black animate-fade-in" />
-            )}
-
-            {stage === 'countdown' && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-30">
-                <div className="text-8xl font-bold text-white animate-pulse drop-shadow-2xl">{countdown}</div>
-              </div>
+            {stage === 'preview' && result && (
+              <img src={result.dataUrl} alt="Preview" className="absolute inset-0 w-full h-full object-contain bg-black animate-fade-in" />
             )}
 
             {stage === 'capturing' && (
               <div className="absolute inset-0 bg-white/80 z-30 animate-pulse" />
             )}
 
-            {stage === 'processing' && (
+            {stage === 'processing' && progress && (
               <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/70 backdrop-blur-md">
                 <div className="relative h-16 w-16 mb-5">
                   <div className="absolute inset-0 rounded-full border-2 border-white/20" />
                   <div className="absolute inset-0 rounded-full border-2 border-t-white animate-spin" />
                   <Camera className="absolute inset-0 m-auto h-6 w-6 text-white animate-pulse" />
                 </div>
-                <p className="text-white text-sm font-medium">Préparation…</p>
+                <p className="text-white text-sm font-medium">{progress.message}</p>
+                <div className="w-48 h-1 bg-white/20 rounded-full mt-3 overflow-hidden">
+                  <div
+                    className="h-full bg-white rounded-full transition-all duration-300"
+                    style={{ width: `${progress.progress}%` }}
+                  />
+                </div>
+                <p className="text-white/50 text-xs mt-2">{progress.progress}%</p>
               </div>
             )}
 
@@ -205,7 +201,7 @@ export default function SmartCaptureModal({ open, onClose, onCapture }: SmartCap
                   isStable ? "bg-green-500/20 border border-green-400/30" : "bg-yellow-500/20 border border-yellow-400/30"
                 )}>
                   {isStable ? (
-                    <><CheckCircle2 className="h-4 w-4 text-green-400" /><span className="text-green-300 text-xs font-medium">Stable — prêt</span></>
+                    <><CheckCircle2 className="h-4 w-4 text-green-400" /><span className="text-green-300 text-xs font-medium">Stable — appuyez pour capturer</span></>
                   ) : (
                     <><Hand className="h-4 w-4 text-yellow-400 animate-pulse" /><span className="text-yellow-300 text-xs font-medium">Stabilisez l'appareil…</span></>
                   )}
@@ -214,7 +210,7 @@ export default function SmartCaptureModal({ open, onClose, onCapture }: SmartCap
             )}
 
             {/* Grid overlay */}
-            {(stage === 'stabilizing' || stage === 'countdown') && (
+            {stage === 'stabilizing' && (
               <div className="absolute inset-0 z-10 pointer-events-none">
                 <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white/15" />
                 <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white/15" />
@@ -226,14 +222,17 @@ export default function SmartCaptureModal({ open, onClose, onCapture }: SmartCap
 
           {/* Bottom controls */}
           <div className="flex-shrink-0 bg-black/90 backdrop-blur px-6 py-5">
-            {stage === 'preview' && hdrResult ? (
+            {stage === 'preview' && result ? (
               <div className="flex items-center justify-between">
                 <Button onClick={handleRetry} variant="ghost" className="text-white hover:bg-white/10 rounded-xl gap-2">
                   <RotateCcw className="h-4 w-4" /> Reprendre
                 </Button>
-                <Button onClick={handleAccept} className="rounded-xl gap-2 shadow-lg">
-                  <CheckCircle2 className="h-4 w-4" /> Utiliser
-                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="text-white/50 text-xs">{Math.round(result.processingTimeMs)}ms</span>
+                  <Button onClick={handleAccept} className="rounded-xl gap-2 shadow-lg">
+                    <CheckCircle2 className="h-4 w-4" /> Utiliser
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="flex items-center justify-center gap-6">
@@ -241,7 +240,7 @@ export default function SmartCaptureModal({ open, onClose, onCapture }: SmartCap
                   <Smartphone className="h-5 w-5" />
                 </button>
                 <button
-                  onClick={startCapture}
+                  onClick={captureAndProcess}
                   disabled={stage !== 'stabilizing' || !isStable}
                   className={cn(
                     "relative h-[72px] w-[72px] rounded-full transition-all duration-300 flex items-center justify-center",
@@ -277,4 +276,23 @@ export default function SmartCaptureModal({ open, onClose, onCapture }: SmartCap
       </DialogContent>
     </Dialog>
   );
+}
+
+// ── Simple motion detection ────────────────────────────
+function isFrameStable(prev: HTMLCanvasElement, curr: HTMLCanvasElement): boolean {
+  const w = Math.min(prev.width, curr.width, 320);
+  const h = Math.min(prev.height, curr.height, 240);
+  const getPixels = (s: HTMLCanvasElement) => {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d')!.drawImage(s, 0, 0, w, h);
+    return c.getContext('2d')!.getImageData(0, 0, w, h).data;
+  };
+  const pd = getPixels(prev), cd = getPixels(curr);
+  let diff = 0;
+  const n = w * h;
+  for (let i = 0; i < pd.length; i += 4) {
+    diff += (Math.abs(pd[i] - cd[i]) + Math.abs(pd[i + 1] - cd[i + 1]) + Math.abs(pd[i + 2] - cd[i + 2])) / 3;
+  }
+  return (diff / n) < 15;
 }
