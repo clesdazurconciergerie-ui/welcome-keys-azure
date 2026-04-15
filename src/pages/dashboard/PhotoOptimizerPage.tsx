@@ -301,36 +301,62 @@ export default function PhotoOptimizerPage() {
   // ── Empty State (No Photos) ──
   if (photos.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center p-8">
-        <label
-          onDrop={handleDrop}
-          onDragOver={(e) => e.preventDefault()}
-          className="relative flex flex-col items-center justify-center w-full max-w-2xl aspect-[16/9] rounded-3xl border-2 border-dashed border-border/60 cursor-pointer group transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={(e) => e.target.files && addPhotos(e.target.files)}
-            className="absolute inset-0 opacity-0 cursor-pointer"
-          />
-          <div className="h-20 w-20 rounded-3xl bg-muted/40 flex items-center justify-center mb-6 group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300">
-            <Camera className="h-9 w-9 text-muted-foreground/40 group-hover:text-primary/60 transition-colors duration-300" />
-          </div>
-          <p className="text-base font-semibold text-foreground/80">
-            Déposez vos photos ici
-          </p>
-          <p className="text-sm text-muted-foreground mt-2 max-w-xs text-center">
-            Nous les transformerons en visuels haute conversion pour vos annonces
-          </p>
-          <div className="mt-6">
-            <span className="px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-semibold group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
-              Sélectionner des photos
-            </span>
-          </div>
-        </label>
-      </div>
+      <>
+        <SmartCaptureModal
+          open={smartCaptureOpen}
+          onClose={() => setSmartCaptureOpen(false)}
+          onCapture={handleOneClickPro}
+        />
+        <div className="h-full flex flex-col items-center justify-center p-8 gap-8">
+          {/* Pro Capture CTA */}
+          <button
+            onClick={() => setSmartCaptureOpen(true)}
+            className="flex flex-col items-center justify-center w-full max-w-2xl py-12 rounded-3xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 cursor-pointer group transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10"
+          >
+            <div className="h-20 w-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
+              <Zap className="h-9 w-9 text-primary/60 group-hover:text-primary transition-colors duration-300" />
+            </div>
+            <p className="text-lg font-bold text-foreground">
+              Prendre une photo pro
+            </p>
+            <p className="text-sm text-muted-foreground mt-2 max-w-sm text-center">
+              Capture HDR intelligente — Fusion multi-exposition + optimisation IA automatique
+            </p>
+            <div className="mt-5">
+              <span className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold shadow-md group-hover:shadow-lg transition-all duration-300">
+                Ouvrir la caméra
+              </span>
+            </div>
+          </button>
+
+          {/* Classic upload */}
+          <label
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            className="relative flex flex-col items-center justify-center w-full max-w-2xl py-8 rounded-2xl border-2 border-dashed border-border/60 cursor-pointer group transition-all duration-300 hover:border-primary/40"
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => e.target.files && addPhotos(e.target.files)}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+            <div className="flex items-center gap-3">
+              <Upload className="h-5 w-5 text-muted-foreground/50" />
+              <div>
+                <p className="text-sm font-medium text-foreground/70">
+                  Ou importez vos photos existantes
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Glissez-déposez ou cliquez pour sélectionner
+                </p>
+              </div>
+            </div>
+          </label>
+        </div>
+      </>
     );
   }
 
