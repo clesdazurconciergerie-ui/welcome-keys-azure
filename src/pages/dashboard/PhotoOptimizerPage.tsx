@@ -7,35 +7,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
   Upload, Sparkles, Download, X, CheckCircle2,
-  Sun, Palette, Trash2, Camera, Image as ImageIcon,
-  Wand2, RotateCcw, GripVertical, Zap,
+  Sun, Palette, Trash2, Camera,
+  RotateCcw, GripVertical, Zap, Wand2,
 } from "lucide-react";
 import SmartCaptureModal from "@/components/photo-optimizer/SmartCaptureModal";
-import type { HDRResult } from "@/lib/hdr-processor";
-
-// Note: 'intensity' and 'analysis' params removed — the new Nodalview-grade
-// prompt handles everything in one pass without needing analysis or intensity levels.
+import {
+  processPhoto,
+  processSingleImage,
+  createCanvasFromSource,
+  type ProcessedResult,
+  type ProcessingProgress,
+} from "@/lib/photo-engine";
 
 // -- Types --
 interface PhotoItem {
   id: string;
   file: File;
-  previewUrl: string;
-  status: "uploaded" | "analyzing" | "analyzed" | "generating" | "optimized" | "error";
-  analysis?: PhotoAnalysis;
-  optimizedUrl?: string;
+  originalUrl: string;
+  processedUrl?: string;
+  optimizedUrl?: string; // AI-enhanced (server-side)
+  status: "processing" | "processed" | "enhancing" | "enhanced" | "error";
+  progress?: ProcessingProgress;
   error?: string;
-}
-
-interface PhotoAnalysis {
-  roomType: string;
-  lightingQuality: string;
-  composition: string;
-  issues: string[];
-  colorImprovements: string[];
-  realismCorrections: string[];
-  stagingSuggestions: string[];
-  overallScore: number;
+  processingTimeMs?: number;
 }
 
 type PhotoStyle = "standard" | "luxury" | "minimal" | "coastal";
@@ -87,9 +81,7 @@ function BeforeAfterSlider({ before, after }: { before: string; after: string })
       onMouseDown={(e) => { isDragging.current = true; updatePosition(e.clientX); }}
       onTouchStart={(e) => { isDragging.current = true; updatePosition(e.touches[0].clientX); }}
     >
-      {/* After (full) */}
       <img src={after} alt="Optimized" className="absolute inset-0 w-full h-full object-contain" />
-      {/* Before (clipped) */}
       <div className="absolute inset-0 overflow-hidden" style={{ width: `${position}%` }}>
         <img
           src={before}
@@ -98,7 +90,6 @@ function BeforeAfterSlider({ before, after }: { before: string; after: string })
           style={{ width: `${containerRef.current?.offsetWidth ?? 1000}px`, maxWidth: "none" }}
         />
       </div>
-      {/* Slider line */}
       <div
         className="absolute top-0 bottom-0 z-10"
         style={{ left: `${position}%`, transform: "translateX(-50%)" }}
@@ -108,7 +99,6 @@ function BeforeAfterSlider({ before, after }: { before: string; after: string })
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
       </div>
-      {/* Labels */}
       <div className="absolute top-3 left-3 z-10">
         <span className="px-2 py-1 rounded-md bg-black/50 backdrop-blur-sm text-white text-[10px] font-semibold uppercase tracking-wider">
           Avant
@@ -123,19 +113,29 @@ function BeforeAfterSlider({ before, after }: { before: string; after: string })
   );
 }
 
-// -- Premium Loader --
-function PremiumLoader({ label }: { label: string }) {
+// -- Processing Overlay --
+function ProcessingOverlay({ progress }: { progress?: ProcessingProgress }) {
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="relative h-14 w-14">
-        <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
-        <div className="absolute inset-0 rounded-full border-2 border-t-primary animate-spin" />
-        <div className="absolute inset-0 rounded-full border-2 border-t-primary/40 animate-spin" style={{ animationDuration: "2s", animationDirection: "reverse" }} />
-        <Wand2 className="absolute inset-0 m-auto h-5 w-5 text-primary animate-pulse" />
-      </div>
-      <div className="text-center">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground mt-1">Optimisation éclairage, couleurs et profondeur…</p>
+    <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-md">
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative h-14 w-14">
+          <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+          <div className="absolute inset-0 rounded-full border-2 border-t-primary animate-spin" />
+          <Wand2 className="absolute inset-0 m-auto h-5 w-5 text-primary animate-pulse" />
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-medium text-foreground">
+            {progress?.message || 'Traitement automatique…'}
+          </p>
+          {progress && (
+            <div className="w-48 h-1 bg-muted rounded-full mt-3 mx-auto overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-300"
+                style={{ width: `${progress.progress}%` }}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -150,118 +150,108 @@ export default function PhotoOptimizerPage() {
   const [smartCaptureOpen, setSmartCaptureOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Handle HDR capture from SmartCaptureModal
-  const handleSmartCapture = useCallback(async (result: HDRResult) => {
-    const file = new File([result.blob], `photo-pro-${Date.now()}.jpg`, { type: 'image/jpeg' });
-    const photoItem: PhotoItem = {
-      id: crypto.randomUUID(),
-      file,
-      previewUrl: result.dataUrl,
-      status: "uploaded",
-    };
-    setPhotos(prev => [...prev, photoItem]);
-    setSelectedPhoto(photoItem.id);
-    toast.success("Photo capturée !");
-  }, []);
-
-  // One-click pro: capture → auto analyze → auto generate
-  const handleOneClickPro = useCallback(async (result: HDRResult) => {
+  // Auto-process: capture from camera → already processed by photo-engine
+  const handleSmartCapture = useCallback((result: ProcessedResult) => {
     const file = new File([result.blob], `photo-pro-${Date.now()}.jpg`, { type: 'image/jpeg' });
     const id = crypto.randomUUID();
     const photoItem: PhotoItem = {
       id,
       file,
-      previewUrl: result.dataUrl,
-      status: "generating",
+      originalUrl: result.dataUrl,
+      processedUrl: result.dataUrl,
+      status: "processed",
+      processingTimeMs: result.processingTimeMs,
     };
     setPhotos(prev => [...prev, photoItem]);
     setSelectedPhoto(id);
+    toast.success(`Photo traitée en ${Math.round(result.processingTimeMs)}ms`);
+  }, []);
 
-    try {
-      const base64 = result.dataUrl;
-      // Send clean photo directly to AI — no local degradation
-      const { data: genData, error: genErr } = await supabase.functions.invoke("photo-optimizer-generate", {
-        body: { imageBase64: base64, style, homeStaging },
-      });
-      if (genErr) throw genErr;
+  // Auto-process uploaded files immediately
+  const addAndProcessPhotos = useCallback(async (files: FileList | File[]) => {
+    const imageFiles = Array.from(files).filter(f => f.type.startsWith("image/"));
+    if (imageFiles.length === 0) { toast.error("Aucune image valide"); return; }
 
-      setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "optimized", optimizedUrl: genData.optimizedImageUrl } : p));
-      toast.success("Photo optimisée !");
-    } catch {
-      setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "error", error: "Erreur de traitement" } : p));
-      toast.error("Erreur lors du traitement");
-    }
-  }, [style, homeStaging]);
-
-  const addPhotos = useCallback((files: FileList | File[]) => {
-    const newPhotos: PhotoItem[] = Array.from(files)
-      .filter((f) => f.type.startsWith("image/"))
-      .map((file) => ({
-        id: crypto.randomUUID(),
+    for (const file of imageFiles) {
+      const id = crypto.randomUUID();
+      const originalUrl = URL.createObjectURL(file);
+      
+      const photoItem: PhotoItem = {
+        id,
         file,
-        previewUrl: URL.createObjectURL(file),
-        status: "uploaded" as const,
-      }));
-    if (newPhotos.length === 0) { toast.error("Aucune image valide"); return; }
-    setPhotos((prev) => [...prev, ...newPhotos]);
-    if (!selectedPhoto && newPhotos.length > 0) setSelectedPhoto(newPhotos[0].id);
+        originalUrl,
+        status: "processing",
+      };
+      
+      setPhotos(prev => [...prev, photoItem]);
+      if (!selectedPhoto) setSelectedPhoto(id);
+
+      // Auto-process immediately — no button needed
+      try {
+        const result = await processSingleImage(file, (p) => {
+          setPhotos(prev => prev.map(ph => ph.id === id ? { ...ph, progress: p } : ph));
+        });
+        
+        setPhotos(prev => prev.map(ph => ph.id === id ? {
+          ...ph,
+          processedUrl: result.dataUrl,
+          status: "processed" as const,
+          processingTimeMs: result.processingTimeMs,
+          progress: undefined,
+        } : ph));
+        
+        toast.success(`Photo traitée en ${Math.round(result.processingTimeMs)}ms`);
+      } catch {
+        setPhotos(prev => prev.map(ph => ph.id === id ? {
+          ...ph,
+          status: "error" as const,
+          error: "Erreur de traitement",
+        } : ph));
+        toast.error("Erreur de traitement");
+      }
+    }
   }, [selectedPhoto]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    addPhotos(e.dataTransfer.files);
-  }, [addPhotos]);
+    addAndProcessPhotos(e.dataTransfer.files);
+  }, [addAndProcessPhotos]);
 
   const removePhoto = (id: string) => {
-    setPhotos((prev) => {
-      const p = prev.find((x) => x.id === id);
-      if (p) URL.revokeObjectURL(p.previewUrl);
-      return prev.filter((x) => x.id !== id);
-    });
-    if (selectedPhoto === id) setPhotos((curr) => {
-      setSelectedPhoto(curr.find((p) => p.id !== id)?.id ?? null);
-      return curr;
+    setPhotos(prev => {
+      const p = prev.find(x => x.id === id);
+      if (p) URL.revokeObjectURL(p.originalUrl);
+      const remaining = prev.filter(x => x.id !== id);
+      if (selectedPhoto === id) {
+        setSelectedPhoto(remaining[0]?.id ?? null);
+      }
+      return remaining;
     });
   };
 
-  const fileToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-  const analyzePhoto = async (id: string) => {
-    setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, status: "analyzing" } : p)));
+  // AI enhancement (server-side, optional second pass)
+  const enhanceWithAI = async (id: string) => {
+    setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "enhancing" } : p));
     try {
-      const photo = photos.find((p) => p.id === id)!;
-      const base64 = await fileToBase64(photo.file);
-      const { data, error } = await supabase.functions.invoke("photo-optimizer-analyze", { body: { imageBase64: base64 } });
-      if (error) throw error;
-      setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, status: "analyzed", analysis: data.analysis } : p)));
-    } catch {
-      setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, status: "error", error: "Erreur d'analyse" } : p)));
-      toast.error("Erreur lors de l'analyse");
-    }
-  };
-
-  const generateOptimized = async (id: string) => {
-    setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, status: "generating" } : p)));
-    try {
-      const photo = photos.find((p) => p.id === id)!;
-      const base64 = await fileToBase64(photo.file);
+      const photo = photos.find(p => p.id === id)!;
+      const base64 = photo.processedUrl || photo.originalUrl;
+      
       const { data, error } = await supabase.functions.invoke("photo-optimizer-generate", {
         body: { imageBase64: base64, style, homeStaging },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (!data?.optimizedImageUrl) throw new Error("Aucune image retournée");
-      setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, status: "optimized", optimizedUrl: data.optimizedImageUrl } : p)));
-      toast.success("Photo optimisée !");
+      
+      setPhotos(prev => prev.map(p => p.id === id ? {
+        ...p,
+        status: "enhanced" as const,
+        optimizedUrl: data.optimizedImageUrl,
+      } : p));
+      toast.success("Optimisation IA terminée !");
     } catch (err: any) {
-      const msg = err?.message || "Erreur de génération";
-      setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, status: "error", error: msg } : p)));
+      const msg = err?.message || "Erreur IA";
+      setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "error" as const, error: msg } : p));
       toast.error(msg);
     }
   };
@@ -273,27 +263,20 @@ export default function PhotoOptimizerPage() {
     a.click();
   };
 
-  const processAll = async () => {
-    const toProcess = photos.filter((p) => p.status === "uploaded");
-    for (const photo of toProcess) {
-      await generateOptimized(photo.id);
-    }
-  };
+  const selected = photos.find(p => p.id === selectedPhoto);
+  const isProcessing = selected?.status === "processing" || selected?.status === "enhancing";
+  const bestUrl = selected?.optimizedUrl || selected?.processedUrl;
 
-  const selected = photos.find((p) => p.id === selectedPhoto);
-  const isProcessing = selected?.status === "analyzing" || selected?.status === "generating";
-
-  // -- Empty State (No Photos) --
+  // -- Empty State --
   if (photos.length === 0) {
     return (
       <>
         <SmartCaptureModal
           open={smartCaptureOpen}
           onClose={() => setSmartCaptureOpen(false)}
-          onCapture={handleOneClickPro}
+          onCapture={handleSmartCapture}
         />
         <div className="h-full flex flex-col items-center justify-center p-8 gap-8">
-          {/* Pro Capture CTA */}
           <button
             onClick={() => setSmartCaptureOpen(true)}
             className="flex flex-col items-center justify-center w-full max-w-2xl py-12 rounded-3xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 cursor-pointer group transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10"
@@ -301,11 +284,9 @@ export default function PhotoOptimizerPage() {
             <div className="h-20 w-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
               <Zap className="h-9 w-9 text-primary/60 group-hover:text-primary transition-colors duration-300" />
             </div>
-            <p className="text-lg font-bold text-foreground">
-              Prendre une photo pro
-            </p>
+            <p className="text-lg font-bold text-foreground">Prendre une photo pro</p>
             <p className="text-sm text-muted-foreground mt-2 max-w-sm text-center">
-              Capture intelligente + optimisation IA automatique style Nodalview
+              Capture + traitement automatique — résultat professionnel instantané
             </p>
             <div className="mt-5">
               <span className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold shadow-md group-hover:shadow-lg transition-all duration-300">
@@ -314,7 +295,6 @@ export default function PhotoOptimizerPage() {
             </div>
           </button>
 
-          {/* Classic upload */}
           <label
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
@@ -325,18 +305,14 @@ export default function PhotoOptimizerPage() {
               type="file"
               accept="image/*"
               multiple
-              onChange={(e) => e.target.files && addPhotos(e.target.files)}
+              onChange={(e) => e.target.files && addAndProcessPhotos(e.target.files)}
               className="absolute inset-0 opacity-0 cursor-pointer"
             />
             <div className="flex items-center gap-3">
               <Upload className="h-5 w-5 text-muted-foreground/50" />
               <div>
-                <p className="text-sm font-medium text-foreground/70">
-                  Ou importez vos photos existantes
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Glissez-déposez ou cliquez pour sélectionner
-                </p>
+                <p className="text-sm font-medium text-foreground/70">Importez vos photos</p>
+                <p className="text-xs text-muted-foreground">Traitement automatique à l'import — aucun bouton requis</p>
               </div>
             </div>
           </label>
@@ -351,10 +327,10 @@ export default function PhotoOptimizerPage() {
       <SmartCaptureModal
         open={smartCaptureOpen}
         onClose={() => setSmartCaptureOpen(false)}
-        onCapture={handleOneClickPro}
+        onCapture={handleSmartCapture}
       />
 
-      {/* -- Top Bar -- */}
+      {/* Top Bar */}
       <div className="flex items-center justify-between px-1 pb-4 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -363,7 +339,7 @@ export default function PhotoOptimizerPage() {
           <div>
             <h1 className="text-lg font-semibold text-foreground leading-tight">Photo Optimizer</h1>
             <p className="text-xs text-muted-foreground">
-              {photos.length} photo{photos.length > 1 ? "s" : ""} · {photos.filter(p => p.status === "optimized").length} optimisée{photos.filter(p => p.status === "optimized").length > 1 ? "s" : ""}
+              {photos.length} photo{photos.length > 1 ? "s" : ""} · Traitement automatique
             </p>
           </div>
         </div>
@@ -371,22 +347,16 @@ export default function PhotoOptimizerPage() {
           <Button onClick={() => setSmartCaptureOpen(true)} variant="outline" size="sm" className="gap-2 rounded-xl">
             <Zap className="h-3.5 w-3.5" /> Photo Pro
           </Button>
-          {photos.length > 1 && (
-            <Button onClick={processAll} size="sm" className="gap-2 rounded-xl shadow-sm">
-              <Sparkles className="h-3.5 w-3.5" />
-              Tout traiter
-            </Button>
-          )}
         </div>
       </div>
 
-      {/* -- Main Content -- */}
+      {/* Main Content */}
       <div className="flex-1 flex gap-5 min-h-0">
-        {/* -- Left: Filmstrip + Controls -- */}
+        {/* Left Sidebar */}
         <div className="w-[200px] flex-shrink-0 flex flex-col gap-4 min-h-0">
           {/* Style Selector */}
           <div>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2 block">Style</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2 block">Style IA</span>
             <div className="grid grid-cols-2 gap-1.5">
               {STYLES.map((s) => (
                 <button
@@ -414,7 +384,7 @@ export default function PhotoOptimizerPage() {
             </div>
             {homeStaging && (
               <p className="text-[9px] text-muted-foreground leading-relaxed animate-fade-in">
-                Ajoute des éléments lifestyle subtils (petit-déjeuner, décor, ambiance) pour améliorer la projection
+                Ajoute des éléments lifestyle subtils
               </p>
             )}
           </div>
@@ -430,7 +400,7 @@ export default function PhotoOptimizerPage() {
                 type="file"
                 accept="image/*"
                 multiple
-                onChange={(e) => e.target.files && addPhotos(e.target.files)}
+                onChange={(e) => e.target.files && addAndProcessPhotos(e.target.files)}
                 className="hidden"
               />
               <Upload className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
@@ -449,13 +419,15 @@ export default function PhotoOptimizerPage() {
                     : "ring-transparent hover:ring-border/50"
                 )}
               >
-                <img src={photo.previewUrl} alt="" className="w-full h-full object-cover" />
-                {/* Status */}
+                <img src={photo.processedUrl || photo.originalUrl} alt="" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  {(photo.status === "analyzing" || photo.status === "generating") && (
+                  {photo.status === "processing" && (
                     <div className="h-6 w-6 rounded-full border-2 border-t-primary border-primary/20 animate-spin" />
                   )}
-                  {photo.status === "optimized" && (
+                  {photo.status === "enhancing" && (
+                    <div className="h-6 w-6 rounded-full border-2 border-t-primary border-primary/20 animate-spin" />
+                  )}
+                  {(photo.status === "processed" || photo.status === "enhanced") && (
                     <div className="h-5 w-5 rounded-full bg-green-500/90 flex items-center justify-center shadow">
                       <CheckCircle2 className="h-3 w-3 text-white" />
                     </div>
@@ -466,7 +438,6 @@ export default function PhotoOptimizerPage() {
                     </div>
                   )}
                 </div>
-                {/* Remove */}
                 <button
                   onClick={(e) => { e.stopPropagation(); removePhoto(photo.id); }}
                   className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/50 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
@@ -476,96 +447,66 @@ export default function PhotoOptimizerPage() {
               </div>
             ))}
           </div>
-
-          {/* Analysis Panel (if available) */}
-          {selected?.analysis && (
-            <div className="flex-shrink-0 space-y-2 border-t border-border/40 pt-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Analyse</span>
-                <span className="text-xs font-bold text-primary">{selected.analysis.overallScore}/10</span>
-              </div>
-              <div className="h-1 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-primary transition-all duration-500"
-                  style={{ width: `${selected.analysis.overallScore * 10}%` }}
-                />
-              </div>
-              <div className="space-y-1">
-                <MiniChip label={selected.analysis.roomType} />
-                <MiniChip label={selected.analysis.lightingQuality} />
-              </div>
-              {selected.analysis.issues.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {selected.analysis.issues.slice(0, 3).map((issue, i) => (
-                    <Badge key={i} variant="destructive" className="text-[9px] font-normal rounded-md px-1.5 py-0">
-                      {issue}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* -- Center: Image Canvas -- */}
+        {/* Center: Image Canvas */}
         <div className="flex-1 flex flex-col min-h-0">
           {selected ? (
             <>
-              {/* Canvas */}
               <div className="flex-1 relative rounded-2xl overflow-hidden min-h-0 bg-gradient-to-br from-muted/20 to-muted/40 shadow-inner">
-                {/* Processing overlay */}
-                {isProcessing && (
-                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-md">
-                    <PremiumLoader
-                      label="Optimisation IA en cours…"
-                    />
-                  </div>
-                )}
+                {isProcessing && <ProcessingOverlay progress={selected.progress} />}
 
-                {/* Before/After Slider or Single Image */}
-                {selected.optimizedUrl ? (
-                  <BeforeAfterSlider before={selected.previewUrl} after={selected.optimizedUrl} />
-                ) : (
-                  <img
-                    src={selected.previewUrl}
-                    alt=""
-                    className="w-full h-full object-contain transition-opacity duration-300"
-                  />
-                )}
+                {selected.processedUrl && !isProcessing ? (
+                  <BeforeAfterSlider before={selected.originalUrl} after={bestUrl!} />
+                ) : !isProcessing ? (
+                  <img src={selected.originalUrl} alt="" className="w-full h-full object-contain" />
+                ) : null}
               </div>
 
               {/* Bottom Actions */}
               <div className="flex items-center justify-between pt-3 flex-shrink-0">
                 <div className="text-xs text-muted-foreground">
-                  {selected.optimizedUrl && (
+                  {selected.processedUrl && (
                     <span className="flex items-center gap-1.5">
                       <GripVertical className="h-3 w-3" />
-                      Glissez le curseur pour comparer
+                      Glissez pour comparer avant/après
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  {selected.status === "uploaded" && (
-                    <Button onClick={() => generateOptimized(selected.id)} size="sm" className="gap-2 rounded-xl shadow-sm">
-                      <Sparkles className="h-3.5 w-3.5" /> Optimiser
+                  {selected.processingTimeMs && (
+                    <span className="text-[10px] text-muted-foreground">
+                      {Math.round(selected.processingTimeMs)}ms
+                    </span>
+                  )}
+                  {(selected.status === "processed") && (
+                    <Button onClick={() => enhanceWithAI(selected.id)} variant="outline" size="sm" className="gap-2 rounded-xl">
+                      <Sparkles className="h-3.5 w-3.5" /> Optimisation IA
                     </Button>
                   )}
-                  {selected.status === "optimized" && selected.optimizedUrl && (
-                    <>
-                      <Button onClick={() => generateOptimized(selected.id)} variant="outline" size="sm" className="gap-2 rounded-xl">
-                        <RotateCcw className="h-3.5 w-3.5" /> Regénérer
-                      </Button>
-                      <Button
-                        onClick={() => downloadPhoto(selected.optimizedUrl!, selected.file.name)}
-                        size="sm"
-                        className="gap-2 rounded-xl shadow-sm"
-                      >
-                        <Download className="h-3.5 w-3.5" /> Télécharger
-                      </Button>
-                    </>
+                  {bestUrl && (selected.status === "processed" || selected.status === "enhanced") && (
+                    <Button
+                      onClick={() => downloadPhoto(bestUrl, selected.file.name)}
+                      size="sm"
+                      className="gap-2 rounded-xl shadow-sm"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Télécharger
+                    </Button>
                   )}
                   {selected.status === "error" && (
-                    <Button variant="outline" onClick={() => generateOptimized(selected.id)} size="sm" className="gap-2 rounded-xl">
+                    <Button variant="outline" onClick={() => {
+                      setPhotos(prev => prev.map(p => p.id === selected.id ? { ...p, status: "processing" as const } : p));
+                      processSingleImage(selected.file).then(result => {
+                        setPhotos(prev => prev.map(p => p.id === selected.id ? {
+                          ...p,
+                          processedUrl: result.dataUrl,
+                          status: "processed" as const,
+                          processingTimeMs: result.processingTimeMs,
+                        } : p));
+                      }).catch(() => {
+                        setPhotos(prev => prev.map(p => p.id === selected.id ? { ...p, status: "error" as const } : p));
+                      });
+                    }} size="sm" className="gap-2 rounded-xl">
                       <RotateCcw className="h-3.5 w-3.5" /> Réessayer
                     </Button>
                   )}
@@ -579,14 +520,6 @@ export default function PhotoOptimizerPage() {
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function MiniChip({ label }: { label: string }) {
-  return (
-    <div className="rounded-lg bg-muted/50 px-2.5 py-1.5">
-      <span className="text-[10px] font-medium text-foreground">{label}</span>
     </div>
   );
 }
