@@ -271,14 +271,9 @@ export default function PhotoOptimizerPage() {
   };
 
   const processAll = async () => {
-    const toProcess = photos.filter((p) => p.status === "uploaded" || p.status === "analyzed");
+    const toProcess = photos.filter((p) => p.status === "uploaded");
     for (const photo of toProcess) {
-      if (photo.status === "uploaded") await analyzePhoto(photo.id);
-      // Re-fetch status after analysis
-      const updated = photos.find((p) => p.id === photo.id);
-      if (updated?.status === "analyzed" || photo.status === "analyzed") {
-        await generateOptimized(photo.id);
-      }
+      await generateOptimized(photo.id);
     }
   };
 
@@ -408,24 +403,6 @@ export default function PhotoOptimizerPage() {
             </div>
           </div>
 
-          {/* Intensity Selector */}
-          <div>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2 block">Intensité</span>
-            <div className="flex gap-1">
-              {INTENSITIES.map((item) => (
-                <button
-                  key={item.value}
-                  onClick={() => setIntensity(item.value)}
-                  className={cn(
-                    "flex-1 rounded-xl py-2 text-center transition-all duration-200",
-                    intensity === item.value
-                      ? "bg-primary/10 text-primary ring-1 ring-primary/30 shadow-sm"
-                      : "bg-muted/40 text-muted-foreground hover:bg-muted/70"
-                  )}
-                >
-                  <span className="text-[10px] font-semibold">{item.label}</span>
-                </button>
-              ))}
           </div>
 
           {/* Home Staging Toggle */}
