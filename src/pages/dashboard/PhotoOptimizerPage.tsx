@@ -152,7 +152,59 @@ export default function PhotoOptimizerPage() {
   const [intensity, setIntensity] = useState<PhotoIntensity>("strong");
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [homeStaging, setHomeStaging] = useState(false);
+  const [smartCaptureOpen, setSmartCaptureOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle HDR capture from SmartCaptureModal
+  const handleSmartCapture = useCallback(async (result: HDRResult) => {
+    const file = new File([result.blob], `hdr-capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    const photoItem: PhotoItem = {
+      id: crypto.randomUUID(),
+      file,
+      previewUrl: result.dataUrl,
+      status: "uploaded",
+    };
+    setPhotos(prev => [...prev, photoItem]);
+    setSelectedPhoto(photoItem.id);
+    toast.success(`Photo HDR capturée (${result.bracketCount} expositions, ${Math.round(result.processingTimeMs)}ms)`);
+  }, []);
+
+  // One-click pro: capture → auto analyze → auto generate
+  const handleOneClickPro = useCallback(async (result: HDRResult) => {
+    const file = new File([result.blob], `hdr-capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    const id = crypto.randomUUID();
+    const photoItem: PhotoItem = {
+      id,
+      file,
+      previewUrl: result.dataUrl,
+      status: "analyzing",
+    };
+    setPhotos(prev => [...prev, photoItem]);
+    setSelectedPhoto(id);
+
+    try {
+      // Auto-analyze
+      const base64 = result.dataUrl;
+      const { data: analysisData, error: analysisErr } = await supabase.functions.invoke("photo-optimizer-analyze", {
+        body: { imageBase64: base64 },
+      });
+      if (analysisErr) throw analysisErr;
+
+      setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "generating", analysis: analysisData.analysis } : p));
+
+      // Auto-generate
+      const { data: genData, error: genErr } = await supabase.functions.invoke("photo-optimizer-generate", {
+        body: { imageBase64: base64, style, intensity, analysis: analysisData.analysis, homeStaging },
+      });
+      if (genErr) throw genErr;
+
+      setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "optimized", optimizedUrl: genData.optimizedImageUrl } : p));
+      toast.success("Photo pro générée automatiquement !");
+    } catch {
+      setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "error", error: "Erreur de traitement" } : p));
+      toast.error("Erreur lors du traitement automatique");
+    }
+  }, [style, intensity, homeStaging]);
 
   const addPhotos = useCallback((files: FileList | File[]) => {
     const newPhotos: PhotoItem[] = Array.from(files)
