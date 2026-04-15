@@ -16,7 +16,7 @@ import type { HDRResult } from "@/lib/hdr-processor";
 // Note: 'intensity' and 'analysis' params removed — the new Nodalview-grade
 // prompt handles everything in one pass without needing analysis or intensity levels.
 
-// ── Types ──────────────────────────────────────────────
+// -- Types --
 interface PhotoItem {
   id: string;
   file: File;
@@ -47,7 +47,7 @@ const STYLES: { value: PhotoStyle; label: string; desc: string; icon: React.Reac
   { value: "coastal", label: "Côte d'Azur", desc: "Lumière dorée", icon: <Palette className="h-4 w-4" /> },
 ];
 
-// ── Before/After Slider ────────────────────────────────
+// -- Before/After Slider --
 function BeforeAfterSlider({ before, after }: { before: string; after: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(50);
@@ -123,7 +123,7 @@ function BeforeAfterSlider({ before, after }: { before: string; after: string })
   );
 }
 
-// ── Premium Loader ─────────────────────────────────────
+// -- Premium Loader --
 function PremiumLoader({ label }: { label: string }) {
   return (
     <div className="flex flex-col items-center gap-4">
@@ -141,7 +141,7 @@ function PremiumLoader({ label }: { label: string }) {
   );
 }
 
-// ── Main Component ─────────────────────────────────────
+// -- Main Component --
 export default function PhotoOptimizerPage() {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [style, setStyle] = useState<PhotoStyle>("luxury");
@@ -280,7 +280,7 @@ export default function PhotoOptimizerPage() {
   const selected = photos.find((p) => p.id === selectedPhoto);
   const isProcessing = selected?.status === "analyzing" || selected?.status === "generating";
 
-  // ── Empty State (No Photos) ──
+  // -- Empty State (No Photos) --
   if (photos.length === 0) {
     return (
       <>
@@ -342,7 +342,7 @@ export default function PhotoOptimizerPage() {
     );
   }
 
-  // ── Main Layout ──
+  // -- Main Layout --
   return (
     <div className="h-full flex flex-col">
       <SmartCaptureModal
@@ -351,7 +351,7 @@ export default function PhotoOptimizerPage() {
         onCapture={handleOneClickPro}
       />
 
-      {/* ── Top Bar ── */}
+      {/* -- Top Bar -- */}
       <div className="flex items-center justify-between px-1 pb-4 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -377,9 +377,9 @@ export default function PhotoOptimizerPage() {
         </div>
       </div>
 
-      {/* ── Main Content ── */}
+      {/* -- Main Content -- */}
       <div className="flex-1 flex gap-5 min-h-0">
-        {/* ── Left: Filmstrip + Controls ── */}
+        {/* -- Left: Filmstrip + Controls -- */}
         <div className="w-[200px] flex-shrink-0 flex flex-col gap-4 min-h-0">
           {/* Style Selector */}
           <div>
@@ -505,7 +505,7 @@ export default function PhotoOptimizerPage() {
           )}
         </div>
 
-        {/* ── Center: Image Canvas ── */}
+        {/* -- Center: Image Canvas -- */}
         <div className="flex-1 flex flex-col min-h-0">
           {selected ? (
             <>
