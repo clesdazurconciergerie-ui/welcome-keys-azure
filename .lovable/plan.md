@@ -1,55 +1,65 @@
 
 
-## Plan: Rebuild Photo Optimizer with Nodalview-style approach
+The user wants a complete inventory/summary of all features of the MyWelkom platform that they can paste into an AI as "site memory". This is a documentation task, not an implementation task. I have extensive context from the memory index already showing all major features.
 
-### The real problem
+I'll generate a comprehensive markdown document covering:
+- Brand & positioning
+- Tech stack
+- User roles
+- All modules (Concierge, Owner, Provider, Demo)
+- Key business logic
+- Integrations
 
-The current local HDR pipeline (Canvas pixel manipulation) is fundamentally flawed. No amount of Laplacian pyramids or tone mapping curves on a **single source photo** will produce Nodalview-quality results. Nodalview uses **server-side AI** and real multi-exposure hardware capture — not browser-based pixel math.
+Since this is a documentation/artifact task, I'll generate a downloadable markdown file in /mnt/documents/ once approved.
 
-The local processing is actually **degrading** images before sending them to OpenAI. Dark, noisy, over-processed results are the direct consequence of trying to simulate HDR from one photo using canvas math.
+## Plan: Complete MyWelkom feature inventory document
 
-### The fix: trust the AI, ditch the fake HDR
+### Deliverable
+A single comprehensive Markdown file (`mywelkom-memoire-complete.md`) ready to paste into any AI as project memory. Structured for maximum AI comprehension: short sections, bullet points, no fluff.
 
-Nodalview's secret is simple: capture a good photo, send it to powerful server-side AI, get back a pro result. That's exactly what our OpenAI pipeline already does — but the local HDR step is corrupting the input.
+### Document structure
 
-### What changes
+1. **Identité & Positionnement** — Welkom by Azur Keys, palette (#061452 / #C4A45B), cible conciergeries premium
+2. **Stack technique** — Vite + React + TS, Tailwind, Supabase (Cloud), Stripe, Lovable AI Gateway, OpenAI
+3. **Authentification & Rôles** — /auth unifié, redirection dynamique (concierge / proprietaire / prestataire), trial 30j, demo 7j
+4. **Plans & Tarifs** — Starter (5 livrets), Business (50), Premium, limites DB-enforced, Stripe Payment Links
+5. **Module Concierge — Pilotage**
+   - Dashboard (KPIs, calendrier global tri-couleur, opérations à venir)
+   - Performance (occupation, revenus, IA Gemini recommandations)
+   - Notifications (Resend + realtime)
+6. **Module Concierge — Logements**
+   - Properties-first architecture
+   - Onglets: Photos / Documents / Contrat / Tarifs / Ménage / iCal
+   - Import Airbnb auto, iCal sync normalisé, calendrier hybride
+7. **Module Concierge — Livrets**
+   - Wizard 10 étapes, sections (Identité, Pratique, WiFi, Équipements, Ménage, Alentours, Contacts, FAQ, Légal, Bonus)
+   - Thème personnalisable, lien public /view/{PIN}, chatbot intégré, bibliothèque de lieux réutilisables
+8. **Module Concierge — Opérations**
+   - Missions (workflow v3: assignation directe + missions ouvertes, claim atomique)
+   - Photo Guide obligatoire par catégorie
+   - Checklists optionnelles
+   - États des lieux (entrée/sortie, signatures, PDF, photos)
+   - Automatisation ménage (trigger DB sur checkout)
+9. **Module Concierge — Finance**
+   - Factures (HTML→PDF, 293B CGI, branding custom)
+   - Dépenses unifiées (manuelles + payouts missions)
+   - Encaissements cash
+   - KPIs: Revenu brut, Dépenses, Net, Marge
+10. **Module Concierge — CRM Prospection**
+    - Kanban 9 étapes, scoring auto, séquences emails 6 étapes
+11. **Module Concierge — Outils**
+    - Photo Optimizer (pipeline Mertens fusion + post-process real estate)
+    - AI Call Prompter (Gemini 2.5 Flash, push-to-talk)
+    - Paramètres automatisation
+12. **Portail Propriétaire** — Read-only mobile-first: dashboard, calendrier (avec masquage overrides), biens, livrets, finances (factures only, zéro KPI brut), photos ménage, états des lieux, demandes catégorisées, documents (URLs signées 5min)
+13. **Portail Prestataire** — Missions ouvertes, planning, interventions, paiements, conflits détectés, historique, support
+14. **Demo publique /demo** — Dashboard interactif mocké via DemoContext, expiration 7j
+15. **Sécurité** — RLS RESTRICTIVE stricte, user_id explicite, search_path=public, SECURITY DEFINER pour cross-table, séparation roles dans table dédiée
+16. **Intégrations** — Supabase (Auth/DB/Storage/Realtime/Edge Functions), Stripe (webhooks → roles sync), Resend (notifications@mywelkom.com), Lovable AI Gateway (Gemini), OpenAI (photo)
+17. **SEO & Landing** — Modal segmentation entrée, Schema.org LocalBusiness, mots-clés français conciergerie
 
-**1. Rewrite `src/lib/hdr-processor.ts` — strip to essentials**
-- Remove all Laplacian pyramid, exposure bracketing simulation, and fake HDR fusion
-- Keep only: canvas capture from camera/file, minimal normalization (auto-levels), motion detection
-- The `processHDR` function becomes `preparePhoto` — a lightweight prep that ensures good input for the AI
-- No more "5 brackets from 1 photo" — that's the root cause of noise and artifacts
-
-**2. Rewrite `supabase/functions/photo-optimizer-generate/index.ts` — Nodalview-grade prompt**
-- Completely rewrite the AI prompt to focus on Nodalview's actual output characteristics:
-  - Bright, airy interiors (windows visible, no blown highlights)
-  - Clean whites, natural colors, zero noise
-  - Vertical line correction, wide-angle distortion fix
-  - "Magazine listing" warmth without orange cast
-- Remove overly complex style/intensity matrix — replace with a single "Nodalview Pro" mode as default
-- Keep style options but simplify them (Standard / Luxe / Exterieur)
-
-**3. Update `src/components/photo-optimizer/SmartCaptureModal.tsx`**
-- Remove fake "bracketing" progress steps ("Smart Fusion pyramides")
-- Simplify to: Capture → "Optimisation IA en cours..." → Done
-- Keep stability detection and countdown (good UX)
-- Camera capture sends raw photo directly to AI — no local degradation
-
-**4. Update `src/pages/dashboard/PhotoOptimizerPage.tsx`**
-- One-click flow: take/upload photo → AI processes → beautiful result
-- Remove references to "HDR", "brackets", "fusion" in UI text
-- Label it "Smart Photo" or "Photo Pro" (like Nodalview)
-- Keep Before/After slider (that's great UX)
-
-### Why this will work
-- OpenAI's GPT-image-1 is vastly superior to any canvas pixel manipulation
-- Sending a clean, unprocessed source photo gives the AI the best input
-- The current pipeline: photo → degrade with fake HDR → send degraded image to AI = bad
-- New pipeline: photo → send clean image to AI = good
-
-### Files to modify
-1. `src/lib/hdr-processor.ts` — gutted and simplified
-2. `supabase/functions/photo-optimizer-generate/index.ts` — new Nodalview-inspired prompt
-3. `src/components/photo-optimizer/SmartCaptureModal.tsx` — simplified flow
-4. `src/pages/dashboard/PhotoOptimizerPage.tsx` — updated labels and flow
+### Output
+- File: `/mnt/documents/mywelkom-memoire-complete.md`
+- Format: Markdown propre, ~6-10K mots, structuré pour copier-coller dans ChatGPT/Claude/Gemini
+- `<lov-artifact>` tag pour téléchargement
 
