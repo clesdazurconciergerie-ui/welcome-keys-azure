@@ -362,6 +362,7 @@ export type Database = {
           price_status: string | null
           property_id: string
           source: string | null
+          source_platform: string | null
           updated_at: string | null
           user_id: string
         }
@@ -385,6 +386,7 @@ export type Database = {
           price_status?: string | null
           property_id: string
           source?: string | null
+          source_platform?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -408,6 +410,7 @@ export type Database = {
           price_status?: string | null
           property_id?: string
           source?: string | null
+          source_platform?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -688,6 +691,8 @@ export type Database = {
           id: string
           platform: string
           property_id: string
+          source_name: string | null
+          source_platform: string | null
           start_date: string
           status: string
           summary: string | null
@@ -704,6 +709,8 @@ export type Database = {
           id?: string
           platform?: string
           property_id: string
+          source_name?: string | null
+          source_platform?: string | null
           start_date: string
           status?: string
           summary?: string | null
@@ -720,6 +727,8 @@ export type Database = {
           id?: string
           platform?: string
           property_id?: string
+          source_name?: string | null
+          source_platform?: string | null
           start_date?: string
           status?: string
           summary?: string | null
