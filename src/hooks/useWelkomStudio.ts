@@ -7,6 +7,7 @@ import {
   type ManualFilters,
   type ProcessOptions,
 } from "@/lib/welkom-studio-engine";
+import { runWelkomHDR } from "@/lib/welkom-hdr-runner";
 
 export interface PropertyPhotoStudio {
   id: string;
