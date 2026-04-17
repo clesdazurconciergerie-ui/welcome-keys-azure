@@ -22,7 +22,8 @@ import { useICalCalendar, type CalendarEvent } from "@/hooks/useICalCalendar";
 import { useBookings, type Booking } from "@/hooks/useBookings";
 import { useCalendarOverrides } from "@/hooks/useCalendarOverrides";
 import { supabase } from "@/integrations/supabase/client";
-import { getPlatformClasses, getPlatformLabel } from "@/lib/booking-platforms";
+import { getPlatformClasses, getPlatformLabel, resolveBookingPlatform } from "@/lib/booking-platforms";
+import { AddDirectBookingDialog } from "./AddDirectBookingDialog";
 
 const platformColors = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => getPlatformClasses(key).badge,
@@ -47,12 +48,13 @@ export function PropertyCalendar({ propertyId }: Props) {
   const {
     calendars, events, isSyncing, addCalendar, removeCalendar, syncAll, deleteEvent,
   } = useICalCalendar(propertyId);
-  const { bookings } = useBookings(propertyId);
+  const { bookings, refetch: refetchBookings } = useBookings(propertyId);
   const { hiddenEventIds, hideEvent, restoreEvent } = useCalendarOverrides(propertyId);
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
   const [addCalOpen, setAddCalOpen] = useState(false);
+  const [addBookingOpen, setAddBookingOpen] = useState(false);
   const [calName, setCalName] = useState("");
   const [calUrl, setCalUrl] = useState("");
   const [calPlatform, setCalPlatform] = useState("airbnb");
@@ -88,16 +90,23 @@ export function PropertyCalendar({ propertyId }: Props) {
 
   // Convert bookings to CalendarEvent-like objects for unified display
   const bookingEvents = useMemo(() => {
-    return bookings.map(b => ({
-      id: `bk-${b.id}`,
-      start_date: b.check_in,
-      end_date: b.check_out,
-      summary: b.guest_name || "Réservation",
-      guest_name: b.guest_name,
-      platform: "bookings_table" as string,
-      event_type: "booking" as string,
-      source: b.source,
-    }));
+    return bookings.map(b => {
+      const platform = resolveBookingPlatform({
+        platform: b.source_platform,
+        source: b.source,
+      });
+      return {
+        id: `bk-${b.id}`,
+        start_date: b.check_in,
+        end_date: b.check_out,
+        summary: b.guest_name || "Réservation",
+        guest_name: b.guest_name,
+        platform,
+        event_type: "booking" as string,
+        source: b.source,
+        is_manual: b.is_manual,
+      };
+    });
   }, [bookings]);
 
   // Merge iCal events + bookings for calendar display

@@ -9,7 +9,11 @@ export interface Booking {
   check_in: string;
   check_out: string;
   source: string;
+  source_platform: string | null;
+  is_manual: boolean;
   guest_name: string | null;
+  guest_email: string | null;
+  guest_phone: string | null;
   gross_amount: number | null;
   commission_amount: number;
   cleaning_amount: number;
