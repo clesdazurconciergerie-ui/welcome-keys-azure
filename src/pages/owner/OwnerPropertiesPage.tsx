@@ -6,6 +6,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { Loader2, Home, MapPin, Users, BedDouble, Bath, ChevronDown, ChevronUp, CheckCircle, Clock, AlertTriangle, XCircle, Wrench } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { PlatformPerformance } from "@/components/dashboard/PlatformPerformance";
 
 interface Property {
   id: string;
@@ -173,7 +174,16 @@ export default function OwnerPropertiesPage() {
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden"
                       >
-                        <div className="mt-3 pt-3 border-t border-border space-y-2">
+                        <div className="mt-3 pt-3 border-t border-border space-y-4">
+                          {/* Platform stats — owner read-only (no revenue / ADR) */}
+                          <PlatformPerformance
+                            propertyId={p.id}
+                            hideRevenue
+                            title="Performance par plateforme"
+                          />
+
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold text-foreground">Historique des interventions</h4>
                           {loadingInterventions === p.id ? (
                             <div className="flex justify-center py-4">
                               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -211,6 +221,7 @@ export default function OwnerPropertiesPage() {
                               );
                             })
                           )}
+                          </div>
                         </div>
                       </motion.div>
                     )}

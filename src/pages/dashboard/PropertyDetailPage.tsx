@@ -30,6 +30,7 @@ import { PropertyCalendar } from "@/components/dashboard/properties/PropertyCale
 import { PhotoRequirementsAdmin } from "@/components/property/PhotoRequirementsAdmin";
 import { PropertyFinanceSettings } from "@/components/finance/PropertyFinanceSettings";
 import { CleaningAutomationSection } from "@/components/property/CleaningAutomationSection";
+import { PlatformPerformance } from "@/components/dashboard/PlatformPerformance";
 
 const typeLabels: Record<string, string> = {
   apartment: "Appartement", house: "Maison", villa: "Villa",
@@ -278,6 +279,7 @@ const PropertyDetailPage = () => {
           <TabsTrigger value="calendar">Calendrier</TabsTrigger>
           <TabsTrigger value="owners">Propriétaires</TabsTrigger>
           <TabsTrigger value="finance">Finance</TabsTrigger>
+          <TabsTrigger value="stats">Statistiques</TabsTrigger>
           <TabsTrigger value="cleaning">Ménage auto</TabsTrigger>
           <TabsTrigger value="photo-checklist">Checklist photos</TabsTrigger>
         </TabsList>
@@ -718,6 +720,11 @@ const PropertyDetailPage = () => {
         {/* FINANCE TAB */}
         <TabsContent value="finance">
           {id && <PropertyFinanceSettings propertyId={id} />}
+        </TabsContent>
+
+        {/* STATS TAB */}
+        <TabsContent value="stats">
+          {id && <PlatformPerformance propertyId={id} />}
         </TabsContent>
 
         {/* CLEANING AUTOMATION TAB */}
