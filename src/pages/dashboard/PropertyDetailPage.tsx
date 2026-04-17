@@ -97,6 +97,7 @@ const PropertyDetailPage = () => {
   const [owners, setOwners] = useState<any[]>([]);
   const [ownerDocs, setOwnerDocs] = useState<OwnerDoc[]>([]);
   const [editOpen, setEditOpen] = useState(false);
+  const [addBookingOpen, setAddBookingOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [photoCategory, setPhotoCategory] = useState("general");
   const [docCategory, setDocCategory] = useState("mandat");
@@ -749,6 +750,15 @@ const PropertyDetailPage = () => {
       </Tabs>
 
       <EditPropertyDialog property={property} open={editOpen} onOpenChange={setEditOpen} onSubmit={updateProperty} />
+
+      {id && (
+        <AddDirectBookingDialog
+          open={addBookingOpen}
+          onOpenChange={setAddBookingOpen}
+          propertyId={id}
+          onCreated={() => { /* useBookings + usePlatformStats refetch via Realtime/key changes */ }}
+        />
+      )}
 
       {/* Delete photo confirmation */}
       <AlertDialog open={!!deletePhotoId} onOpenChange={() => setDeletePhotoId(null)}>
