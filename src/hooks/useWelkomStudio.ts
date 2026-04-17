@@ -7,6 +7,7 @@ import {
   type ManualFilters,
   type ProcessOptions,
 } from "@/lib/welkom-studio-engine";
+import { runWelkomHDR } from "@/lib/welkom-hdr-runner";
 
 export interface PropertyPhotoStudio {
   id: string;
@@ -174,6 +175,94 @@ export function useWelkomStudio(propertyId: string | undefined) {
     [processAndUpload]
   );
 
+  /**
+   * Pipeline HDR Laplacien complet (Web Worker, downscale 1920px).
+   * Utilisé pour la capture caméra AEB et l'import HDR multi-exposition.
+   */
+  const processBatchLaplacian = useCallback(
+    async (blobs: Blob[]) => {
+      if (!propertyId || blobs.length === 0) return null;
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) {
+        toast({ title: "Non authentifié", variant: "destructive" });
+        return null;
+      }
+
+      setIsProcessing(true);
+      setProcessingProgress(0);
+      setProcessingLabel("Préparation…");
+      try {
+        // 1. Upload originals
+        const originalUrls: string[] = [];
+        for (let i = 0; i < blobs.length; i++) {
+          const b = blobs[i];
+          const path = `${PREFIX}/${propertyId}/source_${uuid()}.jpg`;
+          const url = await uploadBlob(path, b, b.type || "image/jpeg");
+          originalUrls.push(url);
+        }
+
+        // 2. Run Laplacian HDR
+        const result = await runWelkomHDR(blobs, {
+          maxEdge: 1920,
+          quality: 0.93,
+          onProgress: ({ step, percent }) => {
+            setProcessingProgress(percent);
+            setProcessingLabel(step);
+          },
+        });
+
+        // 3. Upload outputs
+        const id = uuid();
+        const fullPath = `${PREFIX}/${propertyId}/${id}.jpg`;
+        const thumbPath = `${PREFIX}/${propertyId}/thumb_${id}.jpg`;
+        const fullUrl = await uploadBlob(fullPath, result.fullBlob, "image/jpeg");
+        const thumbUrl = await uploadBlob(thumbPath, result.thumbBlob, "image/jpeg");
+
+        const maxOrder = photos.reduce((m, p) => Math.max(m, p.display_order), -1);
+        const { data: inserted, error } = await supabase
+          .from("property_photos")
+          .insert({
+            property_id: propertyId,
+            user_id: userId,
+            url: fullUrl,
+            full_url: fullUrl,
+            thumb_url: thumbUrl,
+            original_urls: originalUrls,
+            is_hdr: true,
+            processing_time_ms: result.processingTimeMs,
+            filters_applied: {
+              pipeline: "laplacian-v1",
+              source_count: blobs.length,
+            },
+            display_order: maxOrder + 1,
+          } as any)
+          .select()
+          .single();
+        if (error) throw error;
+
+        toast({
+          title: "Photo HDR créée ✨",
+          description: `Pipeline Laplacien — ${(result.processingTimeMs / 1000).toFixed(1)}s`,
+        });
+        await fetchPhotos();
+        return inserted as any;
+      } catch (e: any) {
+        toast({
+          title: "Échec du traitement HDR",
+          description: e.message || String(e),
+          variant: "destructive",
+        });
+        return null;
+      } finally {
+        setIsProcessing(false);
+        setProcessingProgress(0);
+        setProcessingLabel("");
+      }
+    },
+    [propertyId, photos, toast, fetchPhotos]
+  );
+
   const deletePhoto = useCallback(
     async (photoId: string) => {
       const { error } = await supabase.from("property_photos").delete().eq("id", photoId);
@@ -231,6 +320,7 @@ export function useWelkomStudio(propertyId: string | undefined) {
     processingProgress,
     processingLabel,
     processBatch,
+    processBatchLaplacian,
     uploadSingle,
     deletePhoto,
     reorderPhotos,
