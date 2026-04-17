@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Save, Loader2, Plus, Euro, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { PlatformBadge } from "@/components/PlatformBadge";
 
 const compensationModels = [
   { value: "percentage", label: "Commission (%)" },
@@ -199,7 +200,7 @@ export function PropertyFinanceSettings({ propertyId }: Props) {
                     <div className="min-w-0">
                       <p className="text-sm font-medium">{format(new Date(b.check_in), "dd/MM")} → {format(new Date(b.check_out), "dd/MM/yyyy")}{b.guest_name ? ` • ${b.guest_name}` : ""}</p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Badge variant="outline" className="text-[9px]">{b.source}</Badge>
+                        <PlatformBadge platform={b.source} />
                         <Badge className={`text-[9px] ${statusColors[b.price_status] || ""}`}>{b.price_status === "missing" ? "Prix manquant" : b.price_status === "complete" ? "Complet" : b.price_status}</Badge>
                         <Badge className={`text-[9px] ${statusColors[b.financial_status] || ""}`}>{b.financial_status === "pending" ? "En attente" : b.financial_status === "invoiced" ? "Facturé" : "Payé"}</Badge>
                       </div>

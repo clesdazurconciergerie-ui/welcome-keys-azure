@@ -22,16 +22,11 @@ import { useICalCalendar, type CalendarEvent } from "@/hooks/useICalCalendar";
 import { useBookings, type Booking } from "@/hooks/useBookings";
 import { useCalendarOverrides } from "@/hooks/useCalendarOverrides";
 import { supabase } from "@/integrations/supabase/client";
+import { getPlatformClasses, getPlatformLabel } from "@/lib/booking-platforms";
 
-const platformColors: Record<string, string> = {
-  airbnb: "bg-[#FF5A5F]/10 text-[#FF5A5F] border-[#FF5A5F]/20",
-  booking: "bg-[#003580]/10 text-[#003580] border-[#003580]/20",
-  abritel: "bg-[#1F5AA6]/10 text-[#1F5AA6] border-[#1F5AA6]/20",
-  vrbo: "bg-[#3B5998]/10 text-[#3B5998] border-[#3B5998]/20",
-  manual: "bg-muted text-muted-foreground border-border",
-  other: "bg-accent/50 text-accent-foreground border-accent",
-  bookings_table: "bg-primary/10 text-primary border-primary/20",
-};
+const platformColors = new Proxy({} as Record<string, string>, {
+  get: (_t, key: string) => getPlatformClasses(key).badge,
+});
 
 const eventTypeStyles: Record<string, { bg: string; label: string; icon: string }> = {
   reservation: { bg: "", label: "Réservation", icon: "●" },
@@ -40,15 +35,9 @@ const eventTypeStyles: Record<string, { bg: string; label: string; icon: string 
   unknown: { bg: "bg-amber-100 text-amber-700 border-amber-300 border-dashed", label: "Date bloquée", icon: "▧" },
 };
 
-const platformLabels: Record<string, string> = {
-  airbnb: "Airbnb",
-  booking: "Booking.com",
-  abritel: "Abritel",
-  vrbo: "VRBO",
-  manual: "Manuel",
-  other: "Autre",
-  bookings_table: "Réservation",
-};
+const platformLabels = new Proxy({} as Record<string, string>, {
+  get: (_t, key: string) => getPlatformLabel(key),
+});
 
 interface Props {
   propertyId: string;

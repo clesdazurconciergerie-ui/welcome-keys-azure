@@ -75,6 +75,13 @@ export default {
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
         info: "hsl(var(--info))",
+        platform: {
+          airbnb: "hsl(var(--platform-airbnb))",
+          booking: "hsl(var(--platform-booking))",
+          vrbo: "hsl(var(--platform-vrbo))",
+          direct: "hsl(var(--platform-direct))",
+          other: "hsl(var(--platform-other))",
+        },
       },
       borderRadius: {
         xl: "calc(var(--radius) + 4px)",

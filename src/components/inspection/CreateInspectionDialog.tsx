@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { ClipboardCheck, Camera, X, Loader2, Calendar, User, Image, Key, Euro, RefreshCw } from 'lucide-react';
+import { PlatformBadge } from '@/components/PlatformBadge';
 
 interface Booking {
   id: string;
@@ -370,7 +371,7 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
                           <span className="flex items-center gap-2">
                             <span>{b.guest_name || 'Voyageur'}</span>
                             <span className="text-muted-foreground text-xs">{formatDate(b.check_in)} → {formatDate(b.check_out)}</span>
-                            <Badge variant="outline" className="text-[10px] px-1 py-0">{b.source}</Badge>
+                            <PlatformBadge platform={b.source} />
                           </span>
                         </SelectItem>
                       ))}

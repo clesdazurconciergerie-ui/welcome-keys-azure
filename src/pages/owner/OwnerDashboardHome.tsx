@@ -8,6 +8,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useOwnerVisibleBookings } from "@/hooks/useOwnerVisibleBookings";
 import { Loader2, Home, ClipboardList, Percent, ChevronLeft, ChevronRight, CalendarDays, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { getPlatformClasses } from "@/lib/booking-platforms";
 
 interface PropertySummary {
   id: string;
@@ -16,14 +17,9 @@ interface PropertySummary {
   status: string;
 }
 
-const platformColors: Record<string, string> = {
-  airbnb: "bg-[#FF5A5F]/10 text-[#FF5A5F] border-[#FF5A5F]/20",
-  booking: "bg-[#003580]/10 text-[#003580] border-[#003580]/20",
-  vrbo: "bg-[#3B5998]/10 text-[#3B5998] border-[#3B5998]/20",
-  manual: "bg-muted text-muted-foreground border-border",
-  other: "bg-accent/50 text-accent-foreground border-accent",
-  bookings_table: "bg-primary/10 text-primary border-primary/20",
-};
+const platformColors = new Proxy({} as Record<string, string>, {
+  get: (_t, key: string) => getPlatformClasses(key).badge,
+});
 
 export default function OwnerDashboardHome() {
   const { ownerId } = useIsOwner();

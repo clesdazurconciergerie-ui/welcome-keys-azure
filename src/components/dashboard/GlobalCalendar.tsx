@@ -12,6 +12,7 @@ import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { PlatformBadge } from "@/components/PlatformBadge";
 
 type EventKind = "booking" | "mission" | "followup";
 
@@ -500,7 +501,7 @@ function ListView({ events, onSelect, missionLabel, kindIcon }: {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {isOverdue && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">En retard</Badge>}
-              {ev.kind === "booking" && ev.platform && <Badge variant="outline" className="text-[10px]">{ev.platform}</Badge>}
+              {ev.kind === "booking" && ev.platform && <PlatformBadge platform={ev.platform} />}
               {ev.payout_amount != null && ev.payout_amount > 0 && <Badge variant="secondary" className="text-[10px]">{ev.payout_amount}€</Badge>}
               <span className={`w-2 h-2 rounded-full ${colors.dot} shrink-0`} />
             </div>
@@ -545,7 +546,7 @@ function EventDrawer({ event, missionLabel, navigate, onClose }: {
             <div><p className="text-muted-foreground text-xs mb-0.5">Bien</p><p className="font-medium">{event.property_name}</p></div>
           )}
           {event.kind === "booking" && (
-            <div><p className="text-muted-foreground text-xs mb-0.5">Plateforme</p><Badge variant="outline" className="text-xs mt-0.5">{event.platform}</Badge></div>
+            <div><p className="text-muted-foreground text-xs mb-0.5">Plateforme</p><PlatformBadge platform={event.platform} size="md" className="mt-0.5" /></div>
           )}
           <div>
             <p className="text-muted-foreground text-xs mb-0.5">{event.kind === "followup" ? "Date prévue" : event.kind === "mission" ? "Date" : "Arrivée"}</p>
