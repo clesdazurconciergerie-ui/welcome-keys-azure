@@ -40,13 +40,15 @@ export function PlatformPerformance({
   hideRevenue = false,
   title = "Performance par plateforme",
 }: Props) {
-  // Default window: last 12 months
+  // Default window: last 6 months → next 12 months (covers past activity + future bookings)
   const defaults = useMemo(() => {
-    const end = endDate || new Date().toISOString().slice(0, 10);
-    const startObj = startDate
-      ? new Date(startDate)
-      : (() => { const d = new Date(); d.setMonth(d.getMonth() - 12); return d; })();
-    return { start: startObj.toISOString().slice(0, 10), end };
+    const start = startDate ?? (() => {
+      const d = new Date(); d.setMonth(d.getMonth() - 6); return d.toISOString().slice(0, 10);
+    })();
+    const end = endDate ?? (() => {
+      const d = new Date(); d.setMonth(d.getMonth() + 12); return d.toISOString().slice(0, 10);
+    })();
+    return { start, end };
   }, [startDate, endDate]);
 
   const { stats, totalBookings, totalRevenue, loading } =

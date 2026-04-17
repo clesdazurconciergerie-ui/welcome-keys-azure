@@ -100,8 +100,12 @@ export function usePlatformStats(propertyId?: string, options: Options = {}) {
 
     (events || []).forEach((e: any) => {
       if (linkedEventIds.has(e.id)) return; // avoid double-count
+      // Prefer specific platform fields, but ignore 'other' so we can fall back to title/url heuristics
+      const rawPlatform = e.source_platform && e.source_platform !== "other"
+        ? e.source_platform
+        : (e.platform && e.platform !== "other" ? e.platform : null);
       const platform = resolveBookingPlatform({
-        platform: e.source_platform || e.platform,
+        platform: rawPlatform,
         source: e.source_name,
         summary: e.summary,
       });
