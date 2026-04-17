@@ -370,7 +370,7 @@ export function CreateInspectionDialog({ open, onClose, properties, onSave }: Cr
                           <span className="flex items-center gap-2">
                             <span>{b.guest_name || 'Voyageur'}</span>
                             <span className="text-muted-foreground text-xs">{formatDate(b.check_in)} → {formatDate(b.check_out)}</span>
-                            <Badge variant="outline" className="text-[10px] px-1 py-0">{b.source}</Badge>
+                            <PlatformBadge platform={b.source} />
                           </span>
                         </SelectItem>
                       ))}
