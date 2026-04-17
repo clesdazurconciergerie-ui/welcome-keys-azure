@@ -1,8 +1,13 @@
+import { resolveBookingPlatform, getDefaultSourceName, type BookingPlatform } from "./booking-platforms";
+
 export interface CalendarEventLike {
   event_type?: string | null;
   platform?: string | null;
   summary?: string | null;
   guest_name?: string | null;
+  source_platform?: string | null;
+  source_name?: string | null;
+  url?: string | null;
 }
 
 const BOOKING_CLOSED_PATTERN = /^closed\s*-\s*not available$/i;
@@ -72,9 +77,20 @@ export function normalizeCalendarEvent<T extends CalendarEventLike>(event: T): T
   const platform = normalizeCalendarPlatform(event.platform);
   const isReservation = isReservationLikeCalendarEvent({ ...event, platform });
 
+  // Resolve canonical booking platform from any signal available
+  const sourcePlatform: BookingPlatform = resolveBookingPlatform({
+    platform: event.source_platform || platform,
+    summary: event.summary,
+    url: event.url,
+  });
+
+  const sourceName = event.source_name || getDefaultSourceName(sourcePlatform);
+
   return {
     ...event,
     platform,
+    source_platform: sourcePlatform,
+    source_name: sourceName,
     event_type: isReservation ? "reservation" : (event.event_type || "unknown"),
     summary: isReservation ? getReservationDisplayLabel({ ...event, platform }) : (event.summary || "Date bloquée"),
   };
