@@ -4,11 +4,13 @@ import { FileDown, Loader2 } from 'lucide-react';
 import { useFinancialSettings } from '@/hooks/useFinancialSettings';
 import type { Inspection } from '@/hooks/useInspections';
 
-const FONT = "'Inter','Helvetica Neue',Arial,sans-serif";
+const FONT = "'Inter','SF Pro Display','Helvetica Neue',Arial,sans-serif";
 
 function contrast(hex: string) {
   const c = hex.replace('#', '');
-  const r = parseInt(c.substring(0, 2), 16), g = parseInt(c.substring(2, 4), 16), b = parseInt(c.substring(4, 6), 16);
+  const r = parseInt(c.substring(0, 2), 16),
+    g = parseInt(c.substring(2, 4), 16),
+    b = parseInt(c.substring(4, 6), 16);
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5 ? '#1a1a1a' : '#ffffff';
 }
 function lighten(hex: string, n: number) {
@@ -24,27 +26,73 @@ export function InspectionPdfGenerator({ inspection }: { inspection: Inspection 
   const [busy, setBusy] = useState(false);
   const { settings } = useFinancialSettings();
   const co = (settings as any) || {};
+
+  // Brand palette — bleu profond + or
   const NAVY = co.invoice_primary_color || '#061452';
   const GOLD = co.invoice_accent_color || '#C4A45B';
-  const GRAY = lighten(NAVY, 215);
+  const LIGHT = lighten(NAVY, 230);
+  const SOFT = '#f7f8fb';
   const htc = co.invoice_text_color || contrast(NAVY);
-  const companyName = co.company_name || '';
+
+  const companyName = co.company_name || 'Ma Conciergerie';
   const defSig = co.default_signature_url || null;
   const concSig = inspection.concierge_signature_url || defSig;
-  const addr = [co.address, [co.org_postal_code, co.org_city].filter(Boolean).join(' ')].filter(Boolean).join(' — ');
+  const addr = [co.address, [co.org_postal_code, co.org_city].filter(Boolean).join(' ')]
+    .filter(Boolean)
+    .join(' — ');
+  const phone = co.org_phone || '';
+  const vat = co.vat_number || '';
+  const legalFooter = co.legal_footer || '';
 
-  const dateFmt = new Date(inspection.inspection_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-  const label = inspection.inspection_type === 'exit' ? "État des lieux de sortie" : "État des lieux d'entrée";
-  const refN = `EDL-${new Date(inspection.inspection_date).getFullYear()}-${(inspection.id || '001').substring(0, 3).toUpperCase()}`;
+  const dateFmt = new Date(inspection.inspection_date).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  const generatedAt = new Date().toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const isExit = inspection.inspection_type === 'exit';
+  const label = isExit ? "État des lieux de sortie" : "État des lieux d'entrée";
+  const refN = `EDL-${new Date(inspection.inspection_date).getFullYear()}-${(inspection.id || '001')
+    .substring(0, 6)
+    .toUpperCase()}`;
 
-  const all = [
-    ...(inspection.cleaning_photos_json || []),
-    ...((inspection as any).meter_photos_json || []),
-    ...(inspection.exit_photos_json || []),
-  ];
-  const photos = all.slice(0, 4);
-  const extra = all.length - photos.length;
+  // Booking details
+  const booking = (inspection as any).booking || null;
+  const checkIn = booking?.check_in
+    ? new Date(booking.check_in).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : '—';
+  const checkOut = booking?.check_out
+    ? new Date(booking.check_out).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : '—';
+  const guestEmail = booking?.guest_email || (inspection as any).guest_email || '';
+  const guestPhone = booking?.guest_phone || (inspection as any).guest_phone || '';
+
+  const cleaningPhotos = inspection.cleaning_photos_json || [];
+  const meterPhotos = (inspection as any).meter_photos_json || [];
+  const exitPhotos = inspection.exit_photos_json || [];
   const keys = (inspection as any).keys_handed_over;
+
+  // Meters
+  const meters = [
+    { label: 'Électricité', value: inspection.meter_electricity },
+    { label: 'Eau', value: inspection.meter_water },
+    { label: 'Gaz', value: inspection.meter_gas },
+  ].filter(m => m.value);
+
+  // Visual checklist items (dynamic based on data)
+  const checklist = [
+    { label: 'Logement propre & rangé', ok: !inspection.damage_notes },
+    { label: 'Compteurs relevés', ok: meters.length > 0 },
+    { label: 'Clés remises', ok: !!keys },
+    { label: 'Signature voyageur', ok: !!inspection.guest_signature_url },
+    { label: 'Photos prises', ok: cleaningPhotos.length + exitPhotos.length > 0 },
+  ];
 
   const gen = async () => {
     setBusy(true);
@@ -52,129 +100,191 @@ export function InspectionPdfGenerator({ inspection }: { inspection: Inspection 
       const html2pdf = (await import('html2pdf.js')).default;
       const el = ref.current;
       if (!el) return;
-      el.style.display = 'flex';
-      await (html2pdf() as any).set({
-        margin: 0,
-        filename: `etat-des-lieux-${inspection.inspection_date}.pdf`,
-        image: { type: 'jpeg', quality: 0.92 },
-        html2canvas: { scale: 2, useCORS: true, scrollY: 0, scrollX: 0 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all'] },
-      }).from(el).save();
+      el.style.display = 'block';
+      await (html2pdf() as any)
+        .set({
+          margin: 0,
+          filename: `etat-des-lieux-${inspection.property?.name || 'bien'}-${inspection.inspection_date}.pdf`.replace(/\s+/g, '-'),
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { scale: 2.2, useCORS: true, scrollY: 0, scrollX: 0, letterRendering: true, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+          pagebreak: { mode: ['css', 'legacy'], avoid: ['.no-break'] },
+        })
+        .from(el)
+        .save();
       el.style.display = 'none';
-    } catch (e) { console.error(e); }
-    finally { setBusy(false); }
+    } catch (e) {
+      console.error('PDF gen error', e);
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const infoRows = [
-    ['Bien', inspection.property?.name || '—'],
-    ['Adresse', inspection.property?.address || '—'],
-    ['Voyageur', inspection.guest_name || '—'],
-    ['Occupants', inspection.occupants_count ? String(inspection.occupants_count) : '—'],
-    ...(keys ? [['Clés remises', String(keys)]] : []),
-    ['Ménage par', inspection.cleaner_name || '—'],
-  ];
+  // === Helpers ===
+  const sectionTitle = (title: string, icon = '') => `
+    <div class="no-break" style="display:flex;align-items:center;gap:10px;margin:18px 0 10px">
+      <div style="width:3px;height:18px;background:${GOLD};border-radius:2px"></div>
+      <h2 style="margin:0;font-size:11px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:1.8px">${icon}${title}</h2>
+    </div>`;
 
-  const rowsHtml = infoRows.map(([l, v]) =>
-    `<tr><td style="padding:6px 12px;font-weight:600;border-bottom:1px solid ${NAVY}15;border-right:1px solid ${NAVY}15;width:35%">${l}</td><td style="padding:6px 12px;border-bottom:1px solid ${NAVY}15">${v}</td></tr>`
-  ).join('');
+  const infoCard = (label: string, value: string) => `
+    <div style="background:${SOFT};border:1px solid ${NAVY}10;border-radius:8px;padding:10px 12px">
+      <div style="font-size:8.5px;color:#6b7280;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;margin-bottom:3px">${label}</div>
+      <div style="font-size:11px;color:${NAVY};font-weight:600;line-height:1.3">${value || '—'}</div>
+    </div>`;
 
-  const photosHtml = photos.map((p: any) =>
-    `<img src="${p.url}" style="width:48%;object-fit:cover;border-radius:4px;border:1px solid ${NAVY}1a" crossOrigin="anonymous"/>`
-  ).join('');
+  const checkRow = (it: { label: string; ok: boolean }) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${it.ok ? '#f0fdf4' : '#fef2f2'};border:1px solid ${it.ok ? '#bbf7d0' : '#fecaca'};border-radius:6px">
+      <div style="width:14px;height:14px;border-radius:50%;background:${it.ok ? '#16a34a' : '#dc2626'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;line-height:1">${it.ok ? '✓' : '✕'}</div>
+      <span style="font-size:9.5px;color:#1a1a1a;font-weight:500">${it.label}</span>
+    </div>`;
 
-  const extraLine = extra > 0
-    ? `<p style="font-size:8.5px;color:#6b7280;font-style:italic;margin:6px 0 0;text-align:center">+ ${extra} photo${extra > 1 ? 's' : ''} supplémentaire${extra > 1 ? 's' : ''} disponible${extra > 1 ? 's' : ''} dans l'application</p>`
-    : '';
+  const photoGrid = (list: any[], title: string) => {
+    if (!list || list.length === 0) return '';
+    const items = list.slice(0, 6);
+    const more = list.length - items.length;
+    return `
+      <div class="no-break" style="margin-bottom:14px">
+        <div style="font-size:9.5px;font-weight:700;color:${NAVY};margin-bottom:6px;text-transform:uppercase;letter-spacing:0.6px">${title} <span style="color:#9ca3af;font-weight:500">(${list.length})</span></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+          ${items.map((p: any) => `
+            <div style="aspect-ratio:4/3;background:#f3f4f6;border:1px solid ${NAVY}1a;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+              <img src="${p.url}" style="width:100%;height:100%;object-fit:cover" crossOrigin="anonymous"/>
+            </div>`).join('')}
+        </div>
+        ${more > 0 ? `<p style="font-size:8px;color:#6b7280;font-style:italic;margin:4px 0 0;text-align:right">+ ${more} photo(s) supplémentaire(s) en application</p>` : ''}
+      </div>`;
+  };
 
-  const sigBox = (url: string | null) => url
-    ? `<div style="border:1px solid ${NAVY}1a;border-radius:4px;height:80px;display:flex;align-items:center;justify-content:center;padding:6px;background:#fafafa"><img src="${url}" style="max-height:68px;max-width:100%;object-fit:contain" crossOrigin="anonymous"/></div>`
-    : `<div style="height:80px;border:1.5px dashed #d1d5db;border-radius:4px;background:#fafafa"></div>`;
+  const sigBox = (url: string | null, who: string) => `
+    <div style="flex:1">
+      <div style="font-size:8.5px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px">${who}</div>
+      <div style="border:1.5px solid ${url ? NAVY + '30' : '#d1d5db'};border-style:${url ? 'solid' : 'dashed'};border-radius:8px;height:80px;display:flex;align-items:center;justify-content:center;padding:6px;background:${url ? '#fff' : '#fafafa'}">
+        ${url ? `<img src="${url}" style="max-height:68px;max-width:100%;object-fit:contain" crossOrigin="anonymous"/>` : `<span style="color:#9ca3af;font-size:9px;font-style:italic">Non signé</span>`}
+      </div>
+      <div style="font-size:8px;color:#6b7280;margin-top:4px;text-align:center">Signé le ${dateFmt}</div>
+    </div>`;
 
-  const commentBlock = inspection.general_comment
-    ? `<div style="padding:0 28px;margin-top:10px">
-        <div style="font-size:9.5px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:0.6px;border-bottom:2px solid ${GOLD};padding-bottom:3px;margin-bottom:5px">Observations</div>
-        <p style="font-size:9px;line-height:1.5;margin:0;max-height:40px;overflow:hidden;white-space:pre-wrap">${inspection.general_comment}</p>
-       </div>` : '';
-
-  const damageBlock = inspection.damage_notes
-    ? `<div style="padding:0 28px;margin-top:8px">
-        <div style="font-size:9.5px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:0.6px;border-bottom:2px solid #dc2626;padding-bottom:3px;margin-bottom:5px">Dégâts</div>
-        <p style="font-size:9px;line-height:1.5;margin:0;max-height:32px;overflow:hidden;white-space:pre-wrap;background:#fef2f2;padding:4px 8px;border-radius:3px;border:1px solid #fecaca">${inspection.damage_notes}</p>
-       </div>` : '';
-
-  // The key: use display:flex;flex-direction:column;height:100% so photo section grows
+  // === FULL HTML DOCUMENT ===
   const html = `
-<div style="display:flex;flex-direction:column;height:100%;width:100%;box-sizing:border-box">
+<style>
+  .no-break { page-break-inside: avoid; }
+  .page-break { page-break-after: always; }
+</style>
 
-  <!-- A. HEADER — 100px -->
-  <div style="height:100px;min-height:100px;background:${NAVY};color:${htc};display:flex;align-items:stretch;box-sizing:border-box">
-    <div style="flex:1;padding:14px 28px;display:flex;flex-direction:column;justify-content:center">
-      <div style="font-size:15px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;border-bottom:2.5px solid ${GOLD};display:inline-block;padding-bottom:3px">${companyName || 'MA CONCIERGERIE'}</div>
-      ${addr ? `<p style="margin:5px 0 0;font-size:9px;opacity:.85;line-height:1.4">${addr}</p>` : ''}
-    </div>
-    ${co.logo_url ? `<div style="width:80px;display:flex;align-items:center;justify-content:center;padding:8px"><img src="${co.logo_url}" style="max-height:60px;max-width:64px;object-fit:contain" crossOrigin="anonymous"/></div>` : ''}
-    <div style="flex:1;padding:14px 28px;display:flex;flex-direction:column;justify-content:center;text-align:right">
-      <div style="font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;border-bottom:2.5px solid ${GOLD};display:inline-block;margin-left:auto;padding-bottom:3px">${inspection.guest_name || 'NOM VOYAGEUR'}</div>
-      <p style="margin:5px 0 0;font-size:9px;opacity:.85">${inspection.property?.name || ''}</p>
-    </div>
-  </div>
-
-  <!-- B. TITLE — 56px -->
-  <div style="height:56px;min-height:56px;padding:12px 28px;display:flex;align-items:center;box-sizing:border-box">
-    <div style="width:4px;height:32px;background:${GOLD};border-radius:2px;margin-right:14px;flex-shrink:0"></div>
+<!-- HEADER STRIP -->
+<div style="background:linear-gradient(135deg, ${NAVY} 0%, ${lighten(NAVY, 30)} 100%);color:${htc};padding:24px 32px;display:flex;align-items:center;justify-content:space-between">
+  <div style="display:flex;align-items:center;gap:14px">
+    ${co.logo_url ? `<div style="width:52px;height:52px;background:#fff;border-radius:10px;padding:6px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.15)"><img src="${co.logo_url}" style="max-width:100%;max-height:100%;object-fit:contain" crossOrigin="anonymous"/></div>` : ''}
     <div>
-      <div style="font-size:16px;font-weight:800;color:${NAVY};text-transform:uppercase;letter-spacing:2px;line-height:1.2">${label}</div>
-      <div style="font-size:10px;color:#555;margin-top:2px">Réf : ${refN} · Date : ${dateFmt}</div>
+      <div style="font-size:16px;font-weight:700;letter-spacing:0.3px;line-height:1.2">${companyName}</div>
+      ${addr ? `<div style="font-size:9px;opacity:0.85;margin-top:3px">${addr}</div>` : ''}
+      ${phone ? `<div style="font-size:9px;opacity:0.85">${phone}</div>` : ''}
     </div>
   </div>
+  <div style="text-align:right">
+    <div style="display:inline-block;padding:4px 10px;background:${GOLD};color:${NAVY};border-radius:20px;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${isExit ? 'SORTIE' : 'ENTRÉE'}</div>
+    <div style="font-size:9px;opacity:0.85">Réf. ${refN}</div>
+  </div>
+</div>
 
-  <!-- C. INFO TABLE -->
-  <div style="padding:0 28px;flex-shrink:0">
-    <table style="width:100%;border-collapse:collapse;border:1.5px solid ${NAVY};font-size:10px;font-family:${FONT}">
-      <thead><tr>
-        <th style="background:${NAVY};color:${htc};font-size:9px;font-weight:600;letter-spacing:.5px;text-align:left;padding:6px 12px;border-right:1px solid ${htc}33;width:35%">Information</th>
-        <th style="background:${NAVY};color:${htc};font-size:9px;font-weight:600;letter-spacing:.5px;text-align:left;padding:6px 12px">Détail</th>
-      </tr></thead>
-      <tbody>${rowsHtml}</tbody>
-    </table>
+<!-- TITLE -->
+<div style="padding:22px 32px 8px">
+  <h1 style="margin:0;font-size:24px;font-weight:800;color:${NAVY};letter-spacing:-0.5px;line-height:1.1">${label}</h1>
+  <p style="margin:6px 0 0;font-size:11px;color:#6b7280">${dateFmt}</p>
+</div>
+
+<div style="padding:0 32px">
+
+  ${sectionTitle('Informations Voyageur')}
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:4px">
+    ${infoCard('Nom complet', inspection.guest_name || '—')}
+    ${infoCard('Nombre d\'occupants', inspection.occupants_count ? String(inspection.occupants_count) : '—')}
+    ${infoCard('Email', guestEmail || '—')}
+    ${infoCard('Téléphone', guestPhone || '—')}
+    ${infoCard('Date d\'arrivée', checkIn)}
+    ${infoCard('Date de départ', checkOut)}
   </div>
 
-  <!-- TEXT BLOCKS -->
-  ${commentBlock}
-  ${damageBlock}
-
-  <!-- D. PHOTOS — flex:1 fills remaining space -->
-  ${photos.length > 0 ? `
-  <div style="flex:1;min-height:60px;padding:12px 28px 0;display:flex;flex-direction:column;overflow:hidden">
-    <div style="font-size:10px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid ${GOLD};padding-bottom:3px;margin-bottom:8px;flex-shrink:0">Photos</div>
-    <div style="flex:1;display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-content:start">
-      ${photos.map((p: any) =>
-        `<div style="width:48%;flex:0 0 48%;height:calc(50% - 4px);display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:4px;border:1px solid ${NAVY}1a;background:#f9f9f9"><img src="${p.url}" style="max-width:100%;max-height:100%;object-fit:contain" crossOrigin="anonymous"/></div>`
-      ).join('')}
-    </div>
-    ${extraLine}
-  </div>` : `<div style="flex:1"></div>`}
-
-  <!-- E. SIGNATURES — 120px -->
-  <div style="height:120px;min-height:120px;padding:10px 28px;display:flex;gap:28px;box-sizing:border-box;flex-shrink:0">
-    <div style="flex:1;display:flex;flex-direction:column">
-      <div style="font-size:9.5px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid ${GOLD};padding-bottom:3px;margin-bottom:6px">Signature conciergerie</div>
-      <div style="flex:1">${sigBox(concSig)}</div>
-    </div>
-    <div style="flex:1;display:flex;flex-direction:column">
-      <div style="font-size:9.5px;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid ${GOLD};padding-bottom:3px;margin-bottom:6px">Signature client</div>
-      <div style="flex:1">${sigBox(inspection.guest_signature_url)}</div>
-    </div>
+  ${sectionTitle('Logement')}
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">
+    ${infoCard('Bien', inspection.property?.name || '—')}
+    ${infoCard('Clés remises', keys ? `${keys}` : '—')}
+  </div>
+  <div style="margin-top:8px">
+    ${infoCard('Adresse complète', inspection.property?.address || '—')}
   </div>
 
-  <!-- F. FOOTER — 28px -->
-  <div style="height:28px;min-height:28px;border-top:2px solid ${GOLD};background:${GRAY};display:flex;align-items:center;justify-content:space-between;padding:0 28px;box-sizing:border-box;flex-shrink:0">
-    <span style="font-size:8px;color:${NAVY};opacity:.7">Document généré via <b>MyWelkom</b>${companyName ? ` · ${companyName}` : ''}</span>
-    <span style="font-size:8px;color:${NAVY};opacity:.7">${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+  ${sectionTitle('Vérifications')}
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">
+    ${checklist.map(checkRow).join('')}
   </div>
 
-</div>`;
+  ${meters.length > 0 ? `
+  ${sectionTitle('Relevés Compteurs')}
+  <div style="display:grid;grid-template-columns:repeat(${meters.length},1fr);gap:8px">
+    ${meters.map(m => `
+      <div style="border:1.5px solid ${NAVY}15;border-radius:8px;padding:12px;text-align:center;background:#fff">
+        <div style="font-size:8.5px;color:#6b7280;text-transform:uppercase;letter-spacing:0.8px;font-weight:600">${m.label}</div>
+        <div style="font-size:18px;font-weight:700;color:${NAVY};margin-top:4px;font-variant-numeric:tabular-nums">${m.value}</div>
+      </div>
+    `).join('')}
+  </div>` : ''}
+
+  ${inspection.cleaner_name ? `
+  ${sectionTitle('Préparation')}
+  <div style="background:${SOFT};border-left:3px solid ${GOLD};padding:10px 14px;border-radius:0 6px 6px 0">
+    <div style="font-size:8.5px;color:#6b7280;text-transform:uppercase;letter-spacing:0.8px;font-weight:600">Ménage effectué par</div>
+    <div style="font-size:11px;color:${NAVY};font-weight:600;margin-top:2px">${inspection.cleaner_name}</div>
+  </div>` : ''}
+
+  ${inspection.general_comment ? `
+  ${sectionTitle('Observations Générales')}
+  <div class="no-break" style="background:${SOFT};border:1px solid ${NAVY}10;border-radius:8px;padding:12px 14px">
+    <p style="margin:0;font-size:10px;color:#1a1a1a;line-height:1.6;white-space:pre-wrap">${inspection.general_comment}</p>
+  </div>` : ''}
+
+  ${inspection.damage_notes ? `
+  ${sectionTitle('⚠ Dégâts & Anomalies')}
+  <div class="no-break" style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:8px;padding:12px 14px">
+    <p style="margin:0;font-size:10px;color:#991b1b;line-height:1.6;font-weight:500;white-space:pre-wrap">${inspection.damage_notes}</p>
+  </div>` : ''}
+
+  ${(cleaningPhotos.length + meterPhotos.length + exitPhotos.length) > 0 ? `
+  ${sectionTitle('Reportage Photographique')}
+  ${photoGrid(cleaningPhotos, 'Photos de référence')}
+  ${photoGrid(meterPhotos, 'Compteurs')}
+  ${photoGrid(exitPhotos, 'Photos de sortie')}
+  ` : ''}
+
+  ${sectionTitle('Signatures')}
+  <div class="no-break" style="display:flex;gap:24px;margin-bottom:8px">
+    ${sigBox(concSig, 'Conciergerie')}
+    ${sigBox(inspection.guest_signature_url, 'Voyageur')}
+  </div>
+
+</div>
+
+<!-- LEGAL FOOTER -->
+<div style="margin-top:24px;border-top:2px solid ${GOLD};background:${LIGHT};padding:14px 32px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px">
+    <div style="flex:1">
+      <div style="font-size:8px;color:${NAVY};font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px">Mentions Légales</div>
+      <p style="margin:0;font-size:7.5px;color:#4b5563;line-height:1.5">
+        Le présent état des lieux a été réalisé contradictoirement entre les parties. Il fait foi en cas de litige.
+        ${vat ? `TVA : ${vat}.` : ''} ${legalFooter}
+        Conformément au RGPD, les données personnelles sont conservées le temps légal de la prestation.
+      </p>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div style="font-size:7.5px;color:${NAVY};font-weight:600">${companyName}</div>
+      ${phone ? `<div style="font-size:7px;color:#6b7280">${phone}</div>` : ''}
+      <div style="font-size:7px;color:#6b7280;margin-top:4px">Document généré le ${generatedAt}</div>
+      <div style="font-size:7px;color:${GOLD};font-weight:600;margin-top:2px">Powered by MyWelkom</div>
+    </div>
+  </div>
+</div>
+`;
 
   return (
     <>
@@ -188,12 +298,11 @@ export function InspectionPdfGenerator({ inspection }: { inspection: Inspection 
           display: 'none',
           fontFamily: FONT,
           width: '210mm',
-          height: '297mm',
-          overflow: 'hidden',
-          background: '#fff',
+          background: '#ffffff',
           color: '#1a1a1a',
           boxSizing: 'border-box',
           margin: '0 auto',
+          fontSize: '10px',
         }}
         dangerouslySetInnerHTML={{ __html: html }}
       />
