@@ -32,7 +32,7 @@ import { PropertyFinanceSettings } from "@/components/finance/PropertyFinanceSet
 import { CleaningAutomationSection } from "@/components/property/CleaningAutomationSection";
 import { PlatformPerformance } from "@/components/dashboard/PlatformPerformance";
 import { AddDirectBookingDialog } from "@/components/dashboard/properties/AddDirectBookingDialog";
-import { WelkomVisualsSection } from "@/components/property/WelkomVisualsSection";
+import { WelkomStudioSection } from "@/components/property/welkom-studio/WelkomStudioSection";
 
 const typeLabels: Record<string, string> = {
   apartment: "Appartement", house: "Maison", villa: "Villa",
@@ -296,9 +296,9 @@ const PropertyDetailPage = () => {
           <TabsTrigger value="photo-checklist">Checklist photos</TabsTrigger>
         </TabsList>
 
-        {/* PHOTOS TAB — Welkom Visuals */}
+        {/* PHOTOS TAB — Welkom Studio */}
         <TabsContent value="photos" className="space-y-4 mt-4">
-          <WelkomVisualsSection propertyId={property.id} />
+          <WelkomStudioSection propertyId={property.id} />
         </TabsContent>
 
         {/* DOCUMENTS TAB */}
