@@ -470,6 +470,14 @@ export function PropertyCalendar({ propertyId }: Props) {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Add direct booking dialog */}
+      <AddDirectBookingDialog
+        open={addBookingOpen}
+        onOpenChange={setAddBookingOpen}
+        propertyId={propertyId}
+        onCreated={refetchBookings}
+      />
+
       {/* Add calendar dialog */}
       <Dialog open={addCalOpen} onOpenChange={setAddCalOpen}>
         <DialogContent>
