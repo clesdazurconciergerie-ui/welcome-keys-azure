@@ -22,6 +22,7 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
 import { PerformanceOverview } from "@/components/dashboard/PerformanceOverview";
 import { UpcomingOperations } from "@/components/dashboard/UpcomingOperations";
+import { TodayInspections } from "@/components/dashboard/TodayInspections";
 import { startOfMonth, endOfMonth } from "date-fns";
 
 const DashboardHome = () => {
@@ -231,6 +232,9 @@ const DashboardHome = () => {
           endDate={endOfMonth(now).toISOString().slice(0, 10)}
         />
       </div>
+
+      {/* Today's Inspections */}
+      <TodayInspections />
 
       {/* Upcoming Operations */}
       <UpcomingOperations />
