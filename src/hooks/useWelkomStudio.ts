@@ -320,6 +320,7 @@ export function useWelkomStudio(propertyId: string | undefined) {
     processingProgress,
     processingLabel,
     processBatch,
+    processBatchLaplacian,
     uploadSingle,
     deletePhoto,
     reorderPhotos,
