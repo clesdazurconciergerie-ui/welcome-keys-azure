@@ -37,7 +37,7 @@ const eventTypeStyles: Record<string, { bg: string; label: string; icon: string 
 
 const platformLabels = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => getPlatformLabel(key),
-};
+});
 
 interface Props {
   propertyId: string;
