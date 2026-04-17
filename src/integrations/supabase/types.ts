@@ -2870,6 +2870,8 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          nodalview_gallery_url: string | null
+          nodalview_tour_url: string | null
           notes: string | null
           photos: Json | null
           postcode: string | null
@@ -2899,6 +2901,8 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          nodalview_gallery_url?: string | null
+          nodalview_tour_url?: string | null
           notes?: string | null
           photos?: Json | null
           postcode?: string | null
@@ -2928,6 +2932,8 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          nodalview_gallery_url?: string | null
+          nodalview_tour_url?: string | null
           notes?: string | null
           photos?: Json | null
           postcode?: string | null
