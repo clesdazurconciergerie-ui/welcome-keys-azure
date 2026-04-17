@@ -70,7 +70,7 @@ import SPSettingsPage from "./pages/service-provider/SPSettingsPage";
 import SPAccountPage from "./pages/service-provider/SPAccountPage";
 import FinancePage from "./pages/dashboard/FinancePage";
 import InspectionsPage from "./pages/dashboard/InspectionsPage";
-import WelkomVisualsPage from "./pages/dashboard/WelkomVisualsPage";
+import WelkomStudioPage from "./pages/dashboard/WelkomStudioPage";
 import OwnerFinancesPage from "./pages/owner/OwnerFinancesPage";
 import GuestsPage from "./pages/dashboard/GuestsPage";
 
@@ -111,7 +111,8 @@ const App = () => (
             <Route path="parametres" element={<ParametresPage />} />
             <Route path="automatisation" element={<AutomationPage />} />
             <Route path="branding" element={<BrandingPage />} />
-            <Route path="welkom-visuals" element={<WelkomVisualsPage />} />
+            <Route path="welkom-studio" element={<WelkomStudioPage />} />
+            <Route path="logements/:id/studio" element={<WelkomStudioPage />} />
             <Route path="aide" element={<HelpCenterPage />} />
           </Route>
 

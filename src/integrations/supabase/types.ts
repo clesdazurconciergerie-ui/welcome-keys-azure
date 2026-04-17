@@ -2870,8 +2870,6 @@ export type Database = {
           created_at: string
           id: string
           name: string
-          nodalview_gallery_url: string | null
-          nodalview_tour_url: string | null
           notes: string | null
           photos: Json | null
           postcode: string | null
@@ -2901,8 +2899,6 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
-          nodalview_gallery_url?: string | null
-          nodalview_tour_url?: string | null
           notes?: string | null
           photos?: Json | null
           postcode?: string | null
@@ -2932,8 +2928,6 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
-          nodalview_gallery_url?: string | null
-          nodalview_tour_url?: string | null
           notes?: string | null
           photos?: Json | null
           postcode?: string | null
@@ -3105,10 +3099,19 @@ export type Database = {
         Row: {
           caption: string | null
           category: string | null
+          created_at: string
+          display_order: number | null
+          filters_applied: Json | null
+          full_url: string
           id: string
+          is_hdr: boolean | null
           is_main: boolean | null
           order_index: number | null
+          original_urls: string[] | null
+          processing_time_ms: number | null
           property_id: string
+          thumb_url: string | null
+          updated_at: string
           uploaded_at: string
           url: string
           user_id: string
@@ -3116,10 +3119,19 @@ export type Database = {
         Insert: {
           caption?: string | null
           category?: string | null
+          created_at?: string
+          display_order?: number | null
+          filters_applied?: Json | null
+          full_url: string
           id?: string
+          is_hdr?: boolean | null
           is_main?: boolean | null
           order_index?: number | null
+          original_urls?: string[] | null
+          processing_time_ms?: number | null
           property_id: string
+          thumb_url?: string | null
+          updated_at?: string
           uploaded_at?: string
           url: string
           user_id: string
@@ -3127,10 +3139,19 @@ export type Database = {
         Update: {
           caption?: string | null
           category?: string | null
+          created_at?: string
+          display_order?: number | null
+          filters_applied?: Json | null
+          full_url?: string
           id?: string
+          is_hdr?: boolean | null
           is_main?: boolean | null
           order_index?: number | null
+          original_urls?: string[] | null
+          processing_time_ms?: number | null
           property_id?: string
+          thumb_url?: string | null
+          updated_at?: string
           uploaded_at?: string
           url?: string
           user_id?: string
