@@ -31,6 +31,7 @@ import { PhotoRequirementsAdmin } from "@/components/property/PhotoRequirementsA
 import { PropertyFinanceSettings } from "@/components/finance/PropertyFinanceSettings";
 import { CleaningAutomationSection } from "@/components/property/CleaningAutomationSection";
 import { PlatformPerformance } from "@/components/dashboard/PlatformPerformance";
+import { AddDirectBookingDialog } from "@/components/dashboard/properties/AddDirectBookingDialog";
 
 const typeLabels: Record<string, string> = {
   apartment: "Appartement", house: "Maison", villa: "Villa",
@@ -96,6 +97,7 @@ const PropertyDetailPage = () => {
   const [owners, setOwners] = useState<any[]>([]);
   const [ownerDocs, setOwnerDocs] = useState<OwnerDoc[]>([]);
   const [editOpen, setEditOpen] = useState(false);
+  const [addBookingOpen, setAddBookingOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [photoCategory, setPhotoCategory] = useState("general");
   const [docCategory, setDocCategory] = useState("mandat");
@@ -244,7 +246,16 @@ const PropertyDetailPage = () => {
               </Badge>
             </div>
           </div>
-          <Button onClick={() => setEditOpen(true)} variant="outline">Modifier</Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setAddBookingOpen(true)}
+              className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold"
+            >
+              <CalendarIcon className="w-4 h-4 mr-1.5" />
+              Ajouter réservation
+            </Button>
+            <Button onClick={() => setEditOpen(true)} variant="outline">Modifier</Button>
+          </div>
         </div>
 
         {/* Stats row */}
@@ -739,6 +750,15 @@ const PropertyDetailPage = () => {
       </Tabs>
 
       <EditPropertyDialog property={property} open={editOpen} onOpenChange={setEditOpen} onSubmit={updateProperty} />
+
+      {id && (
+        <AddDirectBookingDialog
+          open={addBookingOpen}
+          onOpenChange={setAddBookingOpen}
+          propertyId={id}
+          onCreated={() => { /* useBookings + usePlatformStats refetch via Realtime/key changes */ }}
+        />
+      )}
 
       {/* Delete photo confirmation */}
       <AlertDialog open={!!deletePhotoId} onOpenChange={() => setDeletePhotoId(null)}>

@@ -353,8 +353,11 @@ export type Database = {
           created_at: string | null
           financial_status: string | null
           gross_amount: number | null
+          guest_email: string | null
           guest_name: string | null
+          guest_phone: string | null
           id: string
+          is_manual: boolean
           maintenance_amount: number | null
           notes: string | null
           other_deductions: number | null
@@ -377,8 +380,11 @@ export type Database = {
           created_at?: string | null
           financial_status?: string | null
           gross_amount?: number | null
+          guest_email?: string | null
           guest_name?: string | null
+          guest_phone?: string | null
           id?: string
+          is_manual?: boolean
           maintenance_amount?: number | null
           notes?: string | null
           other_deductions?: number | null
@@ -401,8 +407,11 @@ export type Database = {
           created_at?: string | null
           financial_status?: string | null
           gross_amount?: number | null
+          guest_email?: string | null
           guest_name?: string | null
+          guest_phone?: string | null
           id?: string
+          is_manual?: boolean
           maintenance_amount?: number | null
           notes?: string | null
           other_deductions?: number | null
