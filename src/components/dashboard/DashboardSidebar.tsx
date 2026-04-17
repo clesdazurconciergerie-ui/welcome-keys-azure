@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, BookOpen, Users, Home, Wrench, Settings, LogOut,
-  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass, Zap, Brain, Camera,
+  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass, Zap, Brain, Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,9 +18,10 @@ const navGroups = [
     items: [{ title: "Tableau de bord", url: "/dashboard", icon: LayoutDashboard }],
   },
   {
-    label: "Exploitation",
+    label: "Logements",
     items: [
       { title: "Biens / Logements", url: "/dashboard/logements", icon: Home },
+      { title: "Welkom Visuals", url: "/dashboard/welkom-visuals", icon: Sparkles },
       { title: "Propriétaires", url: "/dashboard/proprietaires", icon: Users },
       { title: "Prestataires", url: "/dashboard/prestataires", icon: Wrench },
       { title: "Missions", url: "/dashboard/missions", icon: Briefcase },
@@ -35,12 +36,6 @@ const navGroups = [
       { title: "Prospection", url: "/dashboard/prospection", icon: Target },
       { title: "Demandes", url: "/dashboard/demandes-proprietaires", icon: MessageCircle },
       { title: "Call Prompter", url: "/dashboard/call-prompter", icon: Brain },
-    ],
-  },
-  {
-    label: "Média",
-    items: [
-      { title: "Photo Optimizer", url: "/dashboard/photo-optimizer", icon: Camera },
     ],
   },
   {

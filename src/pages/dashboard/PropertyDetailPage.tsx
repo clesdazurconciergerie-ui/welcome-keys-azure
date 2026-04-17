@@ -32,6 +32,7 @@ import { PropertyFinanceSettings } from "@/components/finance/PropertyFinanceSet
 import { CleaningAutomationSection } from "@/components/property/CleaningAutomationSection";
 import { PlatformPerformance } from "@/components/dashboard/PlatformPerformance";
 import { AddDirectBookingDialog } from "@/components/dashboard/properties/AddDirectBookingDialog";
+import { WelkomVisualsSection } from "@/components/property/WelkomVisualsSection";
 
 const typeLabels: Record<string, string> = {
   apartment: "Appartement", house: "Maison", villa: "Villa",
@@ -295,46 +296,9 @@ const PropertyDetailPage = () => {
           <TabsTrigger value="photo-checklist">Checklist photos</TabsTrigger>
         </TabsList>
 
-        {/* PHOTOS TAB */}
+        {/* PHOTOS TAB — Welkom Visuals */}
         <TabsContent value="photos" className="space-y-4 mt-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <Select value={photoCategory} onValueChange={setPhotoCategory}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {photoCategories.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <label
-              className={cn("relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
-              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              Ajouter des photos
-              <input ref={photoInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload}
-                style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
-            </label>
-          </div>
-
-          {photos.length === 0 ? (
-            <div className="text-center py-12 border rounded-lg border-dashed">
-              <ImageIcon className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">Aucune photo. Ajoutez des photos de ce bien.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {photos.map(photo => (
-                <div key={photo.id} className="relative group rounded-lg overflow-hidden border aspect-square">
-                  <img src={photo.url} alt={photo.caption || ""} className="w-full h-full object-cover" loading="lazy" />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end justify-between p-2 opacity-0 group-hover:opacity-100">
-                    <Badge variant="secondary" className="text-[9px]">
-                      {photoCategories.find(c => c.value === photo.category)?.label || photo.category}
-                    </Badge>
-                    <Button size="icon" variant="destructive" className="h-7 w-7" onClick={() => setDeletePhotoId(photo.id)}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <WelkomVisualsSection propertyId={property.id} />
         </TabsContent>
 
         {/* DOCUMENTS TAB */}
