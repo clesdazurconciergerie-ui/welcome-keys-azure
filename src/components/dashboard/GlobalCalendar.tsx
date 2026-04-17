@@ -95,7 +95,7 @@ export default function GlobalCalendar() {
       (supabase as any).from("properties").select("id, name").eq("user_id", user.id).order("name"),
       (supabase as any).from("bookings").select("id, property_id, check_in, check_out, guest_name, source, price_status").eq("user_id", user.id).lt("check_in", rangeEndStr).gt("check_out", rangeStartStr).neq("price_status", "canceled"),
       (supabase as any).from("calendar_events").select("id, property_id, start_date, end_date, guest_name, platform, event_type, status").eq("user_id", user.id).lt("start_date", rangeEndStr).gt("end_date", rangeStartStr).neq("status", "cancelled"),
-      (supabase as any).from("missions").select("id, property_id, title, mission_type, start_at, end_at, payout_amount, instructions, status, selected_provider_id").eq("user_id", user.id).gte("start_at", rangeStartStr + "T00:00:00").lte("start_at", rangeEndStr + "T23:59:59").in("status", ["assigned", "confirmed", "in_progress", "done", "approved"]),
+      (supabase as any).from("missions").select("id, property_id, title, mission_type, start_at, end_at, payout_amount, instructions, status, selected_provider_id").eq("user_id", user.id).gte("start_at", rangeStartStr + "T00:00:00").lte("start_at", rangeEndStr + "T23:59:59").in("status", ["assigned", "confirmed", "in_progress", "done", "approved"]).or(`status.not.in.(done,approved,validated,paid),start_at.gte.${new Date().toISOString()}`),
       (supabase as any).from("prospect_followups").select("id, prospect_id, scheduled_date, status, comment, prospect:prospects(first_name, last_name, phone, email, pipeline_status)").eq("user_id", user.id).gte("scheduled_date", rangeStartStr).lte("scheduled_date", rangeEndStr),
     ]);
 

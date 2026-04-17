@@ -121,13 +121,14 @@ export default function SPPlanningPage() {
   const [selectedMission, setSelectedMission] = useState<NewMission | null>(null);
   const navigate = useNavigate();
 
-  // Filter: exclude canceled, exclude paid/done older than 30 days
+  // Filter: exclude canceled. Hide past missions that are completed (done/validated/approved/paid).
+  // Data is preserved in DB and remains accessible via "Historique missions".
   const filtered = useMemo(() => {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 30);
+    const now = new Date();
+    const completedStatuses = new Set(["done", "validated", "approved", "paid"]);
     return missions.filter((m) => {
       if (m.status === "canceled") return false;
-      if (["paid", "done"].includes(m.status) && new Date(m.start_at) < cutoff) return false;
+      if (completedStatuses.has(m.status) && new Date(m.start_at) < now) return false;
       return true;
     });
   }, [missions]);
