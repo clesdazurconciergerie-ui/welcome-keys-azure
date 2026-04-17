@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { ClipboardCheck, Camera, X, Loader2, Calendar, User, Image, Key, Euro, RefreshCw } from 'lucide-react';
+import { PlatformBadge } from '@/components/PlatformBadge';
 
 interface Booking {
   id: string;

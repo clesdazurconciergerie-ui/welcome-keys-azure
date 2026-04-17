@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Save, Loader2, Plus, Euro, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { PlatformBadge } from "@/components/PlatformBadge";
 
 const compensationModels = [
   { value: "percentage", label: "Commission (%)" },
