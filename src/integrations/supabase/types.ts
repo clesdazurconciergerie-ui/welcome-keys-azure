@@ -1545,6 +1545,75 @@ export type Database = {
         }
         Relationships: []
       }
+      guests: {
+        Row: {
+          booking_id: string | null
+          city: string | null
+          consent_ip: string | null
+          country: string | null
+          created_at: string
+          email: string | null
+          first_name: string | null
+          full_name: string | null
+          id: string
+          inspection_id: string | null
+          language: string | null
+          last_name: string | null
+          marketing_consent: boolean
+          marketing_consent_at: string | null
+          notes: string | null
+          phone: string | null
+          property_id: string | null
+          source: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          city?: string | null
+          consent_ip?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          id?: string
+          inspection_id?: string | null
+          language?: string | null
+          last_name?: string | null
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          property_id?: string | null
+          source?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          city?: string | null
+          consent_ip?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          id?: string
+          inspection_id?: string | null
+          language?: string | null
+          last_name?: string | null
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          property_id?: string | null
+          source?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       highlights: {
         Row: {
           booklet_id: string

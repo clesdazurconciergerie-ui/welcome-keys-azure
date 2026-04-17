@@ -72,6 +72,7 @@ import FinancePage from "./pages/dashboard/FinancePage";
 import InspectionsPage from "./pages/dashboard/InspectionsPage";
 import PhotoOptimizerPage from "./pages/dashboard/PhotoOptimizerPage";
 import OwnerFinancesPage from "./pages/owner/OwnerFinancesPage";
+import GuestsPage from "./pages/dashboard/GuestsPage";
 
 const queryClient = new QueryClient();
 
@@ -100,6 +101,7 @@ const App = () => (
             {/* Interventions removed — missions is the single source */}
             <Route path="missions" element={<MissionsPage />} />
             <Route path="etats-des-lieux" element={<InspectionsPage />} />
+            <Route path="voyageurs" element={<GuestsPage />} />
             <Route path="prospection" element={<ProspectionPage />} />
             <Route path="finance" element={<FinancePage />} />
             <Route path="demandes-proprietaires" element={<OwnerRequestsAdminPage />} />

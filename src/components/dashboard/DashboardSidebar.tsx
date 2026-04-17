@@ -25,6 +25,7 @@ const navGroups = [
       { title: "Prestataires", url: "/dashboard/prestataires", icon: Wrench },
       { title: "Missions", url: "/dashboard/missions", icon: Briefcase },
       { title: "État des lieux", url: "/dashboard/etats-des-lieux", icon: ClipboardCheck },
+      { title: "Voyageurs", url: "/dashboard/voyageurs", icon: Users },
       { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen },
     ],
   },
