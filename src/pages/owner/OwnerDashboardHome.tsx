@@ -9,6 +9,7 @@ import { useOwnerVisibleBookings } from "@/hooks/useOwnerVisibleBookings";
 import { Loader2, Home, ClipboardList, Percent, ChevronLeft, ChevronRight, CalendarDays, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { getPlatformClasses } from "@/lib/booking-platforms";
+import { UpcomingBookingsList } from "@/components/owner/UpcomingBookingsList";
 
 interface PropertySummary {
   id: string;
@@ -231,6 +232,13 @@ export default function OwnerDashboardHome() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Upcoming bookings */}
+      <UpcomingBookingsList
+        events={allEvents}
+        propertyNameById={Object.fromEntries(properties.map(p => [p.id, p.name]))}
+        limit={6}
+      />
 
       {/* Properties list */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
