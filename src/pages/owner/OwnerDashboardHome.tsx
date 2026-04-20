@@ -233,6 +233,13 @@ export default function OwnerDashboardHome() {
         </Card>
       </motion.div>
 
+      {/* Upcoming bookings */}
+      <UpcomingBookingsList
+        events={allEvents}
+        propertyNameById={Object.fromEntries(properties.map(p => [p.id, p.name]))}
+        limit={6}
+      />
+
       {/* Properties list */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
         <Card className="border-border">
