@@ -341,6 +341,68 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_conflicts: {
+        Row: {
+          conflict_type: string
+          created_at: string
+          detected_at: string
+          event_a_id: string
+          event_b_id: string
+          id: string
+          notes: string | null
+          overlap_end: string
+          overlap_start: string
+          property_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          conflict_type?: string
+          created_at?: string
+          detected_at?: string
+          event_a_id: string
+          event_b_id: string
+          id?: string
+          notes?: string | null
+          overlap_end: string
+          overlap_start: string
+          property_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          conflict_type?: string
+          created_at?: string
+          detected_at?: string
+          event_a_id?: string
+          event_b_id?: string
+          id?: string
+          notes?: string | null
+          overlap_end?: string
+          overlap_start?: string
+          property_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_conflicts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           calendar_event_id: string | null
@@ -2983,6 +3045,121 @@ export type Database = {
           },
         ]
       }
+      pricing_rules: {
+        Row: {
+          adjustment_type: string
+          adjustment_value: number
+          base_price: number | null
+          created_at: string
+          date_end: string | null
+          date_start: string | null
+          day_of_week: number[] | null
+          id: string
+          is_active: boolean
+          min_nights: number | null
+          name: string
+          priority: number
+          property_id: string | null
+          rule_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          adjustment_type?: string
+          adjustment_value?: number
+          base_price?: number | null
+          created_at?: string
+          date_end?: string | null
+          date_start?: string | null
+          day_of_week?: number[] | null
+          id?: string
+          is_active?: boolean
+          min_nights?: number | null
+          name: string
+          priority?: number
+          property_id?: string | null
+          rule_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          adjustment_type?: string
+          adjustment_value?: number
+          base_price?: number | null
+          created_at?: string
+          date_end?: string | null
+          date_start?: string | null
+          day_of_week?: number[] | null
+          id?: string
+          is_active?: boolean
+          min_nights?: number | null
+          name?: string
+          priority?: number
+          property_id?: string | null
+          rule_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_rules_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_suggestions: {
+        Row: {
+          applied_at: string | null
+          confidence: number | null
+          created_at: string
+          current_price: number | null
+          for_date: string
+          id: string
+          property_id: string
+          reasoning: string | null
+          status: string
+          suggested_price: number
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          confidence?: number | null
+          created_at?: string
+          current_price?: number | null
+          for_date: string
+          id?: string
+          property_id: string
+          reasoning?: string | null
+          status?: string
+          suggested_price: number
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          confidence?: number | null
+          created_at?: string
+          current_price?: number | null
+          for_date?: string
+          id?: string
+          property_id?: string
+          reasoning?: string | null
+          status?: string
+          suggested_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_suggestions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       properties: {
         Row: {
           address: string
@@ -3661,6 +3838,158 @@ export type Database = {
         }
         Relationships: []
       }
+      smart_lock_codes: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          external_code_id: string | null
+          guest_name: string | null
+          id: string
+          lock_id: string
+          notes: string | null
+          pin_code: string
+          revoked_at: string | null
+          status: string
+          user_id: string
+          valid_from: string
+          valid_until: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          external_code_id?: string | null
+          guest_name?: string | null
+          id?: string
+          lock_id: string
+          notes?: string | null
+          pin_code: string
+          revoked_at?: string | null
+          status?: string
+          user_id: string
+          valid_from: string
+          valid_until: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          external_code_id?: string | null
+          guest_name?: string | null
+          id?: string
+          lock_id?: string
+          notes?: string | null
+          pin_code?: string
+          revoked_at?: string | null
+          status?: string
+          user_id?: string
+          valid_from?: string
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_lock_codes_lock_id_fkey"
+            columns: ["lock_id"]
+            isOneToOne: false
+            referencedRelation: "smart_locks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_lock_providers: {
+        Row: {
+          account_label: string | null
+          created_at: string
+          credentials_secret_id: string | null
+          id: string
+          is_connected: boolean
+          last_sync_at: string | null
+          provider: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_label?: string | null
+          created_at?: string
+          credentials_secret_id?: string | null
+          id?: string
+          is_connected?: boolean
+          last_sync_at?: string | null
+          provider: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_label?: string | null
+          created_at?: string
+          credentials_secret_id?: string | null
+          id?: string
+          is_connected?: boolean
+          last_sync_at?: string | null
+          provider?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      smart_locks: {
+        Row: {
+          battery_level: number | null
+          created_at: string
+          device_name: string
+          device_type: string | null
+          external_id: string
+          id: string
+          is_active: boolean
+          last_event_at: string | null
+          property_id: string | null
+          provider_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          battery_level?: number | null
+          created_at?: string
+          device_name: string
+          device_type?: string | null
+          external_id: string
+          id?: string
+          is_active?: boolean
+          last_event_at?: string | null
+          property_id?: string | null
+          provider_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          battery_level?: number | null
+          created_at?: string
+          device_name?: string
+          device_type?: string | null
+          external_id?: string
+          id?: string
+          is_active?: boolean
+          last_event_at?: string | null
+          property_id?: string | null
+          provider_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_locks_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_locks_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "smart_lock_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean
@@ -3970,6 +4299,10 @@ export type Database = {
         Returns: Json
       }
       cleanup_demo_users: { Args: never; Returns: undefined }
+      detect_booking_conflicts: {
+        Args: { _property_id: string }
+        Returns: number
+      }
       expire_demo_trials: { Args: never; Returns: undefined }
       generate_pin_code: { Args: never; Returns: string }
       generate_unique_pin: { Args: never; Returns: string }
