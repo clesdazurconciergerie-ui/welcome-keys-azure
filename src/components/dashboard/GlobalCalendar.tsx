@@ -358,10 +358,28 @@ export default function GlobalCalendar() {
         <Sheet open={!!selectedEvent} onOpenChange={(o) => !o && setSelectedEvent(null)}>
           <SheetContent className="sm:max-w-md">
             {selectedEvent && (
-              <EventDrawer event={selectedEvent} missionLabel={missionLabel} navigate={navigate} onClose={() => setSelectedEvent(null)} />
+              <EventDrawer
+                event={selectedEvent}
+                missionLabel={missionLabel}
+                navigate={navigate}
+                onClose={() => setSelectedEvent(null)}
+                onCompleteRevenue={(b) => {
+                  setRevenueTarget(b);
+                  setRevenueDialogOpen(true);
+                  setSelectedEvent(null);
+                }}
+              />
             )}
           </SheetContent>
         </Sheet>
+
+        {/* Revenue completion dialog */}
+        <BookingRevenueDialog
+          booking={revenueTarget}
+          open={revenueDialogOpen}
+          onOpenChange={setRevenueDialogOpen}
+          onSaved={fetchData}
+        />
       </CardContent>
     </Card>
   );
