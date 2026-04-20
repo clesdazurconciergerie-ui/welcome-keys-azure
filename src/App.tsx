@@ -78,9 +78,13 @@ import DemoGuestMessagingPage from "./pages/demo/DemoGuestMessagingPage";
 import BookingConflictsPage from "./pages/dashboard/BookingConflictsPage";
 import PricingEnginePage from "./pages/dashboard/PricingEnginePage";
 import SmartKeysPage from "./pages/dashboard/SmartKeysPage";
+import ChannelManagerPage from "./pages/dashboard/ChannelManagerPage";
+import ComplianceHubPage from "./pages/dashboard/ComplianceHubPage";
 import DemoBookingConflictsPage from "./pages/demo/DemoBookingConflictsPage";
 import DemoPricingEnginePage from "./pages/demo/DemoPricingEnginePage";
 import DemoSmartKeysPage from "./pages/demo/DemoSmartKeysPage";
+import DemoChannelManagerPage from "./pages/demo/DemoChannelManagerPage";
+import DemoComplianceHubPage from "./pages/demo/DemoComplianceHubPage";
 
 const queryClient = new QueryClient();
 
@@ -113,7 +117,9 @@ const App = () => (
             <Route path="messages" element={<GuestMessagingPage />} />
             <Route path="conflits" element={<BookingConflictsPage />} />
             <Route path="tarification" element={<PricingEnginePage />} />
+            <Route path="channel-manager" element={<ChannelManagerPage />} />
             <Route path="smart-keys" element={<SmartKeysPage />} />
+            <Route path="taxe-sejour" element={<ComplianceHubPage />} />
             <Route path="prospection" element={<ProspectionPage />} />
             <Route path="finance" element={<FinancePage />} />
             <Route path="demandes-proprietaires" element={<OwnerRequestsAdminPage />} />
@@ -172,7 +178,9 @@ const App = () => (
             <Route path="messages" element={<DemoGuestMessagingPage />} />
             <Route path="conflits" element={<DemoBookingConflictsPage />} />
             <Route path="tarification" element={<DemoPricingEnginePage />} />
+            <Route path="channel-manager" element={<DemoChannelManagerPage />} />
             <Route path="smart-keys" element={<DemoSmartKeysPage />} />
+            <Route path="taxe-sejour" element={<DemoComplianceHubPage />} />
           </Route>
           <Route path="/expired-demo" element={<ExpiredDemoPage />} />
           <Route path="/exemples/proprietaires" element={<ExampleProprietaires />} />

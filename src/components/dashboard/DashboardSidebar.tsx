@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, BookOpen, Users, Home, Wrench, Settings, LogOut,
-  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass, Zap, Brain, Camera, Mail, ShieldAlert, TrendingUp, KeyRound,
+  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass, Zap, Brain, Camera, Mail, ShieldAlert, TrendingUp, KeyRound, Link2, Receipt,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -43,13 +43,17 @@ const navGroups = [
     label: "Revenue",
     items: [
       { title: "Tarification dynamique", url: "/dashboard/tarification", icon: TrendingUp },
+      { title: "Channel Manager", url: "/dashboard/channel-manager", icon: Link2 },
       { title: "Conflits réservations", url: "/dashboard/conflits", icon: ShieldAlert },
       { title: "Smart Keys", url: "/dashboard/smart-keys", icon: KeyRound },
     ],
   },
   {
     label: "Finance",
-    items: [{ title: "Finance", url: "/dashboard/finance", icon: Euro }],
+    items: [
+      { title: "Finance", url: "/dashboard/finance", icon: Euro },
+      { title: "Taxe de séjour", url: "/dashboard/taxe-sejour", icon: Receipt },
+    ],
   },
   {
     label: "Paramètres",

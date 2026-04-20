@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, BookOpen, Users, Home, Wrench, Settings, LogOut,
-  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass, ArrowRight, Mail, ShieldAlert, TrendingUp, KeyRound,
+  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass, ArrowRight, Mail, ShieldAlert, TrendingUp, KeyRound, Link2, Receipt,
 } from "lucide-react";
 import { useDemoContext } from "@/contexts/DemoContext";
 
@@ -39,13 +39,17 @@ const navGroups = [
     label: "Revenue",
     items: [
       { title: "Tarification dynamique", url: "/demo/tarification", icon: TrendingUp },
+      { title: "Channel Manager", url: "/demo/channel-manager", icon: Link2 },
       { title: "Conflits réservations", url: "/demo/conflits", icon: ShieldAlert },
       { title: "Smart Keys", url: "/demo/smart-keys", icon: KeyRound },
     ],
   },
   {
     label: "Finance",
-    items: [{ title: "Finance", url: "/demo/finance", icon: Euro }],
+    items: [
+      { title: "Finance", url: "/demo/finance", icon: Euro },
+      { title: "Taxe de séjour", url: "/demo/taxe-sejour", icon: Receipt },
+    ],
   },
 ];
 
