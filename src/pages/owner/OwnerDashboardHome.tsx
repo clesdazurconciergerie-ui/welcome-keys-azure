@@ -9,6 +9,7 @@ import { useOwnerVisibleBookings } from "@/hooks/useOwnerVisibleBookings";
 import { Loader2, Home, ClipboardList, Percent, ChevronLeft, ChevronRight, CalendarDays, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { getPlatformClasses } from "@/lib/booking-platforms";
+import { UpcomingBookingsList } from "@/components/owner/UpcomingBookingsList";
 
 interface PropertySummary {
   id: string;
