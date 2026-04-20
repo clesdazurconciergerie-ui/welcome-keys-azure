@@ -69,6 +69,7 @@ import SPSupportPage from "./pages/service-provider/SPSupportPage";
 import SPSettingsPage from "./pages/service-provider/SPSettingsPage";
 import SPAccountPage from "./pages/service-provider/SPAccountPage";
 import FinancePage from "./pages/dashboard/FinancePage";
+import RevenueCompletionPage from "./pages/dashboard/RevenueCompletionPage";
 import InspectionsPage from "./pages/dashboard/InspectionsPage";
 import WelkomStudioPage from "./pages/dashboard/WelkomStudioPage";
 import OwnerFinancesPage from "./pages/owner/OwnerFinancesPage";
@@ -122,6 +123,7 @@ const App = () => (
             <Route path="taxe-sejour" element={<ComplianceHubPage />} />
             <Route path="prospection" element={<ProspectionPage />} />
             <Route path="finance" element={<FinancePage />} />
+            <Route path="finance/revenus-a-completer" element={<RevenueCompletionPage />} />
             <Route path="demandes-proprietaires" element={<OwnerRequestsAdminPage />} />
             <Route path="call-prompter" element={<CallPrompterPage />} />
             <Route path="performance" element={<PerformancePage />} />
