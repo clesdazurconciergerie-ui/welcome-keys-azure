@@ -6,13 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, List, LayoutGrid, Home, User, ExternalLink, Wrench, FileText, Phone, Target, CheckCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, List, LayoutGrid, Home, User, ExternalLink, Wrench, FileText, Phone, Target, CheckCircle, Coins } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, addWeeks, subWeeks, eachDayOfInterval, isSameMonth, isSameDay, addDays, isBefore, isToday as isDateToday } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PlatformBadge } from "@/components/PlatformBadge";
+import { BookingRevenueDialog, type BookingRevenueTarget } from "@/components/finance/BookingRevenueDialog";
 
 type EventKind = "booking" | "mission" | "followup";
 
@@ -31,6 +32,13 @@ interface CalendarEvent {
   payout_amount?: number;
   instructions?: string;
   status?: string;
+  // booking-specific revenue tracking
+  booking_id?: string;
+  gross_amount?: number | null;
+  revenue_to_complete?: boolean;
+  cleaning_amount?: number | null;
+  commission_amount?: number | null;
+  tourist_tax_amount?: number | null;
   // followup-specific
   prospect_name?: string;
   prospect_phone?: string;
@@ -71,6 +79,8 @@ export default function GlobalCalendar() {
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [revenueDialogOpen, setRevenueDialogOpen] = useState(false);
+  const [revenueTarget, setRevenueTarget] = useState<BookingRevenueTarget | null>(null);
 
   const rangeStart = useMemo(() => {
     if (view === "week") return startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -93,7 +103,7 @@ export default function GlobalCalendar() {
     // Parallel fetches
     const [propsRes, bookingsRes, calEventsRes, missionsRes, followupsRes] = await Promise.all([
       (supabase as any).from("properties").select("id, name").eq("user_id", user.id).order("name"),
-      (supabase as any).from("bookings").select("id, property_id, check_in, check_out, guest_name, source, price_status").eq("user_id", user.id).lt("check_in", rangeEndStr).gt("check_out", rangeStartStr).neq("price_status", "canceled"),
+      (supabase as any).from("bookings").select("id, property_id, check_in, check_out, guest_name, source, source_platform, price_status, gross_amount, cleaning_amount, commission_amount, tourist_tax_amount").eq("user_id", user.id).lt("check_in", rangeEndStr).gt("check_out", rangeStartStr).neq("price_status", "canceled"),
       (supabase as any).from("calendar_events").select("id, property_id, start_date, end_date, guest_name, platform, event_type, status").eq("user_id", user.id).lt("start_date", rangeEndStr).gt("end_date", rangeStartStr).neq("status", "cancelled"),
       (supabase as any).from("missions").select("id, property_id, title, mission_type, start_at, end_at, payout_amount, instructions, status, selected_provider_id").eq("user_id", user.id).gte("start_at", rangeStartStr + "T00:00:00").lte("start_at", rangeEndStr + "T23:59:59").in("status", ["assigned", "confirmed", "in_progress", "done", "approved"]).or(`status.not.in.(done,approved,validated,paid),start_at.gte.${new Date().toISOString()}`),
       (supabase as any).from("prospect_followups").select("id, prospect_id, scheduled_date, status, comment, prospect:prospects(first_name, last_name, phone, email, pipeline_status)").eq("user_id", user.id).gte("scheduled_date", rangeStartStr).lte("scheduled_date", rangeEndStr),
@@ -123,7 +133,13 @@ export default function GlobalCalendar() {
       merged.push({
         id: b.id, property_id: b.property_id, property_name: propMap[b.property_id] || "—",
         start_date: b.check_in, end_date: b.check_out, guest_name: b.guest_name,
-        platform: b.source || "manual", source: "booking", kind: "booking",
+        platform: b.source_platform || b.source || "manual", source: "booking", kind: "booking",
+        booking_id: b.id,
+        gross_amount: b.gross_amount,
+        cleaning_amount: b.cleaning_amount,
+        commission_amount: b.commission_amount,
+        tourist_tax_amount: b.tourist_tax_amount,
+        revenue_to_complete: b.gross_amount == null,
       });
     }
 
@@ -342,10 +358,28 @@ export default function GlobalCalendar() {
         <Sheet open={!!selectedEvent} onOpenChange={(o) => !o && setSelectedEvent(null)}>
           <SheetContent className="sm:max-w-md">
             {selectedEvent && (
-              <EventDrawer event={selectedEvent} missionLabel={missionLabel} navigate={navigate} onClose={() => setSelectedEvent(null)} />
+              <EventDrawer
+                event={selectedEvent}
+                missionLabel={missionLabel}
+                navigate={navigate}
+                onClose={() => setSelectedEvent(null)}
+                onCompleteRevenue={(b) => {
+                  setRevenueTarget(b);
+                  setRevenueDialogOpen(true);
+                  setSelectedEvent(null);
+                }}
+              />
             )}
           </SheetContent>
         </Sheet>
+
+        {/* Revenue completion dialog */}
+        <BookingRevenueDialog
+          booking={revenueTarget}
+          open={revenueDialogOpen}
+          onOpenChange={setRevenueDialogOpen}
+          onSaved={fetchData}
+        />
       </CardContent>
     </Card>
   );
@@ -441,14 +475,15 @@ function EventPill({ event, onSelect, missionLabel, kindIcon, hasOverdueFollowup
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           onClick={() => onSelect(event)}
-          className={`w-full text-left text-[10px] leading-tight px-1.5 py-1 rounded-md truncate font-medium transition-all hover:shadow-sm hover:scale-[1.02] ${colors.bg} ${colors.text} ${hasOverdueFollowup ? "border-l-2 border-l-red-500" : ""}`}
+          className={`w-full text-left text-[10px] leading-tight px-1.5 py-1 rounded-md truncate font-medium transition-all hover:shadow-sm hover:scale-[1.02] ${colors.bg} ${colors.text} ${hasOverdueFollowup ? "border-l-2 border-l-red-500" : ""} ${event.revenue_to_complete ? "border-l-2 border-l-[hsl(var(--gold))]" : ""}`}
         >
           <span className="mr-0.5">{kindIcon(event.kind)}</span>
+          {event.revenue_to_complete && <span className="mr-0.5">💰</span>}
           {label}
         </motion.button>
       </TooltipTrigger>
       <TooltipContent side="right" className="text-xs whitespace-pre-line max-w-[200px]">
-        {tooltipContent}
+        {tooltipContent}{event.revenue_to_complete ? "\n💰 Revenus à compléter" : ""}
       </TooltipContent>
     </Tooltip>
   );
@@ -501,6 +536,11 @@ function ListView({ events, onSelect, missionLabel, kindIcon }: {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {isOverdue && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">En retard</Badge>}
+              {ev.revenue_to_complete && (
+                <Badge className="text-[10px] px-1.5 py-0 bg-[hsl(var(--gold))]/15 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/30 hover:bg-[hsl(var(--gold))]/25">
+                  💰 À compléter
+                </Badge>
+              )}
               {ev.kind === "booking" && ev.platform && <PlatformBadge platform={ev.platform} />}
               {ev.payout_amount != null && ev.payout_amount > 0 && <Badge variant="secondary" className="text-[10px]">{ev.payout_amount}€</Badge>}
               <span className={`w-2 h-2 rounded-full ${colors.dot} shrink-0`} />
@@ -514,11 +554,12 @@ function ListView({ events, onSelect, missionLabel, kindIcon }: {
 
 /* ── Event Drawer ──────────────────────────── */
 
-function EventDrawer({ event, missionLabel, navigate, onClose }: {
+function EventDrawer({ event, missionLabel, navigate, onClose, onCompleteRevenue }: {
   event: CalendarEvent;
   missionLabel: (mt?: string) => string;
   navigate: (path: string) => void;
   onClose: () => void;
+  onCompleteRevenue?: (b: BookingRevenueTarget) => void;
 }) {
   const colors = EVENT_COLORS[event.kind];
 
@@ -592,6 +633,32 @@ function EventDrawer({ event, missionLabel, navigate, onClose }: {
 
         <div className="border-t pt-4 space-y-2">
           <p className="text-xs text-muted-foreground font-semibold mb-2">Actions rapides</p>
+          {event.kind === "booking" && event.booking_id && onCompleteRevenue && (
+            <Button
+              variant={event.revenue_to_complete ? "default" : "outline"}
+              size="sm"
+              className={`w-full justify-start gap-2 ${event.revenue_to_complete ? "bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]" : ""}`}
+              onClick={() => {
+                onCompleteRevenue({
+                  id: event.booking_id!,
+                  property_id: event.property_id,
+                  property_name: event.property_name,
+                  check_in: event.start_date,
+                  check_out: event.end_date,
+                  guest_name: event.guest_name,
+                  source_platform: event.platform,
+                  source: event.source,
+                  gross_amount: event.gross_amount ?? null,
+                  cleaning_amount: event.cleaning_amount ?? null,
+                  commission_amount: event.commission_amount ?? null,
+                  tourist_tax_amount: event.tourist_tax_amount ?? null,
+                });
+              }}
+            >
+              <Coins className="w-3.5 h-3.5" />
+              {event.revenue_to_complete ? "Compléter les revenus" : `Modifier revenus (${event.gross_amount}€)`}
+            </Button>
+          )}
           {event.kind === "booking" && (
             <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={() => { onClose(); navigate("/dashboard/interventions"); }}>
               <Wrench className="w-3.5 h-3.5" /> Créer mission ménage checkout

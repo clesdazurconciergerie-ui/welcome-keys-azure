@@ -1,5 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, FileText, Receipt, Settings, Banknote } from "lucide-react";
+import { BarChart3, FileText, Receipt, Settings, Banknote, Coins } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import { FinanceDashboardTab } from "@/components/finance/FinanceDashboardTab";
 import { FinanceInvoicesTab } from "@/components/finance/FinanceInvoicesTab";
 import { FinanceExpensesTab } from "@/components/finance/FinanceExpensesTab";
@@ -9,9 +11,17 @@ import { FinanceCashTab } from "@/components/finance/FinanceCashTab";
 export default function FinancePage() {
   return (
     <div className="space-y-6 max-w-6xl">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Finance</h1>
-        <p className="text-sm text-muted-foreground mt-1">Gérez vos revenus, factures et dépenses</p>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Finance</h1>
+          <p className="text-sm text-muted-foreground mt-1">Gérez vos revenus, factures et dépenses</p>
+        </div>
+        <Button asChild variant="outline" size="sm" className="gap-1.5">
+          <Link to="/dashboard/finance/revenus-a-completer">
+            <Coins className="w-4 h-4 text-[hsl(var(--gold))]" />
+            Revenus à compléter
+          </Link>
+        </Button>
       </div>
 
       <Tabs defaultValue="dashboard" className="w-full">
