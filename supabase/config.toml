@@ -92,3 +92,9 @@ verify_jwt = false
 
 [functions.call-prompter-transcribe]
 verify_jwt = false
+
+[functions.send-guest-messages]
+verify_jwt = false
+
+[functions.test-guest-message]
+verify_jwt = true

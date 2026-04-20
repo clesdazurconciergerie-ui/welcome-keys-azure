@@ -1545,6 +1545,139 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_message_templates: {
+        Row: {
+          body_markdown: string
+          channel: Database["public"]["Enums"]["guest_message_channel"]
+          created_at: string
+          id: string
+          is_active: boolean
+          language: string
+          name: string
+          property_ids: string[] | null
+          send_at_time: string
+          subject: string | null
+          trigger_type: Database["public"]["Enums"]["guest_message_trigger"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body_markdown: string
+          channel?: Database["public"]["Enums"]["guest_message_channel"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          language?: string
+          name: string
+          property_ids?: string[] | null
+          send_at_time?: string
+          subject?: string | null
+          trigger_type: Database["public"]["Enums"]["guest_message_trigger"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body_markdown?: string
+          channel?: Database["public"]["Enums"]["guest_message_channel"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          language?: string
+          name?: string
+          property_ids?: string[] | null
+          send_at_time?: string
+          subject?: string | null
+          trigger_type?: Database["public"]["Enums"]["guest_message_trigger"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      guest_scheduled_messages: {
+        Row: {
+          attempts: number
+          booking_id: string | null
+          channel: Database["public"]["Enums"]["guest_message_channel"]
+          created_at: string
+          error_message: string | null
+          external_id: string | null
+          id: string
+          property_id: string | null
+          recipient_email: string | null
+          recipient_phone: string | null
+          rendered_body: string | null
+          rendered_subject: string | null
+          scheduled_at: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["guest_message_status"]
+          template_id: string | null
+          trigger_type: Database["public"]["Enums"]["guest_message_trigger"]
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          booking_id?: string | null
+          channel?: Database["public"]["Enums"]["guest_message_channel"]
+          created_at?: string
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          property_id?: string | null
+          recipient_email?: string | null
+          recipient_phone?: string | null
+          rendered_body?: string | null
+          rendered_subject?: string | null
+          scheduled_at: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["guest_message_status"]
+          template_id?: string | null
+          trigger_type: Database["public"]["Enums"]["guest_message_trigger"]
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          booking_id?: string | null
+          channel?: Database["public"]["Enums"]["guest_message_channel"]
+          created_at?: string
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          property_id?: string | null
+          recipient_email?: string | null
+          recipient_phone?: string | null
+          rendered_body?: string | null
+          rendered_subject?: string | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["guest_message_status"]
+          template_id?: string | null
+          trigger_type?: Database["public"]["Enums"]["guest_message_trigger"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_scheduled_messages_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_scheduled_messages_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_scheduled_messages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "guest_message_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guests: {
         Row: {
           booking_id: string | null
@@ -3853,6 +3986,10 @@ export type Database = {
         Args: { _property_id: string; _user_id: string }
         Returns: boolean
       }
+      schedule_messages_for_booking: {
+        Args: { _booking_id: string }
+        Returns: number
+      }
       try_cast_jsonb: { Args: { txt: string }; Returns: Json }
     }
     Enums: {
@@ -3867,6 +4004,16 @@ export type Database = {
         | "super_admin"
         | "service_provider"
       billing_interval: "month" | "year"
+      guest_message_channel: "email" | "sms" | "whatsapp"
+      guest_message_status: "pending" | "sent" | "failed" | "cancelled"
+      guest_message_trigger:
+        | "booking_confirmed"
+        | "three_days_before"
+        | "day_before_arrival"
+        | "check_in_day"
+        | "mid_stay"
+        | "day_before_checkout"
+        | "one_day_after"
       subscription_status:
         | "trialing"
         | "active"
@@ -4014,6 +4161,17 @@ export const Constants = {
         "service_provider",
       ],
       billing_interval: ["month", "year"],
+      guest_message_channel: ["email", "sms", "whatsapp"],
+      guest_message_status: ["pending", "sent", "failed", "cancelled"],
+      guest_message_trigger: [
+        "booking_confirmed",
+        "three_days_before",
+        "day_before_arrival",
+        "check_in_day",
+        "mid_stay",
+        "day_before_checkout",
+        "one_day_after",
+      ],
       subscription_status: [
         "trialing",
         "active",
