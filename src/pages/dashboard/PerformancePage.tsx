@@ -19,12 +19,17 @@ import {
   LineChart, Line, Legend, Area, AreaChart,
 } from "recharts";
 import { usePerformanceKPIs } from "@/hooks/usePerformanceKPIs";
+import { usePerformanceBookingKPIs } from "@/hooks/usePerformanceBookingKPIs";
 import { useAiTasks } from "@/hooks/useAiTasks";
 import { useAiInsights } from "@/hooks/useAiInsights";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatEUR } from "@/lib/finance-utils";
+import { BookingKPIBar } from "@/components/performance/BookingKPIBar";
+import { RevenueStackedChart } from "@/components/performance/RevenueStackedChart";
+import { OccupancyHeatmap } from "@/components/performance/OccupancyHeatmap";
+import { TopPropertiesRanking } from "@/components/performance/TopPropertiesRanking";
 
 /* ── Helpers ── */
 const scopeLabels: Record<string, string> = {
@@ -155,6 +160,7 @@ const ChartTooltipContent = ({ active, payload, label }: any) => {
 const PerformancePage = () => {
   const [chartPeriod, setChartPeriod] = useState<number>(6);
   const { kpis, loading: kpiLoading } = usePerformanceKPIs(chartPeriod);
+  const { kpis: bookingKpis, loading: bookingLoading } = usePerformanceBookingKPIs(chartPeriod);
   const { tasks, loading: tasksLoading, updateTaskStatus, deleteTask, refetch: refetchTasks } = useAiTasks();
   const { insights, loading: insightsLoading, refetch: refetchInsights } = useAiInsights();
   const { flags } = useFeatureFlags();
@@ -369,6 +375,43 @@ const PerformancePage = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* ── Performance des biens (NEW) ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-4"
+        >
+          <div className="flex items-baseline justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-primary" />
+                Performance des biens
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Indicateurs basés sur les revenus saisis pour vos réservations iCal & manuelles.
+              </p>
+            </div>
+          </div>
+
+          <BookingKPIBar kpis={bookingKpis} loading={bookingLoading} />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <RevenueStackedChart data={bookingKpis.monthlyBuckets} loading={bookingLoading} />
+            <TopPropertiesRanking
+              perProperty={bookingKpis.perProperty}
+              loading={bookingLoading}
+              metric="gross_revenue"
+            />
+          </div>
+
+          <OccupancyHeatmap
+            occupancyDays={bookingKpis.occupancyDays}
+            perProperty={bookingKpis.perProperty}
+            loading={bookingLoading}
+          />
+        </motion.div>
 
         {/* ── Alerts ── */}
         <Card>
