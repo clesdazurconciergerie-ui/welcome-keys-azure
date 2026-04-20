@@ -428,6 +428,7 @@ export type Database = {
           property_id: string
           source: string | null
           source_platform: string | null
+          tourist_tax_amount: number | null
           updated_at: string | null
           user_id: string
         }
@@ -455,6 +456,7 @@ export type Database = {
           property_id: string
           source?: string | null
           source_platform?: string | null
+          tourist_tax_amount?: number | null
           updated_at?: string | null
           user_id: string
         }
@@ -482,6 +484,7 @@ export type Database = {
           property_id?: string
           source?: string | null
           source_platform?: string | null
+          tourist_tax_amount?: number | null
           updated_at?: string | null
           user_id?: string
         }
@@ -1550,6 +1553,8 @@ export type Database = {
           org_city: string | null
           org_phone: string | null
           org_postal_code: string | null
+          payout_day_of_month: number | null
+          payout_delay_days: number | null
           updated_at: string | null
           user_id: string
           vat_enabled: boolean
@@ -1575,6 +1580,8 @@ export type Database = {
           org_city?: string | null
           org_phone?: string | null
           org_postal_code?: string | null
+          payout_day_of_month?: number | null
+          payout_delay_days?: number | null
           updated_at?: string | null
           user_id: string
           vat_enabled?: boolean
@@ -1600,6 +1607,8 @@ export type Database = {
           org_city?: string | null
           org_phone?: string | null
           org_postal_code?: string | null
+          payout_day_of_month?: number | null
+          payout_delay_days?: number | null
           updated_at?: string | null
           user_id?: string
           vat_enabled?: boolean
@@ -2224,6 +2233,59 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_analyses: {
+        Row: {
+          created_at: string
+          id: string
+          pricing_recommendation: Json | null
+          property_id: string
+          raw_ai_response: Json | null
+          recommendations: Json
+          rewrite_suggestions: Json | null
+          score: number | null
+          scraped_data: Json | null
+          source: string
+          source_url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pricing_recommendation?: Json | null
+          property_id: string
+          raw_ai_response?: Json | null
+          recommendations?: Json
+          rewrite_suggestions?: Json | null
+          score?: number | null
+          scraped_data?: Json | null
+          source: string
+          source_url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pricing_recommendation?: Json | null
+          property_id?: string
+          raw_ai_response?: Json | null
+          recommendations?: Json
+          rewrite_suggestions?: Json | null
+          score?: number | null
+          scraped_data?: Json | null
+          source?: string
+          source_url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_analyses_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -3191,6 +3253,8 @@ export type Database = {
           country: string | null
           created_at: string
           id: string
+          listing_url_airbnb: string | null
+          listing_url_booking: string | null
           name: string
           notes: string | null
           photos: Json | null
@@ -3220,6 +3284,8 @@ export type Database = {
           country?: string | null
           created_at?: string
           id?: string
+          listing_url_airbnb?: string | null
+          listing_url_booking?: string | null
           name: string
           notes?: string | null
           photos?: Json | null
@@ -3249,6 +3315,8 @@ export type Database = {
           country?: string | null
           created_at?: string
           id?: string
+          listing_url_airbnb?: string | null
+          listing_url_booking?: string | null
           name?: string
           notes?: string | null
           photos?: Json | null
@@ -4480,6 +4548,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      backfill_bookings_from_calendar_events: {
+        Args: { _user_id?: string }
+        Returns: number
+      }
       can_access_intervention: {
         Args: { _intervention_id: string; _user_id: string }
         Returns: boolean
