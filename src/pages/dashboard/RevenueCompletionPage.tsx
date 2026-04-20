@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Loader2, Coins, Search, Sparkles, CheckCircle2, RefreshCw } from "lucide-react";
+import { Loader2, Coins, Search, Sparkles, CheckCircle2, RefreshCw, FileSpreadsheet } from "lucide-react";
 import { useBookingsToComplete, type BookingToComplete } from "@/hooks/useBookingsToComplete";
 import { BookingRevenueDialog } from "@/components/finance/BookingRevenueDialog";
+import { AirbnbCsvImportDialog } from "@/components/finance/AirbnbCsvImportDialog";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { resolveBookingPlatform } from "@/lib/booking-platforms";
 import { format } from "date-fns";
@@ -18,6 +19,7 @@ export default function RevenueCompletionPage() {
   const [selected, setSelected] = useState<BookingToComplete | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [backfilling, setBackfilling] = useState(false);
+  const [csvOpen, setCsvOpen] = useState(false);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return bookings;
@@ -54,19 +56,29 @@ export default function RevenueCompletionPage() {
             Saisissez les montants des réservations importées depuis vos calendriers iCal pour calculer occupation, revenu net et performance.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleBackfill}
-          disabled={backfilling}
-        >
-          {backfilling ? (
-            <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4 mr-1.5" />
-          )}
-          Importer depuis iCal
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCsvOpen(true)}
+          >
+            <FileSpreadsheet className="w-4 h-4 mr-1.5" />
+            Importer CSV Airbnb
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBackfill}
+            disabled={backfilling}
+          >
+            {backfilling ? (
+              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-1.5" />
+            )}
+            Synchroniser iCal
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -171,6 +183,13 @@ export default function RevenueCompletionPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSaved={refetch}
+      />
+
+      <AirbnbCsvImportDialog
+        open={csvOpen}
+        onOpenChange={setCsvOpen}
+        pendingBookings={bookings}
+        onImported={refetch}
       />
     </div>
   );
