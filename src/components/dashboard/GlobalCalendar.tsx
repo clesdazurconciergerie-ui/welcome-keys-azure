@@ -536,6 +536,11 @@ function ListView({ events, onSelect, missionLabel, kindIcon }: {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {isOverdue && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">En retard</Badge>}
+              {ev.revenue_to_complete && (
+                <Badge className="text-[10px] px-1.5 py-0 bg-[hsl(var(--gold))]/15 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/30 hover:bg-[hsl(var(--gold))]/25">
+                  💰 À compléter
+                </Badge>
+              )}
               {ev.kind === "booking" && ev.platform && <PlatformBadge platform={ev.platform} />}
               {ev.payout_amount != null && ev.payout_amount > 0 && <Badge variant="secondary" className="text-[10px]">{ev.payout_amount}€</Badge>}
               <span className={`w-2 h-2 rounded-full ${colors.dot} shrink-0`} />
@@ -549,11 +554,12 @@ function ListView({ events, onSelect, missionLabel, kindIcon }: {
 
 /* ── Event Drawer ──────────────────────────── */
 
-function EventDrawer({ event, missionLabel, navigate, onClose }: {
+function EventDrawer({ event, missionLabel, navigate, onClose, onCompleteRevenue }: {
   event: CalendarEvent;
   missionLabel: (mt?: string) => string;
   navigate: (path: string) => void;
   onClose: () => void;
+  onCompleteRevenue?: (b: BookingRevenueTarget) => void;
 }) {
   const colors = EVENT_COLORS[event.kind];
 
