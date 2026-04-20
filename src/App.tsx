@@ -75,6 +75,12 @@ import OwnerFinancesPage from "./pages/owner/OwnerFinancesPage";
 import GuestsPage from "./pages/dashboard/GuestsPage";
 import GuestMessagingPage from "./pages/dashboard/GuestMessagingPage";
 import DemoGuestMessagingPage from "./pages/demo/DemoGuestMessagingPage";
+import BookingConflictsPage from "./pages/dashboard/BookingConflictsPage";
+import PricingEnginePage from "./pages/dashboard/PricingEnginePage";
+import SmartKeysPage from "./pages/dashboard/SmartKeysPage";
+import DemoBookingConflictsPage from "./pages/demo/DemoBookingConflictsPage";
+import DemoPricingEnginePage from "./pages/demo/DemoPricingEnginePage";
+import DemoSmartKeysPage from "./pages/demo/DemoSmartKeysPage";
 
 const queryClient = new QueryClient();
 
@@ -105,6 +111,9 @@ const App = () => (
             <Route path="etats-des-lieux" element={<InspectionsPage />} />
             <Route path="voyageurs" element={<GuestsPage />} />
             <Route path="messages" element={<GuestMessagingPage />} />
+            <Route path="conflits" element={<BookingConflictsPage />} />
+            <Route path="tarification" element={<PricingEnginePage />} />
+            <Route path="smart-keys" element={<SmartKeysPage />} />
             <Route path="prospection" element={<ProspectionPage />} />
             <Route path="finance" element={<FinancePage />} />
             <Route path="demandes-proprietaires" element={<OwnerRequestsAdminPage />} />
@@ -161,6 +170,9 @@ const App = () => (
             <Route path="finance" element={<DemoFinancePage />} />
             <Route path="prospection" element={<DemoProspectionPage />} />
             <Route path="messages" element={<DemoGuestMessagingPage />} />
+            <Route path="conflits" element={<DemoBookingConflictsPage />} />
+            <Route path="tarification" element={<DemoPricingEnginePage />} />
+            <Route path="smart-keys" element={<DemoSmartKeysPage />} />
           </Route>
           <Route path="/expired-demo" element={<ExpiredDemoPage />} />
           <Route path="/exemples/proprietaires" element={<ExampleProprietaires />} />

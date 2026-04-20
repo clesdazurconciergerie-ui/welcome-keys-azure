@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, BookOpen, Users, Home, Wrench, Settings, LogOut,
-  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass, ArrowRight, Mail,
+  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass, ArrowRight, Mail, ShieldAlert, TrendingUp, KeyRound,
 } from "lucide-react";
 import { useDemoContext } from "@/contexts/DemoContext";
 
@@ -33,6 +33,14 @@ const navGroups = [
     label: "Commercial",
     items: [
       { title: "Prospection", url: "/demo/prospection", icon: Target },
+    ],
+  },
+  {
+    label: "Revenue",
+    items: [
+      { title: "Tarification dynamique", url: "/demo/tarification", icon: TrendingUp },
+      { title: "Conflits réservations", url: "/demo/conflits", icon: ShieldAlert },
+      { title: "Smart Keys", url: "/demo/smart-keys", icon: KeyRound },
     ],
   },
   {
