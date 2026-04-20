@@ -104,3 +104,6 @@ verify_jwt = false
 
 [functions.pricing-ai-suggest]
 verify_jwt = true
+
+[functions.generate-monthly-report]
+verify_jwt = false

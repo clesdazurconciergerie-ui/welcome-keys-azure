@@ -58,7 +58,9 @@ import OwnerDocumentsPage from "./pages/owner/OwnerDocumentsPage";
 import OwnerAccountPage from "./pages/owner/OwnerAccountPage";
 import OwnerCalendarPage from "./pages/owner/OwnerCalendarPage";
 import OwnerRequestsPage from "./pages/owner/OwnerRequestsPage";
+import OwnerReportingPage from "./pages/owner/OwnerReportingPage";
 import OwnerRequestsAdminPage from "./pages/dashboard/OwnerRequestsAdminPage";
+import MonthlyReportsAdminPage from "./pages/dashboard/MonthlyReportsAdminPage";
 import SPDashboardHome from "./pages/service-provider/SPDashboardHome";
 import SPMissionsUnifiedPage from "./pages/service-provider/SPMissionsUnifiedPage";
 import SPPlanningPage from "./pages/service-provider/SPPlanningPage";
@@ -125,6 +127,7 @@ const App = () => (
             <Route path="finance" element={<FinancePage />} />
             <Route path="finance/revenus-a-completer" element={<RevenueCompletionPage />} />
             <Route path="demandes-proprietaires" element={<OwnerRequestsAdminPage />} />
+            <Route path="rapports-mensuels" element={<MonthlyReportsAdminPage />} />
             <Route path="call-prompter" element={<CallPrompterPage />} />
             <Route path="performance" element={<PerformancePage />} />
             <Route path="abonnement" element={<AbonnementPage />} />
@@ -144,6 +147,7 @@ const App = () => (
             <Route path="livrets" element={<OwnerBookletsPage />} />
             <Route path="etats-des-lieux" element={<OwnerInspectionsPage />} />
             <Route path="documents" element={<OwnerDocumentsPage />} />
+            <Route path="reporting" element={<OwnerReportingPage />} />
             <Route path="demandes" element={<OwnerRequestsPage />} />
             <Route path="finances" element={<OwnerFinancesPage />} />
             <Route path="compte" element={<OwnerAccountPage />} />
