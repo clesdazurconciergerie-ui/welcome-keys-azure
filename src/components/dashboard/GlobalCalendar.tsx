@@ -475,14 +475,15 @@ function EventPill({ event, onSelect, missionLabel, kindIcon, hasOverdueFollowup
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           onClick={() => onSelect(event)}
-          className={`w-full text-left text-[10px] leading-tight px-1.5 py-1 rounded-md truncate font-medium transition-all hover:shadow-sm hover:scale-[1.02] ${colors.bg} ${colors.text} ${hasOverdueFollowup ? "border-l-2 border-l-red-500" : ""}`}
+          className={`w-full text-left text-[10px] leading-tight px-1.5 py-1 rounded-md truncate font-medium transition-all hover:shadow-sm hover:scale-[1.02] ${colors.bg} ${colors.text} ${hasOverdueFollowup ? "border-l-2 border-l-red-500" : ""} ${event.revenue_to_complete ? "border-l-2 border-l-[hsl(var(--gold))]" : ""}`}
         >
           <span className="mr-0.5">{kindIcon(event.kind)}</span>
+          {event.revenue_to_complete && <span className="mr-0.5">💰</span>}
           {label}
         </motion.button>
       </TooltipTrigger>
       <TooltipContent side="right" className="text-xs whitespace-pre-line max-w-[200px]">
-        {tooltipContent}
+        {tooltipContent}{event.revenue_to_complete ? "\n💰 Revenus à compléter" : ""}
       </TooltipContent>
     </Tooltip>
   );
