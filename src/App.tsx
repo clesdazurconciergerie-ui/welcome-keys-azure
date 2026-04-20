@@ -73,6 +73,8 @@ import InspectionsPage from "./pages/dashboard/InspectionsPage";
 import WelkomStudioPage from "./pages/dashboard/WelkomStudioPage";
 import OwnerFinancesPage from "./pages/owner/OwnerFinancesPage";
 import GuestsPage from "./pages/dashboard/GuestsPage";
+import GuestMessagingPage from "./pages/dashboard/GuestMessagingPage";
+import DemoGuestMessagingPage from "./pages/demo/DemoGuestMessagingPage";
 
 const queryClient = new QueryClient();
 
@@ -102,6 +104,7 @@ const App = () => (
             <Route path="missions" element={<MissionsPage />} />
             <Route path="etats-des-lieux" element={<InspectionsPage />} />
             <Route path="voyageurs" element={<GuestsPage />} />
+            <Route path="messages" element={<GuestMessagingPage />} />
             <Route path="prospection" element={<ProspectionPage />} />
             <Route path="finance" element={<FinancePage />} />
             <Route path="demandes-proprietaires" element={<OwnerRequestsAdminPage />} />
@@ -157,6 +160,7 @@ const App = () => (
             <Route path="livrets" element={<DemoLivretsPage />} />
             <Route path="finance" element={<DemoFinancePage />} />
             <Route path="prospection" element={<DemoProspectionPage />} />
+            <Route path="messages" element={<DemoGuestMessagingPage />} />
           </Route>
           <Route path="/expired-demo" element={<ExpiredDemoPage />} />
           <Route path="/exemples/proprietaires" element={<ExampleProprietaires />} />
