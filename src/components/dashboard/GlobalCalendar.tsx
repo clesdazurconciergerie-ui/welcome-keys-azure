@@ -633,6 +633,32 @@ function EventDrawer({ event, missionLabel, navigate, onClose, onCompleteRevenue
 
         <div className="border-t pt-4 space-y-2">
           <p className="text-xs text-muted-foreground font-semibold mb-2">Actions rapides</p>
+          {event.kind === "booking" && event.booking_id && onCompleteRevenue && (
+            <Button
+              variant={event.revenue_to_complete ? "default" : "outline"}
+              size="sm"
+              className={`w-full justify-start gap-2 ${event.revenue_to_complete ? "bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]" : ""}`}
+              onClick={() => {
+                onCompleteRevenue({
+                  id: event.booking_id!,
+                  property_id: event.property_id,
+                  property_name: event.property_name,
+                  check_in: event.start_date,
+                  check_out: event.end_date,
+                  guest_name: event.guest_name,
+                  source_platform: event.platform,
+                  source: event.source,
+                  gross_amount: event.gross_amount ?? null,
+                  cleaning_amount: event.cleaning_amount ?? null,
+                  commission_amount: event.commission_amount ?? null,
+                  tourist_tax_amount: event.tourist_tax_amount ?? null,
+                });
+              }}
+            >
+              <Coins className="w-3.5 h-3.5" />
+              {event.revenue_to_complete ? "Compléter les revenus" : `Modifier revenus (${event.gross_amount}€)`}
+            </Button>
+          )}
           {event.kind === "booking" && (
             <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={() => { onClose(); navigate("/dashboard/interventions"); }}>
               <Wrench className="w-3.5 h-3.5" /> Créer mission ménage checkout
