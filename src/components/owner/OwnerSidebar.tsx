@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import BrandMark from "@/components/BrandMark";
 import {
   LayoutDashboard, Home, BookOpen, ClipboardCheck, FileText, User, LogOut,
-  Euro, CalendarDays, MessageCircle, Compass,
+  Euro, CalendarDays, MessageCircle, Compass, BarChart3,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ const ownerNav = [
   { title: "Livrets d'accueil", url: "/proprietaire/livrets", icon: BookOpen },
   { title: "État des lieux", url: "/proprietaire/etats-des-lieux", icon: ClipboardCheck },
   { title: "Documents", url: "/proprietaire/documents", icon: FileText },
+  { title: "Reporting mensuel", url: "/proprietaire/reporting", icon: BarChart3 },
   { title: "Mes demandes", url: "/proprietaire/demandes", icon: MessageCircle },
   { title: "Factures", url: "/proprietaire/finances", icon: Euro },
   { title: "Mon compte", url: "/proprietaire/compte", icon: User },
