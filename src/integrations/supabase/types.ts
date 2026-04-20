@@ -2797,9 +2797,13 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          first_response_at: string | null
           id: string
           owner_id: string
           property_id: string | null
+          resolved_at: string | null
+          sla_breached: boolean
+          sla_due_at: string | null
           status: string
           title: string | null
           updated_at: string
@@ -2808,9 +2812,13 @@ export type Database = {
         Insert: {
           category?: string
           created_at?: string
+          first_response_at?: string | null
           id?: string
           owner_id: string
           property_id?: string | null
+          resolved_at?: string | null
+          sla_breached?: boolean
+          sla_due_at?: string | null
           status?: string
           title?: string | null
           updated_at?: string
@@ -2819,9 +2827,13 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string
+          first_response_at?: string | null
           id?: string
           owner_id?: string
           property_id?: string | null
+          resolved_at?: string | null
+          sla_breached?: boolean
+          sla_due_at?: string | null
           status?: string
           title?: string | null
           updated_at?: string
@@ -3398,6 +3410,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "property_financial_settings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: true
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_ical_exports: {
+        Row: {
+          access_count: number
+          created_at: string
+          feed_token: string
+          id: string
+          include_blocked: boolean
+          include_manual: boolean
+          is_active: boolean
+          last_accessed_at: string | null
+          property_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_count?: number
+          created_at?: string
+          feed_token?: string
+          id?: string
+          include_blocked?: boolean
+          include_manual?: boolean
+          is_active?: boolean
+          last_accessed_at?: string | null
+          property_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_count?: number
+          created_at?: string
+          feed_token?: string
+          id?: string
+          include_blocked?: boolean
+          include_manual?: boolean
+          is_active?: boolean
+          last_accessed_at?: string | null
+          property_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_ical_exports_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: true
             referencedRelation: "properties"
@@ -4036,6 +4098,140 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tourist_tax_records: {
+        Row: {
+          booking_id: string | null
+          check_in: string
+          check_out: string
+          created_at: string
+          declaration_period: string | null
+          declaration_status: string
+          declared_at: string | null
+          guests_count: number
+          guests_taxable: number
+          id: string
+          nights: number
+          notes: string | null
+          property_id: string
+          rate_applied: number
+          rate_type: string
+          total_tax: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          check_in: string
+          check_out: string
+          created_at?: string
+          declaration_period?: string | null
+          declaration_status?: string
+          declared_at?: string | null
+          guests_count?: number
+          guests_taxable?: number
+          id?: string
+          nights: number
+          notes?: string | null
+          property_id: string
+          rate_applied: number
+          rate_type: string
+          total_tax: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          check_in?: string
+          check_out?: string
+          created_at?: string
+          declaration_period?: string | null
+          declaration_status?: string
+          declared_at?: string | null
+          guests_count?: number
+          guests_taxable?: number
+          id?: string
+          nights?: number
+          notes?: string | null
+          property_id?: string
+          rate_applied?: number
+          rate_type?: string
+          total_tax?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tourist_tax_records_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tourist_tax_records_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tourist_tax_settings: {
+        Row: {
+          classification: string | null
+          commune_code: string | null
+          commune_name: string | null
+          created_at: string
+          exempt_under_age: number | null
+          id: string
+          is_enabled: boolean
+          max_amount_per_night: number | null
+          property_id: string
+          rate_amount: number
+          rate_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          classification?: string | null
+          commune_code?: string | null
+          commune_name?: string | null
+          created_at?: string
+          exempt_under_age?: number | null
+          id?: string
+          is_enabled?: boolean
+          max_amount_per_night?: number | null
+          property_id: string
+          rate_amount?: number
+          rate_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          classification?: string | null
+          commune_code?: string | null
+          commune_name?: string | null
+          created_at?: string
+          exempt_under_age?: number | null
+          id?: string
+          is_enabled?: boolean
+          max_amount_per_night?: number | null
+          property_id?: string
+          rate_amount?: number
+          rate_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tourist_tax_settings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: true
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]

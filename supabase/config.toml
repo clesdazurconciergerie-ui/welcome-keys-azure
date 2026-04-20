@@ -98,3 +98,9 @@ verify_jwt = false
 
 [functions.test-guest-message]
 verify_jwt = true
+
+[functions.ical-export]
+verify_jwt = false
+
+[functions.pricing-ai-suggest]
+verify_jwt = true
