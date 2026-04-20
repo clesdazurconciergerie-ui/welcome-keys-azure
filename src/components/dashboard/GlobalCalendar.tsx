@@ -6,13 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, List, LayoutGrid, Home, User, ExternalLink, Wrench, FileText, Phone, Target, CheckCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, List, LayoutGrid, Home, User, ExternalLink, Wrench, FileText, Phone, Target, CheckCircle, Coins } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, addWeeks, subWeeks, eachDayOfInterval, isSameMonth, isSameDay, addDays, isBefore, isToday as isDateToday } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PlatformBadge } from "@/components/PlatformBadge";
+import { BookingRevenueDialog, type BookingRevenueTarget } from "@/components/finance/BookingRevenueDialog";
 
 type EventKind = "booking" | "mission" | "followup";
 
@@ -31,6 +32,13 @@ interface CalendarEvent {
   payout_amount?: number;
   instructions?: string;
   status?: string;
+  // booking-specific revenue tracking
+  booking_id?: string;
+  gross_amount?: number | null;
+  revenue_to_complete?: boolean;
+  cleaning_amount?: number | null;
+  commission_amount?: number | null;
+  tourist_tax_amount?: number | null;
   // followup-specific
   prospect_name?: string;
   prospect_phone?: string;
@@ -71,6 +79,8 @@ export default function GlobalCalendar() {
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [revenueDialogOpen, setRevenueDialogOpen] = useState(false);
+  const [revenueTarget, setRevenueTarget] = useState<BookingRevenueTarget | null>(null);
 
   const rangeStart = useMemo(() => {
     if (view === "week") return startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -93,7 +103,7 @@ export default function GlobalCalendar() {
     // Parallel fetches
     const [propsRes, bookingsRes, calEventsRes, missionsRes, followupsRes] = await Promise.all([
       (supabase as any).from("properties").select("id, name").eq("user_id", user.id).order("name"),
-      (supabase as any).from("bookings").select("id, property_id, check_in, check_out, guest_name, source, price_status").eq("user_id", user.id).lt("check_in", rangeEndStr).gt("check_out", rangeStartStr).neq("price_status", "canceled"),
+      (supabase as any).from("bookings").select("id, property_id, check_in, check_out, guest_name, source, source_platform, price_status, gross_amount, cleaning_amount, commission_amount, tourist_tax_amount").eq("user_id", user.id).lt("check_in", rangeEndStr).gt("check_out", rangeStartStr).neq("price_status", "canceled"),
       (supabase as any).from("calendar_events").select("id, property_id, start_date, end_date, guest_name, platform, event_type, status").eq("user_id", user.id).lt("start_date", rangeEndStr).gt("end_date", rangeStartStr).neq("status", "cancelled"),
       (supabase as any).from("missions").select("id, property_id, title, mission_type, start_at, end_at, payout_amount, instructions, status, selected_provider_id").eq("user_id", user.id).gte("start_at", rangeStartStr + "T00:00:00").lte("start_at", rangeEndStr + "T23:59:59").in("status", ["assigned", "confirmed", "in_progress", "done", "approved"]).or(`status.not.in.(done,approved,validated,paid),start_at.gte.${new Date().toISOString()}`),
       (supabase as any).from("prospect_followups").select("id, prospect_id, scheduled_date, status, comment, prospect:prospects(first_name, last_name, phone, email, pipeline_status)").eq("user_id", user.id).gte("scheduled_date", rangeStartStr).lte("scheduled_date", rangeEndStr),
@@ -123,7 +133,13 @@ export default function GlobalCalendar() {
       merged.push({
         id: b.id, property_id: b.property_id, property_name: propMap[b.property_id] || "—",
         start_date: b.check_in, end_date: b.check_out, guest_name: b.guest_name,
-        platform: b.source || "manual", source: "booking", kind: "booking",
+        platform: b.source_platform || b.source || "manual", source: "booking", kind: "booking",
+        booking_id: b.id,
+        gross_amount: b.gross_amount,
+        cleaning_amount: b.cleaning_amount,
+        commission_amount: b.commission_amount,
+        tourist_tax_amount: b.tourist_tax_amount,
+        revenue_to_complete: b.gross_amount == null,
       });
     }
 
