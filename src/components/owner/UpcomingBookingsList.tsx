@@ -50,7 +50,7 @@ export function UpcomingBookingsList({ events, propertyNameById, limit = 8, titl
               {upcoming.map(ev => {
                 const nights = nightsBetween(ev.start_date, ev.end_date);
                 const platformKey = ev.source || ev.platform;
-                const propName = propertyNameById?.[(ev as any).property_id];
+                const propName = propertyNameById && ev.property_id ? propertyNameById[ev.property_id] : undefined;
                 return (
                   <div
                     key={ev.id}

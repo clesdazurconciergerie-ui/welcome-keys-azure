@@ -6,9 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useOwnerVisibleBookings, OwnerCalEvent } from "@/hooks/useOwnerVisibleBookings";
-import { Loader2, ChevronLeft, ChevronRight, CalendarCheck, Moon, Calendar } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, CalendarCheck, Moon } from "lucide-react";
 import { motion } from "framer-motion";
 import { getPlatformClasses, getPlatformLabel } from "@/lib/booking-platforms";
+import { UpcomingBookingsList } from "@/components/owner/UpcomingBookingsList";
 
 const platformColors = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => getPlatformClasses(key).badge,
@@ -208,34 +209,11 @@ export default function OwnerCalendarPage() {
       </Card>
 
       {/* Upcoming bookings list */}
-      {allEvents.filter(e => e.end_date >= new Date().toISOString().substring(0, 10) && (e.event_type === "reservation" || e.event_type === "booking")).length > 0 && (
-        <Card>
-          <CardContent className="pt-5">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Réservations à venir</h3>
-            <div className="space-y-2">
-              {allEvents
-                .filter(e => e.end_date >= new Date().toISOString().substring(0, 10) && (e.event_type === "reservation" || e.event_type === "booking"))
-                .sort((a, b) => a.start_date.localeCompare(b.start_date))
-                .slice(0, 10)
-                .map(ev => (
-                  <div key={ev.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/40">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Badge variant="outline" className={`shrink-0 text-[9px] ${platformColors[ev.platform] || platformColors.other}`}>
-                        {platformLabels[ev.platform] || ev.platform}
-                      </Badge>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{ev.guest_name || ev.summary || "Réservation"}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {new Date(ev.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} → {new Date(ev.end_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <UpcomingBookingsList
+        events={allEvents}
+        propertyNameById={Object.fromEntries(properties.map(p => [p.id, p.name]))}
+        limit={10}
+      />
     </div>
   );
 }
