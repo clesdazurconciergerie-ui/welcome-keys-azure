@@ -11,6 +11,7 @@ export interface OwnerCalEvent {
   platform: string;
   event_type: string;
   source?: string | null;
+  property_id?: string | null;
 }
 
 /**
@@ -106,6 +107,7 @@ export function useOwnerVisibleBookings(propertyIds: string[]) {
         platform: "bookings_table",
         event_type: "booking",
         source: b.source,
+        property_id: b.property_id,
       }));
 
     const ceEvents: OwnerCalEvent[] = calendarEvents
@@ -118,6 +120,7 @@ export function useOwnerVisibleBookings(propertyIds: string[]) {
         summary: e.summary,
         platform: e.platform,
         event_type: e.event_type || "unknown",
+        property_id: e.property_id,
       }));
 
     const result = [...bkEvents, ...ceEvents];
