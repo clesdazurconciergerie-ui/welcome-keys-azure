@@ -2541,6 +2541,86 @@ export type Database = {
           },
         ]
       }
+      monthly_reports: {
+        Row: {
+          adr: number
+          available_nights: number
+          concierge_user_id: string
+          created_at: string
+          email_sent_at: string | null
+          error_message: string | null
+          generated_at: string
+          gross_revenue: number
+          id: string
+          occupancy_rate: number
+          owner_id: string
+          owner_net: number
+          payload: Json
+          pdf_path: string | null
+          period_month: string
+          status: string
+          total_bookings: number
+          total_interventions: number
+          total_nights: number
+          total_photos: number
+          updated_at: string
+        }
+        Insert: {
+          adr?: number
+          available_nights?: number
+          concierge_user_id: string
+          created_at?: string
+          email_sent_at?: string | null
+          error_message?: string | null
+          generated_at?: string
+          gross_revenue?: number
+          id?: string
+          occupancy_rate?: number
+          owner_id: string
+          owner_net?: number
+          payload?: Json
+          pdf_path?: string | null
+          period_month: string
+          status?: string
+          total_bookings?: number
+          total_interventions?: number
+          total_nights?: number
+          total_photos?: number
+          updated_at?: string
+        }
+        Update: {
+          adr?: number
+          available_nights?: number
+          concierge_user_id?: string
+          created_at?: string
+          email_sent_at?: string | null
+          error_message?: string | null
+          generated_at?: string
+          gross_revenue?: number
+          id?: string
+          occupancy_rate?: number
+          owner_id?: string
+          owner_net?: number
+          payload?: Json
+          pdf_path?: string | null
+          period_month?: string
+          status?: string
+          total_bookings?: number
+          total_interventions?: number
+          total_nights?: number
+          total_photos?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_reports_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nearby_places: {
         Row: {
           booklet_id: string
