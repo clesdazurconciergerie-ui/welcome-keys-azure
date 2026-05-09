@@ -29,6 +29,13 @@ const TYPE_LABELS: Record<string, string> = {
   maintenance: "Maintenance",
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Brouillon",
+  in_progress: "En cours",
+  completed: "Terminé",
+  validated: "Validé",
+};
+
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
   in_progress: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200",
