@@ -25,6 +25,14 @@ const CONDITION_LABELS: Record<string, { label: string; cls: string }> = {
   missing: { label: "Manquant", cls: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200" },
 };
 
+
+const TYPE_LABELS: Record<string, string> = {
+  entry: "État d'entrée",
+  exit: "État de sortie",
+  inventory: "Inventaire",
+  maintenance: "Visite maintenance",
+};
+
 const STATUS_OPTIONS = [
   { value: "draft", label: "Brouillon" },
   { value: "in_progress", label: "En cours" },
@@ -108,8 +116,8 @@ export default function InspectionV2DetailPage() {
             )}
           </p>
           <div className="flex gap-2 mt-2">
-            <Badge variant="outline">{insp.inspection_type}</Badge>
-            <Badge variant="outline">{insp.status}</Badge>
+            <Badge variant="outline">{TYPE_LABELS[insp.inspection_type] ?? insp.inspection_type}</Badge>
+            <Badge variant="outline">{STATUS_OPTIONS.find((s) => s.value === insp.status)?.label ?? insp.status}</Badge>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -142,10 +150,10 @@ export default function InspectionV2DetailPage() {
         </Card>
       )}
 
-      <Tabs defaultValue="photos">
+      <Tabs defaultValue="items">
         <TabsList>
-          <TabsTrigger value="photos">Photos & Pièces</TabsTrigger>
-          <TabsTrigger value="items">Items détaillés</TabsTrigger>
+          <TabsTrigger value="items">1. Checklist par pièce</TabsTrigger>
+          <TabsTrigger value="photos">2. Photos</TabsTrigger>
           <TabsTrigger value="history">Historique ({audit.data?.length ?? 0})</TabsTrigger>
         </TabsList>
 

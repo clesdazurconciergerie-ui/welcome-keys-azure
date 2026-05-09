@@ -29,6 +29,13 @@ const TYPE_LABELS: Record<string, string> = {
   maintenance: "Maintenance",
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Brouillon",
+  in_progress: "En cours",
+  completed: "Terminé",
+  validated: "Validé",
+};
+
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
   in_progress: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200",
@@ -66,19 +73,11 @@ export default function InspectionsV2Page() {
 
   const stats = useMemo(() => {
     const all = list.data ?? [];
-    const monthAgo = Date.now() - 30 * 86400_000;
-    const recent = all.filter((i) => new Date(i.actual_created_at).getTime() > monthAgo);
-    const antedated = all.filter((i) =>
-      Math.abs(new Date(i.actual_created_at).getTime() - new Date(i.official_date).getTime()) > 86400_000
-    );
-    const validatedFast = all.filter((i) => {
-      if (i.status !== "validated") return false;
-      const created = new Date(i.actual_created_at).getTime();
-      const updated = new Date((i as any).updated_at ?? i.actual_created_at).getTime();
-      return updated - created < 86400_000;
-    });
-    const pct = all.length ? Math.round((validatedFast.length / all.length) * 100) : 0;
-    return { total: all.length, recent: recent.length, antedated: antedated.length, validatedPct: pct };
+    return {
+      total: all.length,
+      drafts: all.filter((i) => i.status === "draft" || i.status === "in_progress").length,
+      validated: all.filter((i) => i.status === "validated" || i.status === "completed").length,
+    };
   }, [list.data]);
 
   return (
@@ -115,17 +114,16 @@ export default function InspectionsV2Page() {
         </TabsList>
 
         <TabsContent value="inspections" className="space-y-6 mt-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <StatCard label="Total" value={stats.total} />
-            <StatCard label="30 derniers jours" value={stats.recent} />
-            <StatCard label="Antidatés" value={stats.antedated} accent="warning" />
-            <StatCard label="Validés < 24h" value={`${stats.validatedPct}%`} accent="success" />
+            <StatCard label="En cours" value={stats.drafts} accent="warning" />
+            <StatCard label="Validés" value={stats.validated} accent="success" />
           </div>
 
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Rechercher logement, voyageur..."
+              placeholder="Rechercher logement ou voyageur..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -140,9 +138,15 @@ export default function InspectionsV2Page() {
                   {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12" />)}
                 </div>
               ) : filtered.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">
-                  Aucun état des lieux. Cliquez sur "Nouvel état des lieux" pour commencer.
-                </p>
+                <div className="py-12 text-center space-y-3">
+                  <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Aucun état des lieux pour le moment.
+                  </p>
+                  <Button onClick={() => setOpen(true)} className="bg-primary text-primary-foreground">
+                    <Plus className="h-4 w-4 mr-2" /> Créer le premier
+                  </Button>
+                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
@@ -150,9 +154,8 @@ export default function InspectionsV2Page() {
                       <TableRow>
                         <TableHead>Logement</TableHead>
                         <TableHead>Type</TableHead>
-                        <TableHead>Date officielle</TableHead>
+                        <TableHead>Date</TableHead>
                         <TableHead>Statut</TableHead>
-                        <TableHead>Créé le (réel)</TableHead>
                         <TableHead></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -183,11 +186,8 @@ export default function InspectionsV2Page() {
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline" className={STATUS_COLORS[i.status] ?? ""}>
-                                {i.status}
+                                {STATUS_LABELS[i.status] ?? i.status}
                               </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {new Date(i.actual_created_at).toLocaleDateString("fr-FR")}
                             </TableCell>
                             <TableCell onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center gap-1 justify-end">
