@@ -1,17 +1,21 @@
-// MODULE — Page liste états des lieux flexibles
-import { useState, useMemo } from "react";
+// MODULE — Page unifiée États des lieux (Inspections + Modèles)
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, AlertTriangle, Search } from "lucide-react";
+import { Plus, AlertTriangle, Search, ListChecks, ClipboardList, ShieldAlert } from "lucide-react";
 import { usePropertyInspections } from "@/hooks/usePropertyInspections";
 import { CreateInspectionDialog } from "@/components/inspection-v2/CreateInspectionDialog";
+import InspectionTemplatesPage from "./InspectionTemplatesPage";
+import InspectionsAdminPage from "./InspectionsAdminPage";
+import { supabase } from "@/integrations/supabase/client";
 import SEOHead from "@/components/SEOHead";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -32,7 +36,20 @@ export default function InspectionsV2Page() {
   const { list } = usePropertyInspections();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState("inspections");
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await (supabase as any)
+        .from("user_roles").select("role")
+        .eq("user_id", user.id).eq("role", "super_admin").maybeSingle();
+      setIsAdmin(!!data);
+    })();
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
