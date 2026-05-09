@@ -8,11 +8,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Upload, Download, CheckCircle2, AlertTriangle, Trash2, Calendar } from "lucide-react";
-import { useInspectionDetail } from "@/hooks/usePropertyInspections";
+import { ArrowLeft, Upload, Download, CheckCircle2, AlertTriangle, Trash2, Calendar, Plus, Camera } from "lucide-react";
+import { useInspectionDetail, type InspectionItem } from "@/hooks/usePropertyInspections";
+import { Select, SelectContent, SelectItem as SelectItemUI, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import html2pdf from "html2pdf.js";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
+
+const CONDITION_LABELS: Record<string, { label: string; cls: string }> = {
+  excellent: { label: "Excellent", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200" },
+  good: { label: "Bon", cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200" },
+  acceptable: { label: "Acceptable", cls: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200" },
+  damaged: { label: "Abîmé", cls: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200" },
+  broken: { label: "Cassé / HS", cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200" },
+  missing: { label: "Manquant", cls: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200" },
+};
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "Brouillon" },
@@ -24,7 +35,7 @@ const STATUS_OPTIONS = [
 export default function InspectionV2DetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { inspection, photos, items, audit, updateInspection, uploadPhoto, deletePhoto } = useInspectionDetail(id);
+  const { inspection, photos, items, audit, updateInspection, uploadPhoto, deletePhoto, updateItem, addItem, deleteItem } = useInspectionDetail(id);
   const fileRef = useRef<HTMLInputElement>(null);
   const [room, setRoom] = useState("");
   const [caption, setCaption] = useState("");
