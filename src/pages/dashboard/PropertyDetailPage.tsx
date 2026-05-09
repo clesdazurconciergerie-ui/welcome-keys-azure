@@ -100,6 +100,7 @@ const PropertyDetailPage = () => {
   const [owners, setOwners] = useState<any[]>([]);
   const [ownerDocs, setOwnerDocs] = useState<OwnerDoc[]>([]);
   const [editOpen, setEditOpen] = useState(false);
+  const [createInspectionOpen, setCreateInspectionOpen] = useState(false);
   const [addBookingOpen, setAddBookingOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [photoCategory, setPhotoCategory] = useState("general");
