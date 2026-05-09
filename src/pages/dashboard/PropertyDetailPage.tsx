@@ -660,6 +660,19 @@ const PropertyDetailPage = () => {
         </TabsContent>
 
         {/* CALENDAR TAB */}
+        <TabsContent value="inspections" className="mt-4 space-y-3">
+          <PropertyInspectionsList
+            propertyId={property.id}
+            basePath="concierge"
+            onCreate={() => setCreateInspectionOpen(true)}
+          />
+          <CreateInspectionDialog
+            open={createInspectionOpen}
+            onOpenChange={setCreateInspectionOpen}
+            onCreated={(id) => navigate(`/dashboard/etats-des-lieux-v2/${id}`)}
+          />
+        </TabsContent>
+
         <TabsContent value="calendar" className="mt-4">
           <PropertyCalendar propertyId={id!} />
         </TabsContent>
