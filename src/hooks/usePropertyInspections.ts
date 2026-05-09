@@ -237,5 +237,74 @@ export function useInspectionDetail(id: string | undefined) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inspection-photos", id] }),
   });
 
-  return { inspection, photos, items, audit, updateInspection, uploadPhoto, deletePhoto };
+  const seedItems = useMutation({
+    mutationFn: async (rooms: { name: string; items: { name: string; category?: string }[] }[]) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !id) throw new Error("Inspection introuvable");
+      const rows: any[] = [];
+      let order = 0;
+      for (const r of rooms) {
+        for (const it of r.items) {
+          rows.push({
+            inspection_id: id,
+            user_id: user.id,
+            room_name: r.name,
+            item_name: it.name,
+            category: it.category ?? null,
+            condition: "good",
+            display_order: order++,
+          });
+        }
+      }
+      if (rows.length === 0) return;
+      const { error } = await (supabase as any).from("inspection_items").insert(rows);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inspection-items", id] });
+      toast.success("Checklist initialisée");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erreur"),
+  });
+
+  const updateItem = useMutation({
+    mutationFn: async (input: { itemId: string; patch: Partial<InspectionItem> }) => {
+      const { error } = await (supabase as any)
+        .from("inspection_items")
+        .update(input.patch)
+        .eq("id", input.itemId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["inspection-items", id] }),
+  });
+
+  const addItem = useMutation({
+    mutationFn: async (input: { room_name: string; item_name: string; category?: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !id) throw new Error("Inspection introuvable");
+      const { error } = await (supabase as any).from("inspection_items").insert({
+        inspection_id: id,
+        user_id: user.id,
+        room_name: input.room_name,
+        item_name: input.item_name,
+        category: input.category ?? null,
+        condition: "good",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["inspection-items", id] }),
+  });
+
+  const deleteItem = useMutation({
+    mutationFn: async (itemId: string) => {
+      const { error } = await (supabase as any)
+        .from("inspection_items")
+        .delete()
+        .eq("id", itemId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["inspection-items", id] }),
+  });
+
+  return { inspection, photos, items, audit, updateInspection, uploadPhoto, deletePhoto, seedItems, updateItem, addItem, deleteItem };
 }

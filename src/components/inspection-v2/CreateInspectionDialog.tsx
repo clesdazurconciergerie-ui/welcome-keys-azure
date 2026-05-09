@@ -14,7 +14,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, AlertTriangle } from "lucide-react";
 import { useProperties } from "@/hooks/useProperties";
 import { useBookings } from "@/hooks/useBookings";
-import { usePropertyInspections } from "@/hooks/usePropertyInspections";
+import { usePropertyInspections, useInspectionDetail } from "@/hooks/usePropertyInspections";
+import { useInspectionTemplates, DEFAULT_ROOMS } from "@/hooks/useInspectionTemplates";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   open: boolean;
@@ -28,6 +30,7 @@ export function CreateInspectionDialog({ open, onOpenChange, onCreated }: Props)
   const { properties } = useProperties();
   const { bookings } = useBookings();
   const { create } = usePropertyInspections();
+  const { list: templatesList } = useInspectionTemplates();
 
   const [propertyId, setPropertyId] = useState("");
   const [bookingId, setBookingId] = useState<string>("");
@@ -35,6 +38,7 @@ export function CreateInspectionDialog({ open, onOpenChange, onCreated }: Props)
   const [officialDate, setOfficialDate] = useState(todayISO());
   const [guestName, setGuestName] = useState("");
   const [notes, setNotes] = useState("");
+  const [templateId, setTemplateId] = useState<string>("__default__");
 
   const propertyBookings = useMemo(
     () => bookings.filter((b) => b.property_id === propertyId),
@@ -72,6 +76,37 @@ export function CreateInspectionDialog({ open, onOpenChange, onCreated }: Props)
       guest_name: guestName || selectedBooking?.guest_name || null,
       notes: notes || null,
     });
+
+    // Seed items from chosen template (or default)
+    try {
+      const tpl = templatesList.data?.find((t) => t.id === templateId);
+      const rooms = tpl?.rooms ?? (templateId === "__none__" ? [] : DEFAULT_ROOMS);
+      if (rooms.length > 0) {
+        const { data: { user } } = await supabase.auth.getUser();
+        const rows: any[] = [];
+        let order = 0;
+        for (const r of rooms) {
+          for (const it of r.items) {
+            rows.push({
+              inspection_id: result.id,
+              user_id: user!.id,
+              room_name: r.name,
+              item_name: it.name,
+              category: it.category ?? null,
+              condition: "good",
+              display_order: order++,
+            });
+          }
+        }
+        if (rows.length > 0) {
+          await (supabase as any).from("inspection_items").insert(rows);
+        }
+      }
+    } catch (e) {
+      // non-blocking
+      console.error("seed items failed", e);
+    }
+
     onCreated?.(result.id);
     reset();
     onOpenChange(false);
@@ -154,6 +189,23 @@ export function CreateInspectionDialog({ open, onOpenChange, onCreated }: Props)
           <div className="space-y-2">
             <Label>Nom du voyageur</Label>
             <Input value={guestName} onChange={(e) => setGuestName(e.target.value)} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Modèle de checklist</Label>
+            <Select value={templateId} onValueChange={setTemplateId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__default__">Checklist standard (4 pièces, 14 items)</SelectItem>
+                <SelectItem value="__none__">Aucune (vide, à remplir manuellement)</SelectItem>
+                {(templatesList.data ?? []).map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Les pièces et items seront pré-créés. Vous pourrez les compléter (état + photos) ensuite.
+            </p>
           </div>
 
           <div className="space-y-2">
