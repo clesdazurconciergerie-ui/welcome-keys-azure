@@ -30,6 +30,7 @@ const navGroups = [
       { title: "Missions", url: "/dashboard/missions", icon: Briefcase },
       { title: "État des lieux", url: "/dashboard/etats-des-lieux", icon: ClipboardCheck },
       { title: "État des lieux flexible", url: "/dashboard/etats-des-lieux-v2", icon: ClipboardCheck },
+      { title: "Modèles checklist", url: "/dashboard/etats-des-lieux-modeles", icon: ClipboardCheck },
       { title: "Voyageurs", url: "/dashboard/voyageurs", icon: Users },
       { title: "Messages auto", url: "/dashboard/messages", icon: Mail },
       { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen },

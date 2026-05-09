@@ -43,6 +43,23 @@ export default function InspectionsV2Page() {
     ) ?? [];
   }, [list.data, search]);
 
+  const stats = useMemo(() => {
+    const all = list.data ?? [];
+    const monthAgo = Date.now() - 30 * 86400_000;
+    const recent = all.filter((i) => new Date(i.actual_created_at).getTime() > monthAgo);
+    const antedated = all.filter((i) =>
+      Math.abs(new Date(i.actual_created_at).getTime() - new Date(i.official_date).getTime()) > 86400_000
+    );
+    const validatedFast = all.filter((i) => {
+      if (i.status !== "validated") return false;
+      const created = new Date(i.actual_created_at).getTime();
+      const updated = new Date((i as any).updated_at ?? i.actual_created_at).getTime();
+      return updated - created < 86400_000;
+    });
+    const pct = all.length ? Math.round((validatedFast.length / all.length) * 100) : 0;
+    return { total: all.length, recent: recent.length, antedated: antedated.length, validatedPct: pct };
+  }, [list.data]);
+
   return (
     <div className="space-y-6 p-4 md:p-6">
       <SEOHead title="États des lieux — Welkom" description="Gestion flexible des états des lieux avec antidatage" />
@@ -58,6 +75,13 @@ export default function InspectionsV2Page() {
           <Plus className="h-4 w-4 mr-2" /> Nouvel état des lieux
         </Button>
       </header>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard label="Total" value={stats.total} />
+        <StatCard label="30 derniers jours" value={stats.recent} />
+        <StatCard label="Antidatés" value={stats.antedated} accent="warning" />
+        <StatCard label="Validés < 24h" value={`${stats.validatedPct}%`} accent="success" />
+      </div>
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -145,5 +169,20 @@ export default function InspectionsV2Page() {
         onCreated={(id) => navigate(`/dashboard/etats-des-lieux-v2/${id}`)}
       />
     </div>
+  );
+}
+
+function StatCard({ label, value, accent }: { label: string; value: number | string; accent?: "warning" | "success" }) {
+  const cls =
+    accent === "warning" ? "text-yellow-700 dark:text-yellow-300"
+      : accent === "success" ? "text-emerald-700 dark:text-emerald-300"
+        : "text-foreground";
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className={`text-2xl font-bold ${cls}`}>{value}</p>
+      </CardContent>
+    </Card>
   );
 }
