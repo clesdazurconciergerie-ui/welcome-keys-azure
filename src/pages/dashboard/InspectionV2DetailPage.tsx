@@ -150,10 +150,10 @@ export default function InspectionV2DetailPage() {
         </Card>
       )}
 
-      <Tabs defaultValue="photos">
+      <Tabs defaultValue="items">
         <TabsList>
-          <TabsTrigger value="photos">Photos & Pièces</TabsTrigger>
-          <TabsTrigger value="items">Items détaillés</TabsTrigger>
+          <TabsTrigger value="items">1. Checklist par pièce</TabsTrigger>
+          <TabsTrigger value="photos">2. Photos</TabsTrigger>
           <TabsTrigger value="history">Historique ({audit.data?.length ?? 0})</TabsTrigger>
         </TabsList>
 
