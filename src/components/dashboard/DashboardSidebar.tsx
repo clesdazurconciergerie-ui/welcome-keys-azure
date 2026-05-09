@@ -15,7 +15,10 @@ import { toast } from "sonner";
 const navGroups = [
   {
     label: "Pilotage",
-    items: [{ title: "Tableau de bord", url: "/dashboard", icon: LayoutDashboard }],
+    items: [
+      { title: "Tableau de bord", url: "/dashboard", icon: LayoutDashboard },
+      { title: "Monitoring iCal", url: "/dashboard/ical-monitoring", icon: RefreshCw },
+    ],
   },
   {
     label: "Logements",
