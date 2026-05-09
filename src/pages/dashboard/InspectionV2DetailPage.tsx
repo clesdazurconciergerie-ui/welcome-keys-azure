@@ -25,14 +25,6 @@ const CONDITION_LABELS: Record<string, { label: string; cls: string }> = {
   missing: { label: "Manquant", cls: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200" },
 };
 
-const CONDITION_LABELS: Record<string, { label: string; cls: string }> = {
-  excellent: { label: "Excellent", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200" },
-  good: { label: "Bon", cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200" },
-  acceptable: { label: "Acceptable", cls: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200" },
-  damaged: { label: "Abîmé", cls: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200" },
-  broken: { label: "Cassé / HS", cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200" },
-  missing: { label: "Manquant", cls: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200" },
-};
 
 const TYPE_LABELS: Record<string, string> = {
   entry: "État d'entrée",
