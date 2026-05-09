@@ -52,6 +52,23 @@ export default function InspectionV2DetailPage() {
   const [caption, setCaption] = useState("");
   const [editDateOpen, setEditDateOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
+  const [createExitOpen, setCreateExitOpen] = useState(false);
+
+  // Find a child exit inspection if it exists (workflow continuation)
+  const { data: childExit } = useQuery({
+    queryKey: ["inspection-child-exit", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data } = await (supabase as any)
+        .from("property_inspections")
+        .select("id, status, official_date, inspection_type")
+        .eq("parent_inspection_id", id)
+        .eq("inspection_type", "exit")
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!id,
+  });
 
   if (inspection.isLoading) {
     return <div className="p-6 space-y-4"><Skeleton className="h-8 w-64" /><Skeleton className="h-96" /></div>;
