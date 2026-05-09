@@ -2113,6 +2113,193 @@ export type Database = {
           },
         ]
       }
+      inspection_audit_log: {
+        Row: {
+          action: string
+          changed_by: string | null
+          changed_by_name: string | null
+          created_at: string
+          field_changed: string | null
+          id: string
+          inspection_id: string
+          ip_address: string | null
+          new_value: string | null
+          old_value: string | null
+          reason: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          created_at?: string
+          field_changed?: string | null
+          id?: string
+          inspection_id: string
+          ip_address?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          reason?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          created_at?: string
+          field_changed?: string | null
+          id?: string
+          inspection_id?: string
+          ip_address?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          reason?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_audit_log_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "property_inspections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_items: {
+        Row: {
+          category: string | null
+          condition: string
+          created_at: string
+          display_order: number | null
+          id: string
+          inspection_id: string
+          item_name: string
+          notes: string | null
+          photos: Json | null
+          quantity: number | null
+          room_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          condition?: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          inspection_id: string
+          item_name: string
+          notes?: string | null
+          photos?: Json | null
+          quantity?: number | null
+          room_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          condition?: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          inspection_id?: string
+          item_name?: string
+          notes?: string | null
+          photos?: Json | null
+          quantity?: number | null
+          room_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_items_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "property_inspections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_photos: {
+        Row: {
+          actual_uploaded_at: string
+          caption: string | null
+          created_at: string
+          display_order: number | null
+          exif_metadata: Json | null
+          file_size: number | null
+          file_url: string
+          height: number | null
+          id: string
+          inspection_id: string
+          inspection_item_id: string | null
+          mime_type: string | null
+          official_date: string
+          room_name: string | null
+          storage_path: string
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          actual_uploaded_at?: string
+          caption?: string | null
+          created_at?: string
+          display_order?: number | null
+          exif_metadata?: Json | null
+          file_size?: number | null
+          file_url: string
+          height?: number | null
+          id?: string
+          inspection_id: string
+          inspection_item_id?: string | null
+          mime_type?: string | null
+          official_date: string
+          room_name?: string | null
+          storage_path: string
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          actual_uploaded_at?: string
+          caption?: string | null
+          created_at?: string
+          display_order?: number | null
+          exif_metadata?: Json | null
+          file_size?: number | null
+          file_url?: string
+          height?: number | null
+          id?: string
+          inspection_id?: string
+          inspection_item_id?: string | null
+          mime_type?: string | null
+          official_date?: string
+          room_name?: string | null
+          storage_path?: string
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_photos_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "property_inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_photos_inspection_item_id_fkey"
+            columns: ["inspection_item_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inspections: {
         Row: {
           booking_id: string | null
@@ -3761,6 +3948,102 @@ export type Database = {
             foreignKeyName: "property_ical_exports_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: true
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_inspections: {
+        Row: {
+          actual_created_at: string
+          booking_id: string | null
+          concierge_signature_url: string | null
+          created_at: string
+          created_by: string | null
+          global_condition: string | null
+          guest_name: string | null
+          guest_signature_url: string | null
+          id: string
+          inspection_type: string
+          inspector_name: string | null
+          inspector_role: string | null
+          metadata: Json | null
+          notes: string | null
+          official_date: string
+          parent_inspection_id: string | null
+          property_id: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          validated_at: string | null
+          validated_by: string | null
+          version: number
+        }
+        Insert: {
+          actual_created_at?: string
+          booking_id?: string | null
+          concierge_signature_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          global_condition?: string | null
+          guest_name?: string | null
+          guest_signature_url?: string | null
+          id?: string
+          inspection_type?: string
+          inspector_name?: string | null
+          inspector_role?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          official_date: string
+          parent_inspection_id?: string | null
+          property_id: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+          validated_at?: string | null
+          validated_by?: string | null
+          version?: number
+        }
+        Update: {
+          actual_created_at?: string
+          booking_id?: string | null
+          concierge_signature_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          global_condition?: string | null
+          guest_name?: string | null
+          guest_signature_url?: string | null
+          id?: string
+          inspection_type?: string
+          inspector_name?: string | null
+          inspector_role?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          official_date?: string
+          parent_inspection_id?: string | null
+          property_id?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_inspections_parent_inspection_id_fkey"
+            columns: ["parent_inspection_id"]
+            isOneToOne: false
+            referencedRelation: "property_inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_inspections_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
           },
