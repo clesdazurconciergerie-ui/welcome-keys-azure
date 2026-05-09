@@ -107,3 +107,6 @@ verify_jwt = true
 
 [functions.generate-monthly-report]
 verify_jwt = false
+
+[functions.auto-sync-ical-daily]
+verify_jwt = false
