@@ -106,7 +106,22 @@ export function usePropertyInspections() {
     onError: (e: any) => toast.error(e.message ?? "Erreur création"),
   });
 
-  return { list, create };
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any)
+        .from("property_inspections")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["property-inspections"] });
+      toast.success("État des lieux supprimé");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erreur suppression"),
+  });
+
+  return { list, create, remove };
 }
 
 export function useInspectionDetail(id: string | undefined) {
