@@ -83,6 +83,7 @@ export function usePropertyInspections() {
       booking_id?: string | null;
       guest_name?: string | null;
       notes?: string | null;
+      parent_inspection_id?: string | null;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
