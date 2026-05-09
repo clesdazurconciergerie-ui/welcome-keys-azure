@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, BookOpen, Users, Home, Wrench, Settings, LogOut,
-  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass, Zap, Brain, Camera, Mail, ShieldAlert, TrendingUp, KeyRound, Link2, Receipt, BarChart3,
+  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass, Zap, Brain, Camera, Mail, ShieldAlert, TrendingUp, KeyRound, Link2, Receipt, BarChart3, RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
