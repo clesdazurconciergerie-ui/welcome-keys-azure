@@ -1873,36 +1873,54 @@ export type Database = {
       }
       ical_calendars: {
         Row: {
+          consecutive_failures: number
           created_at: string
           id: string
+          is_sync_enabled: boolean
+          last_sync_at: string | null
+          last_sync_status: string | null
           last_synced_at: string | null
           name: string
           platform: string
           property_id: string
+          sync_frequency_hours: number
+          sync_health_score: number | null
           sync_status: string
           updated_at: string
           url: string
           user_id: string
         }
         Insert: {
+          consecutive_failures?: number
           created_at?: string
           id?: string
+          is_sync_enabled?: boolean
+          last_sync_at?: string | null
+          last_sync_status?: string | null
           last_synced_at?: string | null
           name?: string
           platform?: string
           property_id: string
+          sync_frequency_hours?: number
+          sync_health_score?: number | null
           sync_status?: string
           updated_at?: string
           url: string
           user_id: string
         }
         Update: {
+          consecutive_failures?: number
           created_at?: string
           id?: string
+          is_sync_enabled?: boolean
+          last_sync_at?: string | null
+          last_sync_status?: string | null
           last_synced_at?: string | null
           name?: string
           platform?: string
           property_id?: string
+          sync_frequency_hours?: number
+          sync_health_score?: number | null
           sync_status?: string
           updated_at?: string
           url?: string
@@ -1914,6 +1932,139 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ical_sync_history: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          duplicates_avoided: number | null
+          duration_ms: number | null
+          error_code: string | null
+          error_message: string | null
+          events_created: number | null
+          events_deleted: number | null
+          events_fetched: number | null
+          events_updated: number | null
+          http_status: number | null
+          ical_calendar_id: string
+          id: string
+          response_time_ms: number | null
+          retry_count: number
+          started_at: string
+          status: string
+          sync_metadata: Json | null
+          triggered_by: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          duplicates_avoided?: number | null
+          duration_ms?: number | null
+          error_code?: string | null
+          error_message?: string | null
+          events_created?: number | null
+          events_deleted?: number | null
+          events_fetched?: number | null
+          events_updated?: number | null
+          http_status?: number | null
+          ical_calendar_id: string
+          id?: string
+          response_time_ms?: number | null
+          retry_count?: number
+          started_at?: string
+          status?: string
+          sync_metadata?: Json | null
+          triggered_by?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          duplicates_avoided?: number | null
+          duration_ms?: number | null
+          error_code?: string | null
+          error_message?: string | null
+          events_created?: number | null
+          events_deleted?: number | null
+          events_fetched?: number | null
+          events_updated?: number | null
+          http_status?: number | null
+          ical_calendar_id?: string
+          id?: string
+          response_time_ms?: number | null
+          retry_count?: number
+          started_at?: string
+          status?: string
+          sync_metadata?: Json | null
+          triggered_by?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ical_sync_history_ical_calendar_id_fkey"
+            columns: ["ical_calendar_id"]
+            isOneToOne: false
+            referencedRelation: "ical_calendars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ical_sync_queue: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          ical_calendar_id: string
+          id: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          priority: number
+          scheduled_for: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          ical_calendar_id: string
+          id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          priority?: number
+          scheduled_for?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          ical_calendar_id?: string
+          id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          priority?: number
+          scheduled_for?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ical_sync_queue_ical_calendar_id_fkey"
+            columns: ["ical_calendar_id"]
+            isOneToOne: false
+            referencedRelation: "ical_calendars"
             referencedColumns: ["id"]
           },
         ]

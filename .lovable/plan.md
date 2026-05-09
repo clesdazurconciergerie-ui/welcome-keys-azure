@@ -1,65 +1,91 @@
+# Plan : E-Calendar Auto-Sync + États des Lieux Flexibles
 
+Vu l'ampleur (3 modules majeurs, ~15 tables/triggers, 3 edge functions, 4 pages UI, 6 améliorations "wow"), je propose un découpage en **5 lots livrables séparément**. Chaque lot est testable indépendamment.
 
-The user wants a complete inventory/summary of all features of the MyWelkom platform that they can paste into an AI as "site memory". This is a documentation task, not an implementation task. I have extensive context from the memory index already showing all major features.
+---
 
-I'll generate a comprehensive markdown document covering:
-- Brand & positioning
-- Tech stack
-- User roles
-- All modules (Concierge, Owner, Provider, Demo)
-- Key business logic
-- Integrations
+## 📦 LOT 1 — Infrastructure E-Calendar Auto-Sync (DB + Cron)
 
-Since this is a documentation/artifact task, I'll generate a downloadable markdown file in /mnt/documents/ once approved.
+**Migrations** :
+- Table `ical_sync_history` (audit complet de chaque sync)
+- Table `ical_sync_queue` (retries intelligents avec priorité)
+- Colonnes ajoutées à `ical_calendars` : `last_sync_at`, `last_sync_status`, `sync_health_score`, `consecutive_failures`, `is_sync_enabled`, `sync_frequency_hours`
+- Fonction `update_calendar_health_score()` (trigger après insert sur `ical_sync_history`)
+- RLS strictes (user_id = auth.uid())
 
-## Plan: Complete MyWelkom feature inventory document
+**Edge Functions** :
+- `auto-sync-ical-daily` : scanne calendriers actifs, ajoute à la queue, traite batch de 5
+- Renforcement de `sync-ical` existante : log dans `ical_sync_history`, gestion timeout 30s, retry logic
+- Cron pg_cron quotidien 08h00 Europe/Paris
 
-### Deliverable
-A single comprehensive Markdown file (`mywelkom-memoire-complete.md`) ready to paste into any AI as project memory. Structured for maximum AI comprehension: short sections, bullet points, no fluff.
+---
 
-### Document structure
+## 📦 LOT 2 — UI Monitoring iCal (`/dashboard/ical-monitoring`)
 
-1. **Identité & Positionnement** — Welkom by Azur Keys, palette (#061452 / #C4A45B), cible conciergeries premium
-2. **Stack technique** — Vite + React + TS, Tailwind, Supabase (Cloud), Stripe, Lovable AI Gateway, OpenAI
-3. **Authentification & Rôles** — /auth unifié, redirection dynamique (concierge / proprietaire / prestataire), trial 30j, demo 7j
-4. **Plans & Tarifs** — Starter (5 livrets), Business (50), Premium, limites DB-enforced, Stripe Payment Links
-5. **Module Concierge — Pilotage**
-   - Dashboard (KPIs, calendrier global tri-couleur, opérations à venir)
-   - Performance (occupation, revenus, IA Gemini recommandations)
-   - Notifications (Resend + realtime)
-6. **Module Concierge — Logements**
-   - Properties-first architecture
-   - Onglets: Photos / Documents / Contrat / Tarifs / Ménage / iCal
-   - Import Airbnb auto, iCal sync normalisé, calendrier hybride
-7. **Module Concierge — Livrets**
-   - Wizard 10 étapes, sections (Identité, Pratique, WiFi, Équipements, Ménage, Alentours, Contacts, FAQ, Légal, Bonus)
-   - Thème personnalisable, lien public /view/{PIN}, chatbot intégré, bibliothèque de lieux réutilisables
-8. **Module Concierge — Opérations**
-   - Missions (workflow v3: assignation directe + missions ouvertes, claim atomique)
-   - Photo Guide obligatoire par catégorie
-   - Checklists optionnelles
-   - États des lieux (entrée/sortie, signatures, PDF, photos)
-   - Automatisation ménage (trigger DB sur checkout)
-9. **Module Concierge — Finance**
-   - Factures (HTML→PDF, 293B CGI, branding custom)
-   - Dépenses unifiées (manuelles + payouts missions)
-   - Encaissements cash
-   - KPIs: Revenu brut, Dépenses, Net, Marge
-10. **Module Concierge — CRM Prospection**
-    - Kanban 9 étapes, scoring auto, séquences emails 6 étapes
-11. **Module Concierge — Outils**
-    - Photo Optimizer (pipeline Mertens fusion + post-process real estate)
-    - AI Call Prompter (Gemini 2.5 Flash, push-to-talk)
-    - Paramètres automatisation
-12. **Portail Propriétaire** — Read-only mobile-first: dashboard, calendrier (avec masquage overrides), biens, livrets, finances (factures only, zéro KPI brut), photos ménage, états des lieux, demandes catégorisées, documents (URLs signées 5min)
-13. **Portail Prestataire** — Missions ouvertes, planning, interventions, paiements, conflits détectés, historique, support
-14. **Demo publique /demo** — Dashboard interactif mocké via DemoContext, expiration 7j
-15. **Sécurité** — RLS RESTRICTIVE stricte, user_id explicite, search_path=public, SECURITY DEFINER pour cross-table, séparation roles dans table dédiée
-16. **Intégrations** — Supabase (Auth/DB/Storage/Realtime/Edge Functions), Stripe (webhooks → roles sync), Resend (notifications@mywelkom.com), Lovable AI Gateway (Gemini), OpenAI (photo)
-17. **SEO & Landing** — Modal segmentation entrée, Schema.org LocalBusiness, mots-clés français conciergerie
+- KPI cards (calendriers actifs, dernière sync, taux succès 7j, health moyen)
+- Tableau calendriers avec filtres + actions (sync now, toggle auto-sync)
+- Timeline historique 50 dernières sync + drawer détail
+- Composant réutilisable `CalendarHealthBadge` (4 niveaux)
+- Bouton "Forcer sync globale"
+- Lien sidebar PILOTAGE avec icône `RefreshCw`
 
-### Output
-- File: `/mnt/documents/mywelkom-memoire-complete.md`
-- Format: Markdown propre, ~6-10K mots, structuré pour copier-coller dans ChatGPT/Claude/Gemini
-- `<lov-artifact>` tag pour téléchargement
+---
 
+## 📦 LOT 3 — Infrastructure États des Lieux (DB + Triggers)
+
+**Migrations** :
+- Table `property_inspections` avec **double datation** (`official_date` vs `actual_created_at`), versioning, signatures
+- Table `inspection_items` (pièces/items avec condition)
+- Table `inspection_photos` avec double datation héritée
+- Table `inspection_audit_log` (audit trail complet)
+- Trigger `log_inspection_date_change` : journalise tout changement d'`official_date`
+- Trigger `inherit_official_date` : photos héritent de la date inspection
+- Trigger `audit_inspection_changes` : log toutes les modifs majeures
+- Bucket Storage `inspection-photos` (privé, RLS par user_id)
+
+**Note** : Le projet a déjà une table `inspections` legacy. Je crée `property_inspections` en parallèle (nouveau modèle flexible) sans casser l'existant. Migration des données existantes dans un lot ultérieur si demandé.
+
+---
+
+## 📦 LOT 4 — UI États des Lieux Flexibles
+
+- Page liste `/dashboard/inspections-v2` (sidebar OPÉRATIONS) avec badge "⚠️ Antidaté" si écart
+- `CreateInspectionDialog` avec sélecteur date officielle + alerte antidatage + suggestions auto selon booking
+- Page détail `/dashboard/inspections-v2/:id` (3 tabs : Photos & Pièces / Items / Historique)
+- `InspectionPhotoUpload` (héritage date auto, upload Supabase Storage)
+- Détection conflits (date entry > check_in, exit < check_out)
+- Export PDF html2pdf avec date officielle + section audit trail si antidatage
+
+---
+
+## 📦 LOT 5 — Back-Office Admin + Améliorations "Wow"
+
+- Page `/dashboard/admin/inspections` (admins only via `has_role`) avec colonne "Écart"
+- Templates checklist par type de bien (`appartement_2p`, `villa`, etc.)
+- Comparaison visuelle Entry/Exit (même booking) avec diff conditions
+- Widget statistiques inspections (count mois, temps moyen, % validées 24h)
+- (Optionnel) OCR compteurs via Lovable AI Gateway vision
+
+---
+
+## Conventions techniques (toutes phases)
+
+- **Tokens HSL uniquement** : `text-foreground`, `bg-primary`, `text-accent`, badges via `bg-{color}-100 dark:bg-{color}-900/20` autorisés pour status sémantique
+- **RLS** : explicite `user_id = auth.uid()` (pas de `auth.uid() IS NOT NULL`)
+- **TypeScript strict**, React Query avec invalidation, skeletons sur loading
+- **Mobile-first** (testé 992px et inférieur)
+- **DemoContext** : intercepte les mutations en mode démo
+- **DashboardErrorBoundary** sur nouvelles routes
+- **Functions DB** : `SET search_path = public`
+
+---
+
+## ❓ Question pratique avant de démarrer
+
+Le scope est énorme (~30+ fichiers, 4 migrations majeures, 3 edge functions). **Par quel lot veux-tu que je commence ?**
+
+- **Lot 1 + 2** (E-Calendar : infra + monitoring UI) — ~6-8 fichiers
+- **Lot 3 + 4** (États des lieux : infra + UI MVP) — ~10-12 fichiers
+- **Tout en séquence** (Lot 1 → 5) sans pause — risque de timeout / d'erreurs en cascade, je recommande de valider lot par lot
+
+Réponds par exemple **"go lot 1+2"** puis **"go lot 3+4"** ensuite, c'est plus sûr et tu peux tester entre les deux.
