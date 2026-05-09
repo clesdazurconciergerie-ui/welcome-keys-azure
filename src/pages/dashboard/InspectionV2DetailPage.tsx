@@ -170,6 +170,47 @@ export default function InspectionV2DetailPage() {
         </Card>
       )}
 
+      {/* Workflow protectif: État d'entrée → État de sortie */}
+      {insp.inspection_type === "entry" && (
+        <Card className="border-l-4 border-l-[hsl(var(--gold))]">
+          <CardContent className="pt-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1">
+              <p className="font-medium text-foreground flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-[hsl(var(--gold))]" />
+                Workflow état des lieux complet
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {insp.status !== "validated"
+                  ? "Validez l'état d'entrée, puis créez l'état de sortie en fin de séjour pour vous protéger."
+                  : childExit
+                    ? `État de sortie en cours (${childExit.status === "validated" ? "validé" : "non validé"} — ${new Date(childExit.official_date).toLocaleDateString("fr-FR")}).`
+                    : "L'état d'entrée est validé. Créez maintenant l'état de sortie pour clôturer le séjour."}
+              </p>
+            </div>
+            {childExit ? (
+              <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/etats-des-lieux-v2/${childExit.id}`)}>
+                Ouvrir l'état de sortie →
+              </Button>
+            ) : (
+              insp.status === "validated" && (
+                <Button size="sm" onClick={() => setCreateExitOpen(true)} className="bg-primary text-primary-foreground">
+                  <Plus className="h-4 w-4 mr-1" /> Créer l'état de sortie
+                </Button>
+              )
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <CreateInspectionDialog
+        open={createExitOpen}
+        onOpenChange={setCreateExitOpen}
+        defaultPropertyId={insp.property_id}
+        defaultType="exit"
+        parentInspectionId={insp.id}
+        onCreated={(newId) => navigate(`/dashboard/etats-des-lieux-v2/${newId}`)}
+      />
+
       <Tabs defaultValue="items">
         <TabsList>
           <TabsTrigger value="items">1. Checklist par pièce</TabsTrigger>
