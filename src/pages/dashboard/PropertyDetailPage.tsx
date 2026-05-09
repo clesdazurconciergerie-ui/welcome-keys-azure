@@ -290,6 +290,7 @@ const PropertyDetailPage = () => {
           <TabsTrigger value="contrat">Contrat</TabsTrigger>
           <TabsTrigger value="livrets">Livrets</TabsTrigger>
           <TabsTrigger value="interventions">Interventions</TabsTrigger>
+          <TabsTrigger value="inspections">États des lieux</TabsTrigger>
           <TabsTrigger value="calendar">Calendrier</TabsTrigger>
           <TabsTrigger value="owners">Propriétaires</TabsTrigger>
           <TabsTrigger value="finance">Finance</TabsTrigger>
