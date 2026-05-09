@@ -28,6 +28,8 @@ import { useProperties, type Property, type PropertyPhoto, type PropertyDocument
 import { EditPropertyDialog } from "@/components/dashboard/properties/EditPropertyDialog";
 import { PropertyCalendar } from "@/components/dashboard/properties/PropertyCalendar";
 import { PhotoRequirementsAdmin } from "@/components/property/PhotoRequirementsAdmin";
+import { PropertyInspectionsList } from "@/components/inspection-v2/PropertyInspectionsList";
+import { CreateInspectionDialog } from "@/components/inspection-v2/CreateInspectionDialog";
 import { PropertyFinanceSettings } from "@/components/finance/PropertyFinanceSettings";
 import { CleaningAutomationSection } from "@/components/property/CleaningAutomationSection";
 import { PlatformPerformance } from "@/components/dashboard/PlatformPerformance";
