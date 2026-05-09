@@ -73,19 +73,11 @@ export default function InspectionsV2Page() {
 
   const stats = useMemo(() => {
     const all = list.data ?? [];
-    const monthAgo = Date.now() - 30 * 86400_000;
-    const recent = all.filter((i) => new Date(i.actual_created_at).getTime() > monthAgo);
-    const antedated = all.filter((i) =>
-      Math.abs(new Date(i.actual_created_at).getTime() - new Date(i.official_date).getTime()) > 86400_000
-    );
-    const validatedFast = all.filter((i) => {
-      if (i.status !== "validated") return false;
-      const created = new Date(i.actual_created_at).getTime();
-      const updated = new Date((i as any).updated_at ?? i.actual_created_at).getTime();
-      return updated - created < 86400_000;
-    });
-    const pct = all.length ? Math.round((validatedFast.length / all.length) * 100) : 0;
-    return { total: all.length, recent: recent.length, antedated: antedated.length, validatedPct: pct };
+    return {
+      total: all.length,
+      drafts: all.filter((i) => i.status === "draft" || i.status === "in_progress").length,
+      validated: all.filter((i) => i.status === "validated" || i.status === "completed").length,
+    };
   }, [list.data]);
 
   return (
