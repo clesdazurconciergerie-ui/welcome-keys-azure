@@ -10,8 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, AlertTriangle, Search, ListChecks, ClipboardList, ShieldAlert } from "lucide-react";
+import { Plus, AlertTriangle, Search, ListChecks, ClipboardList, ShieldAlert, Trash2 } from "lucide-react";
 import { usePropertyInspections } from "@/hooks/usePropertyInspections";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { CreateInspectionDialog } from "@/components/inspection-v2/CreateInspectionDialog";
 import InspectionTemplatesPage from "./InspectionTemplatesPage";
 import InspectionsAdminPage from "./InspectionsAdminPage";
@@ -33,7 +37,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function InspectionsV2Page() {
-  const { list } = usePropertyInspections();
+  const { list, remove } = usePropertyInspections();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState("inspections");
@@ -185,8 +189,36 @@ export default function InspectionsV2Page() {
                             <TableCell className="text-sm text-muted-foreground">
                               {new Date(i.actual_created_at).toLocaleDateString("fr-FR")}
                             </TableCell>
-                            <TableCell>
-                              <Button size="sm" variant="ghost">Ouvrir →</Button>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-1 justify-end">
+                                <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/etats-des-lieux-v2/${i.id}`)}>
+                                  Ouvrir →
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Supprimer cet état des lieux ?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Cette action est irréversible. Les photos, items et historique liés seront supprimés.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => remove.mutate(i.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Supprimer
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
