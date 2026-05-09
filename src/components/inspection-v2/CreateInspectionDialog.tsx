@@ -192,6 +192,23 @@ export function CreateInspectionDialog({ open, onOpenChange, onCreated }: Props)
           </div>
 
           <div className="space-y-2">
+            <Label>Modèle de checklist</Label>
+            <Select value={templateId} onValueChange={setTemplateId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__default__">Checklist standard (4 pièces, 14 items)</SelectItem>
+                <SelectItem value="__none__">Aucune (vide, à remplir manuellement)</SelectItem>
+                {(templatesList.data ?? []).map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Les pièces et items seront pré-créés. Vous pourrez les compléter (état + photos) ensuite.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label>Notes</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
           </div>
