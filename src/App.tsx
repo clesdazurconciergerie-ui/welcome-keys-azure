@@ -132,6 +132,8 @@ const App = () => (
             <Route path="demandes-proprietaires" element={<OwnerRequestsAdminPage />} />
             <Route path="rapports-mensuels" element={<MonthlyReportsAdminPage />} />
             <Route path="ical-monitoring" element={<ICalMonitoringPage />} />
+            <Route path="etats-des-lieux-v2" element={<InspectionsV2Page />} />
+            <Route path="etats-des-lieux-v2/:id" element={<InspectionV2DetailPage />} />
             <Route path="call-prompter" element={<CallPrompterPage />} />
             <Route path="performance" element={<PerformancePage />} />
             <Route path="abonnement" element={<AbonnementPage />} />
