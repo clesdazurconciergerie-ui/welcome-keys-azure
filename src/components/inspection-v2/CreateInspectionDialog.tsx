@@ -78,7 +78,8 @@ export function CreateInspectionDialog({ open, onOpenChange, onCreated, defaultP
       official_date: officialDate,
       guest_name: guestName || selectedBooking?.guest_name || null,
       notes: notes || null,
-    });
+      parent_inspection_id: parentInspectionId ?? null,
+    } as any);
 
     // Seed items from chosen template (or default)
     try {
