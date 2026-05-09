@@ -186,11 +186,8 @@ export default function InspectionsV2Page() {
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline" className={STATUS_COLORS[i.status] ?? ""}>
-                                {i.status}
+                                {STATUS_LABELS[i.status] ?? i.status}
                               </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {new Date(i.actual_created_at).toLocaleDateString("fr-FR")}
                             </TableCell>
                             <TableCell onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center gap-1 justify-end">
