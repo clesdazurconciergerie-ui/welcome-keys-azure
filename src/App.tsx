@@ -61,6 +61,7 @@ import OwnerRequestsPage from "./pages/owner/OwnerRequestsPage";
 import OwnerReportingPage from "./pages/owner/OwnerReportingPage";
 import OwnerRequestsAdminPage from "./pages/dashboard/OwnerRequestsAdminPage";
 import MonthlyReportsAdminPage from "./pages/dashboard/MonthlyReportsAdminPage";
+import ICalMonitoringPage from "./pages/dashboard/ICalMonitoringPage";
 import SPDashboardHome from "./pages/service-provider/SPDashboardHome";
 import SPMissionsUnifiedPage from "./pages/service-provider/SPMissionsUnifiedPage";
 import SPPlanningPage from "./pages/service-provider/SPPlanningPage";
