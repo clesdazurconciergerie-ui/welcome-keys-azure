@@ -315,3 +315,161 @@ export default function InspectionV2DetailPage() {
     </div>
   );
 }
+
+function ItemsChecklist({
+  items, loading, onUpdate, onAdd, onDelete, onAttachPhoto,
+}: {
+  items: InspectionItem[];
+  loading: boolean;
+  onUpdate: (itemId: string, patch: Partial<InspectionItem>) => void;
+  onAdd: (roomName: string, itemName: string) => void;
+  onDelete: (itemId: string) => void;
+  onAttachPhoto: (item: InspectionItem, file: File) => Promise<void>;
+}) {
+  const [newRoom, setNewRoom] = useState("");
+  const [newItem, setNewItem] = useState("");
+  const [addingTo, setAddingTo] = useState<string | null>(null);
+  const [quickItem, setQuickItem] = useState("");
+  const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  if (loading) {
+    return <Card><CardContent className="pt-6"><Skeleton className="h-40" /></CardContent></Card>;
+  }
+
+  const grouped = items.reduce<Record<string, InspectionItem[]>>((acc, it) => {
+    (acc[it.room_name] ||= []).push(it);
+    return acc;
+  }, {});
+  const roomNames = Object.keys(grouped);
+
+  const completion = items.length === 0 ? 0
+    : Math.round((items.filter((i) => i.condition !== "good" || i.notes).length + items.filter((i) => i.condition === "good").length) / items.length * 100);
+
+  return (
+    <div className="space-y-4">
+      {items.length > 0 && (
+        <Card>
+          <CardContent className="py-3 flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              <strong className="text-foreground">{items.length}</strong> items répartis sur {roomNames.length} pièce{roomNames.length > 1 ? "s" : ""}
+            </p>
+            <Badge variant="outline">{completion}% checké</Badge>
+          </CardContent>
+        </Card>
+      )}
+
+      {items.length === 0 && (
+        <Card>
+          <CardContent className="py-8 text-center space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Aucun item dans cette checklist. Ajoutez une pièce ou créez votre premier item ci-dessous.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {roomNames.map((roomName) => (
+        <Card key={roomName}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">{roomName} ({grouped[roomName].length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {grouped[roomName].map((item) => (
+              <div key={item.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium text-sm flex-1 min-w-[140px]">{item.item_name}</p>
+                  <Select
+                    value={item.condition}
+                    onValueChange={(v) => onUpdate(item.id, { condition: v })}
+                  >
+                    <SelectTrigger className="h-8 w-36">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(CONDITION_LABELS).map(([k, v]) => (
+                        <SelectItemUI key={k} value={k}>{v.label}</SelectItemUI>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Badge variant="outline" className={CONDITION_LABELS[item.condition]?.cls ?? ""}>
+                    {CONDITION_LABELS[item.condition]?.label ?? item.condition}
+                  </Badge>
+                  <input
+                    ref={(el) => { fileInputs.current[item.id] = el; }}
+                    type="file"
+                    accept="image/*"
+                    style={{ opacity: 0, position: "absolute", pointerEvents: "none", width: 0, height: 0 }}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) onAttachPhoto(item, f);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button size="sm" variant="outline" onClick={() => fileInputs.current[item.id]?.click()}>
+                    <Camera className="h-3.5 w-3.5 mr-1" /> Photo
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => onDelete(item.id)}>
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </div>
+                <Textarea
+                  value={item.notes ?? ""}
+                  onChange={(e) => onUpdate(item.id, { notes: e.target.value })}
+                  placeholder="Notes (rayures, marques, fonctionnement...)"
+                  rows={1}
+                  className="text-sm"
+                />
+              </div>
+            ))}
+
+            {addingTo === roomName ? (
+              <div className="flex gap-2">
+                <Input
+                  value={quickItem}
+                  onChange={(e) => setQuickItem(e.target.value)}
+                  placeholder="Nouvel item"
+                  className="h-8"
+                />
+                <Button size="sm" onClick={() => {
+                  if (quickItem.trim()) {
+                    onAdd(roomName, quickItem.trim());
+                    setQuickItem("");
+                    setAddingTo(null);
+                  }
+                }}>Ajouter</Button>
+                <Button size="sm" variant="ghost" onClick={() => { setAddingTo(null); setQuickItem(""); }}>×</Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="ghost" onClick={() => setAddingTo(roomName)}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> Item
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ))}
+
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Ajouter une nouvelle pièce</CardTitle></CardHeader>
+        <CardContent className="flex flex-col sm:flex-row gap-2">
+          <Input
+            value={newRoom}
+            onChange={(e) => setNewRoom(e.target.value)}
+            placeholder="Nom de la pièce (ex: Cuisine)"
+          />
+          <Input
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+            placeholder="Premier item (optionnel)"
+          />
+          <Button onClick={() => {
+            if (!newRoom.trim()) return;
+            onAdd(newRoom.trim(), newItem.trim() || "À compléter");
+            setNewRoom(""); setNewItem("");
+          }}>
+            <Plus className="h-4 w-4 mr-1" /> Pièce
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
