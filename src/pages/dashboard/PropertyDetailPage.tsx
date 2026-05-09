@@ -28,6 +28,8 @@ import { useProperties, type Property, type PropertyPhoto, type PropertyDocument
 import { EditPropertyDialog } from "@/components/dashboard/properties/EditPropertyDialog";
 import { PropertyCalendar } from "@/components/dashboard/properties/PropertyCalendar";
 import { PhotoRequirementsAdmin } from "@/components/property/PhotoRequirementsAdmin";
+import { PropertyInspectionsList } from "@/components/inspection-v2/PropertyInspectionsList";
+import { CreateInspectionDialog } from "@/components/inspection-v2/CreateInspectionDialog";
 import { PropertyFinanceSettings } from "@/components/finance/PropertyFinanceSettings";
 import { CleaningAutomationSection } from "@/components/property/CleaningAutomationSection";
 import { PlatformPerformance } from "@/components/dashboard/PlatformPerformance";
@@ -98,6 +100,7 @@ const PropertyDetailPage = () => {
   const [owners, setOwners] = useState<any[]>([]);
   const [ownerDocs, setOwnerDocs] = useState<OwnerDoc[]>([]);
   const [editOpen, setEditOpen] = useState(false);
+  const [createInspectionOpen, setCreateInspectionOpen] = useState(false);
   const [addBookingOpen, setAddBookingOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [photoCategory, setPhotoCategory] = useState("general");
@@ -288,6 +291,7 @@ const PropertyDetailPage = () => {
           <TabsTrigger value="contrat">Contrat</TabsTrigger>
           <TabsTrigger value="livrets">Livrets</TabsTrigger>
           <TabsTrigger value="interventions">Interventions</TabsTrigger>
+          <TabsTrigger value="inspections">États des lieux</TabsTrigger>
           <TabsTrigger value="calendar">Calendrier</TabsTrigger>
           <TabsTrigger value="owners">Propriétaires</TabsTrigger>
           <TabsTrigger value="finance">Finance</TabsTrigger>
@@ -656,6 +660,19 @@ const PropertyDetailPage = () => {
         </TabsContent>
 
         {/* CALENDAR TAB */}
+        <TabsContent value="inspections" className="mt-4 space-y-3">
+          <PropertyInspectionsList
+            propertyId={property.id}
+            basePath="concierge"
+            onCreate={() => setCreateInspectionOpen(true)}
+          />
+          <CreateInspectionDialog
+            open={createInspectionOpen}
+            onOpenChange={setCreateInspectionOpen}
+            onCreated={(id) => navigate(`/dashboard/etats-des-lieux-v2/${id}`)}
+          />
+        </TabsContent>
+
         <TabsContent value="calendar" className="mt-4">
           <PropertyCalendar propertyId={id!} />
         </TabsContent>

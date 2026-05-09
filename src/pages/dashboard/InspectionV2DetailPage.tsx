@@ -15,6 +15,9 @@ import { Textarea } from "@/components/ui/textarea";
 import html2pdf from "html2pdf.js";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
+import { CreateInspectionDialog } from "@/components/inspection-v2/CreateInspectionDialog";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const CONDITION_LABELS: Record<string, { label: string; cls: string }> = {
   excellent: { label: "Excellent", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200" },
@@ -49,6 +52,23 @@ export default function InspectionV2DetailPage() {
   const [caption, setCaption] = useState("");
   const [editDateOpen, setEditDateOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
+  const [createExitOpen, setCreateExitOpen] = useState(false);
+
+  // Find a child exit inspection if it exists (workflow continuation)
+  const { data: childExit } = useQuery({
+    queryKey: ["inspection-child-exit", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data } = await (supabase as any)
+        .from("property_inspections")
+        .select("id, status, official_date, inspection_type")
+        .eq("parent_inspection_id", id)
+        .eq("inspection_type", "exit")
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!id,
+  });
 
   if (inspection.isLoading) {
     return <div className="p-6 space-y-4"><Skeleton className="h-8 w-64" /><Skeleton className="h-96" /></div>;
@@ -149,6 +169,47 @@ export default function InspectionV2DetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Workflow protectif: État d'entrée → État de sortie */}
+      {insp.inspection_type === "entry" && (
+        <Card className="border-l-4 border-l-[hsl(var(--gold))]">
+          <CardContent className="pt-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1">
+              <p className="font-medium text-foreground flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-[hsl(var(--gold))]" />
+                Workflow état des lieux complet
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {insp.status !== "validated"
+                  ? "Validez l'état d'entrée, puis créez l'état de sortie en fin de séjour pour vous protéger."
+                  : childExit
+                    ? `État de sortie en cours (${childExit.status === "validated" ? "validé" : "non validé"} — ${new Date(childExit.official_date).toLocaleDateString("fr-FR")}).`
+                    : "L'état d'entrée est validé. Créez maintenant l'état de sortie pour clôturer le séjour."}
+              </p>
+            </div>
+            {childExit ? (
+              <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/etats-des-lieux-v2/${childExit.id}`)}>
+                Ouvrir l'état de sortie →
+              </Button>
+            ) : (
+              insp.status === "validated" && (
+                <Button size="sm" onClick={() => setCreateExitOpen(true)} className="bg-primary text-primary-foreground">
+                  <Plus className="h-4 w-4 mr-1" /> Créer l'état de sortie
+                </Button>
+              )
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <CreateInspectionDialog
+        open={createExitOpen}
+        onOpenChange={setCreateExitOpen}
+        defaultPropertyId={insp.property_id}
+        defaultType="exit"
+        parentInspectionId={insp.id}
+        onCreated={(newId) => navigate(`/dashboard/etats-des-lieux-v2/${newId}`)}
+      />
 
       <Tabs defaultValue="items">
         <TabsList>

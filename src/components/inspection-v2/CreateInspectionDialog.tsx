@@ -22,19 +22,22 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onCreated?: (id: string) => void;
+  defaultPropertyId?: string;
+  defaultType?: string;
+  parentInspectionId?: string;
 }
 
 const todayISO = () => new Date().toISOString().split("T")[0];
 
-export function CreateInspectionDialog({ open, onOpenChange, onCreated }: Props) {
+export function CreateInspectionDialog({ open, onOpenChange, onCreated, defaultPropertyId, defaultType, parentInspectionId }: Props) {
   const { properties } = useProperties();
   const { bookings } = useBookings();
   const { create } = usePropertyInspections();
   const { list: templatesList } = useInspectionTemplates();
 
-  const [propertyId, setPropertyId] = useState("");
+  const [propertyId, setPropertyId] = useState(defaultPropertyId ?? "");
   const [bookingId, setBookingId] = useState<string>("");
-  const [type, setType] = useState("entry");
+  const [type, setType] = useState(defaultType ?? "entry");
   const [officialDate, setOfficialDate] = useState(todayISO());
   const [guestName, setGuestName] = useState("");
   const [notes, setNotes] = useState("");
@@ -75,7 +78,8 @@ export function CreateInspectionDialog({ open, onOpenChange, onCreated }: Props)
       official_date: officialDate,
       guest_name: guestName || selectedBooking?.guest_name || null,
       notes: notes || null,
-    });
+      parent_inspection_id: parentInspectionId ?? null,
+    } as any);
 
     // Seed items from chosen template (or default)
     try {
