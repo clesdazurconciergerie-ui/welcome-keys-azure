@@ -212,15 +212,21 @@ export default function InspectionV2DetailPage() {
 
         {/* TAB ITEMS */}
         <TabsContent value="items">
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground text-center py-8">
-                {(items.data?.length ?? 0) === 0
-                  ? "Aucun item détaillé. Cette section permettra d'ajouter des items pièce par pièce."
-                  : `${items.data?.length} items enregistrés.`}
-              </p>
-            </CardContent>
-          </Card>
+          <ItemsChecklist
+            items={items.data ?? []}
+            loading={items.isLoading}
+            onUpdate={(itemId, patch) => updateItem.mutate({ itemId, patch })}
+            onAdd={(room_name, item_name) => addItem.mutate({ room_name, item_name })}
+            onDelete={(itemId) => deleteItem.mutate(itemId)}
+            onAttachPhoto={async (item, file) => {
+              await uploadPhoto.mutateAsync({
+                file,
+                roomName: item.room_name,
+                caption: item.item_name,
+                itemId: item.id,
+              });
+            }}
+          />
         </TabsContent>
 
         {/* TAB HISTORY */}
