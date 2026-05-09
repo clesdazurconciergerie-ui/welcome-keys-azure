@@ -68,7 +68,7 @@ export function usePropertyInspections() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("property_inspections")
-        .select("*, property:property_id(name, address), booking:booking_id(check_in, check_out, guest_name)")
+        .select("*, property:property_id(name, address)")
         .order("official_date", { ascending: false });
       if (error) throw error;
       return (data as PropertyInspection[]) ?? [];
@@ -117,7 +117,7 @@ export function useInspectionDetail(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("property_inspections")
-        .select("*, property:property_id(name, address), booking:booking_id(check_in, check_out, guest_name)")
+        .select("*, property:property_id(name, address)")
         .eq("id", id)
         .single();
       if (error) throw error;
