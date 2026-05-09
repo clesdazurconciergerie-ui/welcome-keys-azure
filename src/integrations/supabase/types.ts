@@ -2169,6 +2169,42 @@ export type Database = {
           },
         ]
       }
+      inspection_checklist_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean
+          name: string
+          property_type: string
+          rooms: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          property_type?: string
+          rooms?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          property_type?: string
+          rooms?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       inspection_items: {
         Row: {
           category: string | null
