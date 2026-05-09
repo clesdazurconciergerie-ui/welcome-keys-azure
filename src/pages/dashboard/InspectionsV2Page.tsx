@@ -114,17 +114,16 @@ export default function InspectionsV2Page() {
         </TabsList>
 
         <TabsContent value="inspections" className="space-y-6 mt-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <StatCard label="Total" value={stats.total} />
-            <StatCard label="30 derniers jours" value={stats.recent} />
-            <StatCard label="Antidatés" value={stats.antedated} accent="warning" />
-            <StatCard label="Validés < 24h" value={`${stats.validatedPct}%`} accent="success" />
+            <StatCard label="En cours" value={stats.drafts} accent="warning" />
+            <StatCard label="Validés" value={stats.validated} accent="success" />
           </div>
 
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Rechercher logement, voyageur..."
+              placeholder="Rechercher logement ou voyageur..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -139,9 +138,15 @@ export default function InspectionsV2Page() {
                   {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12" />)}
                 </div>
               ) : filtered.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">
-                  Aucun état des lieux. Cliquez sur "Nouvel état des lieux" pour commencer.
-                </p>
+                <div className="py-12 text-center space-y-3">
+                  <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Aucun état des lieux pour le moment.
+                  </p>
+                  <Button onClick={() => setOpen(true)} className="bg-primary text-primary-foreground">
+                    <Plus className="h-4 w-4 mr-2" /> Créer le premier
+                  </Button>
+                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
@@ -149,9 +154,8 @@ export default function InspectionsV2Page() {
                       <TableRow>
                         <TableHead>Logement</TableHead>
                         <TableHead>Type</TableHead>
-                        <TableHead>Date officielle</TableHead>
+                        <TableHead>Date</TableHead>
                         <TableHead>Statut</TableHead>
-                        <TableHead>Créé le (réel)</TableHead>
                         <TableHead></TableHead>
                       </TableRow>
                     </TableHeader>
