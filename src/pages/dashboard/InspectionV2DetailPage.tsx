@@ -116,8 +116,8 @@ export default function InspectionV2DetailPage() {
             )}
           </p>
           <div className="flex gap-2 mt-2">
-            <Badge variant="outline">{insp.inspection_type}</Badge>
-            <Badge variant="outline">{insp.status}</Badge>
+            <Badge variant="outline">{TYPE_LABELS[insp.inspection_type] ?? insp.inspection_type}</Badge>
+            <Badge variant="outline">{STATUS_OPTIONS.find((s) => s.value === insp.status)?.label ?? insp.status}</Badge>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
