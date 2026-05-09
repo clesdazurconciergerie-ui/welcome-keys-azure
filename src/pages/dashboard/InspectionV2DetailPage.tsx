@@ -15,6 +15,9 @@ import { Textarea } from "@/components/ui/textarea";
 import html2pdf from "html2pdf.js";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
+import { CreateInspectionDialog } from "@/components/inspection-v2/CreateInspectionDialog";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const CONDITION_LABELS: Record<string, { label: string; cls: string }> = {
   excellent: { label: "Excellent", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200" },
