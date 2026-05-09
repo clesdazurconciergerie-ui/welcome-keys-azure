@@ -64,6 +64,8 @@ import MonthlyReportsAdminPage from "./pages/dashboard/MonthlyReportsAdminPage";
 import ICalMonitoringPage from "./pages/dashboard/ICalMonitoringPage";
 import InspectionsV2Page from "./pages/dashboard/InspectionsV2Page";
 import InspectionV2DetailPage from "./pages/dashboard/InspectionV2DetailPage";
+import InspectionTemplatesPage from "./pages/dashboard/InspectionTemplatesPage";
+import InspectionsAdminPage from "./pages/dashboard/InspectionsAdminPage";
 import SPDashboardHome from "./pages/service-provider/SPDashboardHome";
 import SPMissionsUnifiedPage from "./pages/service-provider/SPMissionsUnifiedPage";
 import SPPlanningPage from "./pages/service-provider/SPPlanningPage";
@@ -134,6 +136,8 @@ const App = () => (
             <Route path="ical-monitoring" element={<ICalMonitoringPage />} />
             <Route path="etats-des-lieux-v2" element={<InspectionsV2Page />} />
             <Route path="etats-des-lieux-v2/:id" element={<InspectionV2DetailPage />} />
+            <Route path="etats-des-lieux-modeles" element={<InspectionTemplatesPage />} />
+            <Route path="admin/etats-des-lieux" element={<InspectionsAdminPage />} />
             <Route path="call-prompter" element={<CallPrompterPage />} />
             <Route path="performance" element={<PerformancePage />} />
             <Route path="abonnement" element={<AbonnementPage />} />
