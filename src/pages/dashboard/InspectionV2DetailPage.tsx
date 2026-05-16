@@ -666,3 +666,49 @@ function ItemsChecklist({
     </div>
   );
 }
+
+function SignatureCard({
+  title, existingUrl, existingName, onSave, pending,
+}: {
+  title: string;
+  existingUrl?: string | null;
+  existingName?: string | null;
+  onSave: (dataUrl: string, name: string) => void;
+  pending: boolean;
+}) {
+  const [name, setName] = useState(existingName ?? "");
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center justify-between">
+          {title}
+          {existingUrl && <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200"><CheckCircle2 className="h-3 w-3 mr-1" /> Signé</Badge>}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {existingUrl ? (
+          <div className="space-y-2">
+            <img src={existingUrl} alt={`Signature ${title}`} className="border rounded-md bg-white max-h-32" />
+            {existingName && <p className="text-sm text-muted-foreground">Signé par <strong className="text-foreground">{existingName}</strong></p>}
+            <p className="text-xs text-muted-foreground">Re-signer pour remplacer.</p>
+          </div>
+        ) : null}
+        <div>
+          <Label>Nom du signataire</Label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom complet" />
+        </div>
+        <SignaturePad label="Signature" onSignatureChange={setDataUrl} />
+        <Button
+          size="sm"
+          disabled={!dataUrl || !name.trim() || pending}
+          onClick={() => dataUrl && onSave(dataUrl, name.trim())}
+          className="bg-primary text-primary-foreground"
+        >
+          <PenLine className="h-4 w-4 mr-1" /> Enregistrer la signature
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
