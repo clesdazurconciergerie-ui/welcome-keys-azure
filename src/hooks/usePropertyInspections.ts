@@ -352,5 +352,5 @@ export function useInspectionDetail(id: string | undefined) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inspection-items", id] }),
   });
 
-  return { inspection, photos, items, audit, updateInspection, uploadPhoto, deletePhoto, seedItems, updateItem, addItem, deleteItem };
+  return { inspection, photos, items, audit, updateInspection, uploadPhoto, deletePhoto, uploadSignature, seedItems, updateItem, addItem, deleteItem };
 }
