@@ -225,9 +225,14 @@ export default function InspectionV2DetailPage() {
       />
 
       <Tabs defaultValue="items">
-        <TabsList>
-          <TabsTrigger value="items">1. Checklist par pièce</TabsTrigger>
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="items">1. Checklist</TabsTrigger>
           <TabsTrigger value="photos">2. Photos</TabsTrigger>
+          <TabsTrigger value="meters">3. Compteurs & notes</TabsTrigger>
+          <TabsTrigger value="signatures">
+            4. Signatures
+            {hasBothSignatures && <CheckCircle2 className="h-3.5 w-3.5 ml-1 text-emerald-600" />}
+          </TabsTrigger>
           <TabsTrigger value="history">Historique ({audit.data?.length ?? 0})</TabsTrigger>
         </TabsList>
 
