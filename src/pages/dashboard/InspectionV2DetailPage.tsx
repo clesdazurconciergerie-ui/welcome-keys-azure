@@ -110,8 +110,20 @@ export default function InspectionV2DetailPage() {
     }
   };
 
+  const hasBothSignatures = !!(insp.concierge_signature_url && insp.guest_signature_url);
+  const hasPhotos = (photos.data?.length ?? 0) > 0;
+  const canValidate = hasBothSignatures && hasPhotos;
+
   const validateInspection = () => {
-    updateInspection.mutate({ status: "validated" });
+    if (!canValidate) {
+      const missing: string[] = [];
+      if (!hasPhotos) missing.push("au moins 1 photo");
+      if (!insp.concierge_signature_url) missing.push("signature gestionnaire");
+      if (!insp.guest_signature_url) missing.push("signature voyageur");
+      toast.error(`Manquant : ${missing.join(", ")}`);
+      return;
+    }
+    updateInspection.mutate({ status: "validated", signed_at: new Date().toISOString() } as any);
   };
 
   return (
