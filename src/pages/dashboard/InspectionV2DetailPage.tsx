@@ -46,7 +46,7 @@ const STATUS_OPTIONS = [
 export default function InspectionV2DetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { inspection, photos, items, audit, updateInspection, uploadPhoto, deletePhoto, updateItem, addItem, deleteItem } = useInspectionDetail(id);
+  const { inspection, photos, items, audit, updateInspection, uploadPhoto, deletePhoto, uploadSignature, updateItem, addItem, deleteItem } = useInspectionDetail(id);
   const fileRef = useRef<HTMLInputElement>(null);
   const [room, setRoom] = useState("");
   const [caption, setCaption] = useState("");
