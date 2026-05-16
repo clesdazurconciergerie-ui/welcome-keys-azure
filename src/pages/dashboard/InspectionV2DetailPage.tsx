@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Upload, Download, CheckCircle2, AlertTriangle, Trash2, Calendar, Plus, Camera } from "lucide-react";
+import { ArrowLeft, Upload, Download, CheckCircle2, AlertTriangle, Trash2, Calendar, Plus, Camera, PenLine, Gauge } from "lucide-react";
 import { useInspectionDetail, type InspectionItem } from "@/hooks/usePropertyInspections";
 import { Select, SelectContent, SelectItem as SelectItemUI, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +16,7 @@ import html2pdf from "html2pdf.js";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { CreateInspectionDialog } from "@/components/inspection-v2/CreateInspectionDialog";
+import { SignaturePad } from "@/components/inspection/SignaturePad";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
