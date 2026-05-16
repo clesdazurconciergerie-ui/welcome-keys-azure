@@ -316,6 +316,112 @@ export default function InspectionV2DetailPage() {
           />
         </TabsContent>
 
+        {/* TAB METERS & NOTES */}
+        <TabsContent value="meters" className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Gauge className="h-4 w-4" /> Relevés de compteurs</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <Label>Électricité (kWh)</Label>
+                <Input
+                  defaultValue={insp.meter_electricity ?? ""}
+                  onBlur={(e) => e.target.value !== (insp.meter_electricity ?? "") && updateInspection.mutate({ meter_electricity: e.target.value } as any)}
+                />
+              </div>
+              <div>
+                <Label>Eau (m³)</Label>
+                <Input
+                  defaultValue={insp.meter_water ?? ""}
+                  onBlur={(e) => e.target.value !== (insp.meter_water ?? "") && updateInspection.mutate({ meter_water: e.target.value } as any)}
+                />
+              </div>
+              <div>
+                <Label>Gaz (m³)</Label>
+                <Input
+                  defaultValue={insp.meter_gas ?? ""}
+                  onBlur={(e) => e.target.value !== (insp.meter_gas ?? "") && updateInspection.mutate({ meter_gas: e.target.value } as any)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-base">Notes & dommages</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <Label>Nombre d'occupants</Label>
+                <Input
+                  type="number"
+                  defaultValue={insp.occupants_count ?? ""}
+                  onBlur={(e) => updateInspection.mutate({ occupants_count: e.target.value ? parseInt(e.target.value) : null } as any)}
+                  className="max-w-[140px]"
+                />
+              </div>
+              <div>
+                <Label>Notes générales</Label>
+                <Textarea
+                  defaultValue={insp.notes ?? ""}
+                  onBlur={(e) => e.target.value !== (insp.notes ?? "") && updateInspection.mutate({ notes: e.target.value })}
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label>Dommages observés</Label>
+                <Textarea
+                  defaultValue={insp.damage_notes ?? ""}
+                  onBlur={(e) => e.target.value !== (insp.damage_notes ?? "") && updateInspection.mutate({ damage_notes: e.target.value } as any)}
+                  rows={3}
+                  placeholder="Rayures, taches, casse..."
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB SIGNATURES */}
+        <TabsContent value="signatures" className="space-y-4">
+          <Card>
+            <CardContent className="pt-4">
+              <p className="text-sm text-muted-foreground flex items-start gap-2">
+                <PenLine className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                Les deux parties doivent signer pour valider l'état des lieux. La validation est nécessaire pour finaliser et protéger juridiquement le document.
+              </p>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SignatureCard
+              title="Gestionnaire / Concierge"
+              existingUrl={insp.concierge_signature_url}
+              existingName={insp.concierge_signer_name}
+              onSave={(dataUrl, name) => uploadSignature.mutate({ type: "concierge", dataUrl, signerName: name })}
+              pending={uploadSignature.isPending}
+            />
+            <SignatureCard
+              title="Voyageur"
+              existingUrl={insp.guest_signature_url}
+              existingName={insp.guest_signer_name}
+              onSave={(dataUrl, name) => uploadSignature.mutate({ type: "guest", dataUrl, signerName: name })}
+              pending={uploadSignature.isPending}
+            />
+          </div>
+
+          {!canValidate && insp.status !== "validated" && (
+            <Card className="border-l-4 border-l-yellow-500">
+              <CardContent className="pt-4">
+                <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  Pour valider l'état des lieux, complétez :
+                </p>
+                <ul className="text-sm text-muted-foreground mt-2 ml-6 list-disc">
+                  {!hasPhotos && <li>Au moins 1 photo</li>}
+                  {!insp.concierge_signature_url && <li>Signature du gestionnaire</li>}
+                  {!insp.guest_signature_url && <li>Signature du voyageur</li>}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
         {/* TAB HISTORY */}
         <TabsContent value="history">
           <Card>
