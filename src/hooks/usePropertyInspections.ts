@@ -22,6 +22,16 @@ export interface PropertyInspection {
   updated_at: string;
   property?: { name: string; address: string | null } | null;
   booking?: { check_in: string; check_out: string; guest_name: string | null } | null;
+  concierge_signature_url?: string | null;
+  guest_signature_url?: string | null;
+  concierge_signer_name?: string | null;
+  guest_signer_name?: string | null;
+  signed_at?: string | null;
+  meter_electricity?: string | null;
+  meter_water?: string | null;
+  meter_gas?: string | null;
+  occupants_count?: number | null;
+  damage_notes?: string | null;
 }
 
 export interface InspectionPhoto {
