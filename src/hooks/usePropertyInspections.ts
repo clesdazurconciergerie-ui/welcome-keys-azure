@@ -253,6 +253,36 @@ export function useInspectionDetail(id: string | undefined) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inspection-photos", id] }),
   });
 
+  const uploadSignature = useMutation({
+    mutationFn: async (input: { type: "concierge" | "guest"; dataUrl: string; signerName?: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !id) throw new Error("Inspection introuvable");
+      const blob = await fetch(input.dataUrl).then((r) => r.blob());
+      const path = `${user.id}/${id}/signatures/${input.type}_${Date.now()}.png`;
+      const { error: upErr } = await supabase.storage
+        .from("inspection-photos")
+        .upload(path, blob, { contentType: "image/png", upsert: true });
+      if (upErr) throw upErr;
+      const { data: signed } = await supabase.storage
+        .from("inspection-photos")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      const url = signed?.signedUrl ?? "";
+      const patch: any = input.type === "concierge"
+        ? { concierge_signature_url: url, concierge_signer_name: input.signerName ?? null }
+        : { guest_signature_url: url, guest_signer_name: input.signerName ?? null };
+      const { error } = await (supabase as any)
+        .from("property_inspections")
+        .update(patch)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inspection", id] });
+      toast.success("Signature enregistrée");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erreur signature"),
+  });
+
   const seedItems = useMutation({
     mutationFn: async (rooms: { name: string; items: { name: string; category?: string }[] }[]) => {
       const { data: { user } } = await supabase.auth.getUser();
