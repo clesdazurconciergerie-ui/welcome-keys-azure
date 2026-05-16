@@ -3994,20 +3994,28 @@ export type Database = {
           actual_created_at: string
           booking_id: string | null
           concierge_signature_url: string | null
+          concierge_signer_name: string | null
           created_at: string
           created_by: string | null
+          damage_notes: string | null
           global_condition: string | null
           guest_name: string | null
           guest_signature_url: string | null
+          guest_signer_name: string | null
           id: string
           inspection_type: string
           inspector_name: string | null
           inspector_role: string | null
           metadata: Json | null
+          meter_electricity: string | null
+          meter_gas: string | null
+          meter_water: string | null
           notes: string | null
+          occupants_count: number | null
           official_date: string
           parent_inspection_id: string | null
           property_id: string
+          signed_at: string | null
           status: string
           updated_at: string
           updated_by: string | null
@@ -4020,20 +4028,28 @@ export type Database = {
           actual_created_at?: string
           booking_id?: string | null
           concierge_signature_url?: string | null
+          concierge_signer_name?: string | null
           created_at?: string
           created_by?: string | null
+          damage_notes?: string | null
           global_condition?: string | null
           guest_name?: string | null
           guest_signature_url?: string | null
+          guest_signer_name?: string | null
           id?: string
           inspection_type?: string
           inspector_name?: string | null
           inspector_role?: string | null
           metadata?: Json | null
+          meter_electricity?: string | null
+          meter_gas?: string | null
+          meter_water?: string | null
           notes?: string | null
+          occupants_count?: number | null
           official_date: string
           parent_inspection_id?: string | null
           property_id: string
+          signed_at?: string | null
           status?: string
           updated_at?: string
           updated_by?: string | null
@@ -4046,20 +4062,28 @@ export type Database = {
           actual_created_at?: string
           booking_id?: string | null
           concierge_signature_url?: string | null
+          concierge_signer_name?: string | null
           created_at?: string
           created_by?: string | null
+          damage_notes?: string | null
           global_condition?: string | null
           guest_name?: string | null
           guest_signature_url?: string | null
+          guest_signer_name?: string | null
           id?: string
           inspection_type?: string
           inspector_name?: string | null
           inspector_role?: string | null
           metadata?: Json | null
+          meter_electricity?: string | null
+          meter_gas?: string | null
+          meter_water?: string | null
           notes?: string | null
+          occupants_count?: number | null
           official_date?: string
           parent_inspection_id?: string | null
           property_id?: string
+          signed_at?: string | null
           status?: string
           updated_at?: string
           updated_by?: string | null
