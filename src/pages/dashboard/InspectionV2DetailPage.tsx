@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Upload, Download, CheckCircle2, AlertTriangle, Trash2, Calendar, Plus, Camera } from "lucide-react";
+import { ArrowLeft, Upload, Download, CheckCircle2, AlertTriangle, Trash2, Calendar, Plus, Camera, PenLine, Gauge } from "lucide-react";
 import { useInspectionDetail, type InspectionItem } from "@/hooks/usePropertyInspections";
 import { Select, SelectContent, SelectItem as SelectItemUI, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +16,7 @@ import html2pdf from "html2pdf.js";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { CreateInspectionDialog } from "@/components/inspection-v2/CreateInspectionDialog";
+import { SignaturePad } from "@/components/inspection/SignaturePad";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -46,7 +47,7 @@ const STATUS_OPTIONS = [
 export default function InspectionV2DetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { inspection, photos, items, audit, updateInspection, uploadPhoto, deletePhoto, updateItem, addItem, deleteItem } = useInspectionDetail(id);
+  const { inspection, photos, items, audit, updateInspection, uploadPhoto, deletePhoto, uploadSignature, updateItem, addItem, deleteItem } = useInspectionDetail(id);
   const fileRef = useRef<HTMLInputElement>(null);
   const [room, setRoom] = useState("");
   const [caption, setCaption] = useState("");
@@ -109,8 +110,20 @@ export default function InspectionV2DetailPage() {
     }
   };
 
+  const hasBothSignatures = !!(insp.concierge_signature_url && insp.guest_signature_url);
+  const hasPhotos = (photos.data?.length ?? 0) > 0;
+  const canValidate = hasBothSignatures && hasPhotos;
+
   const validateInspection = () => {
-    updateInspection.mutate({ status: "validated" });
+    if (!canValidate) {
+      const missing: string[] = [];
+      if (!hasPhotos) missing.push("au moins 1 photo");
+      if (!insp.concierge_signature_url) missing.push("signature gestionnaire");
+      if (!insp.guest_signature_url) missing.push("signature voyageur");
+      toast.error(`Manquant : ${missing.join(", ")}`);
+      return;
+    }
+    updateInspection.mutate({ status: "validated", signed_at: new Date().toISOString() } as any);
   };
 
   return (
@@ -212,9 +225,14 @@ export default function InspectionV2DetailPage() {
       />
 
       <Tabs defaultValue="items">
-        <TabsList>
-          <TabsTrigger value="items">1. Checklist par pièce</TabsTrigger>
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="items">1. Checklist</TabsTrigger>
           <TabsTrigger value="photos">2. Photos</TabsTrigger>
+          <TabsTrigger value="meters">3. Compteurs & notes</TabsTrigger>
+          <TabsTrigger value="signatures">
+            4. Signatures
+            {hasBothSignatures && <CheckCircle2 className="h-3.5 w-3.5 ml-1 text-emerald-600" />}
+          </TabsTrigger>
           <TabsTrigger value="history">Historique ({audit.data?.length ?? 0})</TabsTrigger>
         </TabsList>
 
@@ -296,6 +314,112 @@ export default function InspectionV2DetailPage() {
               });
             }}
           />
+        </TabsContent>
+
+        {/* TAB METERS & NOTES */}
+        <TabsContent value="meters" className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Gauge className="h-4 w-4" /> Relevés de compteurs</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <Label>Électricité (kWh)</Label>
+                <Input
+                  defaultValue={insp.meter_electricity ?? ""}
+                  onBlur={(e) => e.target.value !== (insp.meter_electricity ?? "") && updateInspection.mutate({ meter_electricity: e.target.value } as any)}
+                />
+              </div>
+              <div>
+                <Label>Eau (m³)</Label>
+                <Input
+                  defaultValue={insp.meter_water ?? ""}
+                  onBlur={(e) => e.target.value !== (insp.meter_water ?? "") && updateInspection.mutate({ meter_water: e.target.value } as any)}
+                />
+              </div>
+              <div>
+                <Label>Gaz (m³)</Label>
+                <Input
+                  defaultValue={insp.meter_gas ?? ""}
+                  onBlur={(e) => e.target.value !== (insp.meter_gas ?? "") && updateInspection.mutate({ meter_gas: e.target.value } as any)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-base">Notes & dommages</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <Label>Nombre d'occupants</Label>
+                <Input
+                  type="number"
+                  defaultValue={insp.occupants_count ?? ""}
+                  onBlur={(e) => updateInspection.mutate({ occupants_count: e.target.value ? parseInt(e.target.value) : null } as any)}
+                  className="max-w-[140px]"
+                />
+              </div>
+              <div>
+                <Label>Notes générales</Label>
+                <Textarea
+                  defaultValue={insp.notes ?? ""}
+                  onBlur={(e) => e.target.value !== (insp.notes ?? "") && updateInspection.mutate({ notes: e.target.value })}
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label>Dommages observés</Label>
+                <Textarea
+                  defaultValue={insp.damage_notes ?? ""}
+                  onBlur={(e) => e.target.value !== (insp.damage_notes ?? "") && updateInspection.mutate({ damage_notes: e.target.value } as any)}
+                  rows={3}
+                  placeholder="Rayures, taches, casse..."
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB SIGNATURES */}
+        <TabsContent value="signatures" className="space-y-4">
+          <Card>
+            <CardContent className="pt-4">
+              <p className="text-sm text-muted-foreground flex items-start gap-2">
+                <PenLine className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                Les deux parties doivent signer pour valider l'état des lieux. La validation est nécessaire pour finaliser et protéger juridiquement le document.
+              </p>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SignatureCard
+              title="Gestionnaire / Concierge"
+              existingUrl={insp.concierge_signature_url}
+              existingName={insp.concierge_signer_name}
+              onSave={(dataUrl, name) => uploadSignature.mutate({ type: "concierge", dataUrl, signerName: name })}
+              pending={uploadSignature.isPending}
+            />
+            <SignatureCard
+              title="Voyageur"
+              existingUrl={insp.guest_signature_url}
+              existingName={insp.guest_signer_name}
+              onSave={(dataUrl, name) => uploadSignature.mutate({ type: "guest", dataUrl, signerName: name })}
+              pending={uploadSignature.isPending}
+            />
+          </div>
+
+          {!canValidate && insp.status !== "validated" && (
+            <Card className="border-l-4 border-l-yellow-500">
+              <CardContent className="pt-4">
+                <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  Pour valider l'état des lieux, complétez :
+                </p>
+                <ul className="text-sm text-muted-foreground mt-2 ml-6 list-disc">
+                  {!hasPhotos && <li>Au moins 1 photo</li>}
+                  {!insp.concierge_signature_url && <li>Signature du gestionnaire</li>}
+                  {!insp.guest_signature_url && <li>Signature du voyageur</li>}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* TAB HISTORY */}
@@ -540,5 +664,51 @@ function ItemsChecklist({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function SignatureCard({
+  title, existingUrl, existingName, onSave, pending,
+}: {
+  title: string;
+  existingUrl?: string | null;
+  existingName?: string | null;
+  onSave: (dataUrl: string, name: string) => void;
+  pending: boolean;
+}) {
+  const [name, setName] = useState(existingName ?? "");
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center justify-between">
+          {title}
+          {existingUrl && <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200"><CheckCircle2 className="h-3 w-3 mr-1" /> Signé</Badge>}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {existingUrl ? (
+          <div className="space-y-2">
+            <img src={existingUrl} alt={`Signature ${title}`} className="border rounded-md bg-white max-h-32" />
+            {existingName && <p className="text-sm text-muted-foreground">Signé par <strong className="text-foreground">{existingName}</strong></p>}
+            <p className="text-xs text-muted-foreground">Re-signer pour remplacer.</p>
+          </div>
+        ) : null}
+        <div>
+          <Label>Nom du signataire</Label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom complet" />
+        </div>
+        <SignaturePad label="Signature" onSignatureChange={setDataUrl} />
+        <Button
+          size="sm"
+          disabled={!dataUrl || !name.trim() || pending}
+          onClick={() => dataUrl && onSave(dataUrl, name.trim())}
+          className="bg-primary text-primary-foreground"
+        >
+          <PenLine className="h-4 w-4 mr-1" /> Enregistrer la signature
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
