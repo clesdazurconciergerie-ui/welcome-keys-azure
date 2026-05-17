@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   ClipboardList, Play, CheckCircle, Upload, Camera, AlertTriangle,
   Send, MapPin, Calendar, Euro, Loader2, List, CalendarDays, ChevronLeft, ChevronRight,
-  AlertCircle, Clock, Briefcase, TrendingUp, Zap, CalendarRange,
+  AlertCircle, Clock, Briefcase, TrendingUp, Zap, CalendarRange, RefreshCw,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
@@ -19,6 +20,85 @@ import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
 import { useMissionPhotos } from "@/hooks/useMissionPhotos";
 import { PhotoGuide } from "@/components/mission/PhotoGuide";
 import { EmptyState } from "@/components/dashboard/EmptyState";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+
+/* ── Mobile-first Open Mission Card ───────────────────────────── */
+
+interface OpenCardProps {
+  mission: NewMission;
+  conflictWarning: string | null;
+  claiming: boolean;
+  onClaim: () => void;
+  onOpen: () => void;
+}
+
+const typeIcon: Record<string, string> = {
+  cleaning: "🧹",
+  cleaning_checkout: "🧹",
+  checkin: "🔑",
+  checkout: "🚪",
+  maintenance: "🔧",
+};
+
+function OpenMissionCard({ mission, conflictWarning, claiming, onClaim, onOpen }: OpenCardProps) {
+  const date = new Date(mission.start_at);
+  const dateFmt = date.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+  const timeFmt = date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const durationMin = mission.duration_minutes ?? 120;
+  const durationFmt = durationMin >= 60
+    ? `${Math.floor(durationMin / 60)}h${durationMin % 60 ? String(durationMin % 60).padStart(2, "0") : ""}`
+    : `${durationMin}min`;
+  const address = mission.property?.address || mission.property?.name || "Logement";
+
+  return (
+    <Card className="w-full border border-border shadow-sm rounded-lg overflow-hidden">
+      <CardContent className="p-0">
+        <button onClick={onOpen} className="block w-full text-left p-4 active:bg-muted/40">
+          <div className="flex items-start gap-2">
+            <span className="text-xl leading-none mt-0.5" aria-hidden>
+              {typeIcon[mission.mission_type] ?? "📋"}
+            </span>
+            <p className="font-bold text-foreground text-base leading-snug flex-1 break-words">
+              {address}
+            </p>
+          </div>
+
+          <div className="mt-3 font-semibold" style={{ color: "#061452", fontSize: 20, lineHeight: 1.2 }}>
+            {dateFmt} · {timeFmt}
+          </div>
+
+          <div className="mt-2 flex items-center gap-4 text-sm">
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <Clock className="w-4 h-4" /> {durationFmt}
+            </span>
+            <span className="inline-flex items-center gap-1.5 font-bold text-emerald-600">
+              <Euro className="w-4 h-4" /> {mission.payout_amount} €
+            </span>
+          </div>
+
+          {conflictWarning && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              {conflictWarning}
+            </div>
+          )}
+        </button>
+
+        <div className="p-3 pt-0">
+          <Button
+            onClick={onClaim}
+            disabled={claiming}
+            className="w-full text-white font-semibold rounded-lg"
+            style={{ backgroundColor: "#061452", height: 56, fontSize: 16 }}
+          >
+            {claiming ? <Loader2 className="w-5 h-5 animate-spin" /> : "Prendre cette mission"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 function getPropertyPhoto(mission: NewMission): string | null {
   const photos = mission.property?.property_photos;
@@ -282,7 +362,8 @@ function MiniCalendar({ missions, onSelect }: { missions: NewMission[]; onSelect
 /* ── Main Page ────────────────────────────────────────────────── */
 
 export default function SPMissionsUnifiedPage() {
-  const { missions: newMissions, isLoading: loadingNew, claimMission, confirmMission, markDone } = useNewMissions("provider");
+  const navigate = useNavigate();
+  const { missions: newMissions, isLoading: loadingNew, claimMission, confirmMission, markDone, refetch: refetchNew } = useNewMissions("provider");
   const { missions: legacyMissions, isLoading: loadingLegacy, startMission, completeMission, uploadPhoto, refetch } = useMissions("service_provider");
   const { spId } = useIsServiceProvider();
 
@@ -301,7 +382,14 @@ export default function SPMissionsUnifiedPage() {
 
   const isLoading = loadingNew || loadingLegacy;
 
-  const openMissions = newMissions.filter(m => m.status === "open");
+  const openMissions = useMemo(
+    () => newMissions.filter(m => m.status === "open").sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()),
+    [newMissions]
+  );
+
+  const { ref: pullRef, pull, refreshing } = usePullToRefresh({
+    onRefresh: async () => { await refetchNew(); await refetch(); },
+  });
   const myNewMissions = newMissions.filter(
     m => m.selected_provider_id && spId && ["assigned", "confirmed", "done", "approved"].includes(m.status)
   );
@@ -513,16 +601,16 @@ export default function SPMissionsUnifiedPage() {
                         instructions={m.instructions}
                         status={m.status}
                         propertyPhotoUrl={getPropertyPhoto(m)}
-                        onClick={() => setSelectedNewMission(m)}
+                        onClick={() => navigate(`/prestataire/missions/${m.id}`)}
                         actions={
                           <>
                             {m.status === "assigned" && (
-                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedNewMission(m); }}>
+                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); navigate(`/prestataire/missions/${m.id}`); }}>
                                 <Camera className="w-3.5 h-3.5 mr-1" /> Détail & Photos
                               </Button>
                             )}
                             {["done", "approved"].includes(m.status) && (
-                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedNewMission(m); }}>
+                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); navigate(`/prestataire/missions/${m.id}`); }}>
                                 Voir la mission
                               </Button>
                             )}
@@ -575,52 +663,48 @@ export default function SPMissionsUnifiedPage() {
           )}
         </TabsContent>
 
-        {/* ── Tab: Ouvertes ────────────────────────────────────── */}
+        {/* ── Tab: Ouvertes (mobile-first) ─────────────────────── */}
         <TabsContent value="ouvertes" className="mt-4">
-          {openMissions.length === 0 ? (
-            <EmptyState
-              icon={CalendarRange}
-              title="Aucune mission disponible pour le moment"
-              description="Vous recevrez une notification dès qu'une mission correspondant à votre zone est disponible."
-            />
-          ) : (
-            <div className="space-y-3">
-              {openMissions.map((m, i) => {
-                const conflict = getConflict(m);
-                return (
-                  <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-                    <MissionCard
-                      title={m.title}
-                      propertyName={m.property?.name}
-                      dateStr={fmtDate(m.start_at)}
-                      rawDate={m.start_at}
-                      missionType={m.mission_type}
-                      payoutAmount={m.payout_amount}
-                      instructions={m.instructions}
-                      status={m.status}
-                      propertyPhotoUrl={getPropertyPhoto(m)}
-                      conflictWarning={conflict}
-                      actions={
-                        <Button
-                          size="sm"
-                          className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                          disabled={claimingId === m.id}
-                          onClick={(e) => { e.stopPropagation(); handleClaim(m.id); }}
-                        >
-                          {claimingId === m.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Zap className="w-3.5 h-3.5" />
-                          )}
-                          Prendre la mission
-                        </Button>
-                      }
-                    />
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
+          <div
+            ref={pullRef}
+            className="relative"
+            style={{ transform: pull > 0 ? `translateY(${pull}px)` : undefined, transition: pull === 0 ? "transform 200ms" : undefined }}
+          >
+            {(pull > 0 || refreshing) && (
+              <div
+                className="absolute -top-10 left-0 right-0 flex items-center justify-center gap-1.5 text-xs text-muted-foreground"
+                style={{ opacity: Math.min(pull / 70, 1) }}
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+                {refreshing ? "Rafraîchissement…" : pull >= 70 ? "Relâcher pour rafraîchir" : "Tirez pour rafraîchir"}
+              </div>
+            )}
+
+            {openMissions.length === 0 ? (
+              <EmptyState
+                icon={CalendarRange}
+                title="Aucune mission disponible pour le moment"
+                description="Vous recevrez une notification dès qu'une mission correspondant à votre zone est disponible."
+              />
+            ) : (
+              <div className="space-y-3">
+                {openMissions.map((m, i) => {
+                  const conflict = getConflict(m);
+                  return (
+                    <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+                      <OpenMissionCard
+                        mission={m}
+                        conflictWarning={conflict}
+                        claiming={claimingId === m.id}
+                        onClaim={() => handleClaim(m.id)}
+                        onOpen={() => navigate(`/prestataire/missions/${m.id}`)}
+                      />
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 

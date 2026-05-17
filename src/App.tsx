@@ -69,6 +69,7 @@ import InspectionTemplatesPage from "./pages/dashboard/InspectionTemplatesPage";
 import InspectionsAdminPage from "./pages/dashboard/InspectionsAdminPage";
 import SPDashboardHome from "./pages/service-provider/SPDashboardHome";
 import SPMissionsUnifiedPage from "./pages/service-provider/SPMissionsUnifiedPage";
+import SPMissionDetailPage from "./pages/service-provider/SPMissionDetailPage";
 import SPPlanningPage from "./pages/service-provider/SPPlanningPage";
 import SPHistoryPage from "./pages/service-provider/SPHistoryPage";
 import SPPaymentsPage from "./pages/service-provider/SPPaymentsPage";
@@ -169,6 +170,7 @@ const App = () => (
           <Route path="/prestataire" element={<ServiceProviderDashboardLayout />}>
             <Route index element={<SPDashboardHome />} />
             <Route path="missions" element={<SPMissionsUnifiedPage />} />
+            <Route path="missions/:id" element={<SPMissionDetailPage />} />
             <Route path="historique" element={<SPHistoryPage />} />
             <Route path="paiements" element={<SPPaymentsPage />} />
             <Route path="materiel" element={<SPMaterialPage />} />
