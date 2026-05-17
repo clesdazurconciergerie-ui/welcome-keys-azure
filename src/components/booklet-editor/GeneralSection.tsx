@@ -197,7 +197,7 @@ export default function GeneralSection({ data, onChange, onGenerate, generating 
             type="email"
             value={data.contactEmail}
             onChange={(e) => onChange({ contactEmail: e.target.value })}
-            placeholder="contact@clesdazur.com"
+            placeholder="contact@welkom.com"
           />
         </div>
 

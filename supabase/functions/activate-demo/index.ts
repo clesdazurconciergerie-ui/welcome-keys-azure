@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
           accent_color: '#18c0df',
           background_color: '#ffffff',
           text_color: '#1a1a1a',
-          concierge_name: 'Clés d\'Azur',
+          concierge_name: 'Welkom',
           logo_url: '',
           timezone: 'Europe/Paris',
           language: 'fr'
@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
           .insert({
             booklet_id: bookletId,
             contact_phone: '+33 6 12 34 56 78',
-            contact_email: 'contact@clesdazur.fr'
+            contact_email: 'contact@welkom.com'
           });
 
         // Add FAQ entries

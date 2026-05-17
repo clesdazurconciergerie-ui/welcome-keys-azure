@@ -166,7 +166,7 @@ export default function ChatWidget({ pin, locale = 'fr' }: ChatWidgetProps) {
           >
             <div className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5" />
-              <h3 id="chat-header" className="font-semibold">Assistance · Clés d'Azur</h3>
+              <h3 id="chat-header" className="font-semibold">Assistance · Welkom</h3>
             </div>
             <Button
               onClick={() => setIsOpen(false)}

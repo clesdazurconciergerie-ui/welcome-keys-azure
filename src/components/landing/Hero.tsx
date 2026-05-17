@@ -183,8 +183,7 @@ const Hero = () => {
             {/* Badge */}
             <motion.div variants={itemVariants} className="mb-6">
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium tracking-wide border border-gold/30 text-gold bg-gold/10 backdrop-blur-sm">
-                <img src="/brand/logo-azur-keys.png" alt="" className="w-4 h-4 object-contain brightness-0 invert" />
-                Développé par Azur Keys Conciergerie
+                Welkom — Plateforme pour conciergeries
               </span>
             </motion.div>
 

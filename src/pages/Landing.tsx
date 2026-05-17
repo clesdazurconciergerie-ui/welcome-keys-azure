@@ -19,9 +19,9 @@ const Landing = () => {
     <>
       <EntryModal />
       <SEOHead
-        title="MyWelkom by Azur Keys - Plateforme Digitale Premium pour Conciergeries"
-        description="La plateforme digitale pensée pour les conciergeries orientées performance. CRM, livret d'accueil digital, espace propriétaire, dashboard analytics. Développé par Azur Keys Conciergerie."
-        keywords="plateforme conciergerie, logiciel conciergerie, gestion conciergerie, livret d'accueil digital, espace propriétaire, CRM conciergerie, MyWelkom, Azur Keys, dashboard performance, conciergerie premium"
+        title="Welkom — Plateforme de gestion pour conciergeries"
+        description="Welkom — Plateforme de gestion pour conciergeries. CRM, livret d'accueil digital, espace propriétaire, dashboard analytics."
+        keywords="plateforme conciergerie, logiciel conciergerie, gestion conciergerie, livret d'accueil digital, espace propriétaire, CRM conciergerie, Welkom, dashboard performance"
       />
       <div className="min-h-screen bg-background">
         <Navigation />

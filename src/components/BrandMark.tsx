@@ -33,10 +33,7 @@ const BrandMark = ({ variant = "full", className, showIcon = true, light = false
         )}
         <div className="flex flex-col">
           <span className={cn("font-display font-bold text-base sm:text-lg leading-tight tracking-tight", textColor)}>
-            MyWelkom
-          </span>
-          <span className={cn("text-[9px] sm:text-[10px] tracking-widest uppercase leading-tight", subColor)}>
-            by Azur Keys
+            Welkom
           </span>
         </div>
       </div>
@@ -54,11 +51,8 @@ const BrandMark = ({ variant = "full", className, showIcon = true, light = false
         />
       )}
       <h1 className={cn("font-display font-bold text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-tight tracking-tight", textColor)}>
-        MyWelkom
+        Welkom
       </h1>
-      <p className={cn("text-xs sm:text-sm md:text-base mt-1 sm:mt-2 tracking-widest uppercase", subColor)}>
-        by Azur Keys
-      </p>
     </div>
   );
 };

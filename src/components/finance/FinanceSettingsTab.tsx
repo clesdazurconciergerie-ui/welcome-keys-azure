@@ -107,7 +107,7 @@ export function FinanceSettingsTab() {
       <Card>
         <CardHeader><CardTitle className="text-base">Informations de la société</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div><Label>Nom de la société</Label><Input value={form.company_name} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} placeholder="Azur Keys" /></div>
+          <div><Label>Nom de la société</Label><Input value={form.company_name} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} placeholder="Welkom" /></div>
           <div><Label>Adresse (rue)</Label><Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="35 chemin du castellas" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Code postal</Label><Input value={form.org_postal_code} onChange={e => setForm(f => ({ ...f, org_postal_code: e.target.value }))} placeholder="83700" /></div>

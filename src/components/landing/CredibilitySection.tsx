@@ -18,16 +18,11 @@ const CredibilitySection = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-14"
         >
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-white/[0.08] border border-white/[0.1] flex items-center justify-center backdrop-blur-sm">
-              <img src="/brand/logo-azur-keys.png" alt="Azur Keys" className="w-8 h-8 brightness-0 invert" />
-            </div>
-          </div>
           <h2 className="!text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-tight mb-4 text-white">
             Une technologie issue du terrain
           </h2>
           <p className="text-white/60 max-w-2xl mx-auto">
-            MyWelkom est développé par Azur Keys, conciergerie premium opérant sur la Côte d'Azur.
+            Welkom est conçu par et pour des professionnels de la conciergerie.
             Chaque fonctionnalité est née d'un besoin réel, testée en conditions opérationnelles.
           </p>
         </motion.div>

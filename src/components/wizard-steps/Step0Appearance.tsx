@@ -395,7 +395,7 @@ export default function Step0Appearance({ bookletId, onNext }: Step0AppearancePr
                   branding: { ...prev.branding, concierge_name: e.target.value }
                 }))
               }
-              placeholder="Ex: Clés d'Azur"
+              placeholder="Ex: Welkom"
             />
           </div>
           <div>

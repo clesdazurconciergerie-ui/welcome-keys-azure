@@ -111,10 +111,7 @@ export function DashboardSidebar() {
               </div>
               <div className="flex flex-col">
                 <span className="font-display font-bold text-[17px] leading-tight tracking-tight text-white">
-                  MyWelkom
-                </span>
-                <span className="text-[9px] tracking-[0.2em] uppercase leading-tight text-[hsl(var(--gold))]/70 font-medium">
-                  by Azur Keys
+                  Welkom
                 </span>
               </div>
             </div>

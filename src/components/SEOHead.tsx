@@ -10,14 +10,14 @@ interface SEOHeadProps {
 }
 
 const SEOHead = ({
-  title = "MyWelkom - Livret d'Accueil Digital pour Conciergerie et Location Saisonnière",
-  description = "Créez facilement un livret d'accueil numérique interactif pour vos locations saisonnières. Logiciel de conciergerie tout-en-un avec chatbot IA, QR code et gestion centralisée.",
-  keywords = "livret d'accueil digital, livret de bienvenue numérique, conciergerie digitale, logiciel conciergerie, MyWelkom",
+  title = "Welkom — Plateforme de gestion pour conciergeries",
+  description = "Welkom — Plateforme de gestion pour conciergeries. CRM, livret d'accueil digital, espace propriétaire et dashboard analytics.",
+  keywords = "livret d'accueil digital, livret de bienvenue numérique, conciergerie digitale, logiciel conciergerie, Welkom",
   canonicalUrl,
   ogImage = "https://storage.googleapis.com/gpt-engineer-file-uploads/uosWehRoi8X4kzE0b6KxmynEuFj2/social-images/social-1761358045619-Untitled design (1).png"
 }: SEOHeadProps) => {
   const location = useLocation();
-  const baseUrl = "https://mywelkom.fr";
+  const baseUrl = "https://mywelkom.com";
   const fullUrl = canonicalUrl || `${baseUrl}${location.pathname}`;
 
   useEffect(() => {
