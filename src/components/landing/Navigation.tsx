@@ -78,7 +78,7 @@ const Navigation = () => {
   const navLinks = [
     { label: "Accueil", href: "/", isRoute: true },
     { label: "Fonctionnalités", id: "features" },
-    { label: "Tarifs", href: "/tarifs", isRoute: true },
+    { label: "Tarifs", href: "/pricing", isRoute: true },
     { label: "Accéder à un livret", href: "/acces-livret", isRoute: true },
   ];
 
