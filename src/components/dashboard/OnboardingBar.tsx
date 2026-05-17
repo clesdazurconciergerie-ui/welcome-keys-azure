@@ -16,7 +16,7 @@ type StepDef = {
 };
 
 const STEPS: StepDef[] = [
-  { key: "logement", label: "Ajouter un logement", to: "/dashboard/properties", icon: Home },
+  { key: "logement", label: "Ajouter un logement", to: "/dashboard/logements", icon: Home },
   { key: "ical", label: "Connecter un calendrier iCal", to: "/dashboard/channel-manager", icon: CalendarSync },
   { key: "livret", label: "Créer un livret voyageur", to: "/dashboard/livrets", icon: BookOpen },
   { key: "prestataire", label: "Inviter un prestataire", to: "/dashboard/prestataires", icon: Users },
