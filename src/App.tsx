@@ -18,6 +18,7 @@ import ExampleConciergeries from "./pages/ExampleConciergeries";
 import ExampleMaisonsDHotes from "./pages/ExampleMaisonsDHotes";
 import ExampleHotelsResidences from "./pages/ExampleHotelsResidences";
 import Pricing from "./pages/Pricing";
+import PricingNew from "./pages/PricingNew";
 import BillingSuccess from "./pages/BillingSuccess";
 import ExpiredDemoPage from "./components/ExpiredDemoPage";
 import DemoDashboardLayout from "./layouts/DemoDashboardLayout";
@@ -105,6 +106,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/tarifs" element={<Pricing />} />
+          <Route path="/pricing" element={<PricingNew />} />
           <Route path="/billing/success" element={<BillingSuccess />} />
           <Route path="/acces-livret" element={<AccessBooklet />} />
           <Route path="/auth" element={<Auth />} />
