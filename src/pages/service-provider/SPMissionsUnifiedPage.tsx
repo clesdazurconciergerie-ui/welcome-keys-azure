@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   ClipboardList, Play, CheckCircle, Upload, Camera, AlertTriangle,
   Send, MapPin, Calendar, Euro, Loader2, List, CalendarDays, ChevronLeft, ChevronRight,
-  AlertCircle, Clock, Briefcase, TrendingUp, Zap, CalendarRange,
+  AlertCircle, Clock, Briefcase, TrendingUp, Zap, CalendarRange, RefreshCw,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
@@ -19,6 +20,85 @@ import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
 import { useMissionPhotos } from "@/hooks/useMissionPhotos";
 import { PhotoGuide } from "@/components/mission/PhotoGuide";
 import { EmptyState } from "@/components/dashboard/EmptyState";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+
+/* ── Mobile-first Open Mission Card ───────────────────────────── */
+
+interface OpenCardProps {
+  mission: NewMission;
+  conflictWarning: string | null;
+  claiming: boolean;
+  onClaim: () => void;
+  onOpen: () => void;
+}
+
+const typeIcon: Record<string, string> = {
+  cleaning: "🧹",
+  cleaning_checkout: "🧹",
+  checkin: "🔑",
+  checkout: "🚪",
+  maintenance: "🔧",
+};
+
+function OpenMissionCard({ mission, conflictWarning, claiming, onClaim, onOpen }: OpenCardProps) {
+  const date = new Date(mission.start_at);
+  const dateFmt = date.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+  const timeFmt = date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const durationMin = mission.duration_minutes ?? 120;
+  const durationFmt = durationMin >= 60
+    ? `${Math.floor(durationMin / 60)}h${durationMin % 60 ? String(durationMin % 60).padStart(2, "0") : ""}`
+    : `${durationMin}min`;
+  const address = mission.property?.address || mission.property?.name || "Logement";
+
+  return (
+    <Card className="w-full border border-border shadow-sm rounded-lg overflow-hidden">
+      <CardContent className="p-0">
+        <button onClick={onOpen} className="block w-full text-left p-4 active:bg-muted/40">
+          <div className="flex items-start gap-2">
+            <span className="text-xl leading-none mt-0.5" aria-hidden>
+              {typeIcon[mission.mission_type] ?? "📋"}
+            </span>
+            <p className="font-bold text-foreground text-base leading-snug flex-1 break-words">
+              {address}
+            </p>
+          </div>
+
+          <div className="mt-3 font-semibold" style={{ color: "#061452", fontSize: 20, lineHeight: 1.2 }}>
+            {dateFmt} · {timeFmt}
+          </div>
+
+          <div className="mt-2 flex items-center gap-4 text-sm">
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <Clock className="w-4 h-4" /> {durationFmt}
+            </span>
+            <span className="inline-flex items-center gap-1.5 font-bold text-emerald-600">
+              <Euro className="w-4 h-4" /> {mission.payout_amount} €
+            </span>
+          </div>
+
+          {conflictWarning && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              {conflictWarning}
+            </div>
+          )}
+        </button>
+
+        <div className="p-3 pt-0">
+          <Button
+            onClick={onClaim}
+            disabled={claiming}
+            className="w-full text-white font-semibold rounded-lg"
+            style={{ backgroundColor: "#061452", height: 56, fontSize: 16 }}
+          >
+            {claiming ? <Loader2 className="w-5 h-5 animate-spin" /> : "Prendre cette mission"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 function getPropertyPhoto(mission: NewMission): string | null {
   const photos = mission.property?.property_photos;
