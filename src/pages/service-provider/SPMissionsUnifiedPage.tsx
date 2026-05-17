@@ -362,7 +362,8 @@ function MiniCalendar({ missions, onSelect }: { missions: NewMission[]; onSelect
 /* ── Main Page ────────────────────────────────────────────────── */
 
 export default function SPMissionsUnifiedPage() {
-  const { missions: newMissions, isLoading: loadingNew, claimMission, confirmMission, markDone } = useNewMissions("provider");
+  const navigate = useNavigate();
+  const { missions: newMissions, isLoading: loadingNew, claimMission, confirmMission, markDone, refetch: refetchNew } = useNewMissions("provider");
   const { missions: legacyMissions, isLoading: loadingLegacy, startMission, completeMission, uploadPhoto, refetch } = useMissions("service_provider");
   const { spId } = useIsServiceProvider();
 
