@@ -663,52 +663,48 @@ export default function SPMissionsUnifiedPage() {
           )}
         </TabsContent>
 
-        {/* ── Tab: Ouvertes ────────────────────────────────────── */}
+        {/* ── Tab: Ouvertes (mobile-first) ─────────────────────── */}
         <TabsContent value="ouvertes" className="mt-4">
-          {openMissions.length === 0 ? (
-            <EmptyState
-              icon={CalendarRange}
-              title="Aucune mission disponible pour le moment"
-              description="Vous recevrez une notification dès qu'une mission correspondant à votre zone est disponible."
-            />
-          ) : (
-            <div className="space-y-3">
-              {openMissions.map((m, i) => {
-                const conflict = getConflict(m);
-                return (
-                  <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-                    <MissionCard
-                      title={m.title}
-                      propertyName={m.property?.name}
-                      dateStr={fmtDate(m.start_at)}
-                      rawDate={m.start_at}
-                      missionType={m.mission_type}
-                      payoutAmount={m.payout_amount}
-                      instructions={m.instructions}
-                      status={m.status}
-                      propertyPhotoUrl={getPropertyPhoto(m)}
-                      conflictWarning={conflict}
-                      actions={
-                        <Button
-                          size="sm"
-                          className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                          disabled={claimingId === m.id}
-                          onClick={(e) => { e.stopPropagation(); handleClaim(m.id); }}
-                        >
-                          {claimingId === m.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Zap className="w-3.5 h-3.5" />
-                          )}
-                          Prendre la mission
-                        </Button>
-                      }
-                    />
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
+          <div
+            ref={pullRef}
+            className="relative"
+            style={{ transform: pull > 0 ? `translateY(${pull}px)` : undefined, transition: pull === 0 ? "transform 200ms" : undefined }}
+          >
+            {(pull > 0 || refreshing) && (
+              <div
+                className="absolute -top-10 left-0 right-0 flex items-center justify-center gap-1.5 text-xs text-muted-foreground"
+                style={{ opacity: Math.min(pull / 70, 1) }}
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+                {refreshing ? "Rafraîchissement…" : pull >= 70 ? "Relâcher pour rafraîchir" : "Tirez pour rafraîchir"}
+              </div>
+            )}
+
+            {openMissions.length === 0 ? (
+              <EmptyState
+                icon={CalendarRange}
+                title="Aucune mission disponible pour le moment"
+                description="Vous recevrez une notification dès qu'une mission correspondant à votre zone est disponible."
+              />
+            ) : (
+              <div className="space-y-3">
+                {openMissions.map((m, i) => {
+                  const conflict = getConflict(m);
+                  return (
+                    <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+                      <OpenMissionCard
+                        mission={m}
+                        conflictWarning={conflict}
+                        claiming={claimingId === m.id}
+                        onClaim={() => handleClaim(m.id)}
+                        onOpen={() => navigate(`/prestataire/missions/${m.id}`)}
+                      />
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
