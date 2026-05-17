@@ -457,6 +457,11 @@ interface DemoContextValue {
   demoInspections: Inspection[];
   demoProspects: Prospect[];
   demoBookings: Booking[];
+  demoServiceProviders: DemoProvider_t[];
+  demoOwners: DemoOwner_t[];
+  demoBooklets: DemoBooklet_t[];
+  demoBookletPin: string;
+  demoFinance: DemoFinance_t;
   demoUserName: string;
   demoBookletCount: number;
   blockAction: () => void;
