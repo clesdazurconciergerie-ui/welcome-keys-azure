@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://mywelkom.fr/sitemap.xml
+Sitemap: https://mywelkom.com/sitemap.xml
