@@ -1,0 +1,25 @@
+{
+  "name": "Welkom Prestataire",
+  "short_name": "Welkom",
+  "description": "Portail prestataire Welkom — missions et notifications",
+  "start_url": "/prestataire",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#061452",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/brand/logo-wlekom-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/brand/logo-wlekom-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
