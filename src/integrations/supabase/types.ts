@@ -4469,6 +4469,8 @@ export type Database = {
           last_name: string
           notes: string | null
           phone: string | null
+          push_enabled: boolean
+          push_token: string | null
           score_global: number
           specialty: string
           status: string
@@ -4484,6 +4486,8 @@ export type Database = {
           last_name: string
           notes?: string | null
           phone?: string | null
+          push_enabled?: boolean
+          push_token?: string | null
           score_global?: number
           specialty?: string
           status?: string
@@ -4499,6 +4503,8 @@ export type Database = {
           last_name?: string
           notes?: string | null
           phone?: string | null
+          push_enabled?: boolean
+          push_token?: string | null
           score_global?: number
           specialty?: string
           status?: string
