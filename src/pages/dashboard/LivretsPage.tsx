@@ -4,10 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, FileText, Loader2 } from "lucide-react";
+import { Plus, BookOpen, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import BookletCard from "@/components/dashboard/BookletCard";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { EmptyState } from "@/components/dashboard/EmptyState";
 
 interface Pin {
   pin_code: string;
@@ -136,17 +137,16 @@ const LivretsPage = () => {
       </div>
 
       {booklets.length === 0 ? (
-        <Card className="text-center py-16 border-border">
-          <CardContent className="pt-6">
-            <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground/40" />
-            <h3 className="text-xl font-semibold text-foreground mb-2">Aucun livret</h3>
-            <p className="text-muted-foreground mb-6">Créez votre premier livret d'accueil</p>
-            <Button onClick={() => navigate("/booklets/new")} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              <Plus className="w-4 h-4 mr-2" />
-              Créer mon premier livret
-            </Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={BookOpen}
+          title="Créez votre premier livret voyageur"
+          description="Un livret numérique avec QR code pour guider vos voyageurs : Wi-Fi, règles, lieux à visiter, chatbot IA."
+          action={{
+            label: "Créer un livret",
+            onClick: () => navigate("/booklets/new"),
+            variant: "primary",
+          }}
+        />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {booklets.map((booklet, index) => (
