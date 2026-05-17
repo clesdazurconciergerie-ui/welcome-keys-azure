@@ -56,6 +56,7 @@ export default function DashboardLayout() {
             <NotificationsBell />
             <span className="text-xs text-muted-foreground font-medium">{userEmail}</span>
           </header>
+          <OnboardingBar />
           <main className="flex-1 p-5 md:p-8 overflow-auto">
             <Outlet />
           </main>
