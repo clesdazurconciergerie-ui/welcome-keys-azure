@@ -4966,6 +4966,9 @@ export type Database = {
           has_used_demo: boolean | null
           id: string
           latest_checkout_session_id: string | null
+          onboarding_completed: boolean
+          onboarding_completed_at: string | null
+          onboarding_steps: Json
           plan: string
           role: string
           stripe_customer_id: string | null
@@ -4983,6 +4986,9 @@ export type Database = {
           has_used_demo?: boolean | null
           id: string
           latest_checkout_session_id?: string | null
+          onboarding_completed?: boolean
+          onboarding_completed_at?: string | null
+          onboarding_steps?: Json
           plan?: string
           role?: string
           stripe_customer_id?: string | null
@@ -5000,6 +5006,9 @@ export type Database = {
           has_used_demo?: boolean | null
           id?: string
           latest_checkout_session_id?: string | null
+          onboarding_completed?: boolean
+          onboarding_completed_at?: string | null
+          onboarding_steps?: Json
           plan?: string
           role?: string
           stripe_customer_id?: string | null

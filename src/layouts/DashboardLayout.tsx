@@ -8,6 +8,7 @@ import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
 import { Loader2, Menu } from "lucide-react";
 import { GuidedTourProvider } from "@/components/onboarding/GuidedTourProvider";
 import { NotificationsBell } from "@/components/notifications/NotificationsBell";
+import { OnboardingBar } from "@/components/dashboard/OnboardingBar";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
@@ -55,6 +56,7 @@ export default function DashboardLayout() {
             <NotificationsBell />
             <span className="text-xs text-muted-foreground font-medium">{userEmail}</span>
           </header>
+          <OnboardingBar />
           <main className="flex-1 p-5 md:p-8 overflow-auto">
             <Outlet />
           </main>
