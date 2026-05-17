@@ -601,16 +601,16 @@ export default function SPMissionsUnifiedPage() {
                         instructions={m.instructions}
                         status={m.status}
                         propertyPhotoUrl={getPropertyPhoto(m)}
-                        onClick={() => setSelectedNewMission(m)}
+                        onClick={() => navigate(`/prestataire/missions/${m.id}`)}
                         actions={
                           <>
                             {m.status === "assigned" && (
-                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedNewMission(m); }}>
+                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); navigate(`/prestataire/missions/${m.id}`); }}>
                                 <Camera className="w-3.5 h-3.5 mr-1" /> Détail & Photos
                               </Button>
                             )}
                             {["done", "approved"].includes(m.status) && (
-                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedNewMission(m); }}>
+                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); navigate(`/prestataire/missions/${m.id}`); }}>
                                 Voir la mission
                               </Button>
                             )}
