@@ -12,22 +12,26 @@ import { toast } from "sonner";
 
 const DEMO_PROPERTY_1_ID = "demo-prop-001";
 const DEMO_PROPERTY_2_ID = "demo-prop-002";
+const DEMO_SP_1_ID = "demo-sp-001";
+const DEMO_SP_2_ID = "demo-sp-002";
+const DEMO_OWNER_1_ID = "demo-owner-001";
+const DEMO_BOOKLET_PIN = "DEMO1234";
 
 const DEMO_PROPERTIES: Property[] = [
   {
     id: DEMO_PROPERTY_1_ID,
     user_id: "demo-user",
-    name: "Villa La Palmeraie",
-    address: "24 Chemin des Oliviers",
-    city: "Nice",
-    postcode: "06000",
+    name: "Villa Azur",
+    address: "12 Avenue des Pins",
+    city: "Antibes",
+    postcode: "06600",
     country: "France",
-    surface_m2: 120,
-    capacity: 6,
-    bedrooms: 3,
-    bathrooms: 2,
+    surface_m2: 180,
+    capacity: 8,
+    bedrooms: 4,
+    bathrooms: 3,
     property_type: "villa",
-    avg_nightly_rate: 180,
+    avg_nightly_rate: 220,
     pricing_strategy: null,
     photos: [],
     amenities: [],
@@ -39,17 +43,17 @@ const DEMO_PROPERTIES: Property[] = [
   {
     id: DEMO_PROPERTY_2_ID,
     user_id: "demo-user",
-    name: "Les Jardins de Géolia",
-    address: "8 Avenue des Fleurs",
+    name: "Studio Cannes Croisette",
+    address: "45 Boulevard de la Croisette",
     city: "Cannes",
     postcode: "06400",
     country: "France",
-    surface_m2: 85,
-    capacity: 4,
-    bedrooms: 2,
+    surface_m2: 32,
+    capacity: 2,
+    bedrooms: 0,
     bathrooms: 1,
-    property_type: "apartment",
-    avg_nightly_rate: 130,
+    property_type: "studio",
+    avg_nightly_rate: 140,
     pricing_strategy: null,
     photos: [],
     amenities: [],
@@ -72,7 +76,7 @@ const DEMO_INTERVENTIONS: CleaningIntervention[] = [
   {
     id: "demo-int-001",
     property_id: DEMO_PROPERTY_1_ID,
-    service_provider_id: "demo-sp-001",
+    service_provider_id: DEMO_SP_1_ID,
     concierge_user_id: "demo-user",
     scheduled_date: fmt(today),
     scheduled_start_time: fmt(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 10, 0)),
@@ -94,36 +98,8 @@ const DEMO_INTERVENTIONS: CleaningIntervention[] = [
     payment_done: false,
     created_at: fmt(addDays(today, -1)),
     updated_at: fmt(today),
-    property: { name: "Villa La Palmeraie", address: "24 Chemin des Oliviers" },
-    service_provider: { first_name: "Sophie", last_name: "Dupont", email: "sophie@demo.com", phone: null, score_global: 4.8 },
-  },
-  {
-    id: "demo-int-002",
-    property_id: DEMO_PROPERTY_2_ID,
-    service_provider_id: "demo-sp-002",
-    concierge_user_id: "demo-user",
-    scheduled_date: fmt(today),
-    scheduled_start_time: fmt(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 14, 0)),
-    scheduled_end_time: fmt(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 15, 30)),
-    actual_start_time: null,
-    actual_end_time: null,
-    completed_at: null,
-    status: "scheduled",
-    type: "cleaning",
-    mission_type: "checkin",
-    notes: "Accueil voyageurs — famille Garcia",
-    concierge_notes: null,
-    admin_comment: null,
-    provider_comment: null,
-    checklist_validated: false,
-    internal_score: null,
-    punctuality_score: null,
-    mission_amount: 60,
-    payment_done: false,
-    created_at: fmt(addDays(today, -2)),
-    updated_at: fmt(today),
-    property: { name: "Les Jardins de Géolia", address: "8 Avenue des Fleurs" },
-    service_provider: { first_name: "Julien", last_name: "Martin", email: "julien@demo.com", phone: null, score_global: 4.5 },
+    property: { name: "Villa Azur", address: "12 Avenue des Pins" },
+    service_provider: { first_name: "Marie", last_name: "Dupont", email: "marie@demo.com", phone: null, score_global: 4.8 },
   },
 ];
 
@@ -133,53 +109,53 @@ const DEMO_MISSIONS: NewMission[] = [
     user_id: "demo-user",
     property_id: DEMO_PROPERTY_1_ID,
     mission_type: "cleaning_checkout",
-    title: "Ménage (check-out) — Villa La Palmeraie",
+    title: "Ménage (check-out) — Villa Azur",
     instructions: "Nettoyage complet + changement draps",
     start_at: fmt(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 10, 0)),
     end_at: fmt(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12, 0)),
     duration_minutes: 120,
     payout_amount: 85,
-    status: "confirmed",
-    selected_provider_id: "demo-sp-001",
+    status: "in_progress",
+    selected_provider_id: DEMO_SP_1_ID,
     created_at: fmt(addDays(today, -3)),
     updated_at: fmt(today),
-    property: { name: "Villa La Palmeraie", address: "24 Chemin des Oliviers" },
-    selected_provider: { first_name: "Sophie", last_name: "Dupont", email: "sophie@demo.com", phone: null },
+    property: { name: "Villa Azur", address: "12 Avenue des Pins" },
+    selected_provider: { first_name: "Marie", last_name: "Dupont", email: "marie@demo.com", phone: null },
   },
   {
     id: "demo-mis-002",
     user_id: "demo-user",
     property_id: DEMO_PROPERTY_2_ID,
-    mission_type: "checkin",
-    title: "Accueil voyageurs — Les Jardins de Géolia",
-    instructions: "Remise des clés + visite",
-    start_at: fmt(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 14, 0)),
-    end_at: fmt(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 15, 0)),
-    duration_minutes: 60,
-    payout_amount: 40,
-    status: "draft",
-    selected_provider_id: "demo-sp-002",
-    created_at: fmt(addDays(today, -2)),
+    mission_type: "cleaning_checkout",
+    title: "Ménage (check-out) — Studio Cannes Croisette",
+    instructions: "Ménage standard studio",
+    start_at: fmt(addDays(today, 2)),
+    end_at: fmt(new Date(addDays(today, 2).getFullYear(), addDays(today, 2).getMonth(), addDays(today, 2).getDate(), 13, 0)),
+    duration_minutes: 90,
+    payout_amount: 55,
+    status: "open",
+    selected_provider_id: null,
+    created_at: fmt(today),
     updated_at: fmt(today),
-    property: { name: "Les Jardins de Géolia", address: "8 Avenue des Fleurs" },
-    selected_provider: { first_name: "Julien", last_name: "Martin", email: "julien@demo.com", phone: null },
+    property: { name: "Studio Cannes Croisette", address: "45 Boulevard de la Croisette" },
   },
   {
     id: "demo-mis-003",
     user_id: "demo-user",
     property_id: DEMO_PROPERTY_1_ID,
-    mission_type: "cleaning_checkout",
-    title: "Ménage (check-out) — Villa La Palmeraie",
-    instructions: null,
-    start_at: fmt(addDays(today, 2)),
-    end_at: null,
-    duration_minutes: 120,
-    payout_amount: 85,
-    status: "open",
-    selected_provider_id: null,
-    created_at: fmt(today),
+    mission_type: "maintenance",
+    title: "Maintenance — Villa Azur (climatisation)",
+    instructions: "Vérification et entretien climatiseur salon",
+    start_at: fmt(addDays(today, 4)),
+    end_at: fmt(new Date(addDays(today, 4).getFullYear(), addDays(today, 4).getMonth(), addDays(today, 4).getDate(), 11, 0)),
+    duration_minutes: 60,
+    payout_amount: 95,
+    status: "scheduled",
+    selected_provider_id: DEMO_SP_2_ID,
+    created_at: fmt(addDays(today, -1)),
     updated_at: fmt(today),
-    property: { name: "Villa La Palmeraie", address: "24 Chemin des Oliviers" },
+    property: { name: "Villa Azur", address: "12 Avenue des Pins" },
+    selected_provider: { first_name: "Jean", last_name: "Martin", email: "jean@demo.com", phone: null },
   },
 ];
 
@@ -191,7 +167,7 @@ const DEMO_INSPECTIONS: Inspection[] = [
     booking_id: null,
     linked_inspection_id: null,
     cleaning_intervention_id: null,
-    cleaner_name: "Sophie Dupont",
+    cleaner_name: "Marie Dupont",
     inspection_type: "entry",
     guest_name: "Jean Dupont",
     inspection_date: fmt(addDays(today, -5)),
@@ -209,34 +185,7 @@ const DEMO_INSPECTIONS: Inspection[] = [
     status: "completed",
     created_at: fmt(addDays(today, -5)),
     updated_at: fmt(addDays(today, -5)),
-    property: { name: "Villa La Palmeraie", address: "24 Chemin des Oliviers" },
-  },
-  {
-    id: "demo-insp-002",
-    user_id: "demo-user",
-    property_id: DEMO_PROPERTY_2_ID,
-    booking_id: null,
-    linked_inspection_id: null,
-    cleaning_intervention_id: null,
-    cleaner_name: null,
-    inspection_type: "exit",
-    guest_name: "Sarah Martin",
-    inspection_date: fmt(addDays(today, -1)),
-    occupants_count: 2,
-    meter_electricity: "8920",
-    meter_water: "210",
-    meter_gas: null,
-    general_comment: null,
-    damage_notes: "Petite rayure sur la table du salon.",
-    cleaning_photos_json: [],
-    exit_photos_json: [],
-    concierge_signature_url: null,
-    guest_signature_url: null,
-    pdf_url: null,
-    status: "draft",
-    created_at: fmt(addDays(today, -1)),
-    updated_at: fmt(addDays(today, -1)),
-    property: { name: "Les Jardins de Géolia", address: "8 Avenue des Fleurs" },
+    property: { name: "Villa Azur", address: "12 Avenue des Pins" },
   },
 ];
 
@@ -269,7 +218,7 @@ const DEMO_PROSPECTS: Prospect[] = [
     first_name: "Marie",
     last_name: "Leroy",
     phone: null,
-    email: "marie@demo.com",
+    email: "marie.leroy@demo.com",
     property_address: "42 Boulevard Carnot",
     city: "Nice",
     property_type: "villa",
@@ -285,28 +234,6 @@ const DEMO_PROSPECTS: Prospect[] = [
     created_at: fmt(addDays(today, -7)),
     updated_at: fmt(addDays(today, -1)),
   },
-  {
-    id: "demo-prospect-003",
-    user_id: "demo-user",
-    first_name: "David",
-    last_name: "Moutier",
-    phone: null,
-    email: null,
-    property_address: "3 Chemin des Crêtes",
-    city: "Agay",
-    property_type: "villa",
-    estimated_monthly_revenue: 1800,
-    pipeline_status: "new_contact",
-    source: "inbound",
-    warmth: "cold",
-    first_contact_date: null,
-    last_contact_date: null,
-    score: 20,
-    internal_notes: null,
-    converted_owner_id: null,
-    created_at: fmt(addDays(today, -1)),
-    updated_at: fmt(addDays(today, -1)),
-  },
 ];
 
 const DEMO_BOOKINGS: Booking[] = [
@@ -314,57 +241,211 @@ const DEMO_BOOKINGS: Booking[] = [
     id: "demo-book-001",
     property_id: DEMO_PROPERTY_1_ID,
     user_id: "demo-user",
-    check_in: fmt(addDays(today, -2)),
-    check_out: fmt(today),
+    check_in: fmt(addDays(today, -8)),
+    check_out: fmt(addDays(today, -3)),
     source: "airbnb",
     source_platform: "airbnb",
     is_manual: false,
-    guest_name: "Jean Dupont",
+    guest_name: "Famille Lefèvre",
     guest_email: null,
     guest_phone: null,
-    gross_amount: 720,
-    commission_amount: 108,
+    gross_amount: 1100,
+    commission_amount: 165,
     cleaning_amount: 85,
     checkin_amount: 0,
     maintenance_amount: 0,
     other_deductions: 0,
-    owner_net: 527,
-    concierge_revenue: 193,
+    owner_net: 850,
+    concierge_revenue: 250,
     price_status: "complete",
     financial_status: "confirmed",
     notes: null,
     calendar_event_id: null,
-    created_at: fmt(addDays(today, -10)),
-    property: { name: "Villa La Palmeraie" },
+    created_at: fmt(addDays(today, -20)),
+    property: { name: "Villa Azur" },
   },
   {
     id: "demo-book-002",
     property_id: DEMO_PROPERTY_2_ID,
     user_id: "demo-user",
-    check_in: fmt(addDays(today, 1)),
-    check_out: fmt(addDays(today, 5)),
+    check_in: fmt(addDays(today, -2)),
+    check_out: fmt(today),
     source: "booking",
     source_platform: "booking",
+    is_manual: false,
+    guest_name: "Sophie Bernard",
+    guest_email: null,
+    guest_phone: null,
+    gross_amount: 320,
+    commission_amount: 48,
+    cleaning_amount: 55,
+    checkin_amount: 0,
+    maintenance_amount: 0,
+    other_deductions: 0,
+    owner_net: 217,
+    concierge_revenue: 103,
+    price_status: "complete",
+    financial_status: "confirmed",
+    notes: null,
+    calendar_event_id: null,
+    created_at: fmt(addDays(today, -12)),
+    property: { name: "Studio Cannes Croisette" },
+  },
+  {
+    id: "demo-book-003",
+    property_id: DEMO_PROPERTY_1_ID,
+    user_id: "demo-user",
+    check_in: fmt(addDays(today, 2)),
+    check_out: fmt(addDays(today, 7)),
+    source: "airbnb",
+    source_platform: "airbnb",
     is_manual: false,
     guest_name: "Famille Garcia",
     guest_email: null,
     guest_phone: null,
-    gross_amount: 520,
-    commission_amount: 78,
-    cleaning_amount: 60,
+    gross_amount: 1320,
+    commission_amount: 198,
+    cleaning_amount: 85,
     checkin_amount: 0,
     maintenance_amount: 0,
     other_deductions: 0,
-    owner_net: 382,
-    concierge_revenue: 138,
+    owner_net: 1037,
+    concierge_revenue: 283,
     price_status: "complete",
     financial_status: "pending",
     notes: null,
     calendar_event_id: null,
-    created_at: fmt(addDays(today, -5)),
-    property: { name: "Les Jardins de Géolia" },
+    created_at: fmt(addDays(today, -6)),
+    property: { name: "Villa Azur" },
+  },
+  {
+    id: "demo-book-004",
+    property_id: DEMO_PROPERTY_2_ID,
+    user_id: "demo-user",
+    check_in: fmt(addDays(today, 10)),
+    check_out: fmt(addDays(today, 14)),
+    source: "direct",
+    source_platform: "direct",
+    is_manual: true,
+    guest_name: "Karim Hadj",
+    guest_email: null,
+    guest_phone: null,
+    gross_amount: 600,
+    commission_amount: 0,
+    cleaning_amount: 55,
+    checkin_amount: 0,
+    maintenance_amount: 0,
+    other_deductions: 0,
+    owner_net: 545,
+    concierge_revenue: 110,
+    price_status: "complete",
+    financial_status: "pending",
+    notes: null,
+    calendar_event_id: null,
+    created_at: fmt(addDays(today, -2)),
+    property: { name: "Studio Cannes Croisette" },
+  },
+  {
+    id: "demo-book-005",
+    property_id: DEMO_PROPERTY_1_ID,
+    user_id: "demo-user",
+    check_in: fmt(addDays(today, 20)),
+    check_out: fmt(addDays(today, 27)),
+    source: "airbnb",
+    source_platform: "airbnb",
+    is_manual: false,
+    guest_name: "Mr & Mrs Anderson",
+    guest_email: null,
+    guest_phone: null,
+    gross_amount: 1850,
+    commission_amount: 278,
+    cleaning_amount: 85,
+    checkin_amount: 0,
+    maintenance_amount: 0,
+    other_deductions: 0,
+    owner_net: 1487,
+    concierge_revenue: 363,
+    price_status: "complete",
+    financial_status: "pending",
+    notes: null,
+    calendar_event_id: null,
+    created_at: fmt(addDays(today, -1)),
+    property: { name: "Villa Azur" },
   },
 ];
+
+export interface DemoProvider_t {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string | null;
+  specialty: string;
+  score_global: number;
+}
+
+const DEMO_SERVICE_PROVIDERS: DemoProvider_t[] = [
+  { id: DEMO_SP_1_ID, first_name: "Marie", last_name: "Dupont", email: "marie@demo.com", phone: "+33 6 12 34 56 78", specialty: "Ménage", score_global: 4.8 },
+  { id: DEMO_SP_2_ID, first_name: "Jean", last_name: "Martin", email: "jean@demo.com", phone: "+33 6 98 76 54 32", specialty: "Maintenance", score_global: 4.6 },
+];
+
+export interface DemoOwner_t {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string | null;
+  property_ids: string[];
+}
+
+const DEMO_OWNERS: DemoOwner_t[] = [
+  {
+    id: DEMO_OWNER_1_ID,
+    first_name: "Antoine",
+    last_name: "Leblanc",
+    email: "leblanc@demo.com",
+    phone: "+33 6 11 22 33 44",
+    property_ids: [DEMO_PROPERTY_1_ID, DEMO_PROPERTY_2_ID],
+  },
+];
+
+export interface DemoBooklet_t {
+  id: string;
+  property_id: string;
+  property_name: string;
+  pin_code: string;
+  title: string;
+  status: "published";
+  created_at: string;
+}
+
+const DEMO_BOOKLETS: DemoBooklet_t[] = [
+  {
+    id: "demo-booklet-001",
+    property_id: DEMO_PROPERTY_1_ID,
+    property_name: "Villa Azur",
+    pin_code: DEMO_BOOKLET_PIN,
+    title: "Livret d'accueil — Villa Azur",
+    status: "published",
+    created_at: fmt(addDays(today, -30)),
+  },
+];
+
+export interface DemoFinance_t {
+  monthly_revenue: number;
+  occupancy_rate: number;
+  expenses: { id: string; label: string; amount: number; date: string; category: string }[];
+}
+
+const DEMO_FINANCE: DemoFinance_t = {
+  monthly_revenue: 4300,
+  occupancy_rate: 78,
+  expenses: [
+    { id: "demo-exp-001", label: "Ménage — Villa Azur", amount: 85, date: fmt(addDays(today, -3)), category: "cleaning" },
+    { id: "demo-exp-002", label: "Ménage — Studio Cannes", amount: 55, date: fmt(addDays(today, -1)), category: "cleaning" },
+    { id: "demo-exp-003", label: "Maintenance climatisation", amount: 95, date: fmt(addDays(today, -7)), category: "maintenance" },
+  ],
+};
 
 // ── Context ──────────────────────────────────
 
@@ -376,6 +457,11 @@ interface DemoContextValue {
   demoInspections: Inspection[];
   demoProspects: Prospect[];
   demoBookings: Booking[];
+  demoServiceProviders: DemoProvider_t[];
+  demoOwners: DemoOwner_t[];
+  demoBooklets: DemoBooklet_t[];
+  demoBookletPin: string;
+  demoFinance: DemoFinance_t;
   demoUserName: string;
   demoBookletCount: number;
   blockAction: () => void;
@@ -520,8 +606,13 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     demoInspections: DEMO_INSPECTIONS,
     demoProspects: DEMO_PROSPECTS,
     demoBookings: DEMO_BOOKINGS,
+    demoServiceProviders: DEMO_SERVICE_PROVIDERS,
+    demoOwners: DEMO_OWNERS,
+    demoBooklets: DEMO_BOOKLETS,
+    demoBookletPin: DEMO_BOOKLET_PIN,
+    demoFinance: DEMO_FINANCE,
     demoUserName: "Marie",
-    demoBookletCount: 2,
+    demoBookletCount: 1,
     blockAction,
     tourStep,
     tourActive,
