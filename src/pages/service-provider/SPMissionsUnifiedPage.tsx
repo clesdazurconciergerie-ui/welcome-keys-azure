@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   ClipboardList, Play, CheckCircle, Upload, Camera, AlertTriangle,
   Send, MapPin, Calendar, Euro, Loader2, List, CalendarDays, ChevronLeft, ChevronRight,
-  AlertCircle, Clock, Briefcase, TrendingUp, Zap,
+  AlertCircle, Clock, Briefcase, TrendingUp, Zap, CalendarRange,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
@@ -18,6 +18,7 @@ import { useMissions, useChecklistItems, type Mission } from "@/hooks/useMission
 import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
 import { useMissionPhotos } from "@/hooks/useMissionPhotos";
 import { PhotoGuide } from "@/components/mission/PhotoGuide";
+import { EmptyState } from "@/components/dashboard/EmptyState";
 
 function getPropertyPhoto(mission: NewMission): string | null {
   const photos = mission.property?.property_photos;
@@ -577,17 +578,11 @@ export default function SPMissionsUnifiedPage() {
         {/* ── Tab: Ouvertes ────────────────────────────────────── */}
         <TabsContent value="ouvertes" className="mt-4">
           {openMissions.length === 0 ? (
-            <Card className="border-dashed border-2 border-border">
-              <CardContent className="py-16 text-center">
-                <div className="w-16 h-16 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">
-                  <Send className="w-7 h-7 text-muted-foreground" />
-                </div>
-                <h3 className="font-semibold text-lg text-foreground mb-1">Aucune mission disponible</h3>
-                <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-                  Les nouvelles missions apparaîtront ici dès qu'elles seront publiées par votre conciergerie.
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={CalendarRange}
+              title="Aucune mission disponible pour le moment"
+              description="Vous recevrez une notification dès qu'une mission correspondant à votre zone est disponible."
+            />
           ) : (
             <div className="space-y-3">
               {openMissions.map((m, i) => {

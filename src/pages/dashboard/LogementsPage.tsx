@@ -9,6 +9,7 @@ import { EditPropertyDialog } from "@/components/dashboard/properties/EditProper
 import { PropertiesList } from "@/components/dashboard/properties/PropertiesList";
 import { AirbnbPropertyImport } from "@/components/dashboard/properties/AirbnbPropertyImport";
 import { ContextualTip } from "@/components/onboarding/ContextualTip";
+import { EmptyState } from "@/components/dashboard/EmptyState";
 
 const LogementsPage = () => {
   const { properties, isLoading, createProperty, updateProperty, deleteProperty, duplicateProperty } = useProperties();
@@ -59,22 +60,16 @@ const LogementsPage = () => {
 
       {properties.length === 0 ? (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-          <div className="text-center py-16 border border-border rounded-lg bg-card">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
-              <Home className="w-8 h-8 text-[hsl(var(--gold))]" />
-            </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">Aucun bien enregistré</h3>
-            <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-              Commencez par créer vos biens.
-            </p>
-            <Button
-              onClick={() => setCreateOpen(true)}
-              className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Créer le premier bien
-            </Button>
-          </div>
+          <EmptyState
+            icon={Home}
+            title="Aucun logement pour le moment"
+            description="Ajoutez votre premier logement pour commencer à gérer vos réservations."
+            action={{
+              label: "Ajouter un logement",
+              onClick: () => setCreateOpen(true),
+              variant: "primary",
+            }}
+          />
         </motion.div>
       ) : (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>

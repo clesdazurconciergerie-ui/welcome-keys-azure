@@ -13,8 +13,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { RadioCardGroup } from "@/components/ui/radio-card-group";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Send, Eye, CheckCircle, XCircle, Loader2, Star, Ban, CalendarIcon, Users, UserCheck, RefreshCw, Trash2, Home, MessageSquare, Phone, Mail } from "lucide-react";
+import { Plus, Send, Eye, CheckCircle, XCircle, Loader2, Star, Ban, CalendarIcon, Users, UserCheck, RefreshCw, Trash2, Home, MessageSquare, Phone, Mail, ClipboardList } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { useNewMissions, type CreateMissionData, type NewMission } from "@/hooks/useNewMissions";
 import { useProperties } from "@/hooks/useProperties";
 import { useServiceProviders } from "@/hooks/useServiceProviders";
@@ -24,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ContextualTip } from "@/components/onboarding/ContextualTip";
+import { EmptyState } from "@/components/dashboard/EmptyState";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   draft: { label: "Brouillon", color: "bg-muted text-muted-foreground" },
@@ -51,6 +53,7 @@ const MINUTES = ["00", "15", "30", "45"];
 export default function MissionsPage() {
   const { missions, isLoading, createMission, publishMission, cancelMission, deleteMission, validateMission, markAsPaid, sendMissionEmail, refetch } = useNewMissions('concierge');
   const { properties } = useProperties();
+  const navigate = useNavigate();
   const { providers } = useServiceProviders();
   const [createOpen, setCreateOpen] = useState(false);
   const [detailMission, setDetailMission] = useState<NewMission | null>(null);
@@ -223,9 +226,16 @@ export default function MissionsPage() {
           </TabsList>
           <TabsContent value="active" className="space-y-3 mt-4">
             {activeMissions.length === 0 ? (
-              <Card className="text-center py-12">
-                <CardContent><p className="text-muted-foreground">Aucune mission active. Créez-en une !</p></CardContent>
-              </Card>
+              <EmptyState
+                icon={ClipboardList}
+                title="Aucune mission planifiée"
+                description="Les missions de ménage sont créées automatiquement à chaque check-out. Commencez par ajouter un logement et connecter votre calendrier."
+                action={{
+                  label: "Voir mes logements",
+                  onClick: () => navigate("/dashboard/logements"),
+                  variant: "secondary",
+                }}
+              />
             ) : activeMissions.map((m, i) => (
               <MissionCard key={m.id} mission={m} index={i} onView={() => setDetailMission(m)} onPublish={publishMission} onCancel={cancelMission} onDelete={deleteMission} onValidate={validateMission} onMarkPaid={markAsPaid} onSendEmail={sendMissionEmail} />
             ))}
