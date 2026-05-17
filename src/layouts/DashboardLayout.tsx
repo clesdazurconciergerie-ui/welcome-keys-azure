@@ -8,6 +8,7 @@ import { useIsServiceProvider } from "@/hooks/useIsServiceProvider";
 import { Loader2, Menu } from "lucide-react";
 import { GuidedTourProvider } from "@/components/onboarding/GuidedTourProvider";
 import { NotificationsBell } from "@/components/notifications/NotificationsBell";
+import { OnboardingBar } from "@/components/dashboard/OnboardingBar";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
