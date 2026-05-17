@@ -107,7 +107,7 @@ serve(async (req) => {
     }
 
     // Construire l'URL publique complète
-    const origin = req.headers.get('origin') || 'https://welkom.clezazur.fr';
+    const origin = req.headers.get('origin') || 'https://mywelkom.com';
     const viewUrl = `${origin}/view/${pinCode}`;
 
     return new Response(

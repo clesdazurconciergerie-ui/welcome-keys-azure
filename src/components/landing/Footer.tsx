@@ -24,11 +24,6 @@ const Footer = () => {
       <div className="mx-auto max-w-6xl px-6 lg:px-10">
         <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-8">
           <BrandMark variant="compact" light />
-          
-          <div className="flex items-center gap-4">
-            <img src="/brand/logo-azur-keys.png" alt="Azur Keys" className="w-8 h-8 brightness-0 invert opacity-60" />
-            <span className="text-sm text-primary-foreground/60">Une technologie Azur Keys Conciergerie</span>
-          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-8">
@@ -48,7 +43,7 @@ const Footer = () => {
 
         <div className="text-center">
           <p className="text-xs text-primary-foreground/40">
-            © {currentYear} MyWelkom by Azur Keys · Tous droits réservés
+            Welkom © 2025
           </p>
         </div>
       </div>

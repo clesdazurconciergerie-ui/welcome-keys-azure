@@ -37,7 +37,7 @@ export default function IdentitySection({ data, onChange, onLogoUpload, onLogoRe
             id="concierge-name"
             value={data.conciergeName}
             onChange={(e) => onChange({ conciergeName: e.target.value })}
-            placeholder="Ex: Clés d'Azur"
+            placeholder="Ex: Welkom"
           />
           <p className="text-xs text-[#64748B]">
             Ce nom sera affiché dans le footer du livret

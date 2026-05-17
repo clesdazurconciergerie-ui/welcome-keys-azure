@@ -593,7 +593,7 @@ serve(async (req) => {
 
     // Construire le prompt système avec le contexte complet
     const systemPrompt = `Tu es un assistant de conciergerie digitale intelligent intégré au livret d'accueil de "${booklet.property_name}" à ${locationContext.city}.
-Tu représentes Welkom (aussi connue sous Clés d'Azur).
+Tu représentes Welkom.
 
 ═══════════════════════════════════════════════════════════════════
 RÈGLES FONDAMENTALES DE FONCTIONNEMENT

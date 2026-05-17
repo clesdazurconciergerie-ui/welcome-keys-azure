@@ -92,7 +92,7 @@ export default function Step7Contacts({ data, onUpdate }: Step7ContactsProps) {
             Nom de la conciergerie
           </Label>
           <Input
-            value="Welkom by Clés d'Azur"
+            value="Welkom"
             disabled
             className="bg-muted"
           />
@@ -122,7 +122,7 @@ export default function Step7Contacts({ data, onUpdate }: Step7ContactsProps) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="contact@clesdazur.com"
+            placeholder="contact@welkom.com"
             required
           />
         </div>
