@@ -382,7 +382,14 @@ export default function SPMissionsUnifiedPage() {
 
   const isLoading = loadingNew || loadingLegacy;
 
-  const openMissions = newMissions.filter(m => m.status === "open");
+  const openMissions = useMemo(
+    () => newMissions.filter(m => m.status === "open").sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()),
+    [newMissions]
+  );
+
+  const { ref: pullRef, pull, refreshing } = usePullToRefresh({
+    onRefresh: async () => { await refetchNew(); await refetch(); },
+  });
   const myNewMissions = newMissions.filter(
     m => m.selected_provider_id && spId && ["assigned", "confirmed", "done", "approved"].includes(m.status)
   );
