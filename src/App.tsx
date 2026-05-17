@@ -170,6 +170,7 @@ const App = () => (
           <Route path="/prestataire" element={<ServiceProviderDashboardLayout />}>
             <Route index element={<SPDashboardHome />} />
             <Route path="missions" element={<SPMissionsUnifiedPage />} />
+            <Route path="missions/:id" element={<SPMissionDetailPage />} />
             <Route path="historique" element={<SPHistoryPage />} />
             <Route path="paiements" element={<SPPaymentsPage />} />
             <Route path="materiel" element={<SPMaterialPage />} />
