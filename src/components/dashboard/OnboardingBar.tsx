@@ -80,7 +80,7 @@ export function OnboardingBar() {
         updates.onboarding_completed_at = new Date().toISOString();
       }
       if (Object.keys(updates).length > 0) {
-        await supabase.from("users").update(updates).eq("id", uid);
+        await supabase.from("users").update(updates as any).eq("id", uid);
         if (updates.onboarding_completed_at) {
           setCompletedAt(updates.onboarding_completed_at as string);
         }
