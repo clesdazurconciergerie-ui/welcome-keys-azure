@@ -484,6 +484,8 @@ export type Database = {
           airbnb_license: string | null
           appearance: Json | null
           background_color: string | null
+          check_in_time: string | null
+          check_out_time: string | null
           checkin_procedure: string | null
           checkout_procedure: string | null
           city: string | null
@@ -496,10 +498,12 @@ export type Database = {
           created_at: string
           description: string | null
           disclaimer: string | null
+          emergency_contacts: Json | null
           gallery: Json | null
           gdpr_notice: string | null
           geo: Json | null
           google_maps_link: string | null
+          house_rules: string | null
           id: string
           is_complete: boolean | null
           language: string | null
@@ -508,7 +512,9 @@ export type Database = {
           nearby: Json | null
           parking_info: string | null
           postcode: string | null
+          property_address: string | null
           property_id: string | null
+          property_name: string | null
           safety_instructions: string | null
           safety_tips: string | null
           show_logo: boolean | null
@@ -518,9 +524,11 @@ export type Database = {
           text_color: string | null
           timezone: string | null
           title: string | null
+          unique_views_count: number | null
           updated_at: string
           user_id: string
           waste_location: string | null
+          welcome_message: string | null
           wifi_name: string | null
           wifi_password: string | null
           wizard_step: number | null
@@ -532,6 +540,8 @@ export type Database = {
           airbnb_license?: string | null
           appearance?: Json | null
           background_color?: string | null
+          check_in_time?: string | null
+          check_out_time?: string | null
           checkin_procedure?: string | null
           checkout_procedure?: string | null
           city?: string | null
@@ -544,10 +554,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           disclaimer?: string | null
+          emergency_contacts?: Json | null
           gallery?: Json | null
           gdpr_notice?: string | null
           geo?: Json | null
           google_maps_link?: string | null
+          house_rules?: string | null
           id?: string
           is_complete?: boolean | null
           language?: string | null
@@ -556,7 +568,9 @@ export type Database = {
           nearby?: Json | null
           parking_info?: string | null
           postcode?: string | null
+          property_address?: string | null
           property_id?: string | null
+          property_name?: string | null
           safety_instructions?: string | null
           safety_tips?: string | null
           show_logo?: boolean | null
@@ -566,9 +580,11 @@ export type Database = {
           text_color?: string | null
           timezone?: string | null
           title?: string | null
+          unique_views_count?: number | null
           updated_at?: string
           user_id: string
           waste_location?: string | null
+          welcome_message?: string | null
           wifi_name?: string | null
           wifi_password?: string | null
           wizard_step?: number | null
@@ -580,6 +596,8 @@ export type Database = {
           airbnb_license?: string | null
           appearance?: Json | null
           background_color?: string | null
+          check_in_time?: string | null
+          check_out_time?: string | null
           checkin_procedure?: string | null
           checkout_procedure?: string | null
           city?: string | null
@@ -592,10 +610,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           disclaimer?: string | null
+          emergency_contacts?: Json | null
           gallery?: Json | null
           gdpr_notice?: string | null
           geo?: Json | null
           google_maps_link?: string | null
+          house_rules?: string | null
           id?: string
           is_complete?: boolean | null
           language?: string | null
@@ -604,7 +624,9 @@ export type Database = {
           nearby?: Json | null
           parking_info?: string | null
           postcode?: string | null
+          property_address?: string | null
           property_id?: string | null
+          property_name?: string | null
           safety_instructions?: string | null
           safety_tips?: string | null
           show_logo?: boolean | null
@@ -614,9 +636,11 @@ export type Database = {
           text_color?: string | null
           timezone?: string | null
           title?: string | null
+          unique_views_count?: number | null
           updated_at?: string
           user_id?: string
           waste_location?: string | null
+          welcome_message?: string | null
           wifi_name?: string | null
           wifi_password?: string | null
           wizard_step?: number | null
@@ -2518,6 +2542,7 @@ export type Database = {
       notifications: {
         Row: {
           action_url: string | null
+          category: string | null
           created_at: string
           id: string
           is_read: boolean | null
@@ -2530,6 +2555,7 @@ export type Database = {
         }
         Insert: {
           action_url?: string | null
+          category?: string | null
           created_at?: string
           id?: string
           is_read?: boolean | null
@@ -2542,6 +2568,7 @@ export type Database = {
         }
         Update: {
           action_url?: string | null
+          category?: string | null
           created_at?: string
           id?: string
           is_read?: boolean | null
@@ -3398,6 +3425,7 @@ export type Database = {
         Row: {
           caption: string | null
           category: string | null
+          display_order: number | null
           id: string
           is_main: boolean | null
           order_index: number | null
@@ -3409,6 +3437,7 @@ export type Database = {
         Insert: {
           caption?: string | null
           category?: string | null
+          display_order?: number | null
           id?: string
           is_main?: boolean | null
           order_index?: number | null
@@ -3420,6 +3449,7 @@ export type Database = {
         Update: {
           caption?: string | null
           category?: string | null
+          display_order?: number | null
           id?: string
           is_main?: boolean | null
           order_index?: number | null
@@ -4348,7 +4378,7 @@ export type Database = {
     }
     Functions: {
       can_create_booklet: { Args: { uid: string }; Returns: boolean }
-      claim_mission: { Args: { mission_id: string }; Returns: Json }
+      claim_mission: { Args: { _mission_id: string }; Returns: Json }
       generate_unique_pin: { Args: never; Returns: string }
       has_role: {
         Args: {
