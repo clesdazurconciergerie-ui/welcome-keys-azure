@@ -1,0 +1,121 @@
+/* Azurkeys Report — scoped design tokens
+   Palette: noir / blanc / beige sable
+   Titres: Cormorant Garamond · Corps: Montserrat
+*/
+.azurkeys-scope {
+  /* Base */
+  --az-bg: 40 30% 97%;         /* blanc chaud presque sable */
+  --az-surface: 0 0% 100%;
+  --az-sand: 38 35% 88%;       /* beige sable */
+  --az-sand-deep: 34 28% 78%;
+  --az-ink: 0 0% 8%;           /* noir profond */
+  --az-muted: 30 8% 42%;
+  --az-line: 34 20% 84%;
+  --az-gold: 38 42% 52%;
+
+  font-family: 'Montserrat', system-ui, sans-serif;
+  color: hsl(var(--az-ink));
+}
+
+.azurkeys-scope .font-display {
+  font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  letter-spacing: 0.005em;
+}
+.azurkeys-scope .font-body {
+  font-family: 'Montserrat', system-ui, sans-serif;
+}
+
+.azurkeys-scope h1,
+.azurkeys-scope h2,
+.azurkeys-scope h3,
+.azurkeys-scope .az-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 500;
+  color: hsl(var(--az-ink));
+}
+
+.azurkeys-scope .az-card {
+  background: hsl(var(--az-surface));
+  border: 1px solid hsl(var(--az-line));
+  border-radius: 4px;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.azurkeys-scope .az-card:hover {
+  border-color: hsl(var(--az-sand-deep));
+  box-shadow: 0 8px 32px -12px rgba(0, 0, 0, 0.08);
+}
+
+.azurkeys-scope .az-btn-primary {
+  background: hsl(var(--az-ink));
+  color: hsl(var(--az-sand));
+  padding: 0.7rem 1.6rem;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.azurkeys-scope .az-btn-primary:hover {
+  background: hsl(var(--az-ink) / 0.85);
+}
+.azurkeys-scope .az-btn-ghost {
+  background: transparent;
+  color: hsl(var(--az-ink));
+  padding: 0.55rem 1.1rem;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: 1px solid hsl(var(--az-line));
+  border-radius: 999px;
+  transition: all 0.2s ease;
+}
+.azurkeys-scope .az-btn-ghost:hover {
+  background: hsl(var(--az-sand));
+  border-color: hsl(var(--az-sand-deep));
+}
+
+.azurkeys-scope .az-input {
+  background: hsl(var(--az-surface));
+  border: 1px solid hsl(var(--az-line));
+  padding: 0.65rem 0.9rem;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  color: hsl(var(--az-ink));
+  border-radius: 2px;
+  width: 100%;
+  transition: border-color 0.2s ease;
+}
+.azurkeys-scope .az-input:focus {
+  outline: none;
+  border-color: hsl(var(--az-ink));
+}
+.azurkeys-scope .az-label {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: hsl(var(--az-muted));
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.azurkeys-scope .az-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, hsl(var(--az-sand-deep)), transparent);
+}
+.azurkeys-scope .az-eyebrow {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: hsl(var(--az-gold));
+}

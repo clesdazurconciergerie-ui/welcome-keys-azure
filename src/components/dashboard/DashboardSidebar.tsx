@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, BookOpen, Users, Home, Wrench, Settings, LogOut,
-  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass, Zap, Brain, Camera, Mail, ShieldAlert, TrendingUp, KeyRound, Link2, Receipt, BarChart3, RefreshCw,
+  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass, Zap, Brain, Camera, Mail, ShieldAlert, TrendingUp, KeyRound, Link2, Receipt, BarChart3, RefreshCw, FileText,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -57,6 +57,7 @@ const navGroups = [
       { title: "Finance", url: "/dashboard/finance", icon: Euro },
       { title: "Taxe de séjour", url: "/dashboard/taxe-sejour", icon: Receipt },
       { title: "Rapports mensuels", url: "/dashboard/rapports-mensuels", icon: BarChart3 },
+      { title: "Azurkeys Report", url: "/rapports", icon: FileText },
     ],
   },
   {

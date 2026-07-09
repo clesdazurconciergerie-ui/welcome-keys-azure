@@ -95,6 +95,9 @@ import DemoPricingEnginePage from "./pages/demo/DemoPricingEnginePage";
 import DemoSmartKeysPage from "./pages/demo/DemoSmartKeysPage";
 import DemoChannelManagerPage from "./pages/demo/DemoChannelManagerPage";
 import DemoComplianceHubPage from "./pages/demo/DemoComplianceHubPage";
+import RapportsLayout from "./layouts/RapportsLayout";
+import RapportsHome from "./pages/rapports/RapportsHome";
+import LogementsAdminPage from "./pages/rapports/LogementsAdminPage";
 
 const queryClient = new QueryClient();
 
@@ -207,6 +210,12 @@ const App = () => (
           <Route path="/exemples/conciergeries" element={<ExampleConciergeries />} />
           <Route path="/exemples/maisons-d-hotes" element={<ExampleMaisonsDHotes />} />
           <Route path="/exemples/hotels-residences" element={<ExampleHotelsResidences />} />
+
+          {/* Azurkeys Report */}
+          <Route path="/rapports" element={<RapportsLayout />}>
+            <Route index element={<RapportsHome />} />
+            <Route path="logements" element={<LogementsAdminPage />} />
+          </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
