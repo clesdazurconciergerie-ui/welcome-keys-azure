@@ -95,6 +95,9 @@ import DemoPricingEnginePage from "./pages/demo/DemoPricingEnginePage";
 import DemoSmartKeysPage from "./pages/demo/DemoSmartKeysPage";
 import DemoChannelManagerPage from "./pages/demo/DemoChannelManagerPage";
 import DemoComplianceHubPage from "./pages/demo/DemoComplianceHubPage";
+import RapportsLayout from "./layouts/RapportsLayout";
+import RapportsHome from "./pages/rapports/RapportsHome";
+import LogementsAdminPage from "./pages/rapports/LogementsAdminPage";
 
 const queryClient = new QueryClient();
 
