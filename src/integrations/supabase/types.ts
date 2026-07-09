@@ -498,7 +498,7 @@ export type Database = {
           created_at: string
           description: string | null
           disclaimer: string | null
-          emergency_contacts: Json | null
+          emergency_contacts: string | null
           gallery: Json | null
           gdpr_notice: string | null
           geo: Json | null
@@ -554,7 +554,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           disclaimer?: string | null
-          emergency_contacts?: Json | null
+          emergency_contacts?: string | null
           gallery?: Json | null
           gdpr_notice?: string | null
           geo?: Json | null
@@ -610,7 +610,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           disclaimer?: string | null
-          emergency_contacts?: Json | null
+          emergency_contacts?: string | null
           gallery?: Json | null
           gdpr_notice?: string | null
           geo?: Json | null
@@ -3696,6 +3696,7 @@ export type Database = {
           description: string | null
           distance: string | null
           id: string
+          image_url: string | null
           maps_link: string | null
           name: string
           phone: string | null
@@ -3703,6 +3704,7 @@ export type Database = {
           type: string
           url: string | null
           user_id: string
+          website_url: string | null
         }
         Insert: {
           address?: string | null
@@ -3710,6 +3712,7 @@ export type Database = {
           description?: string | null
           distance?: string | null
           id?: string
+          image_url?: string | null
           maps_link?: string | null
           name: string
           phone?: string | null
@@ -3717,6 +3720,7 @@ export type Database = {
           type: string
           url?: string | null
           user_id: string
+          website_url?: string | null
         }
         Update: {
           address?: string | null
@@ -3724,6 +3728,7 @@ export type Database = {
           description?: string | null
           distance?: string | null
           id?: string
+          image_url?: string | null
           maps_link?: string | null
           name?: string
           phone?: string | null
@@ -3731,6 +3736,7 @@ export type Database = {
           type?: string
           url?: string | null
           user_id?: string
+          website_url?: string | null
         }
         Relationships: []
       }
