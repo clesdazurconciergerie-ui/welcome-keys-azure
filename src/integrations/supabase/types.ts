@@ -158,6 +158,7 @@ export type Database = {
           nearby: Json | null
           parking_info: string | null
           postcode: string | null
+          property_id: string | null
           safety_instructions: string | null
           safety_tips: string | null
           show_logo: boolean | null
@@ -205,6 +206,7 @@ export type Database = {
           nearby?: Json | null
           parking_info?: string | null
           postcode?: string | null
+          property_id?: string | null
           safety_instructions?: string | null
           safety_tips?: string | null
           show_logo?: boolean | null
@@ -252,6 +254,7 @@ export type Database = {
           nearby?: Json | null
           parking_info?: string | null
           postcode?: string | null
+          property_id?: string | null
           safety_instructions?: string | null
           safety_tips?: string | null
           show_logo?: boolean | null
@@ -279,7 +282,9 @@ export type Database = {
           instructions: string | null
           manual_url: string | null
           name: string
+          owner_id: string | null
           photos: Json | null
+          steps: Json | null
         }
         Insert: {
           booklet_id: string
@@ -289,7 +294,9 @@ export type Database = {
           instructions?: string | null
           manual_url?: string | null
           name: string
+          owner_id?: string | null
           photos?: Json | null
+          steps?: Json | null
         }
         Update: {
           booklet_id?: string
@@ -299,7 +306,9 @@ export type Database = {
           instructions?: string | null
           manual_url?: string | null
           name?: string
+          owner_id?: string | null
           photos?: Json | null
+          steps?: Json | null
         }
         Relationships: [
           {
@@ -455,6 +464,59 @@ export type Database = {
           },
         ]
       }
+      ical_calendars: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          last_sync_at: string | null
+          last_sync_status: string | null
+          name: string
+          platform: string | null
+          property_id: string | null
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          last_sync_status?: string | null
+          name: string
+          platform?: string | null
+          property_id?: string | null
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          last_sync_status?: string | null
+          name?: string
+          platform?: string | null
+          property_id?: string | null
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ical_calendars_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nearby_places: {
         Row: {
           booklet_id: string
@@ -570,6 +632,66 @@ export type Database = {
         }
         Relationships: []
       }
+      properties: {
+        Row: {
+          address: string | null
+          bathrooms: number | null
+          bedrooms: number | null
+          city: string | null
+          country: string | null
+          created_at: string
+          description: string | null
+          id: string
+          max_guests: number | null
+          name: string
+          photos: Json | null
+          postcode: string | null
+          status: string | null
+          surface_m2: number | null
+          type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_guests?: number | null
+          name: string
+          photos?: Json | null
+          postcode?: string | null
+          status?: string | null
+          surface_m2?: number | null
+          type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_guests?: number | null
+          name?: string
+          photos?: Json | null
+          postcode?: string | null
+          status?: string | null
+          surface_m2?: number | null
+          type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       restaurants: {
         Row: {
           address: string | null
@@ -628,6 +750,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      saved_places: {
+        Row: {
+          address: string | null
+          created_at: string
+          description: string | null
+          distance: string | null
+          id: string
+          maps_link: string | null
+          name: string
+          phone: string | null
+          tags: string[] | null
+          type: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          description?: string | null
+          distance?: string | null
+          id?: string
+          maps_link?: string | null
+          name: string
+          phone?: string | null
+          tags?: string[] | null
+          type: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          description?: string | null
+          distance?: string | null
+          id?: string
+          maps_link?: string | null
+          name?: string
+          phone?: string | null
+          tags?: string[] | null
+          type?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      service_providers: {
+        Row: {
+          concierge_user_id: string
+          created_at: string
+          email: string | null
+          full_name: string
+          hourly_rate: number | null
+          id: string
+          notes: string | null
+          phone: string | null
+          provider_user_id: string | null
+          specialties: string[] | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          concierge_user_id: string
+          created_at?: string
+          email?: string | null
+          full_name: string
+          hourly_rate?: number | null
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          provider_user_id?: string | null
+          specialties?: string[] | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          concierge_user_id?: string
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          hourly_rate?: number | null
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          provider_user_id?: string | null
+          specialties?: string[] | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {
@@ -773,6 +985,7 @@ export type Database = {
           latest_checkout_session_id: string | null
           onboarding_completed: boolean | null
           onboarding_completed_at: string | null
+          onboarding_steps: Json | null
           phone: string | null
           plan: string | null
           role: string | null
@@ -794,6 +1007,7 @@ export type Database = {
           latest_checkout_session_id?: string | null
           onboarding_completed?: boolean | null
           onboarding_completed_at?: string | null
+          onboarding_steps?: Json | null
           phone?: string | null
           plan?: string | null
           role?: string | null
@@ -815,6 +1029,7 @@ export type Database = {
           latest_checkout_session_id?: string | null
           onboarding_completed?: boolean | null
           onboarding_completed_at?: string | null
+          onboarding_steps?: Json | null
           phone?: string | null
           plan?: string | null
           role?: string | null
@@ -829,6 +1044,7 @@ export type Database = {
         Row: {
           booklet_id: string
           created_at: string
+          has_wifi: boolean | null
           id: string
           password: string
           ssid: string
@@ -837,6 +1053,7 @@ export type Database = {
         Insert: {
           booklet_id: string
           created_at?: string
+          has_wifi?: boolean | null
           id?: string
           password: string
           ssid: string
@@ -845,6 +1062,7 @@ export type Database = {
         Update: {
           booklet_id?: string
           created_at?: string
+          has_wifi?: boolean | null
           id?: string
           password?: string
           ssid?: string
