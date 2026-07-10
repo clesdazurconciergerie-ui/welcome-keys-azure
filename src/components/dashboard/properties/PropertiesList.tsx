@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { StorageImage } from "@/components/StorageImage";
 import type { Property } from "@/hooks/useProperties";
 
 interface Props {
