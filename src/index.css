@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Josefin+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -281,4 +283,105 @@
   }
   .theme-scope a.primary-link { color: var(--theme-primary); }
   .theme-scope a.primary-link:hover { color: color-mix(in srgb, var(--theme-primary) 80%, black); }
+}
+
+/* ============================================================
+   AZURKEYS PROPERTIES — Monochrome Editorial Luxe Rebrand
+   Global override: black & white only, zero radius, zero shadow
+   ============================================================ */
+:root {
+  --az-bg:        #FAFAFA;
+  --az-bg-alt:    #F4F4F2;
+  --az-surface:   #FFFFFF;
+  --az-fg:        #09090B;
+  --az-fg-muted:  #52525B;
+  --az-fg-subtle: #A1A1AA;
+  --font-title:   'Cinzel', Georgia, serif;
+  --font-sub:     'Cormorant Garamond', Georgia, serif;
+  --font-body:    'Josefin Sans', system-ui, sans-serif;
+  --font-data:    'JetBrains Mono', monospace;
+}
+
+/* Override shadcn semantic tokens to monochrome */
+:root,
+.dark {
+  --background: 0 0% 98%;
+  --foreground: 240 6% 5%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 6% 5%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 6% 5%;
+  --primary: 240 6% 5%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 60 5% 96%;
+  --secondary-foreground: 240 6% 5%;
+  --muted: 60 5% 96%;
+  --muted-foreground: 240 4% 34%;
+  --accent: 240 6% 5%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 240 6% 5%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 5% 90%;
+  --input: 240 5% 90%;
+  --ring: 240 6% 5%;
+  --radius: 0px;
+  --brand-blue: 240 6% 5%;
+  --brand-blue-hover: 240 6% 5%;
+  --gold: 240 6% 5%;
+  --gold-light: 240 4% 34%;
+  --gold-dark: 240 6% 5%;
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+}
+
+/* Force zero border-radius and zero shadow — no exceptions */
+*, *::before, *::after {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+html, body {
+  background: var(--az-bg);
+  color: var(--az-fg);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, .font-title { font-family: var(--font-title) !important; }
+.font-sub { font-family: var(--font-sub) !important; }
+.font-data, code, pre, kbd { font-family: var(--font-data) !important; }
+
+/* Paper texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Focus rings — black hairline, no browser blue */
+*:focus-visible {
+  outline: 1px solid #09090B !important;
+  outline-offset: 2px;
+}
+
+/* Print rules */
+@media print {
+  .no-print { display: none !important; }
+  body::before { display: none; }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  @page { size: A4 portrait; margin: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
 }
