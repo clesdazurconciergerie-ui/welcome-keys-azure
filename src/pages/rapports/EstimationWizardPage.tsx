@@ -483,22 +483,35 @@ function PhotosStepView({ data, patch }: { data: Data; patch: Patch }) {
     const list: PhotoItem[] = [...items];
     for (const f of Array.from(files)) {
       if (list.length >= 30) { toast.error("Maximum 30 photos"); break; }
-      if (f.size > 8 * 1024 * 1024) { toast.error(`${f.name} > 8 Mo`); continue; }
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(r.result as string);
-        r.onerror = reject;
-        r.readAsDataURL(f);
-      });
-      list.push({
-        id: crypto.randomUUID(),
-        data_url: dataUrl,
-        name: f.name,
-        couverture: list.length === 0, // La 1ʳᵉ est couverture par défaut
-      });
+      if (f.size > 25 * 1024 * 1024) { toast.error(`${f.name} > 25 Mo`); continue; }
+      try {
+        const dataUrl = await compressImage(f, 1600, 0.82);
+        list.push({
+          id: crypto.randomUUID(),
+          data_url: dataUrl,
+          name: f.name,
+          couverture: list.length === 0, // La 1ʳᵉ est couverture par défaut
+        });
+      } catch {
+        toast.error(`Impossible de traiter ${f.name}`);
+      }
     }
     patch("photos", { items: list });
   };
+
+  // Downscale + JPEG pour rester sous la limite sessionStorage (~5 Mo cumulés).
+  async function compressImage(file: File, maxSide: number, quality: number): Promise<string> {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no ctx");
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", quality);
+  }
 
   const setCouverture = (id: string) => {
     patch("photos", { items: items.map((p) => ({ ...p, couverture: p.id === id })) });
