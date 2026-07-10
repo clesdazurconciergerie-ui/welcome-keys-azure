@@ -3760,13 +3760,17 @@ export type Database = {
           concierge_user_id: string
           created_at: string
           email: string | null
+          first_name: string | null
           full_name: string
           hourly_rate: number | null
           id: string
+          last_name: string | null
           notes: string | null
           phone: string | null
           provider_user_id: string | null
+          score_global: number | null
           specialties: string[] | null
+          specialty: string | null
           status: string | null
           updated_at: string
         }
@@ -3774,13 +3778,17 @@ export type Database = {
           concierge_user_id: string
           created_at?: string
           email?: string | null
+          first_name?: string | null
           full_name: string
           hourly_rate?: number | null
           id?: string
+          last_name?: string | null
           notes?: string | null
           phone?: string | null
           provider_user_id?: string | null
+          score_global?: number | null
           specialties?: string[] | null
+          specialty?: string | null
           status?: string | null
           updated_at?: string
         }
@@ -3788,13 +3796,17 @@ export type Database = {
           concierge_user_id?: string
           created_at?: string
           email?: string | null
+          first_name?: string | null
           full_name?: string
           hourly_rate?: number | null
           id?: string
+          last_name?: string | null
           notes?: string | null
           phone?: string | null
           provider_user_id?: string | null
+          score_global?: number | null
           specialties?: string[] | null
+          specialty?: string | null
           status?: string | null
           updated_at?: string
         }
