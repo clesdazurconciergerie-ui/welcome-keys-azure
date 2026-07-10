@@ -64,7 +64,7 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
   // Realtime
   useEffect(() => {
     const channel = supabase
-      .channel('new-missions-realtime')
+      .channel(`new-missions-realtime-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'missions' }, () => fetchMissions())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
