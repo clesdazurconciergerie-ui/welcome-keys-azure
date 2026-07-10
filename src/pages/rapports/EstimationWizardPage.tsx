@@ -69,12 +69,25 @@ export default function EstimationWizardPage() {
   const prev = () => stepIdx > 0 && setStepIdx((i) => i - 1);
 
   const finish = () => {
-    // Phase 3+ : le moteur produira un id d'estimation et redirigera vers le rapport.
-    // En attendant : on informe l'utilisateur que le moteur arrive en phase 3.
-    toast.message("Formulaire complet", {
-      description: "Le moteur d'estimation est en cours d'intégration (phase 3).",
+    // Validation finale — on rejoue TOUS les schémas pour être sûrs.
+    for (const s of STEPS) {
+      const v = validators[s.id];
+      if (v) {
+        const res = v();
+        if (!res.success) {
+          setStepIdx(STEPS.indexOf(s));
+          toast.error(`${s.label} : ${res.error.issues[0]?.message ?? "invalide"}`);
+          return;
+        }
+      }
+    }
+    // Calcul déterministe côté client (miroir back = phase 4).
+    import("@/lib/estimation/engine").then(({ estimate }) => {
+      const result = estimate(data);
+      const id = crypto.randomUUID();
+      sessionStorage.setItem(`estim.result.${id}`, JSON.stringify({ form: data, result }));
+      navigate(`/rapports/estimation/${id}`);
     });
-    navigate("/rapports/estimation/brouillon");
   };
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [stepIdx]);
