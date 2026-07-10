@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { FileText, Home, LogOut } from "lucide-react";
+import { FileText, Home, LogOut, LineChart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,7 @@ import "./rapports-theme.css";
 
 const nav = [
   { to: "/rapports", end: true, label: "Rapports", icon: FileText },
+  { to: "/rapports/estimation/nouveau", end: false, label: "Estimation", icon: LineChart },
   { to: "/rapports/logements", end: false, label: "Logements", icon: Home },
 ];
 
