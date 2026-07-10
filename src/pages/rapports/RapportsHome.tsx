@@ -7,7 +7,7 @@ export default function RapportsHome() {
   const active = properties.filter((p) => p.active);
 
   return (
-    <div className="space-y-14">
+    <div className="azurkeys-scope max-w-6xl mx-auto px-6 py-12 space-y-14">
       {/* Hero */}
       <section className="text-center pt-8 pb-4">
         <p className="az-eyebrow mb-4">Édition mensuelle</p>
