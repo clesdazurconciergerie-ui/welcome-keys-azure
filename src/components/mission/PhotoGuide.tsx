@@ -1,3 +1,4 @@
+import { StorageImage } from "@/components/StorageImage";
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -147,7 +148,7 @@ export function PhotoGuide({ missionId, propertyId, userId, providerId, readOnly
                       >
                         {photos.slice(0, 3).map(p => (
                           <div key={p.id} className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden border border-border">
-                            <img src={p.photo_url} alt="" className="w-full h-full object-cover" />
+                            <StorageImage src={p.photo_url} alt="" className="w-full h-full object-cover" />
                           </div>
                         ))}
                         {photos.length > 3 && (
@@ -216,7 +217,7 @@ export function PhotoGuide({ missionId, propertyId, userId, providerId, readOnly
               <div className="grid grid-cols-2 gap-2">
                 {previewPhotos.urls.map((url, i) => (
                   <div key={i} className="aspect-square rounded-xl overflow-hidden border border-border">
-                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <StorageImage src={url} alt="" className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>

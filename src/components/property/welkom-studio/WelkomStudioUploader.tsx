@@ -1,3 +1,4 @@
+import { StorageImage } from "@/components/StorageImage";
 import { useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -165,7 +166,7 @@ export function WelkomStudioUploader({ onProcessHDR, onUploadSingle, disabled }:
                   className="relative rounded-xl overflow-hidden border border-border group/item bg-muted"
                 >
                   <div className="aspect-video">
-                    <img src={it.url} alt="" className="w-full h-full object-cover" />
+                    <StorageImage src={it.url} alt="" className="w-full h-full object-cover" />
                   </div>
                   {it.exposure && (
                     <Badge

@@ -1,3 +1,4 @@
+import { StorageImage } from "@/components/StorageImage";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -649,7 +650,7 @@ const PropertyDetailPage = () => {
                       {(intervention.photos?.length ?? 0) > 0 && (
                         <div className="flex gap-2 mt-3 overflow-x-auto">
                           {intervention.photos!.slice(0, 4).map(p => (
-                            <img key={p.id} src={p.url} className="w-16 h-16 rounded-md object-cover border" />
+                            <StorageImage key={p.id} src={p.url} className="w-16 h-16 rounded-md object-cover border" />
                           ))}
                           {(intervention.photos!.length > 4) && (
                             <div className="w-16 h-16 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">+{intervention.photos!.length - 4}</div>

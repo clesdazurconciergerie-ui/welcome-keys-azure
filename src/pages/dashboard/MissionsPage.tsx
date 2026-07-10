@@ -1,3 +1,4 @@
+import { StorageImage } from "@/components/StorageImage";
 import { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -512,7 +513,7 @@ function MissionCard({ mission: m, index, onView, onPublish, onCancel, onDelete,
             {/* Property thumbnail */}
             <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border border-border shadow-sm bg-muted">
               {photoUrl ? (
-                <img src={photoUrl} alt={m.property?.name || 'Logement'} className="w-full h-full object-cover" />
+                <StorageImage src={photoUrl} alt={m.property?.name || 'Logement'} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <Home className="w-6 h-6 text-muted-foreground/50" />
