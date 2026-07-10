@@ -106,6 +106,26 @@ serve(async (req) => {
     console.log('Page fetched successfully, extracting data with AI');
     const extractedData = await extractFromHTML(htmlContent, LOVABLE_API_KEY);
 
+    // Sanity check: if the AI returned nothing usable or the page was a 404,
+    // don't silently claim success — ask user to fall back to Text mode.
+    const title = (extractedData?.title || '').toString().toLowerCase();
+    const looksEmpty =
+      !extractedData?.title ||
+      title.includes('404') ||
+      title.includes('page not found') ||
+      title.includes('page introuvable');
+    if (looksEmpty) {
+      console.log('Extraction produced empty/invalid data — returning blocked hint');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'blocked',
+          message: "Impossible d'extraire cette annonce (Airbnb bloque ou l'URL est invalide). Utilisez le mode « Texte ».",
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
     // Télécharger et stocker les photos si un bookletId est fourni
     if (bookletId && extractedData.photos?.length > 0) {
       extractedData.photos = await downloadAndStorePhotos(extractedData.photos, bookletId);
