@@ -88,8 +88,9 @@ const ownerDocTypeLabels: Record<string, string> = {
 const PropertyDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { properties, isLoading, fetchPhotos, uploadPhoto, deletePhoto, fetchDocuments, uploadDocument, deleteDocument, fetchPropertyOwners, updateProperty } = useProperties();
+  const { properties, isLoading, fetchPhotos, uploadPhoto, deletePhoto, fetchDocuments, uploadDocument, deleteDocument, fetchPropertyOwners, updateProperty, deleteProperty } = useProperties();
   const { interventions, deleteIntervention } = useCleaningInterventions('concierge');
+  const [deletePropertyOpen, setDeletePropertyOpen] = useState(false);
   const [linkedBooklets, setLinkedBooklets] = useState<any[]>([]);
   const [allBooklets, setAllBooklets] = useState<any[]>([]);
   const [linkingBooklet, setLinkingBooklet] = useState(false);
