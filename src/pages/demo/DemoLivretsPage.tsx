@@ -21,7 +21,7 @@ export default function DemoLivretsPage() {
           <h1 className="text-2xl font-bold text-foreground">Livrets d'accueil</h1>
           <p className="text-sm text-muted-foreground mt-1">Livrets digitaux personnalisés pour vos voyageurs.</p>
         </motion.div>
-        <Button onClick={demo.blockAction} className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold-dark))] text-primary font-semibold" data-tour="add-booklet">
+        <Button onClick={demo.blockAction} className="bg-black hover:bg-black/85 text-white font-semibold" data-tour="add-booklet">
           <Plus className="w-4 h-4 mr-2" />
           Créer un livret
         </Button>

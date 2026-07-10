@@ -34,7 +34,7 @@ export default function DemoProspectionPage() {
           <h1 className="text-2xl font-bold text-foreground">Prospection</h1>
           <p className="text-sm text-muted-foreground mt-1">Pipeline commercial et suivi des prospects.</p>
         </motion.div>
-        <Button onClick={demo.blockAction} className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold-dark))] text-primary font-semibold">
+        <Button onClick={demo.blockAction} className="bg-black hover:bg-black/85 text-white font-semibold">
           <Plus className="w-4 h-4 mr-2" />
           Nouveau prospect
         </Button>

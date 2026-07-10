@@ -38,8 +38,8 @@ export function OnboardingProgress({ progress, completionPercent, isFullyComplet
                 {completionPercent}% complété
               </p>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
-              <span className="text-lg font-bold text-[hsl(var(--gold))]">{completionPercent}%</span>
+            <div className="w-12 h-12 rounded-xl bg-black/5 flex items-center justify-center">
+              <span className="text-lg font-bold text-black">{completionPercent}%</span>
             </div>
           </div>
 

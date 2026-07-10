@@ -38,7 +38,7 @@ export function PerformanceOverview({ startDate, endDate }: PerformanceOverviewP
       label: "Revenus estimés",
       value: `${globalMetrics.total_revenue.toFixed(0)}€`,
       icon: DollarSign,
-      color: "text-[hsl(var(--gold))]",
+      color: "text-black",
     },
     {
       label: "Missions",

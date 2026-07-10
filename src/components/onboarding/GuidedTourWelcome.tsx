@@ -79,7 +79,7 @@ export function GuidedTourWelcome({ open, onStart, onSkip }: GuidedTourWelcomePr
                 >
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] opacity-20 blur-xl" />
                   <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] flex items-center justify-center shadow-lg">
-                    <Sparkles className="w-10 h-10 text-[hsl(var(--brand-blue))]" />
+                    <Sparkles className="w-10 h-10 text-white" />
                   </div>
                 </motion.div>
 
@@ -116,7 +116,7 @@ export function GuidedTourWelcome({ open, onStart, onSkip }: GuidedTourWelcomePr
                 >
                   <Button
                     onClick={onStart}
-                    className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-[hsl(var(--brand-blue))] font-semibold hover:opacity-90 h-12 text-base px-8 shadow-lg shadow-[hsl(var(--gold))]/10"
+                    className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-white font-semibold hover:opacity-90 h-12 text-base px-8 shadow-lg shadow-[hsl(var(--gold))]/10"
                   >
                     Commencer la visite
                     <ArrowRight className="w-5 h-5 ml-2" />

@@ -162,7 +162,7 @@ export function AirbnbPropertyImport({ open, onOpenChange, onImport }: Props) {
           <Button
             onClick={handleImport}
             disabled={loading}
-            className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold"
+            className="bg-black hover:bg-black/85 text-white font-semibold"
           >
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ArrowRight className="w-4 h-4 mr-2" />}
             Importer

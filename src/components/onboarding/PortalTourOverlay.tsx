@@ -78,7 +78,7 @@ export function PortalTourOverlay({
               <div className="relative z-10 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-semibold tracking-[0.15em] uppercase text-[hsl(var(--gold))]/70">
+                    <span className="text-[10px] font-semibold tracking-[0.15em] uppercase text-black/70">
                       Visite guidée
                     </span>
                     <span className="text-white/20 text-[10px]">•</span>
@@ -115,8 +115,8 @@ export function PortalTourOverlay({
 
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-[hsl(var(--gold))]/10 flex items-center justify-center shrink-0">
-                      <StepIcon className="w-5 h-5 text-[hsl(var(--gold))]" />
+                    <div className="w-11 h-11 rounded-xl bg-black/5 flex items-center justify-center shrink-0">
+                      <StepIcon className="w-5 h-5 text-black" />
                     </div>
                     <h3 className="text-lg font-bold text-white leading-tight">{step.title}</h3>
                   </div>
@@ -126,7 +126,7 @@ export function PortalTourOverlay({
                   </p>
 
                   <div className="rounded-lg bg-white/[0.04] border border-white/[0.06] p-3">
-                    <p className="text-[11px] font-medium text-[hsl(var(--gold))]/60 uppercase tracking-wider mb-1">
+                    <p className="text-[11px] font-medium text-black/60 uppercase tracking-wider mb-1">
                       Cas d'usage
                     </p>
                     <p className="text-white/45 text-xs leading-relaxed">
@@ -151,14 +151,14 @@ export function PortalTourOverlay({
                       <Button
                         variant="ghost"
                         onClick={onAction}
-                        className="text-[hsl(var(--gold))]/70 hover:text-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/5 h-9 px-3 text-xs font-medium"
+                        className="text-black/70 hover:text-black hover:bg-black/[0.03] h-9 px-3 text-xs font-medium"
                       >
                         {step.ctaLabel}
                       </Button>
                     )}
                     <Button
                       onClick={onNext}
-                      className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-[hsl(var(--brand-blue))] font-semibold hover:opacity-90 h-9 px-4 text-xs"
+                      className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-white font-semibold hover:opacity-90 h-9 px-4 text-xs"
                     >
                       {isLastStep ? "Terminer" : "Suivant"}
                       <ArrowRight className="w-3.5 h-3.5 ml-1" />

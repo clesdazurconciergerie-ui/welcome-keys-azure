@@ -57,7 +57,7 @@ export function GuidedTourComplete({ open, onDashboard, onRestart, onContinue }:
                 <div className="flex flex-col gap-3 pt-2">
                   <Button
                     onClick={onDashboard}
-                    className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-[hsl(var(--brand-blue))] font-semibold hover:opacity-90 h-12 text-base px-8"
+                    className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-white font-semibold hover:opacity-90 h-12 text-base px-8"
                   >
                     Accéder au tableau de bord
                     <ArrowRight className="w-5 h-5 ml-2" />

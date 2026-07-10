@@ -142,7 +142,7 @@ export default function OwnerRequestsPage() {
             <h1 className="text-3xl font-bold text-foreground">Mes demandes</h1>
             <p className="text-muted-foreground mt-1">Communiquez avec votre conciergerie</p>
           </div>
-          <Button onClick={() => setNewOpen(true)} className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold gap-2">
+          <Button onClick={() => setNewOpen(true)} className="bg-black hover:bg-black/85 text-white font-semibold gap-2">
             <MessageSquarePlus className="h-4 w-4" />
             Nouvelle demande
           </Button>
@@ -152,8 +152,8 @@ export default function OwnerRequestsPage() {
       {requests.length === 0 ? (
         <Card className="text-center py-16 border-border">
           <CardContent className="pt-6">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
-              <MessageCircle className="w-8 h-8 text-[hsl(var(--gold))]" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-black/5 flex items-center justify-center">
+              <MessageCircle className="w-8 h-8 text-black" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">Aucune demande</h3>
             <p className="text-muted-foreground">Créez une demande pour contacter votre conciergerie.</p>
@@ -223,7 +223,7 @@ export default function OwnerRequestsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewOpen(false)}>Annuler</Button>
             <Button onClick={handleSubmit} disabled={!message.trim() || submitting}
-              className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]">
+              className="bg-black hover:bg-black/85 text-white">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
               Envoyer
             </Button>
@@ -246,7 +246,7 @@ export default function OwnerRequestsPage() {
             {msgLoading ? <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div> :
               messages.map(m => (
                 <div key={m.id} className={`flex ${m.sender_role === "owner" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${m.sender_role === "owner" ? "bg-[hsl(var(--gold))]/10 text-foreground" : "bg-muted text-foreground"}`}>
+                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${m.sender_role === "owner" ? "bg-black/5 text-foreground" : "bg-muted text-foreground"}`}>
                     <p className="text-xs font-medium text-muted-foreground mb-1">{m.sender_role === "owner" ? "Vous" : "Conciergerie"}</p>
                     <p className="text-sm whitespace-pre-wrap">{m.message}</p>
                     <p className="text-[10px] text-muted-foreground mt-1">{new Date(m.created_at).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
@@ -258,7 +258,7 @@ export default function OwnerRequestsPage() {
             <div className="flex gap-2 pt-2 border-t">
               <Textarea value={reply} onChange={e => setReply(e.target.value)} placeholder="Votre réponse..." rows={2} className="flex-1" />
               <Button size="icon" onClick={sendReply} disabled={!reply.trim() || submitting}
-                className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] shrink-0 self-end">
+                className="bg-black hover:bg-black/85 text-white shrink-0 self-end">
                 <Send className="w-4 h-4" />
               </Button>
             </div>

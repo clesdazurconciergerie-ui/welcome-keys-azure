@@ -36,7 +36,7 @@ export function ContextualTip({ tipId, title, children }: ContextualTipProps) {
           className="overflow-hidden"
         >
           <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-[hsl(var(--gold))]/[0.06] border border-[hsl(var(--gold))]/15 mb-4">
-            <Lightbulb className="w-4 h-4 text-[hsl(var(--gold))] shrink-0 mt-0.5" />
+            <Lightbulb className="w-4 h-4 text-black shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               {title && (
                 <p className="text-sm font-medium text-foreground mb-0.5">{title}</p>

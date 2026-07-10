@@ -157,7 +157,7 @@ export function PropertyFinanceSettings({ propertyId }: Props) {
           <CardTitle className="text-base">Réservations</CardTitle>
           <Dialog open={bkOpen} onOpenChange={setBkOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="gap-2 bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]">
+              <Button size="sm" className="gap-2 bg-black hover:bg-black/85 text-white">
                 <Plus className="h-4 w-4" />Ajouter
               </Button>
             </DialogTrigger>

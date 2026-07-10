@@ -19,7 +19,7 @@ export default function SPSettingsPage() {
           <p className="text-muted-foreground mb-2 max-w-md mx-auto">
             Modification du mot de passe, notifications et préférences.
           </p>
-          <p className="text-sm text-[hsl(var(--gold))] font-medium">🚧 Bientôt disponible</p>
+          <p className="text-sm text-black font-medium">🚧 Bientôt disponible</p>
         </CardContent>
       </Card>
     </div>

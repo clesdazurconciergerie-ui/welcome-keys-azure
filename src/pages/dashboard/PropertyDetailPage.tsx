@@ -253,7 +253,7 @@ const PropertyDetailPage = () => {
           <div className="flex items-center gap-2">
             <Button
               onClick={() => setAddBookingOpen(true)}
-              className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold"
+              className="bg-black hover:bg-black/85 text-white font-semibold"
             >
               <CalendarIcon className="w-4 h-4 mr-1.5" />
               Ajouter réservation
@@ -273,7 +273,7 @@ const PropertyDetailPage = () => {
           ].map(s => (
             <Card key={s.label}>
               <CardContent className="p-3 flex items-center gap-2">
-                <s.icon className="h-4 w-4 text-[hsl(var(--gold))]" />
+                <s.icon className="h-4 w-4 text-black" />
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{s.label}</p>
                   <p className="text-sm font-semibold text-foreground">{s.value}</p>
@@ -316,7 +316,7 @@ const PropertyDetailPage = () => {
             </Select>
             <Input value={docName} onChange={e => setDocName(e.target.value)} placeholder="Nom du document" className="w-52" maxLength={200} />
             <label
-              className={cn("relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
+              className={cn("relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-black hover:bg-black/85 text-white", uploading && "pointer-events-none opacity-50")}>
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               Ajouter
               <input ref={docInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" onChange={handleDocUpload}
@@ -335,7 +335,7 @@ const PropertyDetailPage = () => {
                 <Card key={doc.id}>
                   <CardContent className="p-3 flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
-                      <FileText className="h-5 w-5 text-[hsl(var(--gold))] shrink-0" />
+                      <FileText className="h-5 w-5 text-black shrink-0" />
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{doc.name}</p>
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
@@ -364,7 +364,7 @@ const PropertyDetailPage = () => {
           {ownerDocs.length > 0 && (
             <div className="space-y-2 mt-6">
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <User className="h-4 w-4 text-[hsl(var(--gold))]" />
+                <User className="h-4 w-4 text-black" />
                 Documents propriétaire
               </h3>
               {ownerDocs.map(doc => (
@@ -412,7 +412,7 @@ const PropertyDetailPage = () => {
             </Select>
             <Input value={contractDocName} onChange={e => setContractDocName(e.target.value)} placeholder="Nom du document" className="w-52" maxLength={200} />
             <label
-              className={cn("relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]", uploading && "pointer-events-none opacity-50")}>
+              className={cn("relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold h-10 px-4 py-2 cursor-pointer bg-black hover:bg-black/85 text-white", uploading && "pointer-events-none opacity-50")}>
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               Ajouter
               <input ref={contractDocInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" onChange={handleContractDocUpload}
@@ -431,7 +431,7 @@ const PropertyDetailPage = () => {
                 <Card key={doc.id}>
                   <CardContent className="p-3 flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
-                      <FileText className="h-5 w-5 text-[hsl(var(--gold))] shrink-0" />
+                      <FileText className="h-5 w-5 text-black shrink-0" />
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{doc.name}</p>
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">

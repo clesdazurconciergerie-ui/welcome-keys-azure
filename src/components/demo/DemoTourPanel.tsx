@@ -99,7 +99,7 @@ export function DemoTourPanel() {
               <Button
                 size="sm"
                 onClick={demo.nextTourStep}
-                className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold-dark))] text-primary font-semibold"
+                className="bg-black hover:bg-black/85 text-white font-semibold"
               >
                 {isLast ? "Terminer" : "Suivant"}
                 <ArrowRight className="w-4 h-4 ml-1" />

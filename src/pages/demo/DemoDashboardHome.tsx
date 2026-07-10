@@ -34,7 +34,7 @@ export default function DemoDashboardHome() {
 
   const stats = [
     { label: "Livrets", value: bookletCount, icon: BookOpen, color: "text-primary", bg: "bg-primary/10", link: "/demo/livrets" },
-    { label: "Propriétaires", value: 2, icon: Users, color: "text-[hsl(var(--gold))]", bg: "bg-[hsl(var(--gold))]/10", link: "/demo/proprietaires" },
+    { label: "Propriétaires", value: 2, icon: Users, color: "text-black", bg: "bg-black/5", link: "/demo/proprietaires" },
     { label: "Logements", value: demo.demoProperties.length, icon: Home, color: "text-emerald-600", bg: "bg-emerald-100", link: "/demo/logements" },
     { label: "Prestataires", value: 3, icon: Wrench, color: "text-violet-600", bg: "bg-violet-100", link: "/demo/prestataires" },
   ];

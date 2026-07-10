@@ -475,7 +475,7 @@ function EventPill({ event, onSelect, missionLabel, kindIcon, hasOverdueFollowup
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           onClick={() => onSelect(event)}
-          className={`w-full text-left text-[10px] leading-tight px-1.5 py-1 rounded-md truncate font-medium transition-all hover:shadow-sm hover:scale-[1.02] ${colors.bg} ${colors.text} ${hasOverdueFollowup ? "border-l-2 border-l-red-500" : ""} ${event.revenue_to_complete ? "border-l-2 border-l-[hsl(var(--gold))]" : ""}`}
+          className={`w-full text-left text-[10px] leading-tight px-1.5 py-1 rounded-md truncate font-medium transition-all hover:shadow-sm hover:scale-[1.02] ${colors.bg} ${colors.text} ${hasOverdueFollowup ? "border-l-2 border-l-red-500" : ""} ${event.revenue_to_complete ? "border-l-2 border-l-black" : ""}`}
         >
           <span className="mr-0.5">{kindIcon(event.kind)}</span>
           {event.revenue_to_complete && <span className="mr-0.5">💰</span>}
@@ -537,7 +537,7 @@ function ListView({ events, onSelect, missionLabel, kindIcon }: {
             <div className="flex items-center gap-2 shrink-0">
               {isOverdue && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">En retard</Badge>}
               {ev.revenue_to_complete && (
-                <Badge className="text-[10px] px-1.5 py-0 bg-[hsl(var(--gold))]/15 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/30 hover:bg-[hsl(var(--gold))]/25">
+                <Badge className="text-[10px] px-1.5 py-0 bg-black/10 text-black border-black/20 hover:bg-black/15">
                   💰 À compléter
                 </Badge>
               )}
@@ -637,7 +637,7 @@ function EventDrawer({ event, missionLabel, navigate, onClose, onCompleteRevenue
             <Button
               variant={event.revenue_to_complete ? "default" : "outline"}
               size="sm"
-              className={`w-full justify-start gap-2 ${event.revenue_to_complete ? "bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]" : ""}`}
+              className={`w-full justify-start gap-2 ${event.revenue_to_complete ? "bg-black hover:bg-black/85 text-white" : ""}`}
               onClick={() => {
                 onCompleteRevenue({
                   id: event.booking_id!,

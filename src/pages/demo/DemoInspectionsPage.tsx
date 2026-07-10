@@ -24,7 +24,7 @@ export default function DemoInspectionsPage() {
           <h1 className="text-2xl font-bold text-foreground">États des lieux</h1>
           <p className="text-sm text-muted-foreground mt-1">Entrées, sorties et inspections documentées.</p>
         </motion.div>
-        <Button onClick={demo.blockAction} className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold-dark))] text-primary font-semibold" data-tour="add-inspection">
+        <Button onClick={demo.blockAction} className="bg-black hover:bg-black/85 text-white font-semibold" data-tour="add-inspection">
           <Plus className="w-4 h-4 mr-2" />
           Nouvel état des lieux
         </Button>

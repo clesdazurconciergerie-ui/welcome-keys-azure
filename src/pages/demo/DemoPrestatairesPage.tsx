@@ -22,7 +22,7 @@ export default function DemoPrestatairesPage() {
           <h1 className="text-2xl font-bold text-foreground">Prestataires</h1>
           <p className="text-sm text-muted-foreground mt-1">Gérez vos prestataires de services.</p>
         </motion.div>
-        <Button onClick={demo.blockAction} className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold-dark))] text-primary font-semibold" data-tour="add-provider">
+        <Button onClick={demo.blockAction} className="bg-black hover:bg-black/85 text-white font-semibold" data-tour="add-provider">
           <Plus className="w-4 h-4 mr-2" />
           Ajouter un prestataire
         </Button>

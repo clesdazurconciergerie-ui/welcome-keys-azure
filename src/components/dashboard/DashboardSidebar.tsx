@@ -91,12 +91,13 @@ export function DashboardSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <div className="h-full flex flex-col relative overflow-hidden">
-        {/* Deep gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[hsl(232,85%,12%)] via-[hsl(232,85%,10%)] to-[hsl(232,85%,7%)]" />
+        {/* Deep monochrome background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-[hsl(0,0%,4%)] to-black" />
         {/* Subtle radial glow at top */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200%] h-40 bg-[radial-gradient(ellipse_at_center,hsl(232,60%,20%)_0%,transparent_70%)] opacity-40" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200%] h-40 bg-[radial-gradient(ellipse_at_center,hsl(0,0%,18%)_0%,transparent_70%)] opacity-40" />
         {/* Faint noise texture */}
         <div className="absolute inset-0 opacity-[0.03] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iLjgiIG51bU9jdGF2ZXM9IjQiIHN0aXRjaFRpbGVzPSJzdGl0Y2giLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWx0ZXI9InVybCgjbikiIG9wYWNpdHk9IjEiLz48L3N2Zz4=')]" />
+
 
         {/* Logo area */}
         <div className="relative z-10 px-5 pt-6 pb-5">
@@ -159,19 +160,19 @@ export function DashboardSidebar() {
                               group/nav relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium
                               transition-all duration-300 ease-out
                               ${active
-                                ? "text-primary shadow-lg"
+                                ? "text-black shadow-lg"
                                 : "text-white/50 hover:text-white/90"
                               }
                             `}
                             activeClassName=""
                           >
-                            {/* Active background with gold gradient */}
+                            {/* Active background — white pill */}
                             {active && (
                               <>
-                                <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] opacity-90" />
-                                <div className="absolute inset-0 rounded-lg shadow-[0_0_20px_rgba(196,164,91,0.15)]" />
+                                <div className="absolute inset-0 rounded-lg bg-white opacity-95" />
+                                <div className="absolute inset-0 rounded-lg shadow-[0_0_20px_rgba(255,255,255,0.10)]" />
                                 {/* Left accent bar */}
-                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white/80" />
+                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-black/70" />
                               </>
                             )}
 
@@ -183,7 +184,7 @@ export function DashboardSidebar() {
                             <item.icon
                               className={`relative z-10 h-[18px] w-[18px] shrink-0 transition-all duration-300
                                 ${active
-                                  ? "text-primary drop-shadow-sm"
+                                  ? "text-black drop-shadow-sm"
                                   : "text-white/40 group-hover/nav:text-white/70"
                                 }
                               `}
@@ -191,11 +192,12 @@ export function DashboardSidebar() {
                             />
                             {!collapsed && (
                               <span className={`relative z-10 transition-all duration-300 ${
-                                active ? "text-primary font-semibold" : ""
+                                active ? "text-black font-semibold" : ""
                               }`}>
                                 {item.title}
                               </span>
                             )}
+
                           </NavLink>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -221,7 +223,7 @@ export function DashboardSidebar() {
               localStorage.setItem(TOUR_STATE_KEY, JSON.stringify({ currentStep: 0, isActive: false, showWelcome: true }));
               window.location.href = "/dashboard";
             }}
-            className="w-full justify-start gap-3 text-[hsl(var(--gold))]/40 hover:text-[hsl(var(--gold))]/80 hover:bg-[hsl(var(--gold))]/[0.04] px-3 h-10 rounded-lg transition-all duration-300"
+            className="w-full justify-start gap-3 text-white/40 hover:text-white/80 hover:bg-white/[0.04] px-3 h-10 rounded-lg transition-all duration-300"
           >
             <Compass className="h-4 w-4 shrink-0" strokeWidth={1.8} />
             {!collapsed && <span className="text-[13px] font-medium">Visite guidée</span>}

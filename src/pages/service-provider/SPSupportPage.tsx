@@ -44,14 +44,14 @@ export default function SPSupportPage() {
         </Card>
       </div>
 
-      <Card className="border-[hsl(var(--gold))]/30 bg-[hsl(var(--gold))]/5">
+      <Card className="border-black/20 bg-black/[0.03]">
         <CardContent className="pt-6 text-center">
-          <LifeBuoy className="w-10 h-10 mx-auto text-[hsl(var(--gold))] mb-3" />
+          <LifeBuoy className="w-10 h-10 mx-auto text-black mb-3" />
           <h3 className="font-semibold text-lg">Centre d'aide</h3>
           <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
             Consultez les guides et FAQ pour répondre à vos questions courantes sur l'utilisation de la plateforme.
           </p>
-          <p className="text-sm text-[hsl(var(--gold))] font-medium mt-3">🚧 Bientôt disponible</p>
+          <p className="text-sm text-black font-medium mt-3">🚧 Bientôt disponible</p>
         </CardContent>
       </Card>
     </div>

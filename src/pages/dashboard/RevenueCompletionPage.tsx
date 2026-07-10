@@ -49,7 +49,7 @@ export default function RevenueCompletionPage() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Coins className="w-6 h-6 text-[hsl(var(--gold))]" />
+            <Coins className="w-6 h-6 text-black" />
             Revenus à compléter
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -164,7 +164,7 @@ export default function RevenueCompletionPage() {
                             onClick={() => openDialog(b)}
                             className="gap-1.5"
                           >
-                            <Sparkles className="w-3.5 h-3.5 text-[hsl(var(--gold))]" />
+                            <Sparkles className="w-3.5 h-3.5 text-black" />
                             Compléter
                           </Button>
                         </td>

@@ -283,7 +283,7 @@ export function AirbnbCsvImportDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-[hsl(var(--gold))]" />
+            <FileSpreadsheet className="w-5 h-5 text-black" />
             Importer un CSV Airbnb
           </DialogTitle>
           <DialogDescription>
@@ -435,7 +435,7 @@ export function AirbnbCsvImportDialog({
           <Button
             onClick={handleImport}
             disabled={importing || stats.selected === 0}
-            className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-white"
+            className="bg-black hover:bg-black/85 text-white"
           >
             {importing ? (
               <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />

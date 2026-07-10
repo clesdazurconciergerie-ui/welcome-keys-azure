@@ -27,8 +27,8 @@ export function GuidedTourMinimized({ visible, stepIndex, totalSteps, onResume, 
 
             <div className="relative z-10 flex items-center gap-3 pl-4 pr-2 py-2.5">
               {/* Icon */}
-              <div className="w-8 h-8 rounded-lg bg-[hsl(var(--gold))]/10 flex items-center justify-center shrink-0">
-                <Compass className="w-4 h-4 text-[hsl(var(--gold))]" />
+              <div className="w-8 h-8 rounded-lg bg-black/5 flex items-center justify-center shrink-0">
+                <Compass className="w-4 h-4 text-black" />
               </div>
 
               {/* Text */}
@@ -52,7 +52,7 @@ export function GuidedTourMinimized({ visible, stepIndex, totalSteps, onResume, 
               {/* Resume button */}
               <button
                 onClick={onResume}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-[hsl(var(--brand-blue))] text-[11px] font-semibold hover:opacity-90 transition-opacity shrink-0"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-white text-[11px] font-semibold hover:opacity-90 transition-opacity shrink-0"
               >
                 Reprendre
                 <ArrowRight className="w-3 h-3" />

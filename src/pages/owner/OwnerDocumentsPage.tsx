@@ -125,7 +125,7 @@ export default function OwnerDocumentsPage() {
             <p className="text-muted-foreground mt-1">Vos documents personnels et partagés</p>
           </div>
           <Button onClick={() => setUploadOpen(true)}
-            className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold gap-2">
+            className="bg-black hover:bg-black/85 text-white font-semibold gap-2">
             <Upload className="h-4 w-4" />
             Ajouter un document
           </Button>
@@ -135,8 +135,8 @@ export default function OwnerDocumentsPage() {
       {documents.length === 0 ? (
         <Card className="text-center py-16 border-border">
           <CardContent className="pt-6">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
-              <FileText className="w-8 h-8 text-[hsl(var(--gold))]" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-black/5 flex items-center justify-center">
+              <FileText className="w-8 h-8 text-black" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">Aucun document</h3>
             <p className="text-muted-foreground">Ajoutez vos documents pour les partager avec votre conciergerie.</p>
@@ -216,7 +216,7 @@ export default function OwnerDocumentsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setUploadOpen(false)}>Annuler</Button>
             <Button onClick={handleUpload} disabled={!file || uploading}
-              className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]">
+              className="bg-black hover:bg-black/85 text-white">
               {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
               Envoyer
             </Button>

@@ -125,7 +125,7 @@ export default function OwnerAccountPage() {
               <Input value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} type="tel" maxLength={20} />
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSaveProfile} disabled={saving} className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold">
+              <Button onClick={handleSaveProfile} disabled={saving} className="bg-black hover:bg-black/85 text-white font-semibold">
                 {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 Enregistrer
               </Button>
