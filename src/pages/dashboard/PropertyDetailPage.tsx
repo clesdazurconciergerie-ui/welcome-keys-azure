@@ -808,9 +808,9 @@ const PropertyDetailPage = () => {
               className="bg-destructive text-destructive-foreground"
               onClick={async () => {
                 if (!id) return;
-                const ok = await deleteProperty(id);
+                await deleteProperty(id);
                 setDeletePropertyOpen(false);
-                if (ok !== false) navigate("/dashboard/logements");
+                navigate("/dashboard/logements");
               }}
             >
               Supprimer définitivement
