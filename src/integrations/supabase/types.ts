@@ -3073,8 +3073,10 @@ export type Database = {
       properties: {
         Row: {
           address: string | null
+          avg_nightly_rate: number | null
           bathrooms: number | null
           bedrooms: number | null
+          capacity: number | null
           city: string | null
           country: string | null
           created_at: string
@@ -3082,8 +3084,11 @@ export type Database = {
           id: string
           max_guests: number | null
           name: string
+          notes: string | null
           photos: Json | null
           postcode: string | null
+          pricing_strategy: string | null
+          property_type: string | null
           status: string | null
           surface_m2: number | null
           type: string | null
@@ -3092,8 +3097,10 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          avg_nightly_rate?: number | null
           bathrooms?: number | null
           bedrooms?: number | null
+          capacity?: number | null
           city?: string | null
           country?: string | null
           created_at?: string
@@ -3101,8 +3108,11 @@ export type Database = {
           id?: string
           max_guests?: number | null
           name: string
+          notes?: string | null
           photos?: Json | null
           postcode?: string | null
+          pricing_strategy?: string | null
+          property_type?: string | null
           status?: string | null
           surface_m2?: number | null
           type?: string | null
@@ -3111,8 +3121,10 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          avg_nightly_rate?: number | null
           bathrooms?: number | null
           bedrooms?: number | null
+          capacity?: number | null
           city?: string | null
           country?: string | null
           created_at?: string
@@ -3120,8 +3132,11 @@ export type Database = {
           id?: string
           max_guests?: number | null
           name?: string
+          notes?: string | null
           photos?: Json | null
           postcode?: string | null
+          pricing_strategy?: string | null
+          property_type?: string | null
           status?: string | null
           surface_m2?: number | null
           type?: string | null

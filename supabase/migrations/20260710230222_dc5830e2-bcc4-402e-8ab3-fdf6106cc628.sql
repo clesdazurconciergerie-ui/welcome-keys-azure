@@ -1,0 +1,6 @@
+ALTER TABLE public.properties
+  ADD COLUMN IF NOT EXISTS property_type TEXT,
+  ADD COLUMN IF NOT EXISTS capacity INTEGER,
+  ADD COLUMN IF NOT EXISTS avg_nightly_rate NUMERIC,
+  ADD COLUMN IF NOT EXISTS pricing_strategy TEXT,
+  ADD COLUMN IF NOT EXISTS notes TEXT;
