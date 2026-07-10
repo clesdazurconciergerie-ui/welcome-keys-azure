@@ -321,25 +321,18 @@ export default function AirbnbReportWizard() {
 
   // ── NAVIGATION ────────────────────────────────────────────
   const canNext = (): boolean => {
-    if (step.id === "import") return files.length > 0;
+    if (step.id === "selection") return Boolean(propertySlug && periodMonth);
+    if (step.id === "import") return true; // screenshots optional (prefilled data suffices)
     if (step.id === "extraction") return Object.values(kpi).some((v) => v.value !== null);
-    if (step.id === "complement") return Boolean(propertySlug && periodMonth);
     return true;
   };
 
   const goNext = async () => {
-    if (step.id === "import") {
-      setStepIdx(1);
-      // auto-run extraction when landing on step 2 (via button)
-      return;
-    }
     if (step.id === "extraction") {
       if (!Object.values(kpi).some((v) => v.value !== null)) {
-        toast.error("Lancez d'abord l'extraction");
+        toast.error("Aucune donnée disponible");
         return;
       }
-      setStepIdx(2);
-      return;
     }
     if (!canNext()) {
       toast.error("Complétez les champs obligatoires");
@@ -347,6 +340,7 @@ export default function AirbnbReportWizard() {
     }
     setStepIdx((i) => Math.min(i + 1, STEPS.length - 1));
   };
+
 
   const goPrev = () => setStepIdx((i) => Math.max(0, i - 1));
 
