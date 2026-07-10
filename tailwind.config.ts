@@ -16,13 +16,15 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
-        display: ["Poppins", "ui-sans-serif", "system-ui", "sans-serif"],
-        body: ["Montserrat", "ui-sans-serif", "system-ui", "sans-serif"],
-        inter: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
-        poppins: ["Poppins", "ui-sans-serif", "system-ui", "sans-serif"],
-        montserrat: ["Montserrat", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Geist", "Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
+        display: ["Geist", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        body: ["Geist", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+        inter: ["Geist", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        poppins: ["Geist", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        montserrat: ["Geist", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
+
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
