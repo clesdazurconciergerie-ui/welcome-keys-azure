@@ -48,11 +48,11 @@ export default function AirbnbReportView() {
       }
       setReport(data as ReportRow);
       const { data: p } = await (supabase as any)
-        .from("azurkeys_properties")
-        .select("nom, ville, proprietaire")
-        .eq("slug", data.property_slug)
-        .single();
-      setProperty(p as any);
+        .from("properties")
+        .select("name, city")
+        .eq("id", data.property_slug)
+        .maybeSingle();
+      if (p) setProperty({ nom: p.name, ville: p.city ?? "", proprietaire: null });
       setLoading(false);
     })();
   }, [id]);
