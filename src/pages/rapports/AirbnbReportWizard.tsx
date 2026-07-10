@@ -508,7 +508,7 @@ function StepComplement({ properties, loadingProps, propertySlug, setPropertySlu
           <select className="az-input" value={propertySlug} onChange={(e) => setPropertySlug(e.target.value)} disabled={loadingProps}>
             <option value="">— Sélectionnez —</option>
             {properties.map((p: any) => (
-              <option key={p.slug} value={p.slug}>{p.nom} — {p.ville}</option>
+              <option key={p.id} value={p.id}>{p.name}{p.city ? ` — ${p.city}` : ""}</option>
             ))}
           </select>
         </div>
@@ -552,7 +552,7 @@ function StepGeneration({ property, periodLabel, generating, onGenerate }: any) 
     <div className="text-center py-6">
       <p className="az-eyebrow mb-3">Étape 5</p>
       <h2 className="font-display text-3xl mb-4">Prêt à générer</h2>
-      <p className="font-body text-[13px] text-[hsl(var(--az-muted))] mb-2">Logement : <strong>{property?.nom ?? "—"}</strong></p>
+      <p className="font-body text-[13px] text-[hsl(var(--az-muted))] mb-2">Logement : <strong>{property?.name ?? "—"}</strong></p>
       <p className="font-body text-[13px] text-[hsl(var(--az-muted))] mb-8 capitalize">Période : {periodLabel}</p>
       <button onClick={onGenerate} disabled={generating} className="az-btn-primary">
         {generating ? <><Loader2 className="w-4 h-4 animate-spin" /> Génération…</> : <><Sparkles className="w-4 h-4" /> Générer le rapport</>}
