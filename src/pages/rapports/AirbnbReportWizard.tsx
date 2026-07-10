@@ -354,7 +354,7 @@ export default function AirbnbReportWizard() {
       </div>
 
       <h1 className="font-display text-4xl md:text-5xl mb-2">Rapport de performance Airbnb</h1>
-      <p className="font-body text-[13px] text-[hsl(var(--az-muted))] mb-10">Wizard en 5 étapes — importez, laissez l'IA extraire, complétez, générez.</p>
+      <p className="font-body text-[13px] text-[hsl(var(--az-muted))] mb-10">Sélectionnez un logement, on remplit ce qu'on peut. Vous ajoutez les captures Airbnb pour compléter.</p>
 
       {/* Stepper */}
       <div className="flex items-center justify-between mb-10 border-b border-[hsl(var(--az-line))] pb-6">
@@ -374,16 +374,7 @@ export default function AirbnbReportWizard() {
 
       {/* STEP CONTENT */}
       <div className="az-card p-8 min-h-[380px]">
-        {step.id === "import" && (
-          <StepImport files={files} uploading={uploading} onFiles={handleFiles} onRemove={removeFile} />
-        )}
-        {step.id === "extraction" && (
-          <StepExtraction files={files} extracting={extracting} onExtract={runExtraction} kpi={kpi} />
-        )}
-        {step.id === "validation" && (
-          <StepValidation kpi={kpi} setKpi={setKpi} />
-        )}
-        {step.id === "complement" && (
+        {step.id === "selection" && (
           <StepComplement
             properties={properties}
             loadingProps={loadingProps}
@@ -394,12 +385,23 @@ export default function AirbnbReportWizard() {
             periodLabel={periodLabel}
             manual={manual}
             setManual={setManual}
+            kpi={kpi}
           />
+        )}
+        {step.id === "import" && (
+          <StepImport files={files} uploading={uploading} onFiles={handleFiles} onRemove={removeFile} />
+        )}
+        {step.id === "extraction" && (
+          <StepExtraction files={files} extracting={extracting} onExtract={runExtraction} kpi={kpi} />
+        )}
+        {step.id === "validation" && (
+          <StepValidation kpi={kpi} setKpi={setKpi} />
         )}
         {step.id === "generation" && (
           <StepGeneration property={selectedProperty} periodLabel={periodLabel} generating={generating} onGenerate={runGeneration} />
         )}
       </div>
+
 
       {/* NAV */}
       <div className="flex items-center justify-between mt-8">
