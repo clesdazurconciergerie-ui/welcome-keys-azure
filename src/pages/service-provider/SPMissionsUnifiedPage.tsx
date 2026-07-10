@@ -63,7 +63,7 @@ function OpenMissionCard({ mission, conflictWarning, claiming, onClaim, onOpen }
             </p>
           </div>
 
-          <div className="mt-3 font-semibold" style={{ color: "#061452", fontSize: 20, lineHeight: 1.2 }}>
+          <div className="mt-3 font-semibold" style={{ color: "#000000", fontSize: 20, lineHeight: 1.2 }}>
             {dateFmt} · {timeFmt}
           </div>
 
@@ -89,7 +89,7 @@ function OpenMissionCard({ mission, conflictWarning, claiming, onClaim, onOpen }
             onClick={onClaim}
             disabled={claiming}
             className="w-full text-white font-semibold rounded-lg"
-            style={{ backgroundColor: "#061452", height: 56, fontSize: 16 }}
+            style={{ backgroundColor: "#000000", height: 56, fontSize: 16 }}
           >
             {claiming ? <Loader2 className="w-5 h-5 animate-spin" /> : "Prendre cette mission"}
           </Button>

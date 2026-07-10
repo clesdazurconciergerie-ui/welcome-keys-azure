@@ -137,7 +137,7 @@ export default function SPMissionDetailPage() {
           </p>
           <h1 className="text-xl font-bold text-foreground mt-1 leading-tight">{mission.title}</h1>
           <div className="mt-3 flex items-center gap-3 text-sm text-foreground flex-wrap">
-            <span className="inline-flex items-center gap-1.5 font-semibold" style={{ color: "#061452", fontSize: 20 }}>
+            <span className="inline-flex items-center gap-1.5 font-semibold" style={{ color: "#000000", fontSize: 20 }}>
               <Calendar className="w-5 h-5" /> {dateFmt} · {timeFmt}
             </span>
           </div>
@@ -165,7 +165,7 @@ export default function SPMissionDetailPage() {
               href={mapsHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center justify-center gap-2 w-full h-11 rounded-lg bg-[#061452] text-white text-sm font-semibold active:opacity-90"
+              className="mt-3 inline-flex items-center justify-center gap-2 w-full h-11 rounded-lg bg-[#000000] text-white text-sm font-semibold active:opacity-90"
             >
               <Navigation className="w-4 h-4" /> Itinéraire Google Maps
             </a>
@@ -235,7 +235,7 @@ export default function SPMissionDetailPage() {
             onClick={handleComplete}
             disabled={!completionEnabled}
             className="w-full text-white font-semibold rounded-lg"
-            style={{ backgroundColor: completionEnabled ? "#061452" : undefined, height: 56, fontSize: 16 }}
+            style={{ backgroundColor: completionEnabled ? "#000000" : undefined, height: 56, fontSize: 16 }}
           >
             {completing ? (
               <Loader2 className="w-5 h-5 animate-spin" />

@@ -456,7 +456,7 @@ export default function InspectionV2DetailPage() {
       </Tabs>
 
       {/* Hidden PDF content */}
-      <div id="inspection-pdf-content" style={{ position: "absolute", left: -9999, top: 0, width: "210mm", padding: "20mm", background: "#fff", color: "#061452", fontFamily: "system-ui, sans-serif" }}>
+      <div id="inspection-pdf-content" style={{ position: "absolute", left: -9999, top: 0, width: "210mm", padding: "20mm", background: "#fff", color: "#000000", fontFamily: "system-ui, sans-serif" }}>
         <h1 style={{ fontSize: 24, marginBottom: 8 }}>État des lieux — {insp.inspection_type}</h1>
         <p style={{ fontSize: 14, margin: 0 }}><strong>Bien :</strong> {insp.property?.name}</p>
         {insp.property?.address && <p style={{ fontSize: 14, margin: 0 }}>{insp.property.address}</p>}
@@ -464,11 +464,11 @@ export default function InspectionV2DetailPage() {
           <strong>Date :</strong> {new Date(insp.official_date).toLocaleDateString("fr-FR")}
         </p>
         {insp.guest_name && <p style={{ fontSize: 14, margin: 0 }}><strong>Voyageur :</strong> {insp.guest_name}</p>}
-        <hr style={{ margin: "12px 0", borderColor: "#C4A45B" }} />
+        <hr style={{ margin: "12px 0", borderColor: "#FFFFFF" }} />
 
         {Object.entries(photosByRoom).map(([rn, list]) => (
           <section key={rn} style={{ marginBottom: 16, breakInside: "avoid" }}>
-            <h2 style={{ fontSize: 16, color: "#C4A45B" }}>{rn}</h2>
+            <h2 style={{ fontSize: 16, color: "#FFFFFF" }}>{rn}</h2>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {list?.map((p) => (
                 <figure key={p.id} style={{ margin: 0, breakInside: "avoid" }}>

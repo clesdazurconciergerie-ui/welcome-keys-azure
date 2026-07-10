@@ -92,7 +92,7 @@ export function PushOptIn({ variant = "banner" }: Props) {
           {!granted && (
             <Button
               size="sm"
-              className="mt-3 bg-[#061452] hover:bg-[#061452]/90"
+              className="mt-3 bg-[#000000] hover:bg-[#000000]/90"
               onClick={handleEnable}
               disabled={busy || permission === "denied"}
             >
@@ -105,7 +105,7 @@ export function PushOptIn({ variant = "banner" }: Props) {
   }
 
   return (
-    <div className="bg-[#061452] text-white px-4 py-3 flex items-center gap-3 shadow-sm">
+    <div className="bg-[#000000] text-white px-4 py-3 flex items-center gap-3 shadow-sm">
       <Bell className="w-5 h-5 flex-shrink-0" />
       <p className="text-sm flex-1 min-w-0">
         Activez les notifications pour ne manquer aucune mission.
@@ -115,7 +115,7 @@ export function PushOptIn({ variant = "banner" }: Props) {
         variant="secondary"
         onClick={handleEnable}
         disabled={busy}
-        className="bg-[#C4A45B] hover:bg-[#C4A45B]/90 text-[#061452] border-0"
+        className="bg-[#FFFFFF] hover:bg-[#FFFFFF]/90 text-[#000000] border-0"
       >
         Activer
       </Button>
