@@ -89,7 +89,7 @@ const PremiumInput = ({
       className={`absolute -inset-px rounded-lg opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none ${
         hasError
           ? "bg-gradient-to-r from-red-500/30 via-red-400/20 to-red-500/30"
-          : "bg-gradient-to-r from-[#C4A45B]/30 via-[#C4A45B]/15 to-[#C4A45B]/30"
+          : "bg-gradient-to-r from-[#FFFFFF]/30 via-[#FFFFFF]/15 to-[#FFFFFF]/30"
       }`}
     />
     <div className="relative">
@@ -337,7 +337,7 @@ const Auth = () => {
     }
   };
 
-  const inputBase = "bg-white/5 border-white/10 text-white placeholder:text-white/30 transition-all duration-300 focus:border-[#C4A45B]/50 focus:ring-[#C4A45B]/20 focus:bg-white/[0.07] focus:shadow-[0_0_15px_-3px_rgba(196,164,91,0.15)] focus:-translate-y-px";
+  const inputBase = "bg-white/5 border-white/10 text-white placeholder:text-white/30 transition-all duration-300 focus:border-[#FFFFFF]/50 focus:ring-[#FFFFFF]/20 focus:bg-white/[0.07] focus:shadow-[0_0_15px_-3px_rgba(196,164,91,0.15)] focus:-translate-y-px";
   const inputError = "border-red-500/50 bg-red-500/5 shadow-[0_0_12px_-3px_rgba(239,68,68,0.25)]";
   const labelClasses = "text-white/70 text-sm font-medium";
 
@@ -345,7 +345,7 @@ const Auth = () => {
     `${inputBase} ${errorFields[field] ? inputError : ""} ${extra}`;
 
   return (
-    <div className="min-h-screen flex bg-[#061452] relative overflow-hidden">
+    <div className="min-h-screen flex bg-[#000000] relative overflow-hidden">
       {/* ── Left brand panel (hidden on mobile) ── */}
       <div
         ref={panelRef}
@@ -355,9 +355,9 @@ const Auth = () => {
       >
         {/* Background effects — Layer 0 (static) */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#061452] via-[#0a1f6b] to-[#061452]" />
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#C4A45B]/8 rounded-full blur-[120px]" />
-          <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-[#C4A45B]/5 rounded-full blur-[100px]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#000000] via-[#0a0a0a] to-[#000000]" />
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#FFFFFF]/8 rounded-full blur-[120px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-[#FFFFFF]/5 rounded-full blur-[100px]" />
         </div>
 
         {/* Layer 1 — Background grid with subtle perspective tilt */}
@@ -400,15 +400,15 @@ const Auth = () => {
             className="mt-8 text-xl text-white/60 font-light leading-relaxed"
           >
             La plateforme qui pilote<br />
-            <span className="text-[#C4A45B] font-medium">votre conciergerie.</span>
+            <span className="text-[#FFFFFF] font-medium">votre conciergerie.</span>
           </motion.p>
 
           {/* Layer 3 — Floating product cards (strongest parallax) */}
           <div className="mt-16 relative h-52" style={{ transformStyle: "preserve-3d" }}>
             <FloatingCard delay={0} orbit={{ rx: 15, ry: 12, duration: 8, phase: 0, tilt: 2.5 }} className="absolute top-0 left-0" nx={nx} ny={ny} magnetStrength={40}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg" style={{ transform: "translateZ(30px)" }}>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
-                  <CalendarDays className="h-4 w-4 text-[#C4A45B]" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#FFFFFF]/15">
+                  <CalendarDays className="h-4 w-4 text-[#FFFFFF]" />
                 </div>
                 <div className="text-left">
                   <p className="text-xs font-medium text-white/80">12 réservations</p>
@@ -443,8 +443,8 @@ const Auth = () => {
 
             <FloatingCard delay={1.8} orbit={{ rx: -14, ry: 10, duration: 11, phase: 5.2, tilt: -1.8 }} className="absolute bottom-4 right-4" nx={nx} ny={ny} magnetStrength={25}>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 shadow-lg" style={{ transform: "translateZ(15px)" }}>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C4A45B]/15">
-                  <Sparkles className="h-4 w-4 text-[#C4A45B]" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#FFFFFF]/15">
+                  <Sparkles className="h-4 w-4 text-[#FFFFFF]" />
                 </div>
                 <div className="text-left">
                   <p className="text-xs font-medium text-white/80">98% satisfaction</p>
@@ -458,7 +458,7 @@ const Auth = () => {
 
       {/* ── Right form panel ── */}
       <div className="flex flex-1 items-center justify-center p-4 sm:p-8 lg:w-1/2">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#C4A45B]/6 rounded-full blur-[150px] lg:hidden" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#FFFFFF]/6 rounded-full blur-[150px] lg:hidden" />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -471,7 +471,7 @@ const Auth = () => {
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-black/20 relative">
-            <div className="absolute -top-px left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-[#C4A45B]/40 to-transparent" />
+            <div className="absolute -top-px left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-[#FFFFFF]/40 to-transparent" />
 
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-white">
@@ -486,10 +486,10 @@ const Auth = () => {
 
             <Tabs defaultValue={defaultTab} className="w-full">
               <TabsList className="flex w-full items-center mb-6 bg-white/5 border border-white/10 rounded-lg h-10 p-1 gap-0">
-                <TabsTrigger value="signin" className="flex-1 h-full text-xs sm:text-sm text-white/60 data-[state=active]:bg-[#C4A45B]/15 data-[state=active]:text-[#C4A45B] data-[state=active]:shadow-none rounded-md transition-all">
+                <TabsTrigger value="signin" className="flex-1 h-full text-xs sm:text-sm text-white/60 data-[state=active]:bg-[#FFFFFF]/15 data-[state=active]:text-[#FFFFFF] data-[state=active]:shadow-none rounded-md transition-all">
                   Connexion
                 </TabsTrigger>
-                <TabsTrigger value="signup" className="flex-1 h-full text-xs sm:text-sm text-white/60 data-[state=active]:bg-[#C4A45B]/15 data-[state=active]:text-[#C4A45B] data-[state=active]:shadow-none rounded-md transition-all">
+                <TabsTrigger value="signup" className="flex-1 h-full text-xs sm:text-sm text-white/60 data-[state=active]:bg-[#FFFFFF]/15 data-[state=active]:text-[#FFFFFF] data-[state=active]:shadow-none rounded-md transition-all">
                   {isDemoMode ? "Démo gratuite" : "Inscription"}
                 </TabsTrigger>
               </TabsList>
@@ -507,7 +507,7 @@ const Auth = () => {
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="signin-password" className={labelClasses}>Mot de passe</Label>
-                        <button type="button" onClick={() => setShowForgotPassword(true)} className="text-xs text-[#C4A45B]/70 hover:text-[#C4A45B] transition-colors">
+                        <button type="button" onClick={() => setShowForgotPassword(true)} className="text-xs text-[#FFFFFF]/70 hover:text-[#FFFFFF] transition-colors">
                           Mot de passe oublié ?
                         </button>
                       </div>
@@ -520,7 +520,7 @@ const Auth = () => {
                         </div>
                       </PremiumInput>
                     </div>
-                    <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#C4A45B] to-[#d4b96b] text-[#061452] font-semibold hover:shadow-lg hover:shadow-[#C4A45B]/20 hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
+                    <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#FFFFFF] to-[#d4b96b] text-[#000000] font-semibold hover:shadow-lg hover:shadow-[#FFFFFF]/20 hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
                       {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Connexion...</>) : "Se connecter"}
                     </Button>
                     <div className="text-center mt-3">
@@ -538,7 +538,7 @@ const Auth = () => {
                       </PremiumInput>
                       <p className="text-xs text-white/40">Nous vous enverrons un lien pour réinitialiser votre mot de passe</p>
                     </div>
-                    <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#C4A45B] to-[#d4b96b] text-[#061452] font-semibold hover:shadow-lg hover:shadow-[#C4A45B]/20 hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
+                    <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#FFFFFF] to-[#d4b96b] text-[#000000] font-semibold hover:shadow-lg hover:shadow-[#FFFFFF]/20 hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
                       {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Envoi...</>) : "Envoyer le lien"}
                     </Button>
                     <button type="button" onClick={() => setShowForgotPassword(false)} disabled={loading} className="w-full flex items-center justify-center gap-2 text-sm text-white/50 hover:text-white/70 transition-colors py-2">
@@ -569,7 +569,7 @@ const Auth = () => {
                     </PremiumInput>
                     <p className="text-xs text-white/40">Minimum 6 caractères</p>
                   </div>
-                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#C4A45B] to-[#d4b96b] text-[#061452] font-semibold hover:shadow-lg hover:shadow-[#C4A45B]/20 hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
+                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#FFFFFF] to-[#d4b96b] text-[#000000] font-semibold hover:shadow-lg hover:shadow-[#FFFFFF]/20 hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
                     {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isDemoMode ? "Création..." : "Inscription..."}</>) : (isDemoMode ? "🎬 Créer ma démo gratuite" : "Créer un compte")}
                   </Button>
                   {isDemoMode && (
@@ -588,7 +588,7 @@ const Auth = () => {
               </button>
               <p className="text-xs text-white/30">
                 Vous avez un code ?{" "}
-                <button onClick={() => navigate("/acces-livret")} className="text-[#C4A45B]/70 hover:text-[#C4A45B] transition-colors font-medium">
+                <button onClick={() => navigate("/acces-livret")} className="text-[#FFFFFF]/70 hover:text-[#FFFFFF] transition-colors font-medium">
                   Accéder à un livret
                 </button>
               </p>
