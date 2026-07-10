@@ -25,7 +25,10 @@ export function useEstimationForm() {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(KEY, JSON.stringify(data));
+      // Le brouillon exclut les photos (base64 volumineux → quota sessionStorage).
+      // Les photos vivent seulement en mémoire React pendant la session courante.
+      const { photos: _photos, ...rest } = data;
+      sessionStorage.setItem(KEY, JSON.stringify(rest));
     } catch {
       // Quota session dépassé → on ne bloque pas la saisie, on ignore.
     }
