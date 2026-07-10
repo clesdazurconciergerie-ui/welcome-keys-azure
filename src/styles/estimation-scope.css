@@ -123,3 +123,97 @@
   border: 1px solid var(--e-ink);
 }
 .estim-scope .e-btn-ghost:hover { background: var(--e-ink); color: var(--e-paper); opacity: 1; }
+
+/* ─────────────────────────────────────────────────────────────
+   Rapport A4 — 6 pages, aperçu WYSIWYG + impression
+   ───────────────────────────────────────────────────────────── */
+.estim-scope .e-page {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 18mm 16mm;
+  margin: 0 auto 12mm;
+  background: var(--e-paper);
+  position: relative;
+  overflow: hidden;
+  page-break-after: always;
+  break-after: page;
+}
+.estim-scope .e-page:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+.estim-scope .e-page--dark {
+  background: var(--e-ink);
+  color: var(--e-paper);
+}
+.estim-scope .e-page--dark .e-eyebrow,
+.estim-scope .e-page--dark .e-label,
+.estim-scope .e-page--dark h1,
+.estim-scope .e-page--dark h2,
+.estim-scope .e-page--dark h3 { color: var(--e-paper); }
+.estim-scope .e-page--dark .e-hairline { background: rgba(245,245,240,0.2); }
+
+.estim-scope .e-footnote {
+  position: absolute;
+  left: 16mm; right: 16mm; bottom: 10mm;
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--e-body); font-size: 8px;
+  letter-spacing: 0.24em; text-transform: uppercase;
+  color: var(--e-text-mute);
+  padding-top: 6mm; border-top: 1px solid var(--e-line);
+}
+.estim-scope .e-page--dark .e-footnote {
+  color: rgba(245,245,240,0.5);
+  border-top-color: rgba(245,245,240,0.15);
+}
+
+.estim-scope .e-kpi-num {
+  font-family: var(--e-title);
+  font-weight: 500;
+  font-size: 36px;
+  line-height: 1;
+  color: var(--e-ink);
+}
+.estim-scope .e-page--dark .e-kpi-num { color: var(--e-paper); }
+
+.estim-scope .e-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.estim-scope .e-table th,
+.estim-scope .e-table td {
+  padding: 10px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--e-line);
+}
+.estim-scope .e-table th {
+  font-family: var(--e-body);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--e-text-mute);
+}
+
+.estim-scope .e-map-pin {
+  width: 14px; height: 14px; border-radius: 50% !important;
+  background: var(--e-pin);
+  display: inline-block;
+  box-shadow: 0 0 0 4px rgba(192,57,43,0.18) !important;
+}
+
+@media print {
+  @page { size: A4 portrait; margin: 0; }
+  html, body { background: var(--e-paper); }
+  body * { visibility: hidden !important; }
+  .estim-scope, .estim-scope * { visibility: visible !important; }
+  .estim-scope { position: absolute; inset: 0; padding: 0 !important; }
+  .estim-scope .print\:hidden { display: none !important; }
+  .estim-scope .e-page {
+    margin: 0;
+    padding: 18mm 16mm;
+    page-break-after: always;
+  }
+  .estim-scope .e-page:last-child { page-break-after: auto; }
+}
