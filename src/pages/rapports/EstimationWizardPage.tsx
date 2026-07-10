@@ -85,7 +85,17 @@ export default function EstimationWizardPage() {
     import("@/lib/estimation/engine").then(({ estimate }) => {
       const result = estimate(data);
       const id = crypto.randomUUID();
-      sessionStorage.setItem(`estim.result.${id}`, JSON.stringify({ form: data, result }));
+      const payload = { id, form: data, result, generatedAt: new Date().toISOString() };
+      // Clé unique lue par EstimationReportPage (voir loadPayload).
+      try {
+        sessionStorage.setItem("estimation:last", JSON.stringify(payload));
+      } catch {
+        // Photos trop volumineuses → on retire les photos et on retente.
+        const slim = { ...payload, form: { ...data, photos: { items: [] } } };
+        try { sessionStorage.setItem("estimation:last", JSON.stringify(slim)); }
+        catch { toast.error("Impossible de stocker l'estimation (mémoire insuffisante)"); return; }
+        toast.warning("Photos trop volumineuses pour l'aperçu — rapport généré sans galerie.");
+      }
       navigate(`/rapports/estimation/${id}`);
     });
   };
