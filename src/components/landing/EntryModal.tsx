@@ -19,7 +19,10 @@ const EntryModal = () => {
     setOpen(false);
   };
 
-  const handleConciergerie = () => persist("conciergerie");
+  const handleConciergerie = () => {
+    persist("conciergerie");
+    navigate("/auth");
+  };
 
   const handleProprietaire = () => {
     persist("proprietaire");
