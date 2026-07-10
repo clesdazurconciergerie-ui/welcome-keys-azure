@@ -299,6 +299,92 @@ export type Database = {
         }
         Relationships: []
       }
+      azurkeys_properties: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          nom: string
+          proprietaire: string | null
+          slug: string
+          updated_at: string
+          ville: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          nom: string
+          proprietaire?: string | null
+          slug: string
+          updated_at?: string
+          ville?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          nom?: string
+          proprietaire?: string | null
+          slug?: string
+          updated_at?: string
+          ville?: string
+        }
+        Relationships: []
+      }
+      azurkeys_reports: {
+        Row: {
+          analysis_text: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          kpi_data: Json
+          manual_data: Json
+          period: string
+          period_label: string | null
+          property_slug: string
+          screenshot_urls: string[]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          analysis_text?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kpi_data?: Json
+          manual_data?: Json
+          period: string
+          period_label?: string | null
+          property_slug: string
+          screenshot_urls?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          analysis_text?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kpi_data?: Json
+          manual_data?: Json
+          period?: string
+          period_label?: string | null
+          property_slug?: string
+          screenshot_urls?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "azurkeys_reports_property_slug_fkey"
+            columns: ["property_slug"]
+            isOneToOne: false
+            referencedRelation: "azurkeys_properties"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       booking_conflicts: {
         Row: {
           conflict_type: string
