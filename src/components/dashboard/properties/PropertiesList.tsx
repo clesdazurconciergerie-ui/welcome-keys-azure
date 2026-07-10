@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { StorageImage } from "@/components/StorageImage";
 import type { Property } from "@/hooks/useProperties";
 
 interface Props {
@@ -102,7 +103,7 @@ export function PropertiesList({ properties, onView }: Props) {
               {/* Image */}
               <div className="aspect-[4/3] overflow-hidden bg-muted">
                 {photoMap[prop.id] ? (
-                  <img
+                  <StorageImage
                     src={photoMap[prop.id]}
                     alt={prop.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"

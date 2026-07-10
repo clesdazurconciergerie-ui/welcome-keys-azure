@@ -2588,6 +2588,7 @@ export type Database = {
           id: string
           name: string
           owner_id: string
+          property_id: string | null
           type: string
           uploaded_at: string
         }
@@ -2597,6 +2598,7 @@ export type Database = {
           id?: string
           name: string
           owner_id: string
+          property_id?: string | null
           type?: string
           uploaded_at?: string
         }
@@ -2606,6 +2608,7 @@ export type Database = {
           id?: string
           name?: string
           owner_id?: string
+          property_id?: string | null
           type?: string
           uploaded_at?: string
         }
@@ -2615,6 +2618,13 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_documents_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -2685,18 +2695,21 @@ export type Database = {
           created_at: string
           id: string
           owner_id: string
+          property_id: string | null
         }
         Insert: {
           booklet_id: string
           created_at?: string
           id?: string
           owner_id: string
+          property_id?: string | null
         }
         Update: {
           booklet_id?: string
           created_at?: string
           id?: string
           owner_id?: string
+          property_id?: string | null
         }
         Relationships: [
           {
@@ -2711,6 +2724,13 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_properties_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]

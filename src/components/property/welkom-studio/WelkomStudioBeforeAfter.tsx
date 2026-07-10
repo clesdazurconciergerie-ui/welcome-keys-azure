@@ -1,3 +1,4 @@
+import { StorageImage } from "@/components/StorageImage";
 import { useState, useRef, useCallback, useEffect } from "react";
 
 interface Props {
@@ -41,13 +42,13 @@ export function WelkomStudioBeforeAfter({ beforeUrl, afterUrl }: Props) {
       className="relative w-full aspect-video rounded-xl overflow-hidden border border-border select-none bg-muted"
     >
       {/* After (full) */}
-      <img src={afterUrl} alt="Après Welkom Studio" className="absolute inset-0 w-full h-full object-cover" />
+      <StorageImage src={afterUrl} alt="Après Welkom Studio" className="absolute inset-0 w-full h-full object-cover" />
       {/* Before (clipped) */}
       <div
         className="absolute inset-0 overflow-hidden"
         style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
       >
-        <img src={beforeUrl} alt="Avant" className="absolute inset-0 w-full h-full object-cover" />
+        <StorageImage src={beforeUrl} alt="Avant" className="absolute inset-0 w-full h-full object-cover" />
       </div>
 
       {/* Labels */}
