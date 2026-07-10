@@ -33,9 +33,9 @@ export default function RapportsHome() {
             Importez les captures d'écran Airbnb d'un logement, validez les chiffres extraits, puis obtenez
             un PDF premium prêt à envoyer au propriétaire.
           </p>
-          <button className="az-btn-primary opacity-60 cursor-not-allowed" disabled>
-            Bientôt disponible
-          </button>
+          <Link to="/rapports/airbnb/nouveau" className="az-btn-primary">
+            Nouveau rapport
+          </Link>
         </div>
 
         <div className="az-card p-8">
