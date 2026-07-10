@@ -106,6 +106,26 @@ serve(async (req) => {
     console.log('Page fetched successfully, extracting data with AI');
     const extractedData = await extractFromHTML(htmlContent, LOVABLE_API_KEY);
 
+    // Sanity check: if the AI returned nothing usable or the page was a 404,
+    // don't silently claim success — ask user to fall back to Text mode.
+    const title = (extractedData?.title || '').toString().toLowerCase();
+    const looksEmpty =
+      !extractedData?.title ||
+      title.includes('404') ||
+      title.includes('page not found') ||
+      title.includes('page introuvable');
+    if (looksEmpty) {
+      console.log('Extraction produced empty/invalid data — returning blocked hint');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'blocked',
+          message: "Impossible d'extraire cette annonce (Airbnb bloque ou l'URL est invalide). Utilisez le mode « Texte ».",
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
     // Télécharger et stocker les photos si un bookletId est fourni
     if (bookletId && extractedData.photos?.length > 0) {
       extractedData.photos = await downloadAndStorePhotos(extractedData.photos, bookletId);
@@ -132,6 +152,50 @@ serve(async (req) => {
 });
 
 async function fetchAirbnbPage(url: string): Promise<string | null> {
+  const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
+
+  // 1) Try Firecrawl first (bypasses Airbnb bot protection)
+  if (FIRECRAWL_API_KEY) {
+    try {
+      console.log('Fetching via Firecrawl...');
+      const fcResp = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          formats: ['html', 'markdown'],
+          onlyMainContent: false,
+          waitFor: 2500,
+          timeout: 45000,
+        }),
+        signal: AbortSignal.timeout(60000),
+      });
+
+      if (fcResp.ok) {
+        const fc = await fcResp.json();
+        const html: string | undefined = fc?.data?.html;
+        const md: string | undefined = fc?.data?.markdown;
+        const combined = [html || '', md ? `\n\n<!-- MARKDOWN -->\n${md}` : ''].join('');
+        if (combined && combined.length > 500) {
+          console.log('Firecrawl OK, content length:', combined.length);
+          return combined;
+        }
+        console.log('Firecrawl returned empty content, falling back to direct fetch');
+      } else {
+        const errTxt = await fcResp.text();
+        console.error('Firecrawl error:', fcResp.status, errTxt.slice(0, 300));
+      }
+    } catch (e) {
+      console.error('Firecrawl exception:', e);
+    }
+  } else {
+    console.log('No FIRECRAWL_API_KEY, using direct fetch only');
+  }
+
+  // 2) Fallback: direct fetch
   try {
     const response = await fetch(url, {
       headers: {
@@ -143,15 +207,15 @@ async function fetchAirbnbPage(url: string): Promise<string | null> {
     });
 
     if (!response.ok || response.status === 403) {
-      console.log('Fetch failed:', response.status);
+      console.log('Direct fetch failed:', response.status);
       return null;
     }
 
     const html = await response.text();
-    console.log('HTML fetched, length:', html.length);
+    console.log('Direct HTML fetched, length:', html.length);
     return html;
   } catch (error) {
-    console.error('Fetch error:', error);
+    console.error('Direct fetch error:', error);
     return null;
   }
 }
