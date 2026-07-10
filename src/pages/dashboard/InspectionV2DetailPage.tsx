@@ -185,7 +185,7 @@ export default function InspectionV2DetailPage() {
 
       {/* Workflow protectif: État d'entrée → État de sortie */}
       {insp.inspection_type === "entry" && (
-        <Card className="border-l-4 border-l-[hsl(var(--gold))]">
+        <Card className="border-l-4 border-l-black">
           <CardContent className="pt-4 flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex-1">
               <p className="font-medium text-foreground flex items-center gap-2">

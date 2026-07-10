@@ -170,7 +170,7 @@ const DashboardHome = () => {
       {/* SECTION 2 — ACTIVITÉ */}
       <div>
         <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-          <div className="w-1 h-6 bg-[hsl(var(--gold))] rounded-full" />
+          <div className="w-1 h-6 bg-black rounded-full" />
           Activité
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

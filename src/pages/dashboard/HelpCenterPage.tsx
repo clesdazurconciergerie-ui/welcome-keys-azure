@@ -240,7 +240,7 @@ export default function HelpCenterPage() {
                         </ul>
                       </div>
 
-                      <div className="flex items-start gap-2 p-3 rounded-lg bg-[hsl(var(--gold))]/[0.05] border border-[hsl(var(--gold))]/10">
+                      <div className="flex items-start gap-2 p-3 rounded-lg bg-black/[0.04] border border-black/10">
                         <span className="text-sm">💡</span>
                         <div>
                           <p className="text-xs font-semibold text-foreground mb-0.5">Bonne pratique</p>
