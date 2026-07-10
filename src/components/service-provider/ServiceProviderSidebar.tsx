@@ -50,7 +50,7 @@ export function ServiceProviderSidebar() {
               <p className="section-label text-white/30 mt-2">Espace Prestataire</p>
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-gold flex items-center justify-center font-bold text-primary text-sm">
+            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center font-bold text-black text-sm">
               P
             </div>
           )}
@@ -71,7 +71,7 @@ export function ServiceProviderSidebar() {
                         end={item.url === "/prestataire"}
                         className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ${
                           isActive(item.url)
-                            ? "bg-gold/90 text-primary shadow-md shadow-gold/15"
+                            ? "bg-white text-black shadow-md shadow-white/10"
                             : "text-white/60 hover:text-white/90 hover:bg-white/[0.06]"
                         }`}
                         activeClassName=""
@@ -101,7 +101,7 @@ export function ServiceProviderSidebar() {
                         end
                         className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ${
                           isActive(item.url)
-                            ? "bg-gold/90 text-primary shadow-md shadow-gold/15"
+                            ? "bg-white text-black shadow-md shadow-white/10"
                             : "text-white/60 hover:text-white/90 hover:bg-white/[0.06]"
                         }`}
                         activeClassName=""
