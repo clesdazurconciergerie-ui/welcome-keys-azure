@@ -50,7 +50,7 @@ export default function OwnerFinancesPage() {
         <CardContent>
           {invoices.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-black/5 flex items-center justify-center">
                 <FileText className="w-8 h-8 text-black" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-1">Aucune facture</h3>

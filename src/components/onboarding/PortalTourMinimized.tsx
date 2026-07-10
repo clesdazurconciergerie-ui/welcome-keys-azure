@@ -25,7 +25,7 @@ export function PortalTourMinimized({ visible, stepIndex, totalSteps, onResume, 
             <div className="absolute top-0 right-0 w-24 h-24 bg-[radial-gradient(circle,hsl(42,46%,56%,0.08)_0%,transparent_70%)]" />
 
             <div className="relative z-10 flex items-center gap-3 pl-4 pr-2 py-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[hsl(var(--gold))]/10 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-black/5 flex items-center justify-center shrink-0">
                 <Compass className="w-4 h-4 text-black" />
               </div>
 
@@ -47,7 +47,7 @@ export function PortalTourMinimized({ visible, stepIndex, totalSteps, onResume, 
 
               <button
                 onClick={onResume}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-[hsl(var(--brand-blue))] text-[11px] font-semibold hover:opacity-90 transition-opacity shrink-0"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-white text-[11px] font-semibold hover:opacity-90 transition-opacity shrink-0"
               >
                 Revenir à la visite
                 <ArrowRight className="w-3 h-3" />

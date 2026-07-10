@@ -44,7 +44,7 @@ export default function SPSupportPage() {
         </Card>
       </div>
 
-      <Card className="border-[hsl(var(--gold))]/30 bg-[hsl(var(--gold))]/5">
+      <Card className="border-black/20 bg-black/[0.03]">
         <CardContent className="pt-6 text-center">
           <LifeBuoy className="w-10 h-10 mx-auto text-black mb-3" />
           <h3 className="font-semibold text-lg">Centre d'aide</h3>

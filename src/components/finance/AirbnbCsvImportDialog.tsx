@@ -435,7 +435,7 @@ export function AirbnbCsvImportDialog({
           <Button
             onClick={handleImport}
             disabled={importing || stats.selected === 0}
-            className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-white"
+            className="bg-[hsl(var(--gold))] hover:bg-black/85 text-white"
           >
             {importing ? (
               <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />

@@ -152,7 +152,7 @@ export default function HelpCenterPage() {
     <div className="space-y-6 max-w-4xl">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-black/5 flex items-center justify-center">
             <HelpCircle className="w-5 h-5 text-black" />
           </div>
           <div>
@@ -189,7 +189,7 @@ export default function HelpCenterPage() {
             >
               <Card
                 className={`cursor-pointer transition-all hover:shadow-md ${
-                  isOpen ? "border-[hsl(var(--gold))]/30 shadow-md" : ""
+                  isOpen ? "border-black/20 shadow-md" : ""
                 }`}
                 onClick={() => setExpanded(isOpen ? null : guide.title)}
               >

@@ -118,7 +118,7 @@ export function GuidedTourOverlay({
                 <div className="space-y-4">
                   {/* Icon + title */}
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-[hsl(var(--gold))]/10 flex items-center justify-center shrink-0">
+                    <div className="w-11 h-11 rounded-xl bg-black/5 flex items-center justify-center shrink-0">
                       <StepIcon className="w-5 h-5 text-black" />
                     </div>
                     <h3 className="text-lg font-bold text-white leading-tight">{step.title}</h3>
@@ -155,13 +155,13 @@ export function GuidedTourOverlay({
                     <Button
                       variant="ghost"
                       onClick={onAction}
-                      className="text-black/70 hover:text-black hover:bg-[hsl(var(--gold))]/5 h-9 px-3 text-xs font-medium"
+                      className="text-black/70 hover:text-black hover:bg-black/[0.03] h-9 px-3 text-xs font-medium"
                     >
                       {step.ctaLabel}
                     </Button>
                     <Button
                       onClick={onNext}
-                      className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-[hsl(var(--brand-blue))] font-semibold hover:opacity-90 h-9 px-4 text-xs"
+                      className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-white font-semibold hover:opacity-90 h-9 px-4 text-xs"
                     >
                       {isLastStep ? "Terminer" : "Suivant"}
                       <ArrowRight className="w-3.5 h-3.5 ml-1" />

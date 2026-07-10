@@ -152,7 +152,7 @@ export default function OwnerRequestsPage() {
       {requests.length === 0 ? (
         <Card className="text-center py-16 border-border">
           <CardContent className="pt-6">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-black/5 flex items-center justify-center">
               <MessageCircle className="w-8 h-8 text-black" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">Aucune demande</h3>
@@ -246,7 +246,7 @@ export default function OwnerRequestsPage() {
             {msgLoading ? <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div> :
               messages.map(m => (
                 <div key={m.id} className={`flex ${m.sender_role === "owner" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${m.sender_role === "owner" ? "bg-[hsl(var(--gold))]/10 text-foreground" : "bg-muted text-foreground"}`}>
+                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${m.sender_role === "owner" ? "bg-black/5 text-foreground" : "bg-muted text-foreground"}`}>
                     <p className="text-xs font-medium text-muted-foreground mb-1">{m.sender_role === "owner" ? "Vous" : "Conciergerie"}</p>
                     <p className="text-sm whitespace-pre-wrap">{m.message}</p>
                     <p className="text-[10px] text-muted-foreground mt-1">{new Date(m.created_at).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>

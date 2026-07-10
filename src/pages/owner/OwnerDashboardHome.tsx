@@ -123,7 +123,7 @@ export default function OwnerDashboardHome() {
           <Card className="border-border">
             <CardContent className="p-4 sm:pt-6">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 sm:w-10 sm:h-10 rounded-xl bg-[hsl(var(--gold))]/10 flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 sm:w-10 sm:h-10 rounded-xl bg-black/5 flex items-center justify-center shrink-0">
                   <Home className="w-5 h-5 text-black" />
                 </div>
                 <div className="flex-1">

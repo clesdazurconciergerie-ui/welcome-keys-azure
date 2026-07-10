@@ -537,7 +537,7 @@ function ListView({ events, onSelect, missionLabel, kindIcon }: {
             <div className="flex items-center gap-2 shrink-0">
               {isOverdue && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">En retard</Badge>}
               {ev.revenue_to_complete && (
-                <Badge className="text-[10px] px-1.5 py-0 bg-[hsl(var(--gold))]/15 text-black border-[hsl(var(--gold))]/30 hover:bg-[hsl(var(--gold))]/25">
+                <Badge className="text-[10px] px-1.5 py-0 bg-black/10 text-black border-black/20 hover:bg-black/15">
                   💰 À compléter
                 </Badge>
               )}

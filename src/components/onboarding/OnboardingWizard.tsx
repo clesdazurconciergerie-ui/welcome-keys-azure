@@ -127,7 +127,7 @@ export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
                   className="text-center space-y-6"
                 >
                   <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] flex items-center justify-center shadow-lg">
-                    <Sparkles className="w-8 h-8 text-[hsl(var(--brand-blue))]" />
+                    <Sparkles className="w-8 h-8 text-white" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-white mb-2">
@@ -142,7 +142,7 @@ export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
                   </p>
                   <Button
                     onClick={() => setCurrentStep(0)}
-                    className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-[hsl(var(--brand-blue))] font-semibold hover:opacity-90 px-8 h-11"
+                    className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-white font-semibold hover:opacity-90 px-8 h-11"
                   >
                     Commencer la configuration
                     <ArrowRight className="w-4 h-4 ml-2" />
@@ -177,7 +177,7 @@ export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
                   </p>
 
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-[hsl(var(--gold))]/15 flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-black/10 flex items-center justify-center shrink-0">
                       <step.icon className="w-6 h-6 text-black" />
                     </div>
                     <h3 className="text-xl font-bold text-white">{step.title}</h3>
@@ -221,7 +221,7 @@ export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
                       </Button>
                       <Button
                         onClick={handleAction}
-                        className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-[hsl(var(--brand-blue))] font-semibold hover:opacity-90"
+                        className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-white font-semibold hover:opacity-90"
                       >
                         {step.action}
                         <ArrowRight className="w-4 h-4 ml-1" />
@@ -252,7 +252,7 @@ export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
                   </div>
                   <Button
                     onClick={handleComplete}
-                    className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-[hsl(var(--brand-blue))] font-semibold hover:opacity-90 px-8 h-11"
+                    className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] text-white font-semibold hover:opacity-90 px-8 h-11"
                   >
                     Accéder au tableau de bord
                     <ArrowRight className="w-4 h-4 ml-2" />

@@ -33,7 +33,7 @@ export default function DemoProprietairesPage() {
             <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={demo.blockAction}>
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-black/5 flex items-center justify-center">
                     <Users className="w-5 h-5 text-black" />
                   </div>
                   <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-0">Actif</Badge>
