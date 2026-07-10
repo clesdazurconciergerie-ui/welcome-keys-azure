@@ -549,3 +549,116 @@ function PhotosStepView({ data, patch }: { data: Data; patch: Patch }) {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+// Étape 7 · Données marché (upload PDF AirDNA → extraction Gemini)
+// ─────────────────────────────────────────────────────────────
+function DonneesMarcheStepView({ data, patch }: { data: Data; patch: Patch }) {
+  const [busy, setBusy] = useState(false);
+  const airdna = data.donnees_marche.airdna;
+
+  const handlePdf = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) { toast.error("PDF > 10 Mo"); return; }
+    setBusy(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result as string);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: resp, error } = await supabase.functions.invoke("parse-airdna-pdf", {
+        body: { pdf_base64: base64, filename: file.name },
+      });
+      if (error) throw error;
+      if (resp?.error) throw new Error(resp.error);
+
+      patch("donnees_marche", {
+        airdna: {
+          adr_eur: resp.adr_eur ?? null,
+          occupation_pct: resp.occupation_pct ?? null,
+          revenu_annuel_eur: resp.revenu_annuel_eur ?? null,
+          prix_haute_eur: null,
+          prix_moyenne_eur: null,
+          prix_basse_eur: null,
+          comparables: (resp.comparables ?? []).map((c: {
+            nom: string; adr_eur: number | null; occupation_pct: number | null; revenu_annuel_eur: number | null;
+          }) => ({
+            nom: c.nom,
+            adr_eur: c.adr_eur ?? 0,
+            occupation_pct: c.occupation_pct ?? 0,
+            revenu_annuel_eur: c.revenu_annuel_eur ?? 0,
+          })),
+        },
+      });
+      toast.success(`AirDNA extrait · ${resp.comparables?.length ?? 0} comparables`);
+    } catch (e) {
+      console.error(e);
+      toast.error("Extraction impossible — vérifiez le PDF");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const clear = () => patch("donnees_marche", { airdna: null });
+
+  return (
+    <div>
+      <p className="e-italic text-lg text-[color:var(--e-text)] mb-6">
+        Étape optionnelle — calibre le rapport sur des données AirDNA réelles.
+      </p>
+
+      <div className="border border-[color:var(--e-line)] p-6 mb-4">
+        <p className="e-label mb-2">Import PDF AirDNA / Rentalizer</p>
+        <p className="text-sm text-[color:var(--e-text)] mb-4">
+          Glissez un rapport Rentalizer PDF — extraction automatique de l'ADR, occupation, revenu et comparables (conversion USD → EUR).
+        </p>
+
+        {!airdna ? (
+          <label className="inline-flex items-center gap-2 e-btn e-btn-ghost cursor-pointer" style={{ pointerEvents: busy ? "none" : "auto", opacity: busy ? 0.5 : 1 }}>
+            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" strokeWidth={1.5} />}
+            {busy ? "Analyse…" : "Uploader le PDF"}
+            <input
+              type="file" accept="application/pdf"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) void handlePdf(f); }}
+              style={{ opacity: 0, position: "absolute", pointerEvents: "none", width: 0, height: 0 }}
+            />
+          </label>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-3 text-sm">
+              <Kpi label="ADR" value={airdna.adr_eur != null ? `${airdna.adr_eur} €` : "—"} />
+              <Kpi label="Occupation" value={airdna.occupation_pct != null ? `${airdna.occupation_pct}%` : "—"} />
+              <Kpi label="Revenu annuel" value={airdna.revenu_annuel_eur != null ? `${airdna.revenu_annuel_eur} €` : "—"} />
+            </div>
+            <p className="text-xs text-[color:var(--e-text-soft)]">
+              {airdna.comparables.length} comparables extraits.
+            </p>
+            <button type="button" onClick={clear} className="e-eyebrow hover:text-[color:var(--e-ink)] inline-flex items-center gap-2">
+              <X className="w-3 h-3" strokeWidth={1.5} /> Retirer
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="border border-[color:var(--e-line)] p-6 opacity-60">
+        <p className="e-label mb-2">Recherche marché IA</p>
+        <p className="text-sm text-[color:var(--e-text)] mb-4">
+          Analyse hyper-locale du micro-marché (ADR / occupation / concurrence).
+        </p>
+        <button type="button" disabled className="e-btn e-btn-ghost">Bientôt · phase 9</button>
+      </div>
+    </div>
+  );
+}
+
+function Kpi({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="p-3 border border-[color:var(--e-line)]">
+      <p className="e-label mb-1">{label}</p>
+      <p className="text-sm" style={{ fontFamily: "var(--e-title)" }}>{value}</p>
+    </div>
+  );
+}
+
