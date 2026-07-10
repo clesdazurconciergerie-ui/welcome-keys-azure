@@ -548,12 +548,18 @@ function StepValidation({ kpi, setKpi }: { kpi: KpiState; setKpi: (k: KpiState) 
   );
 }
 
-// ── STEP 4 : COMPLÉMENT ────────────────────────────────────
-function StepComplement({ properties, loadingProps, propertySlug, setPropertySlug, periodMonth, setPeriodMonth, periodLabel, manual, setManual }: any) {
+// ── STEP 1 : SÉLECTION + CONTEXTE (avec pré-remplissage) ──
+function StepComplement({ properties, loadingProps, propertySlug, setPropertySlug, periodMonth, setPeriodMonth, periodLabel, manual, setManual, kpi }: any) {
+  const filled = propertySlug && periodMonth
+    ? METRIC_KEYS.filter((k) => kpi?.[k]?.value !== null && kpi?.[k]?.value !== undefined)
+    : [];
   return (
     <div>
-      <p className="az-eyebrow mb-3">Étape 4</p>
-      <h2 className="font-display text-2xl mb-6">Contexte du rapport</h2>
+      <p className="az-eyebrow mb-3">Étape 1</p>
+      <h2 className="font-display text-2xl mb-2">Sélectionnez le logement</h2>
+      <p className="font-body text-[13px] text-[hsl(var(--az-muted))] mb-6">
+        On pré-remplit automatiquement les revenus, nuitées, réservations, occupation et prix moyen depuis votre conciergerie.
+      </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
@@ -571,6 +577,27 @@ function StepComplement({ properties, loadingProps, propertySlug, setPropertySlu
           {periodLabel && <p className="text-[11px] text-[hsl(var(--az-muted))] mt-1 capitalize">{periodLabel}</p>}
         </div>
       </div>
+
+      {propertySlug && periodMonth && (
+        <div className="border border-[hsl(var(--az-line))] p-4 mb-6 bg-[hsl(var(--az-sand))]">
+          <p className="az-eyebrow mb-3">Pré-rempli automatiquement</p>
+          {filled.length === 0 ? (
+            <p className="font-body text-[12px] text-[hsl(var(--az-muted))]">Aucune réservation trouvée pour cette période. Tout sera à saisir manuellement.</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {filled.map((k) => (
+                <div key={k}>
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-[hsl(var(--az-muted))]">{METRIC_LABELS[k].label}</p>
+                  <p className="font-display text-lg">{kpi[k].value}{METRIC_LABELS[k].unit ?? ""}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="font-body text-[11px] text-[hsl(var(--az-muted))] mt-3">
+            Les autres indicateurs (impressions, vues, taux de clic, conversion, annulations) viendront de vos captures Airbnb à l'étape suivante.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
@@ -598,6 +625,7 @@ function StepComplement({ properties, loadingProps, propertySlug, setPropertySlu
     </div>
   );
 }
+
 
 // ── STEP 5 : GÉNÉRATION ────────────────────────────────────
 function StepGeneration({ property, periodLabel, generating, onGenerate }: any) {
