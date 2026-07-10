@@ -3440,11 +3440,13 @@ export type Database = {
         Row: {
           caption: string | null
           category: string | null
+          created_at: string
           display_order: number | null
           id: string
           is_main: boolean | null
           order_index: number | null
           property_id: string
+          updated_at: string
           uploaded_at: string
           url: string
           user_id: string
@@ -3452,11 +3454,13 @@ export type Database = {
         Insert: {
           caption?: string | null
           category?: string | null
+          created_at?: string
           display_order?: number | null
           id?: string
           is_main?: boolean | null
           order_index?: number | null
           property_id: string
+          updated_at?: string
           uploaded_at?: string
           url: string
           user_id: string
@@ -3464,11 +3468,13 @@ export type Database = {
         Update: {
           caption?: string | null
           category?: string | null
+          created_at?: string
           display_order?: number | null
           id?: string
           is_main?: boolean | null
           order_index?: number | null
           property_id?: string
+          updated_at?: string
           uploaded_at?: string
           url?: string
           user_id?: string
