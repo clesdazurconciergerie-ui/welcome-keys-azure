@@ -428,8 +428,9 @@ function StepImport({ files, uploading, onFiles, onRemove }: {
   const [dragging, setDragging] = useState(false);
   return (
     <div>
-      <p className="az-eyebrow mb-3">Étape 1</p>
-      <h2 className="font-display text-2xl mb-6">Importez vos captures d'écran Airbnb</h2>
+      <p className="az-eyebrow mb-3">Étape 2</p>
+      <h2 className="font-display text-2xl mb-2">Captures d'écran Airbnb <span className="text-[11px] font-body text-[hsl(var(--az-muted))] tracking-normal normal-case">— optionnel</span></h2>
+      <p className="font-body text-[12px] text-[hsl(var(--az-muted))] mb-6">Pour renseigner impressions, vues, taux de clic, conversion et annulations. Sinon, passez à l'étape suivante.</p>
 
       <label
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
