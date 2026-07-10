@@ -222,6 +222,9 @@ const App = () => (
             <Route path="estimation/nouveau" element={<EstimationWizardPage />} />
             <Route path="estimation/:id" element={<EstimationReportPage />} />
             <Route path="logements" element={<LogementsAdminPage />} />
+            <Route path="airbnb/nouveau" element={<AirbnbReportWizard />} />
+            <Route path="airbnb/logement/:slug" element={<AirbnbReportsHistory />} />
+            <Route path="airbnb/:id" element={<AirbnbReportView />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
