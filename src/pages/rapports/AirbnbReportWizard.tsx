@@ -32,10 +32,10 @@ const emptyKpi = (): KpiState =>
   Object.fromEntries(METRIC_KEYS.map((k) => [k, { value: null, confidence: 0, source: "missing" }])) as KpiState;
 
 const STEPS = [
-  { id: "import", num: "01", label: "Import" },
-  { id: "extraction", num: "02", label: "Extraction" },
-  { id: "validation", num: "03", label: "Validation" },
-  { id: "complement", num: "04", label: "Complément" },
+  { id: "selection", num: "01", label: "Sélection" },
+  { id: "import", num: "02", label: "Import" },
+  { id: "extraction", num: "03", label: "Extraction" },
+  { id: "validation", num: "04", label: "Validation" },
   { id: "generation", num: "05", label: "Génération" },
 ] as const;
 
@@ -154,6 +154,60 @@ export default function AirbnbReportWizard() {
     setFiles((prev) => prev.filter((f) => f.path !== path));
   };
 
+  // ── PREFILL depuis les données de conciergerie ────────────
+  const prefillFromBookings = async (propertyId: string, period: string) => {
+    if (!propertyId || !period) return;
+    const [y, m] = period.split("-").map(Number);
+    const firstDay = new Date(y, m - 1, 1);
+    const lastDay = new Date(y, m, 0);
+    const firstDayStr = firstDay.toISOString().slice(0, 10);
+    const lastDayStr = lastDay.toISOString().slice(0, 10);
+    const daysInMonth = lastDay.getDate();
+
+    const { data: bookings, error } = await supabase
+      .from("bookings")
+      .select("check_in, check_out, gross_amount")
+      .eq("property_id", propertyId)
+      .lte("check_in", lastDayStr)
+      .gte("check_out", firstDayStr);
+    if (error) {
+      toast.error(`Pré-remplissage : ${error.message}`);
+      return;
+    }
+
+    let revenus = 0, nuits = 0, reservations = 0;
+    for (const b of bookings ?? []) {
+      const s = new Date(Math.max(new Date(b.check_in).getTime(), firstDay.getTime()));
+      const e = new Date(Math.min(new Date(b.check_out).getTime(), new Date(lastDay).setHours(23, 59, 59, 999)));
+      const n = e > s ? Math.round((e.getTime() - s.getTime()) / 86400000) : 0;
+      if (n > 0) {
+        nuits += n;
+        reservations += 1;
+        const total = Math.max(1, Math.round((new Date(b.check_out).getTime() - new Date(b.check_in).getTime()) / 86400000));
+        revenus += ((Number(b.gross_amount) || 0) * n) / total;
+      }
+    }
+    const occupation = daysInMonth > 0 ? (nuits / daysInMonth) * 100 : 0;
+    const prixMoyen = nuits > 0 ? revenus / nuits : 0;
+
+    setKpi((prev) => ({
+      ...prev,
+      revenus: { value: Math.round(revenus), confidence: 1, source: "manual" },
+      nuits_reservees: { value: nuits, confidence: 1, source: "manual" },
+      reservations: { value: reservations, confidence: 1, source: "manual" },
+      taux_occupation: { value: Number(occupation.toFixed(1)), confidence: 1, source: "manual" },
+      prix_moyen_nuit: { value: nuits > 0 ? Math.round(prixMoyen) : null, confidence: nuits > 0 ? 1 : 0, source: nuits > 0 ? "manual" : "missing" },
+    }));
+    toast.success(`Pré-rempli depuis ${reservations} réservation${reservations > 1 ? "s" : ""}`);
+  };
+
+  // Auto-prefill when property or period changes (unless loading a draft)
+  useEffect(() => {
+    if (draftId) return;
+    if (propertySlug && periodMonth) prefillFromBookings(propertySlug, periodMonth);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertySlug, periodMonth, draftId]);
+
   // ── EXTRACTION ────────────────────────────────────────────
   const runExtraction = async () => {
     if (files.length === 0) {
@@ -167,16 +221,19 @@ export default function AirbnbReportWizard() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      const merged: KpiState = emptyKpi();
-      for (const k of METRIC_KEYS) {
-        const v = data.metrics?.[k];
-        if (v && v.value !== null && v.value !== undefined) {
-          merged[k] = { value: Number(v.value), confidence: Number(v.confidence ?? 0), source: "extracted" };
+      // Merge extracted values ONTO existing KPI (preserve prefilled values)
+      setKpi((prev) => {
+        const merged = { ...prev };
+        for (const k of METRIC_KEYS) {
+          const v = data.metrics?.[k];
+          if (v && v.value !== null && v.value !== undefined) {
+            merged[k] = { value: Number(v.value), confidence: Number(v.confidence ?? 0), source: "extracted" };
+          }
         }
-      }
-      setKpi(merged);
+        return merged;
+      });
       toast.success("Chiffres extraits");
-      setStepIdx(2);
+      setStepIdx(3);
     } catch (e: any) {
       toast.error(`Extraction : ${e.message ?? "erreur"}`);
     } finally {
@@ -264,25 +321,18 @@ export default function AirbnbReportWizard() {
 
   // ── NAVIGATION ────────────────────────────────────────────
   const canNext = (): boolean => {
-    if (step.id === "import") return files.length > 0;
+    if (step.id === "selection") return Boolean(propertySlug && periodMonth);
+    if (step.id === "import") return true; // screenshots optional (prefilled data suffices)
     if (step.id === "extraction") return Object.values(kpi).some((v) => v.value !== null);
-    if (step.id === "complement") return Boolean(propertySlug && periodMonth);
     return true;
   };
 
   const goNext = async () => {
-    if (step.id === "import") {
-      setStepIdx(1);
-      // auto-run extraction when landing on step 2 (via button)
-      return;
-    }
     if (step.id === "extraction") {
       if (!Object.values(kpi).some((v) => v.value !== null)) {
-        toast.error("Lancez d'abord l'extraction");
+        toast.error("Aucune donnée disponible");
         return;
       }
-      setStepIdx(2);
-      return;
     }
     if (!canNext()) {
       toast.error("Complétez les champs obligatoires");
@@ -290,6 +340,7 @@ export default function AirbnbReportWizard() {
     }
     setStepIdx((i) => Math.min(i + 1, STEPS.length - 1));
   };
+
 
   const goPrev = () => setStepIdx((i) => Math.max(0, i - 1));
 
@@ -303,7 +354,7 @@ export default function AirbnbReportWizard() {
       </div>
 
       <h1 className="font-display text-4xl md:text-5xl mb-2">Rapport de performance Airbnb</h1>
-      <p className="font-body text-[13px] text-[hsl(var(--az-muted))] mb-10">Wizard en 5 étapes — importez, laissez l'IA extraire, complétez, générez.</p>
+      <p className="font-body text-[13px] text-[hsl(var(--az-muted))] mb-10">Sélectionnez un logement, on remplit ce qu'on peut. Vous ajoutez les captures Airbnb pour compléter.</p>
 
       {/* Stepper */}
       <div className="flex items-center justify-between mb-10 border-b border-[hsl(var(--az-line))] pb-6">
@@ -323,16 +374,7 @@ export default function AirbnbReportWizard() {
 
       {/* STEP CONTENT */}
       <div className="az-card p-8 min-h-[380px]">
-        {step.id === "import" && (
-          <StepImport files={files} uploading={uploading} onFiles={handleFiles} onRemove={removeFile} />
-        )}
-        {step.id === "extraction" && (
-          <StepExtraction files={files} extracting={extracting} onExtract={runExtraction} kpi={kpi} />
-        )}
-        {step.id === "validation" && (
-          <StepValidation kpi={kpi} setKpi={setKpi} />
-        )}
-        {step.id === "complement" && (
+        {step.id === "selection" && (
           <StepComplement
             properties={properties}
             loadingProps={loadingProps}
@@ -343,12 +385,23 @@ export default function AirbnbReportWizard() {
             periodLabel={periodLabel}
             manual={manual}
             setManual={setManual}
+            kpi={kpi}
           />
+        )}
+        {step.id === "import" && (
+          <StepImport files={files} uploading={uploading} onFiles={handleFiles} onRemove={removeFile} />
+        )}
+        {step.id === "extraction" && (
+          <StepExtraction files={files} extracting={extracting} onExtract={runExtraction} kpi={kpi} />
+        )}
+        {step.id === "validation" && (
+          <StepValidation kpi={kpi} setKpi={setKpi} />
         )}
         {step.id === "generation" && (
           <StepGeneration property={selectedProperty} periodLabel={periodLabel} generating={generating} onGenerate={runGeneration} />
         )}
       </div>
+
 
       {/* NAV */}
       <div className="flex items-center justify-between mt-8">
@@ -375,8 +428,9 @@ function StepImport({ files, uploading, onFiles, onRemove }: {
   const [dragging, setDragging] = useState(false);
   return (
     <div>
-      <p className="az-eyebrow mb-3">Étape 1</p>
-      <h2 className="font-display text-2xl mb-6">Importez vos captures d'écran Airbnb</h2>
+      <p className="az-eyebrow mb-3">Étape 2</p>
+      <h2 className="font-display text-2xl mb-2">Captures d'écran Airbnb <span className="text-[11px] font-body text-[hsl(var(--az-muted))] tracking-normal normal-case">— optionnel</span></h2>
+      <p className="font-body text-[12px] text-[hsl(var(--az-muted))] mb-6">Pour renseigner impressions, vues, taux de clic, conversion et annulations. Sinon, passez à l'étape suivante.</p>
 
       <label
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -495,12 +549,18 @@ function StepValidation({ kpi, setKpi }: { kpi: KpiState; setKpi: (k: KpiState) 
   );
 }
 
-// ── STEP 4 : COMPLÉMENT ────────────────────────────────────
-function StepComplement({ properties, loadingProps, propertySlug, setPropertySlug, periodMonth, setPeriodMonth, periodLabel, manual, setManual }: any) {
+// ── STEP 1 : SÉLECTION + CONTEXTE (avec pré-remplissage) ──
+function StepComplement({ properties, loadingProps, propertySlug, setPropertySlug, periodMonth, setPeriodMonth, periodLabel, manual, setManual, kpi }: any) {
+  const filled = propertySlug && periodMonth
+    ? METRIC_KEYS.filter((k) => kpi?.[k]?.value !== null && kpi?.[k]?.value !== undefined)
+    : [];
   return (
     <div>
-      <p className="az-eyebrow mb-3">Étape 4</p>
-      <h2 className="font-display text-2xl mb-6">Contexte du rapport</h2>
+      <p className="az-eyebrow mb-3">Étape 1</p>
+      <h2 className="font-display text-2xl mb-2">Sélectionnez le logement</h2>
+      <p className="font-body text-[13px] text-[hsl(var(--az-muted))] mb-6">
+        On pré-remplit automatiquement les revenus, nuitées, réservations, occupation et prix moyen depuis votre conciergerie.
+      </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
@@ -518,6 +578,27 @@ function StepComplement({ properties, loadingProps, propertySlug, setPropertySlu
           {periodLabel && <p className="text-[11px] text-[hsl(var(--az-muted))] mt-1 capitalize">{periodLabel}</p>}
         </div>
       </div>
+
+      {propertySlug && periodMonth && (
+        <div className="border border-[hsl(var(--az-line))] p-4 mb-6 bg-[hsl(var(--az-sand))]">
+          <p className="az-eyebrow mb-3">Pré-rempli automatiquement</p>
+          {filled.length === 0 ? (
+            <p className="font-body text-[12px] text-[hsl(var(--az-muted))]">Aucune réservation trouvée pour cette période. Tout sera à saisir manuellement.</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {filled.map((k) => (
+                <div key={k}>
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-[hsl(var(--az-muted))]">{METRIC_LABELS[k].label}</p>
+                  <p className="font-display text-lg">{kpi[k].value}{METRIC_LABELS[k].unit ?? ""}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="font-body text-[11px] text-[hsl(var(--az-muted))] mt-3">
+            Les autres indicateurs (impressions, vues, taux de clic, conversion, annulations) viendront de vos captures Airbnb à l'étape suivante.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
@@ -545,6 +626,7 @@ function StepComplement({ properties, loadingProps, propertySlug, setPropertySlu
     </div>
   );
 }
+
 
 // ── STEP 5 : GÉNÉRATION ────────────────────────────────────
 function StepGeneration({ property, periodLabel, generating, onGenerate }: any) {
