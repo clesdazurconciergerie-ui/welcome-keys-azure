@@ -218,7 +218,7 @@ export default function AirbnbReportWizard() {
 
       const { data, error } = await supabase.functions.invoke("generate-airbnb-report", {
         body: {
-          property: { nom: selectedProperty.nom, ville: selectedProperty.ville, slug: selectedProperty.slug },
+          property: { nom: selectedProperty.name, ville: selectedProperty.city ?? "", slug: selectedProperty.id },
           period_label: periodLabel,
           kpi,
           manual: {
