@@ -160,19 +160,19 @@ export function DashboardSidebar() {
                               group/nav relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium
                               transition-all duration-300 ease-out
                               ${active
-                                ? "text-primary shadow-lg"
+                                ? "text-black shadow-lg"
                                 : "text-white/50 hover:text-white/90"
                               }
                             `}
                             activeClassName=""
                           >
-                            {/* Active background with gold gradient */}
+                            {/* Active background — white pill */}
                             {active && (
                               <>
-                                <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] opacity-90" />
-                                <div className="absolute inset-0 rounded-lg shadow-[0_0_20px_rgba(196,164,91,0.15)]" />
+                                <div className="absolute inset-0 rounded-lg bg-white opacity-95" />
+                                <div className="absolute inset-0 rounded-lg shadow-[0_0_20px_rgba(255,255,255,0.10)]" />
                                 {/* Left accent bar */}
-                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white/80" />
+                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-black/70" />
                               </>
                             )}
 
@@ -184,7 +184,7 @@ export function DashboardSidebar() {
                             <item.icon
                               className={`relative z-10 h-[18px] w-[18px] shrink-0 transition-all duration-300
                                 ${active
-                                  ? "text-primary drop-shadow-sm"
+                                  ? "text-black drop-shadow-sm"
                                   : "text-white/40 group-hover/nav:text-white/70"
                                 }
                               `}
@@ -192,11 +192,12 @@ export function DashboardSidebar() {
                             />
                             {!collapsed && (
                               <span className={`relative z-10 transition-all duration-300 ${
-                                active ? "text-primary font-semibold" : ""
+                                active ? "text-black font-semibold" : ""
                               }`}>
                                 {item.title}
                               </span>
                             )}
+
                           </NavLink>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
