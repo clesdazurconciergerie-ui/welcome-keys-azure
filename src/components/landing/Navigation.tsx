@@ -166,7 +166,7 @@ const Navigation = () => {
                   </Button>
                 </Link>
                 <Link to="/auth?mode=demo">
-                  <Button className="bg-gold hover:bg-gold-light text-primary rounded-xl px-5 text-sm font-semibold shadow-md hover:shadow-lg transition-all">
+                  <Button className="bg-black hover:bg-black/85 text-white rounded-xl px-5 text-sm font-semibold shadow-md hover:shadow-lg transition-all">
                     Essai gratuit
                   </Button>
                 </Link>
@@ -254,7 +254,7 @@ const Navigation = () => {
                     </Button>
                   </Link>
                   <Link to="/auth?mode=demo" onClick={() => setIsMobileMenuOpen(false)} className="block w-full">
-                    <Button className="w-full bg-gold hover:bg-gold-light text-primary rounded-xl justify-center font-semibold">
+                    <Button className="w-full bg-black hover:bg-black/85 text-white rounded-xl justify-center font-semibold">
                       Essai gratuit
                     </Button>
                   </Link>

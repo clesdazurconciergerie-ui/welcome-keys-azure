@@ -116,7 +116,7 @@ export default function OwnerPropertiesPage() {
         <Card className="text-center py-16 border-border">
           <CardContent className="pt-6">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
-              <Home className="w-8 h-8 text-[hsl(var(--gold))]" />
+              <Home className="w-8 h-8 text-black" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">Aucun bien</h3>
             <p className="text-muted-foreground">Contactez votre conciergerie pour associer vos biens.</p>

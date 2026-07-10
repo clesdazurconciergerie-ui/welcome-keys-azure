@@ -510,7 +510,7 @@ export default function SPMissionsUnifiedPage() {
         className="grid grid-cols-3 gap-3"
       >
         <StatCard icon={Send} label="Missions ouvertes" value={openMissions.length} accent="bg-emerald-600" />
-        <StatCard icon={Briefcase} label="Mes missions" value={myMissionsCount} accent="bg-[hsl(var(--brand-blue))]" />
+        <StatCard icon={Briefcase} label="Mes missions" value={myMissionsCount} accent="bg-black" />
         <StatCard icon={TrendingUp} label="Revenus estimés" value={`${estimatedRevenue}€`} accent="bg-[hsl(var(--gold-dark))]" />
       </motion.div>
 
@@ -546,7 +546,7 @@ export default function SPMissionsUnifiedPage() {
       {/* ── Tabs (Mes missions first) ──────────────────────────── */}
       <Tabs defaultValue="mes-missions" className="w-full">
         <TabsList className="w-full h-12 sm:h-11 sm:max-w-md p-1 bg-muted">
-          <TabsTrigger value="mes-missions" className="flex-1 h-10 sm:h-9 data-[state=active]:bg-[hsl(var(--brand-blue))] data-[state=active]:text-white gap-1.5 text-sm relative">
+          <TabsTrigger value="mes-missions" className="flex-1 h-10 sm:h-9 data-[state=active]:bg-black data-[state=active]:text-white gap-1.5 text-sm relative">
             <ClipboardList className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
             Mes missions
             {myMissionsCount > 0 && (
@@ -569,7 +569,7 @@ export default function SPMissionsUnifiedPage() {
               variant={myView === "list" ? "default" : "outline"}
               size="sm"
               onClick={() => setMyView("list")}
-              className={myView === "list" ? "bg-[hsl(var(--brand-blue))] text-white" : ""}
+              className={myView === "list" ? "bg-black text-white" : ""}
             >
               <List className="w-3.5 h-3.5 mr-1" /> Liste
             </Button>
@@ -577,7 +577,7 @@ export default function SPMissionsUnifiedPage() {
               variant={myView === "calendar" ? "default" : "outline"}
               size="sm"
               onClick={() => setMyView("calendar")}
-              className={myView === "calendar" ? "bg-[hsl(var(--brand-blue))] text-white" : ""}
+              className={myView === "calendar" ? "bg-black text-white" : ""}
             >
               <CalendarDays className="w-3.5 h-3.5 mr-1" /> Calendrier
             </Button>
@@ -737,7 +737,7 @@ export default function SPMissionsUnifiedPage() {
               )}
 
               {legacySelected.status === "scheduled" && (
-                <Button onClick={handleLegacyStart} className="w-full h-12 text-base bg-[hsl(var(--brand-blue))]">
+                <Button onClick={handleLegacyStart} className="w-full h-12 text-base bg-black">
                   <Play className="w-5 h-5 mr-2" /> Démarrer la mission
                 </Button>
               )}

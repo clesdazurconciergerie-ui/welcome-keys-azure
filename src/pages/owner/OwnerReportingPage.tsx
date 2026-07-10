@@ -60,7 +60,7 @@ export default function OwnerReportingPage() {
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div>
                       <CardTitle className="text-lg flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-[hsl(var(--gold))]" />
+                        <Calendar className="w-5 h-5 text-black" />
                         {fmtMonth(r.period_month)}
                       </CardTitle>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -95,13 +95,13 @@ export default function OwnerReportingPage() {
                       <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
                         <TrendingUp className="w-3 h-3" /> Occupation
                       </div>
-                      <div className="text-lg font-bold text-[hsl(var(--gold))]">{fmtPct(r.occupancy_rate)}</div>
+                      <div className="text-lg font-bold text-black">{fmtPct(r.occupancy_rate)}</div>
                     </div>
                     <div className="bg-muted/40 rounded-lg p-3 border border-border/60">
                       <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
                         <Sparkles className="w-3 h-3" /> Prix moyen
                       </div>
-                      <div className="text-lg font-bold text-[hsl(var(--gold))]">{fmtEUR(r.adr)}</div>
+                      <div className="text-lg font-bold text-black">{fmtEUR(r.adr)}</div>
                     </div>
                   </div>
                 </CardContent>

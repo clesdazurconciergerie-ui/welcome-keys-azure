@@ -283,7 +283,7 @@ export function AirbnbCsvImportDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-[hsl(var(--gold))]" />
+            <FileSpreadsheet className="w-5 h-5 text-black" />
             Importer un CSV Airbnb
           </DialogTitle>
           <DialogDescription>

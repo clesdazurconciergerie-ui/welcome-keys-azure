@@ -18,7 +18,7 @@ export default function FinancePage() {
         </div>
         <Button asChild variant="outline" size="sm" className="gap-1.5">
           <Link to="/dashboard/finance/revenus-a-completer">
-            <Coins className="w-4 h-4 text-[hsl(var(--gold))]" />
+            <Coins className="w-4 h-4 text-black" />
             Revenus à compléter
           </Link>
         </Button>

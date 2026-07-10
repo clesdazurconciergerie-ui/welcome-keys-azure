@@ -73,7 +73,7 @@ const DashboardHome = () => {
 
   const stats = [
     { label: "Livrets", value: bookletCount, icon: BookOpen, color: "text-primary", bg: "bg-primary/10", link: "/dashboard/livrets" },
-    { label: "Propriétaires", value: "—", icon: Users, color: "text-[hsl(var(--gold))]", bg: "bg-[hsl(var(--gold))]/10", link: "/dashboard/proprietaires" },
+    { label: "Propriétaires", value: "—", icon: Users, color: "text-black", bg: "bg-[hsl(var(--gold))]/10", link: "/dashboard/proprietaires" },
     { label: "Logements", value: "—", icon: Home, color: "text-emerald-600", bg: "bg-emerald-100", link: "/dashboard/logements" },
     { label: "Prestataires", value: "—", icon: Wrench, color: "text-violet-600", bg: "bg-violet-100", link: "/dashboard/prestataires" },
   ];
@@ -194,7 +194,7 @@ const DashboardHome = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-10 h-10 rounded-xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-[hsl(var(--gold))]" />
+                    <Users className="w-5 h-5 text-black" />
                   </div>
                   <ArrowRight className="w-4 h-4 text-muted-foreground" />
                 </div>

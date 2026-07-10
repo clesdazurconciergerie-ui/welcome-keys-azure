@@ -55,7 +55,7 @@ export function DemoBanner() {
       <Button
         size="sm"
         onClick={() => navigate("/auth")}
-        className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold-dark))] text-primary text-xs font-semibold h-8"
+        className="bg-black hover:bg-black/85 text-white text-xs font-semibold h-8"
       >
         Créer mon compte
         <ArrowRight className="w-3.5 h-3.5 ml-1.5" />

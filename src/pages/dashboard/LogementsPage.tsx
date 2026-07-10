@@ -49,7 +49,7 @@ const LogementsPage = () => {
             </Button>
             <Button
               onClick={() => setCreateOpen(true)}
-              className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold"
+              className="bg-black hover:bg-black/85 text-white font-semibold"
             >
               <Plus className="w-4 h-4 mr-2" />
               Ajouter un bien

@@ -28,7 +28,7 @@ export function GuidedTourMinimized({ visible, stepIndex, totalSteps, onResume, 
             <div className="relative z-10 flex items-center gap-3 pl-4 pr-2 py-2.5">
               {/* Icon */}
               <div className="w-8 h-8 rounded-lg bg-[hsl(var(--gold))]/10 flex items-center justify-center shrink-0">
-                <Compass className="w-4 h-4 text-[hsl(var(--gold))]" />
+                <Compass className="w-4 h-4 text-black" />
               </div>
 
               {/* Text */}

@@ -142,7 +142,7 @@ export default function OwnerRequestsPage() {
             <h1 className="text-3xl font-bold text-foreground">Mes demandes</h1>
             <p className="text-muted-foreground mt-1">Communiquez avec votre conciergerie</p>
           </div>
-          <Button onClick={() => setNewOpen(true)} className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold gap-2">
+          <Button onClick={() => setNewOpen(true)} className="bg-black hover:bg-black/85 text-white font-semibold gap-2">
             <MessageSquarePlus className="h-4 w-4" />
             Nouvelle demande
           </Button>
@@ -153,7 +153,7 @@ export default function OwnerRequestsPage() {
         <Card className="text-center py-16 border-border">
           <CardContent className="pt-6">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
-              <MessageCircle className="w-8 h-8 text-[hsl(var(--gold))]" />
+              <MessageCircle className="w-8 h-8 text-black" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">Aucune demande</h3>
             <p className="text-muted-foreground">Créez une demande pour contacter votre conciergerie.</p>
@@ -223,7 +223,7 @@ export default function OwnerRequestsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewOpen(false)}>Annuler</Button>
             <Button onClick={handleSubmit} disabled={!message.trim() || submitting}
-              className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]">
+              className="bg-black hover:bg-black/85 text-white">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
               Envoyer
             </Button>
@@ -258,7 +258,7 @@ export default function OwnerRequestsPage() {
             <div className="flex gap-2 pt-2 border-t">
               <Textarea value={reply} onChange={e => setReply(e.target.value)} placeholder="Votre réponse..." rows={2} className="flex-1" />
               <Button size="icon" onClick={sendReply} disabled={!reply.trim() || submitting}
-                className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] shrink-0 self-end">
+                className="bg-black hover:bg-black/85 text-white shrink-0 self-end">
                 <Send className="w-4 h-4" />
               </Button>
             </div>

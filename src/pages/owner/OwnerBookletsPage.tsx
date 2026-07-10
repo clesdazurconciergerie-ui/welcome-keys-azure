@@ -85,7 +85,7 @@ export default function OwnerBookletsPage() {
         <Card className="text-center py-16 border-border">
           <CardContent className="pt-6">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
-              <BookOpen className="w-8 h-8 text-[hsl(var(--gold))]" />
+              <BookOpen className="w-8 h-8 text-black" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">Aucun livret</h3>
             <p className="text-muted-foreground">Aucun livret n'est encore associé à vos biens.</p>

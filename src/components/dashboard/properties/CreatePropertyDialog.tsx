@@ -140,7 +140,7 @@ export function CreatePropertyDialog({ open, onOpenChange, onSubmit }: Props) {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-            <Button type="submit" disabled={loading} className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold">
+            <Button type="submit" disabled={loading} className="bg-black hover:bg-black/85 text-white font-semibold">
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Créer le bien
             </Button>

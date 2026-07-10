@@ -260,7 +260,7 @@ export function PropertyCalendar({ propertyId }: Props) {
             <Plus className="h-3.5 w-3.5 mr-1.5" />
             Ajouter réservation
           </Button>
-          <Button size="sm" onClick={() => setAddCalOpen(true)} className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold">
+          <Button size="sm" onClick={() => setAddCalOpen(true)} className="bg-black hover:bg-black/85 text-white font-semibold">
             <Link2 className="h-3.5 w-3.5 mr-1.5" />
             Connecter iCal
           </Button>

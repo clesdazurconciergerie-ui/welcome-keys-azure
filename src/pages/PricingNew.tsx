@@ -142,7 +142,7 @@ const PricingNew = () => {
                     }`}
                   >
                     {isPopular && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gold text-primary text-xs font-semibold px-3 py-1 rounded-full shadow-md whitespace-nowrap">
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md whitespace-nowrap">
                         Le plus populaire
                       </span>
                     )}
@@ -189,7 +189,7 @@ const PricingNew = () => {
                       <Button
                         className={`w-full rounded-lg font-semibold ${
                           isPopular
-                            ? "bg-gold hover:bg-gold-light text-primary"
+                            ? "bg-black hover:bg-black/85 text-white"
                             : "bg-primary hover:bg-primary/90 text-primary-foreground"
                         }`}
                         size="lg"

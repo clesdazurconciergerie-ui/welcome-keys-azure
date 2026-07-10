@@ -23,7 +23,7 @@ export default function DemoMissionsPage() {
           <h1 className="text-2xl font-bold text-foreground">Missions</h1>
           <p className="text-sm text-muted-foreground mt-1">Planification et suivi des interventions.</p>
         </motion.div>
-        <Button onClick={demo.blockAction} className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold-dark))] text-primary font-semibold" data-tour="add-mission">
+        <Button onClick={demo.blockAction} className="bg-black hover:bg-black/85 text-white font-semibold" data-tour="add-mission">
           <Plus className="w-4 h-4 mr-2" />
           Créer une mission
         </Button>

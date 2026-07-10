@@ -225,7 +225,7 @@ const Hero = () => {
               <button
                 onClick={() => navigate("/demo")}
                 className="group relative inline-flex items-center justify-center rounded-xl px-7 py-3.5 font-semibold text-sm sm:text-base
-                  bg-gold text-primary overflow-hidden
+                  bg-black text-white overflow-hidden
                   transition-all duration-300 ease-out
                   hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(196,164,91,0.45)]
                   active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold

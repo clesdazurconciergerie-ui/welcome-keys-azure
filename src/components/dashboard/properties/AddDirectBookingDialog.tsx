@@ -94,7 +94,7 @@ export function AddDirectBookingDialog({ open, onOpenChange, propertyId, onCreat
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[hsl(var(--gold))]" />
+            <Sparkles className="w-4 h-4 text-black" />
             Ajouter une réservation directe
           </DialogTitle>
           <DialogDescription>
@@ -194,7 +194,7 @@ export function AddDirectBookingDialog({ open, onOpenChange, propertyId, onCreat
           <Button
             onClick={handleSubmit}
             disabled={loading}
-            className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold"
+            className="bg-black hover:bg-black/85 text-white font-semibold"
           >
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Créer la réservation

@@ -36,7 +36,7 @@ export function UpcomingBookingsList({ events, propertyNameById, limit = 8, titl
       <Card className="border-border">
         <CardHeader className="pb-3 px-4 sm:px-6">
           <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-            <CalendarRange className="w-5 h-5 text-[hsl(var(--gold))]" />
+            <CalendarRange className="w-5 h-5 text-black" />
             {title}
           </CardTitle>
         </CardHeader>

@@ -178,7 +178,7 @@ export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
 
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-[hsl(var(--gold))]/15 flex items-center justify-center shrink-0">
-                      <step.icon className="w-6 h-6 text-[hsl(var(--gold))]" />
+                      <step.icon className="w-6 h-6 text-black" />
                     </div>
                     <h3 className="text-xl font-bold text-white">{step.title}</h3>
                   </div>
@@ -188,7 +188,7 @@ export function OnboardingWizard({ open, onClose }: OnboardingWizardProps) {
                   <ul className="space-y-2">
                     {step.details.map((detail, i) => (
                       <li key={i} className="flex items-center gap-2 text-sm text-white/60">
-                        <CheckCircle className="w-3.5 h-3.5 text-[hsl(var(--gold))]/70 shrink-0" />
+                        <CheckCircle className="w-3.5 h-3.5 text-black/70 shrink-0" />
                         {detail}
                       </li>
                     ))}

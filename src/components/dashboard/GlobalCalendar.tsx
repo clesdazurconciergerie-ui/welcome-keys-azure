@@ -537,7 +537,7 @@ function ListView({ events, onSelect, missionLabel, kindIcon }: {
             <div className="flex items-center gap-2 shrink-0">
               {isOverdue && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">En retard</Badge>}
               {ev.revenue_to_complete && (
-                <Badge className="text-[10px] px-1.5 py-0 bg-[hsl(var(--gold))]/15 text-[hsl(var(--gold))] border-[hsl(var(--gold))]/30 hover:bg-[hsl(var(--gold))]/25">
+                <Badge className="text-[10px] px-1.5 py-0 bg-[hsl(var(--gold))]/15 text-black border-[hsl(var(--gold))]/30 hover:bg-[hsl(var(--gold))]/25">
                   💰 À compléter
                 </Badge>
               )}
@@ -637,7 +637,7 @@ function EventDrawer({ event, missionLabel, navigate, onClose, onCompleteRevenue
             <Button
               variant={event.revenue_to_complete ? "default" : "outline"}
               size="sm"
-              className={`w-full justify-start gap-2 ${event.revenue_to_complete ? "bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))]" : ""}`}
+              className={`w-full justify-start gap-2 ${event.revenue_to_complete ? "bg-black hover:bg-black/85 text-white" : ""}`}
               onClick={() => {
                 onCompleteRevenue({
                   id: event.booking_id!,

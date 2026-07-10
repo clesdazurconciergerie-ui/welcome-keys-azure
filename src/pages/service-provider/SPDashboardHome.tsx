@@ -124,7 +124,7 @@ export default function SPDashboardHome() {
     { label: "Missions en cours", value: active.length, icon: Clock, color: "text-amber-500", bg: "bg-amber-50" },
     { label: "Missions validées", value: validated.length + paid.length, icon: CheckCircle, color: "text-emerald-500", bg: "bg-emerald-50" },
     { label: "Paiements en attente", value: `${pendingPayment}€`, icon: DollarSign, color: "text-blue-500", bg: "bg-blue-50" },
-    { label: "Total payé (mois)", value: `${totalPaid}€`, icon: TrendingUp, color: "text-[hsl(var(--gold))]", bg: "bg-amber-50" },
+    { label: "Total payé (mois)", value: `${totalPaid}€`, icon: TrendingUp, color: "text-black", bg: "bg-amber-50" },
   ];
 
   // ── Calendar data ───────────────────────────────────

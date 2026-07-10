@@ -189,7 +189,7 @@ export default function InspectionV2DetailPage() {
           <CardContent className="pt-4 flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex-1">
               <p className="font-medium text-foreground flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-[hsl(var(--gold))]" />
+                <CheckCircle2 className="h-4 w-4 text-black" />
                 Workflow état des lieux complet
               </p>
               <p className="text-sm text-muted-foreground mt-1">

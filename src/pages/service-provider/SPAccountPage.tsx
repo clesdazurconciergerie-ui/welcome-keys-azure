@@ -19,7 +19,7 @@ export default function SPAccountPage() {
           <p className="text-muted-foreground mb-2 max-w-md mx-auto">
             Modification du mot de passe et informations personnelles.
           </p>
-          <p className="text-sm text-[hsl(var(--gold))] font-medium">🚧 Bientôt disponible</p>
+          <p className="text-sm text-black font-medium">🚧 Bientôt disponible</p>
         </CardContent>
       </Card>
     </div>

@@ -121,7 +121,7 @@ export function BookingRevenueDialog({ booking, open, onOpenChange, onSaved }: P
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Coins className="w-5 h-5 text-[hsl(var(--gold))]" />
+            <Coins className="w-5 h-5 text-black" />
             Compléter les revenus
           </DialogTitle>
           <DialogDescription className="space-y-1.5 pt-2">
@@ -238,7 +238,7 @@ export function BookingRevenueDialog({ booking, open, onOpenChange, onSaved }: P
               )}
               <div className="flex justify-between text-sm font-semibold text-foreground pt-1.5 border-t border-border">
                 <span>Net propriétaire</span>
-                <span className="text-[hsl(var(--gold))]">{ownerNet.toFixed(2)}€</span>
+                <span className="text-black">{ownerNet.toFixed(2)}€</span>
               </div>
             </div>
           )}

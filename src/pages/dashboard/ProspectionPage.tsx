@@ -112,7 +112,7 @@ export default function ProspectionPage() {
           </div>
           <Button
             onClick={() => setShowCreateDialog(true)}
-            className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-[hsl(var(--brand-blue))] font-semibold"
+            className="bg-black hover:bg-black/85 text-white font-semibold"
           >
             <Plus className="w-4 h-4 mr-2" /> Nouveau prospect
           </Button>
@@ -124,7 +124,7 @@ export default function ProspectionPage() {
         {[
           { label: "Prospects actifs", value: kpis.active, icon: Users, color: "text-primary", bg: "bg-primary/10" },
           { label: "Signés ce mois", value: kpis.signedThisMonth, icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-100" },
-          { label: "Taux conversion", value: `${kpis.conversionRate}%`, icon: TrendingUp, color: "text-[hsl(var(--gold))]", bg: "bg-[hsl(var(--gold))]/10" },
+          { label: "Taux conversion", value: `${kpis.conversionRate}%`, icon: TrendingUp, color: "text-black", bg: "bg-[hsl(var(--gold))]/10" },
           { label: "Valeur pipeline", value: `${kpis.pipelineValue.toLocaleString()}€`, icon: BarChart3, color: "text-amber-600", bg: "bg-amber-100" },
           { label: "Relances en retard", value: kpis.overdueFollowups, icon: AlertTriangle, color: kpis.overdueFollowups > 0 ? "text-red-600" : "text-muted-foreground", bg: kpis.overdueFollowups > 0 ? "bg-red-100" : "bg-muted" },
         ].map((kpi, i) => (

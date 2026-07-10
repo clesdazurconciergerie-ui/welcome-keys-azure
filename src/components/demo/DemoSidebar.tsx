@@ -85,7 +85,7 @@ export function DemoSidebar() {
                 <span className="font-display font-bold text-[17px] leading-tight tracking-tight text-white">
                   MyWelkom
                 </span>
-                <span className="text-[9px] tracking-[0.2em] uppercase leading-tight text-[hsl(var(--gold))]/70 font-medium">
+                <span className="text-[9px] tracking-[0.2em] uppercase leading-tight text-black/70 font-medium">
                   Démo interactive
                 </span>
               </div>
@@ -169,7 +169,7 @@ export function DemoSidebar() {
           <Button
             variant="ghost"
             onClick={() => demo?.startTour()}
-            className="w-full justify-start gap-3 text-[hsl(var(--gold))]/40 hover:text-[hsl(var(--gold))]/80 hover:bg-[hsl(var(--gold))]/[0.04] px-3 h-10 rounded-lg transition-all duration-300"
+            className="w-full justify-start gap-3 text-black/40 hover:text-black/80 hover:bg-[hsl(var(--gold))]/[0.04] px-3 h-10 rounded-lg transition-all duration-300"
           >
             <Compass className="h-4 w-4 shrink-0" strokeWidth={1.8} />
             {!collapsed && <span className="text-[13px] font-medium">Visite guidée</span>}

@@ -62,7 +62,7 @@ const PricingTeaser = () => {
                 href={`/tarifs?plan=${encodeURIComponent(plan.id)}`}
                 className={`group/btn block w-full text-center rounded-xl px-5 py-3 font-semibold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 relative overflow-hidden ${
                   plan.is_featured
-                    ? 'bg-gold text-primary'
+                    ? 'bg-black text-white'
                     : 'bg-primary text-primary-foreground hover:bg-primary/90'
                 }`}
               >

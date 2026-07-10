@@ -43,7 +43,7 @@ export function CleaningAutomationSection({ propertyId }: Props) {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-[hsl(var(--gold))]" />
+              <Sparkles className="h-5 w-5 text-black" />
               <CardTitle className="text-base">Ménage automatique</CardTitle>
             </div>
             <Switch

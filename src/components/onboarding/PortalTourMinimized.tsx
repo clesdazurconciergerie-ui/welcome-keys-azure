@@ -26,7 +26,7 @@ export function PortalTourMinimized({ visible, stepIndex, totalSteps, onResume, 
 
             <div className="relative z-10 flex items-center gap-3 pl-4 pr-2 py-2.5">
               <div className="w-8 h-8 rounded-lg bg-[hsl(var(--gold))]/10 flex items-center justify-center shrink-0">
-                <Compass className="w-4 h-4 text-[hsl(var(--gold))]" />
+                <Compass className="w-4 h-4 text-black" />
               </div>
 
               <div className="flex flex-col mr-1">
