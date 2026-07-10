@@ -33,9 +33,9 @@ export default function RapportsHome() {
             Importez les captures d'écran Airbnb d'un logement, validez les chiffres extraits, puis obtenez
             un PDF premium prêt à envoyer au propriétaire.
           </p>
-          <button className="az-btn-primary opacity-60 cursor-not-allowed" disabled>
-            Bientôt disponible
-          </button>
+          <Link to="/rapports/airbnb/nouveau" className="az-btn-primary">
+            Nouveau rapport
+          </Link>
         </div>
 
         <div className="az-card p-8">
@@ -83,7 +83,7 @@ export default function RapportsHome() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {properties.slice(0, 9).map((p) => (
-              <div key={p.id} className="az-card p-5">
+              <Link key={p.id} to={`/rapports/airbnb/logement/${p.slug}`} className="az-card p-5 block">
                 <div className="flex items-start justify-between mb-3">
                   <p className="az-eyebrow text-[hsl(var(--az-muted))]">{p.ville}</p>
                   {!p.active && (
@@ -96,7 +96,7 @@ export default function RapportsHome() {
                 {p.proprietaire && (
                   <p className="font-body text-[12px] text-[hsl(var(--az-muted))]">{p.proprietaire}</p>
                 )}
-              </div>
+              </Link>
             ))}
           </div>
         )}
