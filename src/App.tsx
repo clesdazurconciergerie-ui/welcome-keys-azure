@@ -100,6 +100,9 @@ import RapportsHome from "./pages/rapports/RapportsHome";
 import LogementsAdminPage from "./pages/rapports/LogementsAdminPage";
 import EstimationWizardPage from "./pages/rapports/EstimationWizardPage";
 import EstimationReportPage from "./pages/rapports/EstimationReportPage";
+import AirbnbReportWizard from "./pages/rapports/AirbnbReportWizard";
+import AirbnbReportView from "./pages/rapports/AirbnbReportView";
+import AirbnbReportsHistory from "./pages/rapports/AirbnbReportsHistory";
 
 const queryClient = new QueryClient();
 
