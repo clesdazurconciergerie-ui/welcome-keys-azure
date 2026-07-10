@@ -114,13 +114,13 @@ export interface EstimationFormData {
 const nonEmpty = (max: number, label: string) =>
   z.string().trim().min(1, `${label} requis`).max(max, `${label} trop long`);
 
-export const contactSchema: z.ZodType<ContactStep> = z.object({
+export const contactSchema = z.object({
   nom: nonEmpty(120, "Nom"),
   email: z.string().trim().email("Email invalide").max(255),
   telephone: nonEmpty(30, "Téléphone"),
 });
 
-export const localisationSchema: z.ZodType<LocalisationStep> = z.object({
+export const localisationSchema = z.object({
   adresse: nonEmpty(200, "Adresse"),
   ville: nonEmpty(80, "Ville"),
   code_postal: z.string().trim().regex(/^\d{5}$/, "Code postal à 5 chiffres"),
@@ -131,7 +131,7 @@ export const localisationSchema: z.ZodType<LocalisationStep> = z.object({
   lng: z.number().min(-180).max(180).nullable(),
 });
 
-export const bienSchema: z.ZodType<BienStep> = z.object({
+export const bienSchema = z.object({
   type: z.enum(["bien_entier", "partie_villa"]),
   surface_m2: z.number().int().min(10).max(2000),
   voyageurs: z.number().int().min(1).max(30),
@@ -141,7 +141,7 @@ export const bienSchema: z.ZodType<BienStep> = z.object({
   ascenseur: z.boolean(),
 });
 
-export const exterieurSchema: z.ZodType<ExterieurStep> = z.object({
+export const exterieurSchema = z.object({
   type: z.enum(["aucun", "balcon", "terrasse", "jardin"]),
   surface_m2: z.number().int().min(0).max(10000).nullable(),
   vue: z.enum(["aucune", "degagee", "mer_partielle", "mer_totale", "exceptionnelle"]),
@@ -149,7 +149,7 @@ export const exterieurSchema: z.ZodType<ExterieurStep> = z.object({
   parking: z.boolean(),
 });
 
-export const equipementSchema: z.ZodType<EquipementStep> = z.object({
+export const equipementSchema = z.object({
   clim: z.boolean(),
   wifi: z.boolean(),
   cuisine: z.enum(["basique", "standard", "premium", "haut_de_gamme"]),
@@ -158,14 +158,14 @@ export const equipementSchema: z.ZodType<EquipementStep> = z.object({
   qualite_photos: z.enum(["amateur", "correcte", "professionnelle", "editoriale"]),
 });
 
-export const strategieSchema: z.ZodType<StrategieStep> = z.object({
+export const strategieSchema = z.object({
   clientele_cible: z.string().trim().max(500),
   atouts: z.string().trim().max(1000),
   faiblesses: z.string().trim().max(1000),
   revenus_actuels_eur: z.number().min(0).max(10_000_000).nullable(),
 });
 
-export const photosSchema: z.ZodType<PhotosStep> = z.object({
+export const photosSchema = z.object({
   items: z.array(
     z.object({
       id: z.string(),
