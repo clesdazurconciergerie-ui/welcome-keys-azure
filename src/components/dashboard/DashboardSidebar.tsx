@@ -223,7 +223,7 @@ export function DashboardSidebar() {
               localStorage.setItem(TOUR_STATE_KEY, JSON.stringify({ currentStep: 0, isActive: false, showWelcome: true }));
               window.location.href = "/dashboard";
             }}
-            className="w-full justify-start gap-3 text-[hsl(var(--gold))]/40 hover:text-[hsl(var(--gold))]/80 hover:bg-[hsl(var(--gold))]/[0.04] px-3 h-10 rounded-lg transition-all duration-300"
+            className="w-full justify-start gap-3 text-white/40 hover:text-white/80 hover:bg-white/[0.04] px-3 h-10 rounded-lg transition-all duration-300"
           >
             <Compass className="h-4 w-4 shrink-0" strokeWidth={1.8} />
             {!collapsed && <span className="text-[13px] font-medium">Visite guidée</span>}
