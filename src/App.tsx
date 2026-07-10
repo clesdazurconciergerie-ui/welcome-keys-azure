@@ -213,8 +213,8 @@ const App = () => (
           <Route path="/exemples/maisons-d-hotes" element={<ExampleMaisonsDHotes />} />
           <Route path="/exemples/hotels-residences" element={<ExampleHotelsResidences />} />
 
-          {/* Azurkeys Report */}
-          <Route path="/rapports" element={<RapportsLayout />}>
+          {/* Azurkeys Report — uses the main dashboard sidebar for a unified look */}
+          <Route path="/rapports" element={<DashboardErrorBoundary><DashboardLayout /></DashboardErrorBoundary>}>
             <Route index element={<RapportsHome />} />
             <Route path="estimation/nouveau" element={<EstimationWizardPage />} />
             <Route path="estimation/:id" element={<EstimationReportPage />} />
