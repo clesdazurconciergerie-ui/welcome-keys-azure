@@ -792,6 +792,32 @@ const PropertyDetailPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete property confirmation */}
+      <AlertDialog open={deletePropertyOpen} onOpenChange={setDeletePropertyOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce bien ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le bien "{property?.name}" ainsi que ses photos, documents et paramètres associés seront définitivement supprimés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground"
+              onClick={async () => {
+                if (!id) return;
+                const ok = await deleteProperty(id);
+                setDeletePropertyOpen(false);
+                if (ok !== false) navigate("/dashboard/logements");
+              }}
+            >
+              Supprimer définitivement
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
