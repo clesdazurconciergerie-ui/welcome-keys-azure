@@ -260,6 +260,10 @@ const PropertyDetailPage = () => {
               Ajouter réservation
             </Button>
             <Button onClick={() => setEditOpen(true)} variant="outline">Modifier</Button>
+            <Button onClick={() => setDeletePropertyOpen(true)} variant="outline" className="text-destructive hover:text-destructive">
+              <Trash2 className="w-4 h-4 mr-1.5" />
+              Supprimer
+            </Button>
           </div>
         </div>
 
