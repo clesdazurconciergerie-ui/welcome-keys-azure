@@ -52,7 +52,7 @@ export default function LogementsAdminPage() {
   };
 
   return (
-    <div className="space-y-10">
+    <div className="azurkeys-scope max-w-6xl mx-auto px-6 py-12 space-y-10">
       <header className="flex items-end justify-between gap-6 pb-6 border-b border-[hsl(var(--az-line))]">
         <div>
           <p className="az-eyebrow mb-2">Portefeuille</p>
