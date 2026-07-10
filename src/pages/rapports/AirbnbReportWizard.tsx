@@ -154,6 +154,60 @@ export default function AirbnbReportWizard() {
     setFiles((prev) => prev.filter((f) => f.path !== path));
   };
 
+  // ── PREFILL depuis les données de conciergerie ────────────
+  const prefillFromBookings = async (propertyId: string, period: string) => {
+    if (!propertyId || !period) return;
+    const [y, m] = period.split("-").map(Number);
+    const firstDay = new Date(y, m - 1, 1);
+    const lastDay = new Date(y, m, 0);
+    const firstDayStr = firstDay.toISOString().slice(0, 10);
+    const lastDayStr = lastDay.toISOString().slice(0, 10);
+    const daysInMonth = lastDay.getDate();
+
+    const { data: bookings, error } = await supabase
+      .from("bookings")
+      .select("check_in, check_out, gross_amount")
+      .eq("property_id", propertyId)
+      .lte("check_in", lastDayStr)
+      .gte("check_out", firstDayStr);
+    if (error) {
+      toast.error(`Pré-remplissage : ${error.message}`);
+      return;
+    }
+
+    let revenus = 0, nuits = 0, reservations = 0;
+    for (const b of bookings ?? []) {
+      const s = new Date(Math.max(new Date(b.check_in).getTime(), firstDay.getTime()));
+      const e = new Date(Math.min(new Date(b.check_out).getTime(), new Date(lastDay).setHours(23, 59, 59, 999)));
+      const n = e > s ? Math.round((e.getTime() - s.getTime()) / 86400000) : 0;
+      if (n > 0) {
+        nuits += n;
+        reservations += 1;
+        const total = Math.max(1, Math.round((new Date(b.check_out).getTime() - new Date(b.check_in).getTime()) / 86400000));
+        revenus += ((Number(b.gross_amount) || 0) * n) / total;
+      }
+    }
+    const occupation = daysInMonth > 0 ? (nuits / daysInMonth) * 100 : 0;
+    const prixMoyen = nuits > 0 ? revenus / nuits : 0;
+
+    setKpi((prev) => ({
+      ...prev,
+      revenus: { value: Math.round(revenus), confidence: 1, source: "manual" },
+      nuits_reservees: { value: nuits, confidence: 1, source: "manual" },
+      reservations: { value: reservations, confidence: 1, source: "manual" },
+      taux_occupation: { value: Number(occupation.toFixed(1)), confidence: 1, source: "manual" },
+      prix_moyen_nuit: { value: nuits > 0 ? Math.round(prixMoyen) : null, confidence: nuits > 0 ? 1 : 0, source: nuits > 0 ? "manual" : "missing" },
+    }));
+    toast.success(`Pré-rempli depuis ${reservations} réservation${reservations > 1 ? "s" : ""}`);
+  };
+
+  // Auto-prefill when property or period changes (unless loading a draft)
+  useEffect(() => {
+    if (draftId) return;
+    if (propertySlug && periodMonth) prefillFromBookings(propertySlug, periodMonth);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertySlug, periodMonth, draftId]);
+
   // ── EXTRACTION ────────────────────────────────────────────
   const runExtraction = async () => {
     if (files.length === 0) {
@@ -167,16 +221,19 @@ export default function AirbnbReportWizard() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      const merged: KpiState = emptyKpi();
-      for (const k of METRIC_KEYS) {
-        const v = data.metrics?.[k];
-        if (v && v.value !== null && v.value !== undefined) {
-          merged[k] = { value: Number(v.value), confidence: Number(v.confidence ?? 0), source: "extracted" };
+      // Merge extracted values ONTO existing KPI (preserve prefilled values)
+      setKpi((prev) => {
+        const merged = { ...prev };
+        for (const k of METRIC_KEYS) {
+          const v = data.metrics?.[k];
+          if (v && v.value !== null && v.value !== undefined) {
+            merged[k] = { value: Number(v.value), confidence: Number(v.confidence ?? 0), source: "extracted" };
+          }
         }
-      }
-      setKpi(merged);
+        return merged;
+      });
       toast.success("Chiffres extraits");
-      setStepIdx(2);
+      setStepIdx(3);
     } catch (e: any) {
       toast.error(`Extraction : ${e.message ?? "erreur"}`);
     } finally {
