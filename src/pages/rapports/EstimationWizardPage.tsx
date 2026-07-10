@@ -448,27 +448,7 @@ function StepContent({ step, data, patch }: { step: StepId; data: Data; patch: P
       );
 
     case "donnees_marche":
-      return (
-        <div>
-          <p className="e-italic text-lg text-[color:var(--e-text)] mb-6">
-            Étape optionnelle — permet de calibrer le rapport sur des données réelles.
-          </p>
-          <div className="border border-[color:var(--e-line)] p-6 mb-4">
-            <p className="e-label mb-2">Import AirDNA</p>
-            <p className="text-sm text-[color:var(--e-text)] mb-4">
-              Upload de PDF ou saisie manuelle (ADR, occupation, revenus, comparables).
-            </p>
-            <button type="button" disabled className="e-btn e-btn-ghost">Bientôt · phase 7</button>
-          </div>
-          <div className="border border-[color:var(--e-line)] p-6">
-            <p className="e-label mb-2">Recherche marché IA</p>
-            <p className="text-sm text-[color:var(--e-text)] mb-4">
-              Analyse hyper-locale du micro-marché (ADR / occupation / concurrence).
-            </p>
-            <button type="button" disabled className="e-btn e-btn-ghost">Bientôt · phase 9</button>
-          </div>
-        </div>
-      );
+      return <DonneesMarcheStepView data={data} patch={patch} />;
 
     case "photos":
       return <PhotosStepView data={data} patch={patch} />;
