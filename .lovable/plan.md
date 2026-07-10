@@ -1,94 +1,79 @@
+## Module: Rapport de performance mensuelle Airbnb
 
-# Module Estimation locative Azurkeys — Audit & plan d'intégration
+Nouveau module accessible depuis la navigation principale du dashboard, permettant de générer des rapports mensuels premium à partir de screenshots Airbnb + saisie manuelle, avec analyse IA et export PDF.
 
-Le prompt exige de ne PAS coder avant validation des étapes 1 (audit) et 2 (faisabilité). Voici le résultat de ces deux étapes. Je n'écrirai aucun code tant que tu n'as pas validé.
+### Navigation & routes
 
----
+- Nouvelle entrée sidebar "Rapports Airbnb" (icône `FileBarChart`)
+- Routes:
+  - `/dashboard/rapports-airbnb` — liste des rapports (tous logements)
+  - `/dashboard/rapports-airbnb/nouveau` — wizard 5 étapes
+  - `/dashboard/rapports-airbnb/:reportId` — vue rapport + bouton PDF
+  - `/dashboard/rapports-airbnb/logement/:propertyId` — historique par logement avec évolution mois par mois
 
-## Étape 1 — Audit du projet existant
+### Base de données
 
-**Stack technique**
-- React 18 + Vite 5 + TypeScript 5, Tailwind v3, shadcn/ui, react-router-dom v6.
-- Backend : Supabase (projet `adfdysfwowafvphwqenv`) + Edge Functions Deno. Aucun serveur Node/Flask.
-- IA : Lovable AI Gateway (`LOVABLE_API_KEY` déjà présente) + `OPENAI_API_KEY` (secret configuré).
-- PDF existants : `html2pdf.js` (livrets, factures, inspections) et `window.print()` déjà utilisé ailleurs. Pas de moteur de pagination JS.
+Table `airbnb_reports`:
+- `id`, `user_id`, `property_id` (FK properties), `period_start`, `period_end`, `period_label` (ex: "Octobre 2026")
+- `kpi_data` jsonb — impressions, vues, ctr, réservations, taux_conversion, revenus, nuits_reservees, taux_occupation, prix_moyen_nuit, annulations (chaque valeur avec `{ value, confidence, source: 'extracted'|'manual'|'missing' }`)
+- `manual_data` jsonb — commentaires voyageurs, actions conciergerie, objectif mensuel
+- `analysis_text` jsonb — 9 sections générées (resume, kpi_summary, tunnel, commercial, diagnostic, recommandations, plan_action, conclusion)
+- `screenshot_urls` text[] — chemins Supabase Storage
+- `status` — `draft` | `completed`
+- `created_at`, `updated_at`
 
-**Routes & espaces**
-- `/dashboard` (conciergerie, super_admin) · `/proprietaire` (owner) · `/prestataire` (SP) · `/demo` · `/rapports` (**module Azurkeys Report déjà scaffolded** : `RapportsLayout` + `RapportsHome` + `LogementsAdminPage`, tables `azurkeys_properties` / `azurkeys_reports`, thème scoped `.azurkeys-scope` avec Cormorant + Montserrat).
-- Auth : Supabase email/password, rôles via `user_roles` + `has_role()`. Compte `clesdazur.conciergerie@gmail.com` = super_admin.
+Bucket Storage: `airbnb-screenshots` (privé, RLS par user_id).
 
-**Charte projet actuelle** (mémoire) : monochrome noir/blanc, Cinzel/Josefin/JetBrains, radius 0, shadow none. Le sous-module `/rapports` a déjà sa charte scoped (`Cormorant Garamond` + `Montserrat`, palette sable). Le prompt Estimation impose **Playfair Display + Cormorant italique + Inter** + fond `#F5F5F0` + pin rouge `#C0392B` — c'est un 3ème sous-système typo, **scoped au module uniquement**, comme déjà fait pour `.azurkeys-scope`.
+RLS: user_id = auth.uid() sur toutes les opérations.
 
-**Moteur d'estimation existant** : aucun. `usePricingRules` gère la tarification opérationnelle (nightly pricing runtime), pas d'estimation locative prospective. Rien à réutiliser côté calcul.
+### Edge functions
 
-**Dépendances déjà installées utilisables**
-- `html2pdf.js`, `jsPDF` (via html2pdf), `zod`, `sonner`, `@tanstack/react-query`, `lucide-react`.
-- Manquantes : `leaflet` + `react-leaflet` (carte), fonts Playfair/Cormorant/Inter (Google Fonts via `<link>`).
+1. **`extract-airbnb-stats`** — reçoit urls des screenshots (signed URLs), appelle Lovable AI Gateway avec `google/gemini-2.5-flash` en vision multimodale, retourne JSON structuré `{ metric: { value, confidence } }`. Prompt strict: "ne jamais inventer, retourner null si non visible".
+2. **`generate-airbnb-report`** — reçoit données validées + rapport précédent (si existe), appelle Gemini pour générer les 9 sections en JSON structuré. Utilise `google/gemini-2.5-pro` pour qualité rédactionnelle.
 
----
+### Wizard 5 étapes
 
-## Étape 2 — Rapport de faisabilité
+**Composant** `AirbnbReportWizard.tsx` avec stepper visuel, state local partagé.
 
-**Réutilisable tel quel**
-- `RapportsLayout` + route `/rapports` + navigation + auth existante.
-- Table `azurkeys_properties` (bien réel du portefeuille).
-- Pipeline Edge Functions Supabase (calculate, extract-airdna, geocode, market-research, recommendations, enhance).
-- Secrets déjà présents : `LOVABLE_API_KEY`, `OPENAI_API_KEY`. Nominatim = public, pas de secret.
+1. **Import** — dropzone (drag & drop), aperçu miniatures, upload vers bucket
+2. **Extraction** — loader animé pendant appel edge function, affichage des chiffres détectés
+3. **Validation** — form éditable, badges "à vérifier" (orange) pour confidence < 0.7, "donnée manquante" pour null
+4. **Complément manuel** — sélecteur logement (dropdown properties existantes), champs période/ville/objectif/commentaires/actions
+5. **Génération** — appel edge function, redirection vers vue rapport
 
-**À créer** (nouveaux fichiers, aucun existant modifié en profondeur)
-- Nouvelle table `azurkeys_estimations` (historique serveur optionnel — mais spec dit localStorage, donc peut-être zéro table ; à trancher avec toi).
-- Composants module (tous scoped `.estim-scope` pour ne pas polluer le design system) :
-  - `src/pages/rapports/EstimationWizardPage.tsx` (formulaire multi-étapes)
-  - `src/pages/rapports/EstimationReportPage.tsx` (rapport WYSIWYG + toolbar)
-  - `src/components/estimation/wizard/*` (7 steps)
-  - `src/components/estimation/report/*` (11 blocs)
-  - `src/components/estimation/toolbar/*` (Simulateur, Ajuster, Pitch, Reset, Imprimer)
-  - `src/components/estimation/map/PositionMap.tsx` (Leaflet + CARTO light)
-  - `src/lib/estimation/engine.ts` (moteur déterministe front)
-  - `src/lib/estimation/format.ts` (fix U+202F → U+00A0)
-  - `src/lib/estimation/pagination.ts` (moteur DP de pagination)
-  - `src/lib/estimation/history.ts` (localStorage, quota fallback)
-  - `src/styles/estimation-print.css` (@page A4, break-inside, etc.)
-- 2 nouvelles routes sous `/rapports/estimation/nouveau` et `/rapports/estimation/:id`, entrée dans `RapportsLayout` nav.
-- Edge functions Supabase (Deno, `verify_jwt = false` par défaut, corsHeaders, zod) :
-  - `estimation-calculate` (miroir back du moteur — même code partagé via copie contrôlée)
-  - `estimation-extract-airdna` (parse PDF via `pdfjs` ou `unpdf` npm:)
-  - `estimation-geocode` (Nominatim, User-Agent, fallbacks)
-  - `estimation-market-research` (Lovable AI, `google/gemini-3-flash-preview`)
-  - `estimation-recommendations` (Lovable AI, JSON structuré via Output)
-  - `estimation-enhance` (copywriting)
+### Vue rapport (9 sections)
 
-**Contradictions à arbitrer AVANT tout code — 6 points bloquants**
+Composant `AirbnbReportView.tsx`, style monochrome Azurkeys existant (noir/blanc, Cinzel/Josefin/JetBrains, radius 0):
 
-1. **Charte typo** : le projet impose Cinzel/Josefin. Le prompt module impose Playfair/Cormorant/Inter. → J'applique la charte du prompt UNIQUEMENT scopée au module estimation (comme `.azurkeys-scope` l'a déjà fait avec Cormorant/Montserrat). Confirmes-tu ?
-2. **Constantes moteur** : le prompt §3 déclare interdit d'inventer P50/P70/P85, poids du score, ADR par catégorie, coefficients vue/piscine, occupations saisonnières, etc. **Aucune de ces valeurs n'existe dans le projet.** Je ne peux pas coder le moteur sans que tu me fournisses le barème complet (ou m'autorises explicitement à proposer un premier jeu calibré Côte d'Azur/Saint-Raphaël à valider). Quelle option ?
-3. **Historique** : localStorage (spec) ou table Supabase `azurkeys_estimations` liée au user (permet partage/relecture cross-device) ? Spec dit localStorage strict, je confirme cette option sauf avis contraire.
-4. **AirDNA extraction** : parse déterministe d'un export PDF AirDNA. Peux-tu fournir un PDF exemple ? Sans échantillon réel je ne peux pas garantir l'extraction — je devrai stopper la phase 7 selon la règle anti-hallucination.
-5. **Accès au module** : réservé au super_admin conciergerie uniquement, ou accessible aussi aux comptes conciergerie standard ? (Actuellement `/rapports` est ouvert à tout utilisateur connecté.)
-6. **Bouton Télécharger PDF** : le prompt impose `window.print()` (pas de html2canvas). OK, je n'utilise PAS `html2pdf.js` pour ce module contrairement au reste du projet.
+1. Couverture — logo + méta
+2. Résumé exécutif
+3. Cartes KPI (grille) — "non disponible ce mois" si null
+4. Tunnel conversion — funnel simple (SVG ou Recharts)
+5. Analyse commerciale — comparaison mois précédent si dispo
+6. Diagnostic — 4 colonnes (fonctionne/bloque/risques/opportunités)
+7. Recommandations — liste catégorisée
+8. Plan d'action — 3-5 items avec priorité + impact
+9. Conclusion propriétaire
 
-**Plan d'implémentation par phases** (ordre imposé §MODE D'EXÉCUTION étape 3)
+Bouton "Télécharger PDF" → `window.print()` avec CSS `@media print` A4 optimisé (approche simple, cohérente avec le stack existant, pas de nouvelle dépendance).
 
-| # | Phase | Livrable | Checkpoint |
-|---|---|---|---|
-| 1 | Structure/nav | routes `/rapports/estimation/*` + entrée nav + scope CSS + fonts | build OK, dashboards intacts |
-| 2 | Formulaire 7 étapes | wizard complet, validation zod, persistance state | navigation avant/arrière |
-| 3 | Moteur front déterministe | `engine.ts` + tests unitaires cas limites | plafonds testés |
-| 4 | Moteur back miroir | edge `estimation-calculate` + test parité front/back | même sortie au centime |
-| 5 | Rapport WYSIWYG | 11 blocs, textes exacts §5, badges calibration | conformité §4 |
-| 6 | Moteur pagination PDF | DP layout + @page + couverture absolue | cas de référence = 6 pages |
-| 7 | Import AirDNA | edge extract-airdna + UI upload | extraction réelle sur PDF fourni |
-| 8 | Géocodage | edge geocode Nominatim | coords réelles, pas de fake |
-| 9 | Marché IA | edge market-research | fusion 60/40 |
-| 10 | Recommandations IA | edge recommendations | section masquée si `ok:false` |
-| 11 | Simulateur | sliders + recalc live | |
-| 12 | Ajuster | édition prix/nuits inline + recalc proportionnel | plafonds respectés |
-| 13 | Pitch 1 page | export A4 unique | |
-| 14 | Historique localStorage | 10 entrées, fallback 5, photos exclues | |
-| 15 | Tests Chrome + Safari | validation visuelle page par page du cas de référence | 6 pages exactes |
+### Règles IA (non-négociables)
 
----
+- Extraction: prompt exige `null` explicite pour valeurs non visibles + score de confiance 0-1
+- Génération: prompt inclut seulement données non-null; instruction "signaler données indisponibles, ne jamais extrapoler"
+- Ton défini dans system prompt: professionnel, rassurant, non-technique, honnête
 
-## Ce que j'attends de toi pour débloquer la phase 1
+### Ordre d'implémentation
 
-Réponds sur les **6 points d'arbitrage** ci-dessus (surtout **#2 barème moteur** et **#4 PDF AirDNA échantillon** qui sont bloquants selon la règle anti-hallucination). Dès validation, j'attaque la phase 1 (structure + nav) et je te confirme la checklist avant de passer à la 2.
+1. Migration table `airbnb_reports` + bucket `airbnb-screenshots` + RLS
+2. Route + entrée sidebar + page liste (vide au départ)
+3. Wizard étape 1 (upload) + étape 4-5 UI (sans IA)
+4. Edge function `extract-airbnb-stats` + étape 2-3
+5. Edge function `generate-airbnb-report` + vue rapport
+6. Export PDF via print CSS
+7. Historique par logement avec comparaison mois-à-mois
+
+### Confirmation nécessaire
+
+- OK pour utiliser **Lovable AI Gateway** (Gemini 2.5 Flash pour vision, Gemini 2.5 Pro pour rédaction) — la clé `LOVABLE_API_KEY` est déjà configurée, pas besoin d'ajouter de secret.
+- OK pour l'export PDF via `window.print()` + CSS print (pas de nouvelle lib) plutôt que react-pdf, plus simple et cohérent avec le stack ?
