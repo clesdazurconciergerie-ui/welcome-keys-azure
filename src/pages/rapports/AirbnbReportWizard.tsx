@@ -32,10 +32,10 @@ const emptyKpi = (): KpiState =>
   Object.fromEntries(METRIC_KEYS.map((k) => [k, { value: null, confidence: 0, source: "missing" }])) as KpiState;
 
 const STEPS = [
-  { id: "import", num: "01", label: "Import" },
-  { id: "extraction", num: "02", label: "Extraction" },
-  { id: "validation", num: "03", label: "Validation" },
-  { id: "complement", num: "04", label: "Complément" },
+  { id: "selection", num: "01", label: "Sélection" },
+  { id: "import", num: "02", label: "Import" },
+  { id: "extraction", num: "03", label: "Extraction" },
+  { id: "validation", num: "04", label: "Validation" },
   { id: "generation", num: "05", label: "Génération" },
 ] as const;
 
