@@ -385,3 +385,56 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* ============================================================
+   AZURKEYS MONOCHROME — Neutralize hardcoded brand colors
+   Catches arbitrary Tailwind classes like bg-[#061452] / text-[#C4A45B]
+   used across landing / dashboard / owner / provider components.
+   ============================================================ */
+/* Any element with a class containing the legacy brand hexes */
+[class*="#061452"][class*="bg-"],
+[class*="#C4A45B"][class*="bg-"],
+[class*="#c4a45b"][class*="bg-"],
+[class*="061452"][class*="from-"],
+[class*="061452"][class*="to-"],
+[class*="C4A45B"][class*="from-"],
+[class*="C4A45B"][class*="to-"] {
+  background-color: #09090B !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+}
+
+[class*="#061452"][class*="text-"],
+[class*="#C4A45B"][class*="text-"],
+[class*="#c4a45b"][class*="text-"] {
+  color: #09090B !important;
+}
+
+[class*="#061452"][class*="border-"],
+[class*="#C4A45B"][class*="border-"],
+[class*="#c4a45b"][class*="border-"] {
+  border-color: #09090B !important;
+}
+
+/* Hover variants */
+[class*="hover:bg-[#061452]"]:hover,
+[class*="hover:bg-[#C4A45B]"]:hover {
+  background-color: #09090B !important;
+  color: #FFFFFF !important;
+}
+
+/* Gold utility class family (tailwind config) */
+.bg-gold, .bg-gold-light, .bg-gold-dark,
+.bg-brand-blue, .bg-brand-blue-hover {
+  background-color: #09090B !important;
+  color: #FFFFFF !important;
+}
+.text-gold, .text-gold-light, .text-gold-dark,
+.text-brand-blue { color: #09090B !important; }
+.border-gold, .border-gold-light, .border-gold-dark,
+.border-brand-blue { border-color: #09090B !important; }
+
+/* Kill any remaining gradient utilities that reference brand hexes */
+[class*="bg-gradient"] {
+  background-image: none !important;
+}
