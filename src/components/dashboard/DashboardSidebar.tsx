@@ -91,12 +91,13 @@ export function DashboardSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <div className="h-full flex flex-col relative overflow-hidden">
-        {/* Deep gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[hsl(232,85%,12%)] via-[hsl(232,85%,10%)] to-[hsl(232,85%,7%)]" />
+        {/* Deep monochrome background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-[hsl(0,0%,4%)] to-black" />
         {/* Subtle radial glow at top */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200%] h-40 bg-[radial-gradient(ellipse_at_center,hsl(232,60%,20%)_0%,transparent_70%)] opacity-40" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200%] h-40 bg-[radial-gradient(ellipse_at_center,hsl(0,0%,18%)_0%,transparent_70%)] opacity-40" />
         {/* Faint noise texture */}
         <div className="absolute inset-0 opacity-[0.03] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iLjgiIG51bU9jdGF2ZXM9IjQiIHN0aXRjaFRpbGVzPSJzdGl0Y2giLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWx0ZXI9InVybCgjbikiIG9wYWNpdHk9IjEiLz48L3N2Zz4=')]" />
+
 
         {/* Logo area */}
         <div className="relative z-10 px-5 pt-6 pb-5">
