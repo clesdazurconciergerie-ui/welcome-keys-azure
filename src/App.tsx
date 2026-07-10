@@ -98,6 +98,8 @@ import DemoComplianceHubPage from "./pages/demo/DemoComplianceHubPage";
 import RapportsLayout from "./layouts/RapportsLayout";
 import RapportsHome from "./pages/rapports/RapportsHome";
 import LogementsAdminPage from "./pages/rapports/LogementsAdminPage";
+import EstimationWizardPage from "./pages/rapports/EstimationWizardPage";
+import EstimationReportPage from "./pages/rapports/EstimationReportPage";
 
 const queryClient = new QueryClient();
 
@@ -214,6 +216,8 @@ const App = () => (
           {/* Azurkeys Report */}
           <Route path="/rapports" element={<RapportsLayout />}>
             <Route index element={<RapportsHome />} />
+            <Route path="estimation/nouveau" element={<EstimationWizardPage />} />
+            <Route path="estimation/:id" element={<EstimationReportPage />} />
             <Route path="logements" element={<LogementsAdminPage />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
