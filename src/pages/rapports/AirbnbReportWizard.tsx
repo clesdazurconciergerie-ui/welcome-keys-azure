@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles, Trash2, Upload, X } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAzurkeysProperties } from "@/hooks/useAzurkeysProperties";
+import { useProperties } from "@/hooks/useProperties";
+
 
 // ────────────────────────────────────────────────────────────
 // Wizard 5 étapes — Rapport de performance mensuelle Airbnb
@@ -44,7 +45,10 @@ type UploadedFile = { path: string; name: string; previewUrl: string };
 
 export default function AirbnbReportWizard() {
   const navigate = useNavigate();
-  const { properties, isLoading: loadingProps } = useAzurkeysProperties();
+  const [searchParams] = useSearchParams();
+  const draftId = searchParams.get("draft");
+  const initialProperty = searchParams.get("property") ?? "";
+  const { properties, isLoading: loadingProps } = useProperties();
 
   const [stepIdx, setStepIdx] = useState(0);
   const step = STEPS[stepIdx];
@@ -58,7 +62,7 @@ export default function AirbnbReportWizard() {
   const [extracting, setExtracting] = useState(false);
 
   // Étape 4
-  const [propertySlug, setPropertySlug] = useState<string>("");
+  const [propertySlug, setPropertySlug] = useState<string>(initialProperty);
   const [periodMonth, setPeriodMonth] = useState<string>(() => {
     const d = new Date();
     d.setDate(1);
@@ -76,7 +80,7 @@ export default function AirbnbReportWizard() {
   const [generating, setGenerating] = useState(false);
 
   const selectedProperty = useMemo(
-    () => properties.find((p) => p.slug === propertySlug) || null,
+    () => properties.find((p) => p.id === propertySlug) || null,
     [propertySlug, properties],
   );
 
@@ -86,9 +90,35 @@ export default function AirbnbReportWizard() {
     return new Date(y, m - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
   }, [periodMonth]);
 
+  // Load draft if requested
+  useEffect(() => {
+    if (!draftId) return;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("azurkeys_reports")
+        .select("*")
+        .eq("id", draftId)
+        .maybeSingle();
+      if (!data) return;
+      setPropertySlug(data.property_slug);
+      setPeriodMonth(data.period);
+      const merged: KpiState = emptyKpi();
+      for (const k of METRIC_KEYS) {
+        const v = (data.kpi_data ?? {})[k];
+        if (v && v.value !== null && v.value !== undefined) {
+          merged[k] = { value: Number(v.value), confidence: Number(v.confidence ?? 1), source: v.source ?? "manual" };
+        }
+      }
+      setKpi(merged);
+      if (data.manual_data) setManual({ ...data.manual_data });
+      toast.success("Brouillon chargé — ajoutez les captures Airbnb");
+    })();
+  }, [draftId]);
+
   useEffect(() => {
     return () => files.forEach((f) => URL.revokeObjectURL(f.previewUrl));
   }, [files]);
+
 
   // ── UPLOAD ────────────────────────────────────────────────
   const handleFiles = async (fileList: FileList | null) => {
@@ -188,7 +218,7 @@ export default function AirbnbReportWizard() {
 
       const { data, error } = await supabase.functions.invoke("generate-airbnb-report", {
         body: {
-          property: { nom: selectedProperty.nom, ville: selectedProperty.ville, slug: selectedProperty.slug },
+          property: { nom: selectedProperty.name, ville: selectedProperty.city ?? "", slug: selectedProperty.id },
           period_label: periodLabel,
           kpi,
           manual: {
@@ -478,7 +508,7 @@ function StepComplement({ properties, loadingProps, propertySlug, setPropertySlu
           <select className="az-input" value={propertySlug} onChange={(e) => setPropertySlug(e.target.value)} disabled={loadingProps}>
             <option value="">— Sélectionnez —</option>
             {properties.map((p: any) => (
-              <option key={p.slug} value={p.slug}>{p.nom} — {p.ville}</option>
+              <option key={p.id} value={p.id}>{p.name}{p.city ? ` — ${p.city}` : ""}</option>
             ))}
           </select>
         </div>
@@ -522,7 +552,7 @@ function StepGeneration({ property, periodLabel, generating, onGenerate }: any) 
     <div className="text-center py-6">
       <p className="az-eyebrow mb-3">Étape 5</p>
       <h2 className="font-display text-3xl mb-4">Prêt à générer</h2>
-      <p className="font-body text-[13px] text-[hsl(var(--az-muted))] mb-2">Logement : <strong>{property?.nom ?? "—"}</strong></p>
+      <p className="font-body text-[13px] text-[hsl(var(--az-muted))] mb-2">Logement : <strong>{property?.name ?? "—"}</strong></p>
       <p className="font-body text-[13px] text-[hsl(var(--az-muted))] mb-8 capitalize">Période : {periodLabel}</p>
       <button onClick={onGenerate} disabled={generating} className="az-btn-primary">
         {generating ? <><Loader2 className="w-4 h-4 animate-spin" /> Génération…</> : <><Sparkles className="w-4 h-4" /> Générer le rapport</>}

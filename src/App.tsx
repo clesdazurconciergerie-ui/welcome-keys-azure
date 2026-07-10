@@ -61,7 +61,7 @@ import OwnerCalendarPage from "./pages/owner/OwnerCalendarPage";
 import OwnerRequestsPage from "./pages/owner/OwnerRequestsPage";
 import OwnerReportingPage from "./pages/owner/OwnerReportingPage";
 import OwnerRequestsAdminPage from "./pages/dashboard/OwnerRequestsAdminPage";
-import MonthlyReportsAdminPage from "./pages/dashboard/MonthlyReportsAdminPage";
+
 import ICalMonitoringPage from "./pages/dashboard/ICalMonitoringPage";
 import InspectionsV2Page from "./pages/dashboard/InspectionsV2Page";
 import InspectionV2DetailPage from "./pages/dashboard/InspectionV2DetailPage";
@@ -143,7 +143,7 @@ const App = () => (
             <Route path="finance" element={<FinancePage />} />
             <Route path="finance/revenus-a-completer" element={<RevenueCompletionPage />} />
             <Route path="demandes-proprietaires" element={<OwnerRequestsAdminPage />} />
-            <Route path="rapports-mensuels" element={<MonthlyReportsAdminPage />} />
+            
             <Route path="ical-monitoring" element={<ICalMonitoringPage />} />
             <Route path="etats-des-lieux-v2" element={<InspectionsV2Page />} />
             <Route path="etats-des-lieux-v2/:id" element={<InspectionV2DetailPage />} />

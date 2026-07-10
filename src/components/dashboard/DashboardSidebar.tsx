@@ -56,7 +56,7 @@ const navGroups = [
     items: [
       { title: "Finance", url: "/dashboard/finance", icon: Euro },
       { title: "Taxe de séjour", url: "/dashboard/taxe-sejour", icon: Receipt },
-      { title: "Rapports mensuels", url: "/dashboard/rapports-mensuels", icon: BarChart3 },
+      
       { title: "Azurkeys Report", url: "/rapports", icon: FileText },
       { title: "Estimation locative", url: "/rapports/estimation/nouveau", icon: LineChart },
     ],
