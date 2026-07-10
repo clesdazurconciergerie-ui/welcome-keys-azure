@@ -88,8 +88,9 @@ const ownerDocTypeLabels: Record<string, string> = {
 const PropertyDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { properties, isLoading, fetchPhotos, uploadPhoto, deletePhoto, fetchDocuments, uploadDocument, deleteDocument, fetchPropertyOwners, updateProperty } = useProperties();
+  const { properties, isLoading, fetchPhotos, uploadPhoto, deletePhoto, fetchDocuments, uploadDocument, deleteDocument, fetchPropertyOwners, updateProperty, deleteProperty } = useProperties();
   const { interventions, deleteIntervention } = useCleaningInterventions('concierge');
+  const [deletePropertyOpen, setDeletePropertyOpen] = useState(false);
   const [linkedBooklets, setLinkedBooklets] = useState<any[]>([]);
   const [allBooklets, setAllBooklets] = useState<any[]>([]);
   const [linkingBooklet, setLinkingBooklet] = useState(false);
@@ -259,6 +260,10 @@ const PropertyDetailPage = () => {
               Ajouter réservation
             </Button>
             <Button onClick={() => setEditOpen(true)} variant="outline">Modifier</Button>
+            <Button onClick={() => setDeletePropertyOpen(true)} variant="outline" className="text-destructive hover:text-destructive">
+              <Trash2 className="w-4 h-4 mr-1.5" />
+              Supprimer
+            </Button>
           </div>
         </div>
 
@@ -784,6 +789,32 @@ const PropertyDetailPage = () => {
                 setDeleteInterventionId(null);
               }
             }}>Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete property confirmation */}
+      <AlertDialog open={deletePropertyOpen} onOpenChange={setDeletePropertyOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce bien ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le bien "{property?.name}" ainsi que ses photos, documents et paramètres associés seront définitivement supprimés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground"
+              onClick={async () => {
+                if (!id) return;
+                await deleteProperty(id);
+                setDeletePropertyOpen(false);
+                navigate("/dashboard/logements");
+              }}
+            >
+              Supprimer définitivement
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
