@@ -7,9 +7,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Plus, Upload, Loader2, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Upload, Loader2, X, Network, List } from "lucide-react";
 import { parseMarkdownProjets } from "@/lib/cockpit-markdown-parser";
 import { cn } from "@/lib/utils";
+import CockpitGraph, { type GraphProjet, type GraphPole } from "@/components/cockpit/CockpitGraph";
+import ProjetSidePanel from "@/components/cockpit/ProjetSidePanel";
 
 type Pole = { id: string; numero: number; nom: string; objectif: string | null };
 type Projet = {
