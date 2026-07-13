@@ -96,6 +96,23 @@ export default function CockpitPage() {
     return m;
   }, [actions]);
 
+  const graphProjets = useMemo<GraphProjet[]>(() => projets.map(pr => {
+    const list = actionsByProjet.get(pr.id) || [];
+    return {
+      id: pr.id, pole_id: pr.pole_id, nom: pr.nom,
+      statut: pr.statut, priorite: pr.priorite,
+      recommande: !!pr.recommande,
+      done: list.filter(a => a.fait).length,
+      total: list.length,
+    };
+  }), [projets, actionsByProjet]);
+
+  const graphPoles = useMemo<GraphPole[]>(() =>
+    poles.map(p => ({ id: p.id, numero: p.numero, nom: p.nom })), [poles]);
+
+  const enCours = useMemo(() => projets.filter(p => p.statut === "en_cours").slice(0, 3), [projets]);
+  const selectedProjet = useMemo(() => projets.find(p => p.id === selectedProjetId) || null, [projets, selectedProjetId]);
+
   const filtered = useMemo(() => projets.filter(pr => {
     if (filterPriorite !== "all" && pr.priorite !== filterPriorite) return false;
     if (filterStatut !== "all" && pr.statut !== filterStatut) return false;
