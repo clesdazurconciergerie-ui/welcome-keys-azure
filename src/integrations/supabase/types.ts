@@ -1246,6 +1246,30 @@ export type Database = {
           },
         ]
       }
+      contexte_business: {
+        Row: {
+          created_at: string
+          id: string
+          reponses: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reponses?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reponses?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           body: string
