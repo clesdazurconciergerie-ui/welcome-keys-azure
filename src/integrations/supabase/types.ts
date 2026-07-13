@@ -3061,6 +3061,33 @@ export type Database = {
         }
         Relationships: []
       }
+      poles: {
+        Row: {
+          created_at: string
+          id: string
+          nom: string
+          numero: number
+          objectif: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nom: string
+          numero: number
+          objectif?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nom?: string
+          numero?: number
+          objectif?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pricing_rules: {
         Row: {
           adjustment_type: string
@@ -3172,6 +3199,68 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projets: {
+        Row: {
+          actions: Json
+          automatisations: Json
+          created_at: string
+          date_validation: string | null
+          difficulte: number
+          id: string
+          impact: number
+          kpis: Json
+          nom: string
+          objectif: string | null
+          pole_id: string
+          priorite: string
+          resultat: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          actions?: Json
+          automatisations?: Json
+          created_at?: string
+          date_validation?: string | null
+          difficulte?: number
+          id?: string
+          impact?: number
+          kpis?: Json
+          nom: string
+          objectif?: string | null
+          pole_id: string
+          priorite?: string
+          resultat?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json
+          automatisations?: Json
+          created_at?: string
+          date_validation?: string | null
+          difficulte?: number
+          id?: string
+          impact?: number
+          kpis?: Json
+          nom?: string
+          objectif?: string | null
+          pole_id?: string
+          priorite?: string
+          resultat?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projets_pole_id_fkey"
+            columns: ["pole_id"]
+            isOneToOne: false
+            referencedRelation: "poles"
             referencedColumns: ["id"]
           },
         ]
@@ -4125,6 +4214,38 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suggestions_ia: {
+        Row: {
+          acceptee: boolean
+          contenu: Json
+          created_at: string
+          id: string
+          projet_id: string | null
+        }
+        Insert: {
+          acceptee?: boolean
+          contenu?: Json
+          created_at?: string
+          id?: string
+          projet_id?: string | null
+        }
+        Update: {
+          acceptee?: boolean
+          contenu?: Json
+          created_at?: string
+          id?: string
+          projet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suggestions_ia_projet_id_fkey"
+            columns: ["projet_id"]
+            isOneToOne: false
+            referencedRelation: "projets"
             referencedColumns: ["id"]
           },
         ]

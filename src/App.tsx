@@ -103,6 +103,7 @@ import EstimationReportPage from "./pages/rapports/EstimationReportPage";
 import AirbnbReportWizard from "./pages/rapports/AirbnbReportWizard";
 import AirbnbReportView from "./pages/rapports/AirbnbReportView";
 import AirbnbReportsHistory from "./pages/rapports/AirbnbReportsHistory";
+import CockpitPage from "./pages/dashboard/CockpitPage";
 
 const queryClient = new QueryClient();
 
@@ -158,6 +159,7 @@ const App = () => (
             <Route path="welkom-studio" element={<WelkomStudioPage />} />
             <Route path="logements/:id/studio" element={<WelkomStudioPage />} />
             <Route path="aide" element={<HelpCenterPage />} />
+            <Route path="cockpit" element={<CockpitPage />} />
           </Route>
 
           {/* Owner dashboard */}
