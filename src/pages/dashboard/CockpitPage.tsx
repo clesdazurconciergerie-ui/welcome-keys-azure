@@ -7,9 +7,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Plus, Upload, Loader2, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Upload, Loader2, X, Network, List } from "lucide-react";
 import { parseMarkdownProjets } from "@/lib/cockpit-markdown-parser";
 import { cn } from "@/lib/utils";
+import CockpitGraph, { type GraphProjet, type GraphPole } from "@/components/cockpit/CockpitGraph";
+import ProjetSidePanel from "@/components/cockpit/ProjetSidePanel";
 
 type Pole = { id: string; numero: number; nom: string; objectif: string | null };
 type Projet = {
@@ -19,6 +21,7 @@ type Projet = {
   difficulte: number; impact: number;
   statut: "a_faire" | "en_cours" | "fait" | "abandonne";
   resultat: string | null; date_validation: string | null;
+  recommande?: boolean;
 };
 type Action = {
   id: string; projet_id: string; ordre: number;
@@ -67,6 +70,8 @@ export default function CockpitPage() {
   const [iaLoading, setIaLoading] = useState(false);
   const [iaAnswers, setIaAnswers] = useState<string[]>([]);
   const [iaProjetId, setIaProjetId] = useState<string | null>(null);
+  const [vue, setVue] = useState<"graph" | "list">("graph");
+  const [selectedProjetId, setSelectedProjetId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -90,6 +95,23 @@ export default function CockpitPage() {
     }
     return m;
   }, [actions]);
+
+  const graphProjets = useMemo<GraphProjet[]>(() => projets.map(pr => {
+    const list = actionsByProjet.get(pr.id) || [];
+    return {
+      id: pr.id, pole_id: pr.pole_id, nom: pr.nom,
+      statut: pr.statut, priorite: pr.priorite,
+      recommande: !!pr.recommande,
+      done: list.filter(a => a.fait).length,
+      total: list.length,
+    };
+  }), [projets, actionsByProjet]);
+
+  const graphPoles = useMemo<GraphPole[]>(() =>
+    poles.map(p => ({ id: p.id, numero: p.numero, nom: p.nom })), [poles]);
+
+  const enCours = useMemo(() => projets.filter(p => p.statut === "en_cours").slice(0, 3), [projets]);
+  const selectedProjet = useMemo(() => projets.find(p => p.id === selectedProjetId) || null, [projets, selectedProjetId]);
 
   const filtered = useMemo(() => projets.filter(pr => {
     if (filterPriorite !== "all" && pr.priorite !== filterPriorite) return false;
@@ -148,6 +170,13 @@ export default function CockpitPage() {
   };
 
   const changeStatut = async (pr: Projet, statut: Projet["statut"]) => {
+    if (statut === "en_cours" && pr.statut !== "en_cours") {
+      const active = projets.filter(p => p.statut === "en_cours" && p.id !== pr.id).length;
+      if (active >= 3) {
+        toast.error("Max 3 projets actifs — termine ou abandonne d'abord");
+        return;
+      }
+    }
     const { error } = await supabase.from("projets" as any).update({ statut }).eq("id", pr.id);
     if (error) toast.error(error.message);
     else load();
@@ -177,14 +206,28 @@ export default function CockpitPage() {
   };
 
   const acceptSuggestion = async (s: any) => {
-    // s.projet_id existe déjà -> on le remet en "à faire" et P1
     const projet = projets.find(p => p.id === s.projet_id);
     if (!projet) return;
     const { error } = await supabase.from("projets" as any).update({
-      priorite: "P1", statut: projet.statut === "fait" ? "a_faire" : projet.statut,
+      priorite: "P1",
+      statut: projet.statut === "fait" ? "a_faire" : projet.statut,
+      recommande: true,
     }).eq("id", s.projet_id);
     if (error) toast.error(error.message);
     else { toast.success("Projet priorisé"); load(); }
+  };
+
+  const acceptAllSuggestions = async () => {
+    if (!iaResult?.suggestions?.length) return;
+    const ids = iaResult.suggestions.map((s: any) => s.projet_id);
+    // Reset previous recommandations
+    await supabase.from("projets" as any).update({ recommande: false }).eq("recommande", true);
+    // Flag new ones
+    await supabase.from("projets" as any).update({ recommande: true }).in("id", ids);
+    // Also apply priority P1 + unfaire les fait
+    for (const s of iaResult.suggestions) await acceptSuggestion(s);
+    toast.success("Suggestions IA appliquées");
+    load();
   };
 
   const acceptRepriorisation = async (r: any) => {
@@ -201,13 +244,24 @@ export default function CockpitPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className={cn(vue === "graph" ? "space-y-3" : "space-y-6")}>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-3xl font-display tracking-tight">Cockpit Stratégique</h1>
           <p className="text-sm text-muted-foreground mt-1">Ma roadmap vivante, re-priorisée par l'IA</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* Toggle Graphe / Liste */}
+          <div className="inline-flex border border-border rounded-none overflow-hidden">
+            <button
+              onClick={() => setVue("graph")}
+              className={cn("px-3 py-1.5 text-xs flex items-center gap-1.5", vue === "graph" ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted/50")}
+            ><Network className="h-3.5 w-3.5"/>Graphe</button>
+            <button
+              onClick={() => setVue("list")}
+              className={cn("px-3 py-1.5 text-xs flex items-center gap-1.5 border-l border-border", vue === "list" ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted/50")}
+            ><List className="h-3.5 w-3.5"/>Liste</button>
+          </div>
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4 mr-2"/>Importer
           </Button>
@@ -217,69 +271,129 @@ export default function CockpitPage() {
         </div>
       </div>
 
-      {/* Filtres compacts */}
-      <div className="flex gap-2 flex-wrap text-sm">
-        <Select value={filterPriorite} onValueChange={setFilterPriorite}>
-          <SelectTrigger className="w-32 h-8"><SelectValue placeholder="Priorité"/></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toutes priorités</SelectItem>
-            {["P1","P2","P3","P4"].map(p=><SelectItem key={p} value={p}>{p}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterStatut} onValueChange={setFilterStatut}>
-          <SelectTrigger className="w-32 h-8"><SelectValue placeholder="Statut"/></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous statuts</SelectItem>
-            {Object.entries(STATUT_LABELS).map(([k,v])=><SelectItem key={k} value={k}>{v}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+      {vue === "list" && (
+        <>
+          {/* Filtres compacts */}
+          <div className="flex gap-2 flex-wrap text-sm">
+            <Select value={filterPriorite} onValueChange={setFilterPriorite}>
+              <SelectTrigger className="w-32 h-8"><SelectValue placeholder="Priorité"/></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes priorités</SelectItem>
+                {["P1","P2","P3","P4"].map(p=><SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterStatut} onValueChange={setFilterStatut}>
+              <SelectTrigger className="w-32 h-8"><SelectValue placeholder="Statut"/></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous statuts</SelectItem>
+                {Object.entries(STATUT_LABELS).map(([k,v])=><SelectItem key={k} value={k}>{v}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* Outliner */}
-      {loading ? (
-        <div className="flex justify-center p-12"><Loader2 className="animate-spin"/></div>
-      ) : (
-        <div className="font-sans text-sm">
-          {poles.map(pole => {
-            const items = filtered.filter(p => p.pole_id === pole.id);
-            const open = expPoles[pole.id] ?? true;
-            return (
-              <div key={pole.id}>
-                <button
-                  className="w-full flex items-center gap-1.5 py-1.5 px-1 hover:bg-muted/40 rounded text-left"
-                  onClick={() => setExpPoles(e => ({ ...e, [pole.id]: !open }))}
-                  style={{ minHeight: 32 }}
-                >
-                  {open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0"/> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0"/>}
-                  <span className="font-medium">{pole.numero}. {pole.nom}</span>
-                  <span className="text-xs text-muted-foreground ml-1.5">{items.length}</span>
-                </button>
-                {open && (
-                  <div className="ml-2 pl-3 border-l border-border/60">
-                    {items.length === 0 && <div className="py-1.5 text-xs text-muted-foreground italic">Aucun projet</div>}
-                    {items.map(pr => (
-                      <ProjetRow
-                        key={pr.id}
-                        projet={pr}
-                        actions={actionsByProjet.get(pr.id) || []}
-                        expanded={!!expProjets[pr.id]}
-                        onToggle={() => setExpProjets(e => ({ ...e, [pr.id]: !e[pr.id] }))}
-                        onToggleAction={toggleAction}
-                        onAddAction={addAction}
-                        onDeleteAction={deleteAction}
-                        onChangeStatut={changeStatut}
-                      />
-                    ))}
+          {/* Outliner */}
+          {loading ? (
+            <div className="flex justify-center p-12"><Loader2 className="animate-spin"/></div>
+          ) : (
+            <div className="font-sans text-sm">
+              {poles.map(pole => {
+                const items = filtered.filter(p => p.pole_id === pole.id);
+                const open = expPoles[pole.id] ?? true;
+                return (
+                  <div key={pole.id}>
+                    <button
+                      className="w-full flex items-center gap-1.5 py-1.5 px-1 hover:bg-muted/40 rounded text-left"
+                      onClick={() => setExpPoles(e => ({ ...e, [pole.id]: !open }))}
+                      style={{ minHeight: 32 }}
+                    >
+                      {open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0"/> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0"/>}
+                      <span className="font-medium">{pole.numero}. {pole.nom}</span>
+                      <span className="text-xs text-muted-foreground ml-1.5">{items.length}</span>
+                    </button>
+                    {open && (
+                      <div className="ml-2 pl-3 border-l border-border/60">
+                        {items.length === 0 && <div className="py-1.5 text-xs text-muted-foreground italic">Aucun projet</div>}
+                        {items.map(pr => (
+                          <ProjetRow
+                            key={pr.id}
+                            projet={pr}
+                            actions={actionsByProjet.get(pr.id) || []}
+                            expanded={!!expProjets[pr.id]}
+                            onToggle={() => setExpProjets(e => ({ ...e, [pr.id]: !e[pr.id] }))}
+                            onToggleAction={toggleAction}
+                            onAddAction={addAction}
+                            onDeleteAction={deleteAction}
+                            onChangeStatut={changeStatut}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {vue === "graph" && (
+        <div className="relative w-full" style={{ height: "calc(100vh - 12rem)" }}>
+          {loading ? (
+            <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin text-white"/></div>
+          ) : (
+            <CockpitGraph
+              poles={graphPoles}
+              projets={graphProjets}
+              onSelectProjet={setSelectedProjetId}
+              selectedProjetId={selectedProjetId}
+            />
+          )}
+
+          {/* Overlay Cette Semaine */}
+          {!loading && (
+            <div className="absolute top-3 left-3 max-w-xs bg-black/70 backdrop-blur border border-white/10 p-3 text-white text-xs space-y-2 pointer-events-auto">
+              <div className="text-[10px] uppercase tracking-wider text-white/60">Cette semaine · {enCours.length}/3</div>
+              {enCours.length === 0 && <div className="text-white/50 italic">Aucun projet actif</div>}
+              {enCours.map(pr => {
+                const list = actionsByProjet.get(pr.id) || [];
+                const done = list.filter(a => a.fait).length;
+                const total = list.length;
+                const pct = total ? (done/total)*100 : 0;
+                return (
+                  <button
+                    key={pr.id}
+                    onClick={() => setSelectedProjetId(pr.id)}
+                    className="block w-full text-left hover:bg-white/10 -mx-1 px-1 py-0.5"
+                  >
+                    <div className="truncate">{pr.nom}</div>
+                    <div className="h-0.5 bg-white/15 mt-1">
+                      <div className="h-full bg-emerald-500" style={{ width: `${pct}%` }}/>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Side Panel */}
+          {selectedProjet && (
+            <ProjetSidePanel
+              projet={selectedProjet as any}
+              poleName={poles.find(p => p.id === selectedProjet.pole_id)?.nom || ""}
+              actions={actionsByProjet.get(selectedProjet.id) || []}
+              onClose={() => setSelectedProjetId(null)}
+              onToggleAction={toggleAction}
+              onAddAction={addAction}
+              onDeleteAction={deleteAction}
+              onChangeStatut={(s) => changeStatut(selectedProjet, s)}
+            />
+          )}
         </div>
       )}
 
       <ImportDialog open={importOpen} onOpenChange={setImportOpen} poles={poles} onDone={load}/>
       <IdeeDialog open={ideeOpen} onOpenChange={setIdeeOpen} poles={poles} onDone={load}/>
+
 
       {/* IA modal */}
       <Dialog open={iaLoading || !!iaResult} onOpenChange={(o)=>{ if(!o){ setIaResult(null); setIaProjetId(null);} }}>
@@ -305,7 +419,10 @@ export default function CockpitPage() {
                 <>
                   {iaResult.suggestions?.length > 0 && (
                     <div className="space-y-2">
-                      <h3 className="font-semibold">Prochains projets recommandés</h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold">Prochains projets recommandés</h3>
+                        <Button size="sm" variant="outline" onClick={acceptAllSuggestions}>Tout accepter</Button>
+                      </div>
                       {iaResult.suggestions.map((s: any, i: number) => {
                         const p = projets.find(x => x.id === s.projet_id);
                         return (
