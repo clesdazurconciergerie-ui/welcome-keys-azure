@@ -32,6 +32,47 @@ export type Database = {
         }
         Relationships: []
       }
+      actions: {
+        Row: {
+          created_at: string
+          date: string | null
+          fait: boolean
+          id: string
+          ordre: number
+          projet_id: string
+          texte: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string | null
+          fait?: boolean
+          id?: string
+          ordre?: number
+          projet_id: string
+          texte: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string | null
+          fait?: boolean
+          id?: string
+          ordre?: number
+          projet_id?: string
+          texte?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actions_projet_id_fkey"
+            columns: ["projet_id"]
+            isOneToOne: false
+            referencedRelation: "projets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activities: {
         Row: {
           age_restrictions: string | null
