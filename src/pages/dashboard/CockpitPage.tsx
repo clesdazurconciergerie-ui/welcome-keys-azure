@@ -70,6 +70,8 @@ export default function CockpitPage() {
   const [iaLoading, setIaLoading] = useState(false);
   const [iaAnswers, setIaAnswers] = useState<string[]>([]);
   const [iaProjetId, setIaProjetId] = useState<string | null>(null);
+  const [vue, setVue] = useState<"graph" | "list">("graph");
+  const [selectedProjetId, setSelectedProjetId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
