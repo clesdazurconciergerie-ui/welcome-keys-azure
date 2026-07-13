@@ -4,14 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Plus, Upload, Loader2, X, Network, List } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Upload, Loader2, X, TreePine, List, RotateCcw } from "lucide-react";
 import { parseMarkdownProjets } from "@/lib/cockpit-markdown-parser";
 import { cn } from "@/lib/utils";
-import CockpitGraph, { type GraphProjet, type GraphPole } from "@/components/cockpit/CockpitGraph";
+import CockpitTree, { type TreeProjet, type TreePole } from "@/components/cockpit/CockpitTree";
 import ProjetSidePanel from "@/components/cockpit/ProjetSidePanel";
+import OnboardingChat from "@/components/cockpit/OnboardingChat";
 
 type Pole = { id: string; numero: number; nom: string; objectif: string | null };
 type Projet = {
@@ -19,7 +20,7 @@ type Projet = {
   actions: any; automatisations: any; kpis: any;
   priorite: "P1" | "P2" | "P3" | "P4";
   difficulte: number; impact: number;
-  statut: "a_faire" | "en_cours" | "fait" | "abandonne";
+  statut: "a_faire" | "en_cours" | "fait" | "abandonne" | "archive";
   resultat: string | null; date_validation: string | null;
   recommande?: boolean;
 };
@@ -29,28 +30,20 @@ type Action = {
 };
 
 const STATUT_LABELS: Record<string, string> = {
-  a_faire: "À faire", en_cours: "En cours", fait: "Fait", abandonne: "Abandonné",
+  a_faire: "À faire", en_cours: "En cours", fait: "Fait", abandonne: "Abandonné", archive: "Archivé",
 };
 
-// Puce ronde reflétant l'état d'avancement des actions
 function ProjetBullet({ done, total, statut }: { done: number; total: number; statut: string }) {
   const isDone = statut === "fait";
-  const isAbandon = statut === "abandonne";
-  const pct = total > 0 ? done / total : (statut === "en_cours" ? 0.5 : 0);
-  let fill = "none";
-  let stroke = "hsl(var(--muted-foreground))";
-  if (isDone) { fill = "hsl(142 71% 45%)"; stroke = "hsl(142 71% 45%)"; }
-  else if (isAbandon) { stroke = "hsl(var(--muted-foreground))"; }
-  else if (pct >= 1) { fill = "hsl(142 71% 45%)"; stroke = "hsl(142 71% 45%)"; }
-
+  const pct = total > 0 ? done / total : 0;
+  const stroke = isDone || pct >= 1 ? "hsl(142 71% 45%)" : "hsl(var(--muted-foreground))";
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" className="shrink-0">
       <circle cx="6" cy="6" r="4.5" fill="none" stroke={stroke} strokeWidth="1.2" />
-      {isDone || pct >= 1 ? (
-        <circle cx="6" cy="6" r="3" fill={fill} />
-      ) : pct > 0 ? (
+      {(isDone || pct >= 1) && <circle cx="6" cy="6" r="3" fill={stroke} />}
+      {pct > 0 && pct < 1 && !isDone && (
         <path d="M6,1.5 A4.5,4.5 0 0,1 6,10.5 Z" fill={stroke} opacity="0.6" />
-      ) : null}
+      )}
     </svg>
   );
 }
@@ -66,12 +59,11 @@ export default function CockpitPage() {
   const [filterStatut, setFilterStatut] = useState<string>("all");
   const [importOpen, setImportOpen] = useState(false);
   const [ideeOpen, setIdeeOpen] = useState(false);
-  const [iaResult, setIaResult] = useState<any>(null);
-  const [iaLoading, setIaLoading] = useState(false);
-  const [iaAnswers, setIaAnswers] = useState<string[]>([]);
-  const [iaProjetId, setIaProjetId] = useState<string | null>(null);
-  const [vue, setVue] = useState<"graph" | "list">("graph");
+  const [vue, setVue] = useState<"tree" | "list">("tree");
   const [selectedProjetId, setSelectedProjetId] = useState<string | null>(null);
+  const [confirmRestart, setConfirmRestart] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [iaBusy, setIaBusy] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -96,28 +88,49 @@ export default function CockpitPage() {
     return m;
   }, [actions]);
 
-  const graphProjets = useMemo<GraphProjet[]>(() => projets.map(pr => {
+  const treeProjets = useMemo<TreeProjet[]>(() => projets.map(pr => {
     const list = actionsByProjet.get(pr.id) || [];
     return {
       id: pr.id, pole_id: pr.pole_id, nom: pr.nom,
-      statut: pr.statut, priorite: pr.priorite,
-      recommande: !!pr.recommande,
+      statut: pr.statut, recommande: !!pr.recommande,
       done: list.filter(a => a.fait).length,
       total: list.length,
     };
   }), [projets, actionsByProjet]);
 
-  const graphPoles = useMemo<GraphPole[]>(() =>
+  const treePoles = useMemo<TreePole[]>(() =>
     poles.map(p => ({ id: p.id, numero: p.numero, nom: p.nom })), [poles]);
 
   const enCours = useMemo(() => projets.filter(p => p.statut === "en_cours").slice(0, 3), [projets]);
   const selectedProjet = useMemo(() => projets.find(p => p.id === selectedProjetId) || null, [projets, selectedProjetId]);
 
   const filtered = useMemo(() => projets.filter(pr => {
+    if (pr.statut === "archive" && filterStatut !== "archive") return false;
     if (filterPriorite !== "all" && pr.priorite !== filterPriorite) return false;
     if (filterStatut !== "all" && pr.statut !== filterStatut) return false;
     return true;
   }), [projets, filterPriorite, filterStatut]);
+
+  const generateNext = async (projet_valide?: { id: string; nom: string; resultat?: string | null }) => {
+    setIaBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cockpit-ia-plan", {
+        body: { mode: "next", projet_valide },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.skipped) {
+        toast.info(data.reason || "3 projets déjà actifs");
+      } else if (data?.projets?.length) {
+        toast.success(`${data.projets.length} nouveau(x) projet(s) proposé(s) par l'IA`);
+      }
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || "L'IA n'a pas pu générer");
+    } finally {
+      setIaBusy(false);
+    }
+  };
 
   const toggleAction = async (a: Action) => {
     const nowDone = !a.fait;
@@ -125,11 +138,9 @@ export default function CockpitPage() {
       fait: nowDone, date: nowDone ? new Date().toISOString() : null,
     }).eq("id", a.id);
     if (error) { toast.error(error.message); return; }
-    // update local
     const nextActions = actions.map(x => x.id === a.id ? { ...x, fait: nowDone, date: nowDone ? new Date().toISOString() : null } : x);
     setActions(nextActions);
 
-    // Check completion → auto validate
     const projetActions = nextActions.filter(x => x.projet_id === a.projet_id);
     const allDone = projetActions.length > 0 && projetActions.every(x => x.fait);
     const projet = projets.find(p => p.id === a.projet_id);
@@ -144,10 +155,9 @@ export default function CockpitPage() {
       else {
         toast.success("Projet complété !");
         await load();
-        await callIA(projet.id);
+        await generateNext({ id: projet.id, nom: projet.nom, resultat });
       }
     } else if (!allDone && projet.statut === "a_faire" && projetActions.some(x => x.fait)) {
-      // Passe en cours dès qu'une case est cochée
       await supabase.from("projets" as any).update({ statut: "en_cours" }).eq("id", projet.id);
       setProjets(projets.map(p => p.id === projet.id ? { ...p, statut: "en_cours" } : p));
     }
@@ -182,86 +192,57 @@ export default function CockpitPage() {
     else load();
   };
 
-  const callIA = async (projet_valide_id: string, reponses_questions?: string[]) => {
-    setIaLoading(true);
-    setIaResult(null);
-    setIaProjetId(projet_valide_id);
-    try {
-      const { data, error } = await supabase.functions.invoke("cockpit-ia-suggest", {
-        body: { projet_valide_id, reponses_questions },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setIaResult(data);
-      await supabase.from("suggestions_ia" as any).insert({
-        projet_id: projet_valide_id, contenu: data, acceptee: false,
-      });
-      if (data.questions?.length) setIaAnswers(data.questions.map(() => ""));
-    } catch (e: any) {
-      toast.error(e.message || "L'IA n'a pas pu analyser, réessayez");
-      setIaResult(null);
-    } finally {
-      setIaLoading(false);
+  const doRestart = async () => {
+    setConfirmRestart(false);
+    // archive all non-archived
+    const { error } = await supabase.from("projets" as any).update({ statut: "archive", recommande: false }).neq("statut", "archive");
+    if (error) { toast.error(error.message); return; }
+    await load();
+    setOnboardingOpen(true);
+  };
+
+  const finishOnboarding = async (answers: Record<string, string>) => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) { toast.error("Non connecté"); return; }
+    const { error: e1 } = await supabase.from("contexte_business" as any).insert({
+      user_id: userData.user.id, reponses: answers,
+    });
+    if (e1) { toast.error(e1.message); return; }
+    const { data, error } = await supabase.functions.invoke("cockpit-ia-plan", {
+      body: { mode: "initial" },
+    });
+    if (error || data?.error) {
+      toast.error(error?.message || data?.error || "Erreur IA");
+    } else {
+      toast.success(`${data.projets?.length || 0} projets créés pour démarrer`);
     }
-  };
-
-  const acceptSuggestion = async (s: any) => {
-    const projet = projets.find(p => p.id === s.projet_id);
-    if (!projet) return;
-    const { error } = await supabase.from("projets" as any).update({
-      priorite: "P1",
-      statut: projet.statut === "fait" ? "a_faire" : projet.statut,
-      recommande: true,
-    }).eq("id", s.projet_id);
-    if (error) toast.error(error.message);
-    else { toast.success("Projet priorisé"); load(); }
-  };
-
-  const acceptAllSuggestions = async () => {
-    if (!iaResult?.suggestions?.length) return;
-    const ids = iaResult.suggestions.map((s: any) => s.projet_id);
-    // Reset previous recommandations
-    await supabase.from("projets" as any).update({ recommande: false }).eq("recommande", true);
-    // Flag new ones
-    await supabase.from("projets" as any).update({ recommande: true }).in("id", ids);
-    // Also apply priority P1 + unfaire les fait
-    for (const s of iaResult.suggestions) await acceptSuggestion(s);
-    toast.success("Suggestions IA appliquées");
-    load();
-  };
-
-  const acceptRepriorisation = async (r: any) => {
-    const { error } = await supabase.from("projets" as any).update({
-      priorite: r.nouvelle_priorite,
-    }).eq("id", r.projet_id);
-    if (error) toast.error(error.message);
-    else { toast.success("Priorité mise à jour"); load(); }
-  };
-
-  const submitAnswers = async () => {
-    if (!iaProjetId) return;
-    await callIA(iaProjetId, iaAnswers);
+    setOnboardingOpen(false);
+    await load();
   };
 
   return (
-    <div className={cn(vue === "graph" ? "space-y-3" : "space-y-6")}>
+    <div className={cn(vue === "tree" ? "space-y-3" : "space-y-6")}>
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-3xl font-display tracking-tight">Cockpit Stratégique</h1>
-          <p className="text-sm text-muted-foreground mt-1">Ma roadmap vivante, re-priorisée par l'IA</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Ma roadmap vivante {iaBusy && <Loader2 className="inline h-3 w-3 animate-spin ml-1"/>}
+          </p>
         </div>
         <div className="flex gap-2 items-center">
-          {/* Toggle Graphe / Liste */}
           <div className="inline-flex border border-border rounded-none overflow-hidden">
             <button
-              onClick={() => setVue("graph")}
-              className={cn("px-3 py-1.5 text-xs flex items-center gap-1.5", vue === "graph" ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted/50")}
-            ><Network className="h-3.5 w-3.5"/>Graphe</button>
+              onClick={() => setVue("tree")}
+              className={cn("px-3 py-1.5 text-xs flex items-center gap-1.5", vue === "tree" ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted/50")}
+            ><TreePine className="h-3.5 w-3.5"/>Arbre</button>
             <button
               onClick={() => setVue("list")}
               className={cn("px-3 py-1.5 text-xs flex items-center gap-1.5 border-l border-border", vue === "list" ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted/50")}
             ><List className="h-3.5 w-3.5"/>Liste</button>
           </div>
+          <Button variant="outline" size="sm" onClick={() => setConfirmRestart(true)}>
+            <RotateCcw className="h-4 w-4 mr-2"/>Recommencer de zéro
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4 mr-2"/>Importer
           </Button>
@@ -273,7 +254,6 @@ export default function CockpitPage() {
 
       {vue === "list" && (
         <>
-          {/* Filtres compacts */}
           <div className="flex gap-2 flex-wrap text-sm">
             <Select value={filterPriorite} onValueChange={setFilterPriorite}>
               <SelectTrigger className="w-32 h-8"><SelectValue placeholder="Priorité"/></SelectTrigger>
@@ -291,7 +271,6 @@ export default function CockpitPage() {
             </Select>
           </div>
 
-          {/* Outliner */}
           {loading ? (
             <div className="flex justify-center p-12"><Loader2 className="animate-spin"/></div>
           ) : (
@@ -336,24 +315,23 @@ export default function CockpitPage() {
         </>
       )}
 
-      {vue === "graph" && (
+      {vue === "tree" && (
         <div className="relative w-full" style={{ height: "calc(100vh - 12rem)" }}>
           {loading ? (
-            <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin text-white"/></div>
+            <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin"/></div>
           ) : (
-            <CockpitGraph
-              poles={graphPoles}
-              projets={graphProjets}
+            <CockpitTree
+              poles={treePoles}
+              projets={treeProjets}
               onSelectProjet={setSelectedProjetId}
               selectedProjetId={selectedProjetId}
             />
           )}
 
-          {/* Overlay Cette Semaine */}
           {!loading && (
-            <div className="absolute top-3 left-3 max-w-xs bg-black/70 backdrop-blur border border-white/10 p-3 text-white text-xs space-y-2 pointer-events-auto">
-              <div className="text-[10px] uppercase tracking-wider text-white/60">Cette semaine · {enCours.length}/3</div>
-              {enCours.length === 0 && <div className="text-white/50 italic">Aucun projet actif</div>}
+            <div className="absolute top-3 left-3 max-w-xs bg-background/95 backdrop-blur border border-border p-3 text-xs space-y-2">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Cette semaine · {enCours.length}/3</div>
+              {enCours.length === 0 && <div className="text-muted-foreground italic">Aucun projet actif</div>}
               {enCours.map(pr => {
                 const list = actionsByProjet.get(pr.id) || [];
                 const done = list.filter(a => a.fait).length;
@@ -363,11 +341,11 @@ export default function CockpitPage() {
                   <button
                     key={pr.id}
                     onClick={() => setSelectedProjetId(pr.id)}
-                    className="block w-full text-left hover:bg-white/10 -mx-1 px-1 py-0.5"
+                    className="block w-full text-left hover:bg-muted -mx-1 px-1 py-0.5"
                   >
                     <div className="truncate">{pr.nom}</div>
-                    <div className="h-0.5 bg-white/15 mt-1">
-                      <div className="h-full bg-emerald-500" style={{ width: `${pct}%` }}/>
+                    <div className="h-0.5 bg-muted mt-1">
+                      <div className="h-full bg-foreground" style={{ width: `${pct}%` }}/>
                     </div>
                   </button>
                 );
@@ -375,7 +353,6 @@ export default function CockpitPage() {
             </div>
           )}
 
-          {/* Side Panel */}
           {selectedProjet && (
             <ProjetSidePanel
               projet={selectedProjet as any}
@@ -394,75 +371,27 @@ export default function CockpitPage() {
       <ImportDialog open={importOpen} onOpenChange={setImportOpen} poles={poles} onDone={load}/>
       <IdeeDialog open={ideeOpen} onOpenChange={setIdeeOpen} poles={poles} onDone={load}/>
 
-
-      {/* IA modal */}
-      <Dialog open={iaLoading || !!iaResult} onOpenChange={(o)=>{ if(!o){ setIaResult(null); setIaProjetId(null);} }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Analyse stratégique IA</DialogTitle></DialogHeader>
-          {iaLoading && <div className="flex justify-center p-8"><Loader2 className="animate-spin"/></div>}
-          {iaResult && !iaLoading && (
-            <div className="space-y-4">
-              {iaResult.questions?.length > 0 ? (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">Quelques questions avant les recommandations :</p>
-                  {iaResult.questions.map((q: string, i: number) => (
-                    <div key={i}>
-                      <label className="text-sm font-medium">{q}</label>
-                      <Textarea value={iaAnswers[i] || ""} onChange={e => {
-                        const na = [...iaAnswers]; na[i] = e.target.value; setIaAnswers(na);
-                      }} className="mt-1"/>
-                    </div>
-                  ))}
-                  <Button onClick={submitAnswers}>Envoyer réponses</Button>
-                </div>
-              ) : (
-                <>
-                  {iaResult.suggestions?.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold">Prochains projets recommandés</h3>
-                        <Button size="sm" variant="outline" onClick={acceptAllSuggestions}>Tout accepter</Button>
-                      </div>
-                      {iaResult.suggestions.map((s: any, i: number) => {
-                        const p = projets.find(x => x.id === s.projet_id);
-                        return (
-                          <div key={i} className="p-3 border flex items-center justify-between gap-3">
-                            <div>
-                              <div className="font-medium">{p?.nom || s.projet_id}</div>
-                              <div className="text-xs text-muted-foreground">{s.justification}</div>
-                            </div>
-                            <Button size="sm" onClick={() => acceptSuggestion(s)}>Accepter</Button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {iaResult.repriorisations?.length > 0 && (
-                    <div className="space-y-2">
-                      <h3 className="font-semibold">Repriorisations proposées</h3>
-                      {iaResult.repriorisations.map((r: any, i: number) => {
-                        const p = projets.find(x => x.id === r.projet_id);
-                        return (
-                          <div key={i} className="p-3 border flex items-center justify-between gap-3">
-                            <div>
-                              <div className="font-medium">{p?.nom || r.projet_id} → {r.nouvelle_priorite}</div>
-                              <div className="text-xs text-muted-foreground">{r.raison}</div>
-                            </div>
-                            <Button size="sm" onClick={() => acceptRepriorisation(r)}>Accepter</Button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {!iaResult.suggestions?.length && !iaResult.repriorisations?.length && (
-                    <p className="text-sm text-muted-foreground">Aucune recommandation pour le moment.</p>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+      <Dialog open={confirmRestart} onOpenChange={setConfirmRestart}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Recommencer de zéro ?</DialogTitle>
+            <DialogDescription>
+              Tous tes projets actuels seront archivés (jamais supprimés). L'IA te posera ensuite 6 questions
+              pour reconstruire un plan de 3 projets adaptés à ta situation.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmRestart(false)}>Annuler</Button>
+            <Button onClick={doRestart}>Oui, tout archiver</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <OnboardingChat
+        open={onboardingOpen}
+        onCancel={() => setOnboardingOpen(false)}
+        onFinish={finishOnboarding}
+      />
     </div>
   );
 }
@@ -497,7 +426,7 @@ function ProjetRow({
         <span className={cn(
           "flex-1 truncate",
           projet.statut === "fait" && "line-through text-muted-foreground",
-          projet.statut === "abandonne" && "text-muted-foreground italic",
+          (projet.statut === "abandonne" || projet.statut === "archive") && "text-muted-foreground italic",
         )}>{projet.nom}</span>
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground shrink-0 opacity-70 group-hover:opacity-100">
           {total > 0 && <span className="tabular-nums">{done}/{total}</span>}
@@ -515,7 +444,6 @@ function ProjetRow({
             </div>
           )}
 
-          {/* Checklist */}
           <div className="space-y-1">
             {actions.map(a => (
               <div key={a.id} className="flex items-center gap-2 group" style={{ minHeight: 28 }}>
