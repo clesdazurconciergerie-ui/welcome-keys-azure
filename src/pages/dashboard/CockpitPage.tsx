@@ -153,6 +153,13 @@ export default function CockpitPage() {
   };
 
   const changeStatut = async (pr: Projet, statut: Projet["statut"]) => {
+    if (statut === "en_cours" && pr.statut !== "en_cours") {
+      const active = projets.filter(p => p.statut === "en_cours" && p.id !== pr.id).length;
+      if (active >= 3) {
+        toast.error("Max 3 projets actifs — termine ou abandonne d'abord");
+        return;
+      }
+    }
     const { error } = await supabase.from("projets" as any).update({ statut }).eq("id", pr.id);
     if (error) toast.error(error.message);
     else load();
