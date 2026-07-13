@@ -1406,6 +1406,39 @@ export type Database = {
           },
         ]
       }
+      etoile_polaire: {
+        Row: {
+          created_at: string
+          echeance: string | null
+          id: string
+          nom_metrique: string
+          updated_at: string
+          user_id: string
+          valeur_actuelle: number
+          valeur_cible: number
+        }
+        Insert: {
+          created_at?: string
+          echeance?: string | null
+          id?: string
+          nom_metrique: string
+          updated_at?: string
+          user_id: string
+          valeur_actuelle?: number
+          valeur_cible?: number
+        }
+        Update: {
+          created_at?: string
+          echeance?: string | null
+          id?: string
+          nom_metrique?: string
+          updated_at?: string
+          user_id?: string
+          valeur_actuelle?: number
+          valeur_cible?: number
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
@@ -3270,6 +3303,7 @@ export type Database = {
       }
       projets: {
         Row: {
+          a_refaire: boolean | null
           actions: Json
           automatisations: Json
           created_at: string
@@ -3277,17 +3311,24 @@ export type Database = {
           difficulte: number
           id: string
           impact: number
+          impact_etoile_polaire: string | null
+          is_backlog: boolean
+          justification_pareto: string | null
           kpis: Json
+          last_activity_at: string | null
           nom: string
           objectif: string | null
           pole_id: string
           priorite: string
           recommande: boolean
           resultat: string | null
+          score_roi_effort: number | null
           statut: string
+          temps_reel: string | null
           updated_at: string
         }
         Insert: {
+          a_refaire?: boolean | null
           actions?: Json
           automatisations?: Json
           created_at?: string
@@ -3295,17 +3336,24 @@ export type Database = {
           difficulte?: number
           id?: string
           impact?: number
+          impact_etoile_polaire?: string | null
+          is_backlog?: boolean
+          justification_pareto?: string | null
           kpis?: Json
+          last_activity_at?: string | null
           nom: string
           objectif?: string | null
           pole_id: string
           priorite?: string
           recommande?: boolean
           resultat?: string | null
+          score_roi_effort?: number | null
           statut?: string
+          temps_reel?: string | null
           updated_at?: string
         }
         Update: {
+          a_refaire?: boolean | null
           actions?: Json
           automatisations?: Json
           created_at?: string
@@ -3313,14 +3361,20 @@ export type Database = {
           difficulte?: number
           id?: string
           impact?: number
+          impact_etoile_polaire?: string | null
+          is_backlog?: boolean
+          justification_pareto?: string | null
           kpis?: Json
+          last_activity_at?: string | null
           nom?: string
           objectif?: string | null
           pole_id?: string
           priorite?: string
           recommande?: boolean
           resultat?: string | null
+          score_roi_effort?: number | null
           statut?: string
+          temps_reel?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -3972,6 +4026,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      revues_hebdo: {
+        Row: {
+          alerte: string | null
+          bilan: string | null
+          contenu: Json | null
+          created_at: string
+          focus_semaine: Json | null
+          id: string
+          semaine_debut: string
+          user_id: string
+        }
+        Insert: {
+          alerte?: string | null
+          bilan?: string | null
+          contenu?: Json | null
+          created_at?: string
+          focus_semaine?: Json | null
+          id?: string
+          semaine_debut: string
+          user_id: string
+        }
+        Update: {
+          alerte?: string | null
+          bilan?: string | null
+          contenu?: Json | null
+          created_at?: string
+          focus_semaine?: Json | null
+          id?: string
+          semaine_debut?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       saved_places: {
         Row: {
