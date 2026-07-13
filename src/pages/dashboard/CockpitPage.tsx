@@ -21,6 +21,7 @@ type Projet = {
   difficulte: number; impact: number;
   statut: "a_faire" | "en_cours" | "fait" | "abandonne";
   resultat: string | null; date_validation: string | null;
+  recommande?: boolean;
 };
 type Action = {
   id: string; projet_id: string; ordre: number;
