@@ -244,13 +244,24 @@ export default function CockpitPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className={cn(vue === "graph" ? "space-y-3" : "space-y-6")}>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-3xl font-display tracking-tight">Cockpit Stratégique</h1>
           <p className="text-sm text-muted-foreground mt-1">Ma roadmap vivante, re-priorisée par l'IA</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* Toggle Graphe / Liste */}
+          <div className="inline-flex border border-border rounded-none overflow-hidden">
+            <button
+              onClick={() => setVue("graph")}
+              className={cn("px-3 py-1.5 text-xs flex items-center gap-1.5", vue === "graph" ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted/50")}
+            ><Network className="h-3.5 w-3.5"/>Graphe</button>
+            <button
+              onClick={() => setVue("list")}
+              className={cn("px-3 py-1.5 text-xs flex items-center gap-1.5 border-l border-border", vue === "list" ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted/50")}
+            ><List className="h-3.5 w-3.5"/>Liste</button>
+          </div>
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4 mr-2"/>Importer
           </Button>
@@ -260,69 +271,129 @@ export default function CockpitPage() {
         </div>
       </div>
 
-      {/* Filtres compacts */}
-      <div className="flex gap-2 flex-wrap text-sm">
-        <Select value={filterPriorite} onValueChange={setFilterPriorite}>
-          <SelectTrigger className="w-32 h-8"><SelectValue placeholder="Priorité"/></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toutes priorités</SelectItem>
-            {["P1","P2","P3","P4"].map(p=><SelectItem key={p} value={p}>{p}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterStatut} onValueChange={setFilterStatut}>
-          <SelectTrigger className="w-32 h-8"><SelectValue placeholder="Statut"/></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous statuts</SelectItem>
-            {Object.entries(STATUT_LABELS).map(([k,v])=><SelectItem key={k} value={k}>{v}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+      {vue === "list" && (
+        <>
+          {/* Filtres compacts */}
+          <div className="flex gap-2 flex-wrap text-sm">
+            <Select value={filterPriorite} onValueChange={setFilterPriorite}>
+              <SelectTrigger className="w-32 h-8"><SelectValue placeholder="Priorité"/></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes priorités</SelectItem>
+                {["P1","P2","P3","P4"].map(p=><SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterStatut} onValueChange={setFilterStatut}>
+              <SelectTrigger className="w-32 h-8"><SelectValue placeholder="Statut"/></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous statuts</SelectItem>
+                {Object.entries(STATUT_LABELS).map(([k,v])=><SelectItem key={k} value={k}>{v}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* Outliner */}
-      {loading ? (
-        <div className="flex justify-center p-12"><Loader2 className="animate-spin"/></div>
-      ) : (
-        <div className="font-sans text-sm">
-          {poles.map(pole => {
-            const items = filtered.filter(p => p.pole_id === pole.id);
-            const open = expPoles[pole.id] ?? true;
-            return (
-              <div key={pole.id}>
-                <button
-                  className="w-full flex items-center gap-1.5 py-1.5 px-1 hover:bg-muted/40 rounded text-left"
-                  onClick={() => setExpPoles(e => ({ ...e, [pole.id]: !open }))}
-                  style={{ minHeight: 32 }}
-                >
-                  {open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0"/> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0"/>}
-                  <span className="font-medium">{pole.numero}. {pole.nom}</span>
-                  <span className="text-xs text-muted-foreground ml-1.5">{items.length}</span>
-                </button>
-                {open && (
-                  <div className="ml-2 pl-3 border-l border-border/60">
-                    {items.length === 0 && <div className="py-1.5 text-xs text-muted-foreground italic">Aucun projet</div>}
-                    {items.map(pr => (
-                      <ProjetRow
-                        key={pr.id}
-                        projet={pr}
-                        actions={actionsByProjet.get(pr.id) || []}
-                        expanded={!!expProjets[pr.id]}
-                        onToggle={() => setExpProjets(e => ({ ...e, [pr.id]: !e[pr.id] }))}
-                        onToggleAction={toggleAction}
-                        onAddAction={addAction}
-                        onDeleteAction={deleteAction}
-                        onChangeStatut={changeStatut}
-                      />
-                    ))}
+          {/* Outliner */}
+          {loading ? (
+            <div className="flex justify-center p-12"><Loader2 className="animate-spin"/></div>
+          ) : (
+            <div className="font-sans text-sm">
+              {poles.map(pole => {
+                const items = filtered.filter(p => p.pole_id === pole.id);
+                const open = expPoles[pole.id] ?? true;
+                return (
+                  <div key={pole.id}>
+                    <button
+                      className="w-full flex items-center gap-1.5 py-1.5 px-1 hover:bg-muted/40 rounded text-left"
+                      onClick={() => setExpPoles(e => ({ ...e, [pole.id]: !open }))}
+                      style={{ minHeight: 32 }}
+                    >
+                      {open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0"/> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0"/>}
+                      <span className="font-medium">{pole.numero}. {pole.nom}</span>
+                      <span className="text-xs text-muted-foreground ml-1.5">{items.length}</span>
+                    </button>
+                    {open && (
+                      <div className="ml-2 pl-3 border-l border-border/60">
+                        {items.length === 0 && <div className="py-1.5 text-xs text-muted-foreground italic">Aucun projet</div>}
+                        {items.map(pr => (
+                          <ProjetRow
+                            key={pr.id}
+                            projet={pr}
+                            actions={actionsByProjet.get(pr.id) || []}
+                            expanded={!!expProjets[pr.id]}
+                            onToggle={() => setExpProjets(e => ({ ...e, [pr.id]: !e[pr.id] }))}
+                            onToggleAction={toggleAction}
+                            onAddAction={addAction}
+                            onDeleteAction={deleteAction}
+                            onChangeStatut={changeStatut}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {vue === "graph" && (
+        <div className="relative w-full" style={{ height: "calc(100vh - 12rem)" }}>
+          {loading ? (
+            <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin text-white"/></div>
+          ) : (
+            <CockpitGraph
+              poles={graphPoles}
+              projets={graphProjets}
+              onSelectProjet={setSelectedProjetId}
+              selectedProjetId={selectedProjetId}
+            />
+          )}
+
+          {/* Overlay Cette Semaine */}
+          {!loading && (
+            <div className="absolute top-3 left-3 max-w-xs bg-black/70 backdrop-blur border border-white/10 p-3 text-white text-xs space-y-2 pointer-events-auto">
+              <div className="text-[10px] uppercase tracking-wider text-white/60">Cette semaine · {enCours.length}/3</div>
+              {enCours.length === 0 && <div className="text-white/50 italic">Aucun projet actif</div>}
+              {enCours.map(pr => {
+                const list = actionsByProjet.get(pr.id) || [];
+                const done = list.filter(a => a.fait).length;
+                const total = list.length;
+                const pct = total ? (done/total)*100 : 0;
+                return (
+                  <button
+                    key={pr.id}
+                    onClick={() => setSelectedProjetId(pr.id)}
+                    className="block w-full text-left hover:bg-white/10 -mx-1 px-1 py-0.5"
+                  >
+                    <div className="truncate">{pr.nom}</div>
+                    <div className="h-0.5 bg-white/15 mt-1">
+                      <div className="h-full bg-emerald-500" style={{ width: `${pct}%` }}/>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Side Panel */}
+          {selectedProjet && (
+            <ProjetSidePanel
+              projet={selectedProjet as any}
+              poleName={poles.find(p => p.id === selectedProjet.pole_id)?.nom || ""}
+              actions={actionsByProjet.get(selectedProjet.id) || []}
+              onClose={() => setSelectedProjetId(null)}
+              onToggleAction={toggleAction}
+              onAddAction={addAction}
+              onDeleteAction={deleteAction}
+              onChangeStatut={(s) => changeStatut(selectedProjet, s)}
+            />
+          )}
         </div>
       )}
 
       <ImportDialog open={importOpen} onOpenChange={setImportOpen} poles={poles} onDone={load}/>
       <IdeeDialog open={ideeOpen} onOpenChange={setIdeeOpen} poles={poles} onDone={load}/>
+
 
       {/* IA modal */}
       <Dialog open={iaLoading || !!iaResult} onOpenChange={(o)=>{ if(!o){ setIaResult(null); setIaProjetId(null);} }}>
