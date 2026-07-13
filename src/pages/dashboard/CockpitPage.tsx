@@ -202,9 +202,22 @@ export default function CockpitPage() {
   };
 
   const finishOnboarding = async (answers: Record<string, string>) => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData.session?.user?.id;
-    if (!uid) { toast.error("Non connecté"); return; }
+    // Résoudre l'utilisateur avec plusieurs fallbacks (session locale, puis getUser réseau)
+    let uid: string | undefined;
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      uid = sessionData.session?.user?.id;
+      if (!uid) {
+        const { data: userData } = await supabase.auth.getUser();
+        uid = userData.user?.id;
+      }
+    } catch (err) {
+      console.error("[cockpit] auth resolve failed", err);
+    }
+    if (!uid) {
+      toast.error("Session expirée — reconnecte-toi puis relance");
+      return;
+    }
     const { error: e1 } = await supabase.from("contexte_business" as any).insert({
       user_id: uid, reponses: answers,
     });
