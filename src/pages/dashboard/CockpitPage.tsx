@@ -202,10 +202,11 @@ export default function CockpitPage() {
   };
 
   const finishOnboarding = async (answers: Record<string, string>) => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) { toast.error("Non connecté"); return; }
+    const { data: sessionData } = await supabase.auth.getSession();
+    const uid = sessionData.session?.user?.id;
+    if (!uid) { toast.error("Non connecté"); return; }
     const { error: e1 } = await supabase.from("contexte_business" as any).insert({
-      user_id: userData.user.id, reponses: answers,
+      user_id: uid, reponses: answers,
     });
     if (e1) { toast.error(e1.message); return; }
     const { data, error } = await supabase.functions.invoke("cockpit-ia-plan", {
