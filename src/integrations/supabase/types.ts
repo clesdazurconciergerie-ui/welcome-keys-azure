@@ -3258,6 +3258,7 @@ export type Database = {
           objectif: string | null
           pole_id: string
           priorite: string
+          recommande: boolean
           resultat: string | null
           statut: string
           updated_at: string
@@ -3275,6 +3276,7 @@ export type Database = {
           objectif?: string | null
           pole_id: string
           priorite?: string
+          recommande?: boolean
           resultat?: string | null
           statut?: string
           updated_at?: string
@@ -3292,6 +3294,7 @@ export type Database = {
           objectif?: string | null
           pole_id?: string
           priorite?: string
+          recommande?: boolean
           resultat?: string | null
           statut?: string
           updated_at?: string
