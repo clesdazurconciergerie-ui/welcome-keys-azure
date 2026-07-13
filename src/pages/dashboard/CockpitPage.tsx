@@ -189,14 +189,28 @@ export default function CockpitPage() {
   };
 
   const acceptSuggestion = async (s: any) => {
-    // s.projet_id existe déjà -> on le remet en "à faire" et P1
     const projet = projets.find(p => p.id === s.projet_id);
     if (!projet) return;
     const { error } = await supabase.from("projets" as any).update({
-      priorite: "P1", statut: projet.statut === "fait" ? "a_faire" : projet.statut,
+      priorite: "P1",
+      statut: projet.statut === "fait" ? "a_faire" : projet.statut,
+      recommande: true,
     }).eq("id", s.projet_id);
     if (error) toast.error(error.message);
     else { toast.success("Projet priorisé"); load(); }
+  };
+
+  const acceptAllSuggestions = async () => {
+    if (!iaResult?.suggestions?.length) return;
+    const ids = iaResult.suggestions.map((s: any) => s.projet_id);
+    // Reset previous recommandations
+    await supabase.from("projets" as any).update({ recommande: false }).eq("recommande", true);
+    // Flag new ones
+    await supabase.from("projets" as any).update({ recommande: true }).in("id", ids);
+    // Also apply priority P1 + unfaire les fait
+    for (const s of iaResult.suggestions) await acceptSuggestion(s);
+    toast.success("Suggestions IA appliquées");
+    load();
   };
 
   const acceptRepriorisation = async (r: any) => {
