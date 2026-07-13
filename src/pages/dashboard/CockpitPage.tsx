@@ -419,7 +419,10 @@ export default function CockpitPage() {
                 <>
                   {iaResult.suggestions?.length > 0 && (
                     <div className="space-y-2">
-                      <h3 className="font-semibold">Prochains projets recommandés</h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold">Prochains projets recommandés</h3>
+                        <Button size="sm" variant="outline" onClick={acceptAllSuggestions}>Tout accepter</Button>
+                      </div>
                       {iaResult.suggestions.map((s: any, i: number) => {
                         const p = projets.find(x => x.id === s.projet_id);
                         return (
