@@ -265,7 +265,7 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
       const { data: sp } = await (supabase as any)
         .from('service_providers')
         .select('id, first_name, last_name, email')
-        .eq('auth_user_id', user.id)
+        .eq('provider_user_id', user.id)
         .eq('status', 'active')
         .maybeSingle();
 

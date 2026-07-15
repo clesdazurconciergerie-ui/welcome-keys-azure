@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     const { data: sp } = await adminClient
       .from('service_providers')
       .select('id')
-      .eq('auth_user_id', caller.id)
+      .eq('provider_user_id', caller.id)
       .eq('id', intervention.service_provider_id)
       .single();
 

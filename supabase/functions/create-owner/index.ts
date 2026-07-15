@@ -90,9 +90,17 @@ Deno.serve(async (req) => {
     }
 
     // Assign owner role (replace default free_trial injected by handle_new_user trigger)
-    await adminClient.from('user_roles').delete().eq('user_id', newUser.user.id);
-    await adminClient.from('user_roles').insert({ user_id: newUser.user.id, role: 'owner' });
-    await adminClient.from('users').update({ role: 'owner', subscription_status: 'active', trial_expires_at: null }).eq('id', newUser.user.id);
+    const { error: deleteRoleError } = await adminClient.from('user_roles').delete().eq('user_id', newUser.user.id);
+    if (deleteRoleError) throw deleteRoleError;
+
+    const { error: insertRoleError } = await adminClient.from('user_roles').insert({ user_id: newUser.user.id, role: 'owner' });
+    if (insertRoleError) throw insertRoleError;
+
+    const { error: updateUserError } = await adminClient
+      .from('users')
+      .update({ role: 'owner', subscription_status: 'active', trial_expires_at: null })
+      .eq('id', newUser.user.id);
+    if (updateUserError) throw updateUserError;
 
     // Link properties
     if (property_ids?.length) {
