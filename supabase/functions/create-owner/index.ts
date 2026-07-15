@@ -89,6 +89,11 @@ Deno.serve(async (req) => {
       throw ownerError;
     }
 
+    // Assign owner role (replace default free_trial injected by handle_new_user trigger)
+    await adminClient.from('user_roles').delete().eq('user_id', newUser.user.id);
+    await adminClient.from('user_roles').insert({ user_id: newUser.user.id, role: 'owner' });
+    await adminClient.from('users').update({ role: 'owner', subscription_status: 'active', trial_expires_at: null }).eq('id', newUser.user.id);
+
     // Link properties
     if (property_ids?.length) {
       const links = property_ids.map((pid: string) => ({
@@ -98,6 +103,7 @@ Deno.serve(async (req) => {
       const { error: linkError } = await adminClient.from('owner_properties').insert(links);
       if (linkError) console.error('Error linking properties:', linkError);
     }
+
 
     return new Response(JSON.stringify({ success: true, owner }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
