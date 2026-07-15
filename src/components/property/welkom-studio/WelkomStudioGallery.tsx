@@ -127,12 +127,13 @@ export function WelkomStudioGallery({ photos, onDelete, onEdit }: Props) {
               }`}
             >
               <div className="relative aspect-video bg-muted">
-                <img
+                <StorageImage
                   src={p.thumb_url || p.full_url}
                   alt=""
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
+
 
                 {/* Top badges */}
                 <div className="absolute top-2 left-2 flex items-center gap-1.5">
@@ -223,11 +224,12 @@ export function WelkomStudioGallery({ photos, onDelete, onEdit }: Props) {
           <DialogTitle className="sr-only">Aperçu photo</DialogTitle>
           {lightboxPhoto && (
             <div className="relative">
-              <img
+              <StorageImage
                 src={lightboxPhoto.full_url}
                 alt=""
                 className="w-full max-h-[85vh] object-contain"
               />
+
               <Button
                 size="icon"
                 variant="secondary"
