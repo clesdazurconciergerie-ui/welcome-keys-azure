@@ -1,0 +1,2 @@
+ALTER TABLE public.calendar_events ADD COLUMN IF NOT EXISTS event_type text NOT NULL DEFAULT 'reservation';
+CREATE INDEX IF NOT EXISTS idx_calendar_events_event_type ON public.calendar_events(event_type);
