@@ -76,12 +76,14 @@ Deno.serve(async (req) => {
       .from('service_providers')
       .insert({
         concierge_user_id: caller.id,
-        auth_user_id: newUser.user.id,
+        provider_user_id: newUser.user.id,
         first_name: first_name.trim(),
         last_name: last_name.trim(),
+        full_name: `${first_name.trim()} ${last_name.trim()}`,
         email: email.trim().toLowerCase(),
         phone: phone?.trim() || null,
         specialty: specialty || 'cleaning',
+        specialties: [specialty || 'cleaning'],
         notes: notes?.trim() || null,
         status: 'active',
       })
@@ -94,9 +96,17 @@ Deno.serve(async (req) => {
     }
 
     // Assign service_provider role (replace default free_trial from handle_new_user trigger)
-    await adminClient.from('user_roles').delete().eq('user_id', newUser.user.id);
-    await adminClient.from('user_roles').insert({ user_id: newUser.user.id, role: 'service_provider' });
-    await adminClient.from('users').update({ role: 'service_provider', subscription_status: 'active', trial_expires_at: null }).eq('id', newUser.user.id);
+    const { error: deleteRoleError } = await adminClient.from('user_roles').delete().eq('user_id', newUser.user.id);
+    if (deleteRoleError) throw deleteRoleError;
+
+    const { error: insertRoleError } = await adminClient.from('user_roles').insert({ user_id: newUser.user.id, role: 'service_provider' });
+    if (insertRoleError) throw insertRoleError;
+
+    const { error: updateUserError } = await adminClient
+      .from('users')
+      .update({ role: 'service_provider', subscription_status: 'active', trial_expires_at: null })
+      .eq('id', newUser.user.id);
+    if (updateUserError) throw updateUserError;
 
 
     return new Response(JSON.stringify({ success: true, service_provider: sp }), {

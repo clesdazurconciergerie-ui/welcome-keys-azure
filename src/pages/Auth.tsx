@@ -309,7 +309,7 @@ const Auth = () => {
         }
         throw error;
       }
-      const { data: spRecord } = await (supabase as any).from('service_providers').select('id').eq('auth_user_id', data.user.id).eq('status', 'active').maybeSingle();
+      const { data: spRecord } = await (supabase as any).from('service_providers').select('id').eq('provider_user_id', data.user.id).eq('status', 'active').maybeSingle();
       const { data: ownerRecord } = await (supabase as any).from('owners').select('id').eq('auth_user_id', data.user.id).eq('status', 'active').maybeSingle();
       toast.success("Connexion réussie !");
       if (spRecord) { navigate("/prestataire"); return; }

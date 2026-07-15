@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 export interface ServiceProvider {
   id: string;
   concierge_user_id: string;
-  auth_user_id: string | null;
+  provider_user_id: string | null;
   email: string;
   first_name: string;
   last_name: string;

@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     // Get SP record
     const { data: sp, error: spError } = await adminClient
       .from('service_providers')
-      .select('id, auth_user_id, concierge_user_id')
+      .select('id, provider_user_id, concierge_user_id')
       .eq('id', service_provider_id)
       .single();
 
@@ -75,10 +75,10 @@ Deno.serve(async (req) => {
     await adminClient.from('service_providers').delete().eq('id', service_provider_id);
 
     // Delete auth user + public.users
-    if (sp.auth_user_id) {
-      await adminClient.from('user_roles').delete().eq('user_id', sp.auth_user_id);
-      await adminClient.from('users').delete().eq('id', sp.auth_user_id);
-      await adminClient.auth.admin.deleteUser(sp.auth_user_id);
+    if (sp.provider_user_id) {
+      await adminClient.from('user_roles').delete().eq('user_id', sp.provider_user_id);
+      await adminClient.from('users').delete().eq('id', sp.provider_user_id);
+      await adminClient.auth.admin.deleteUser(sp.provider_user_id);
     }
 
     return new Response(JSON.stringify({ success: true }), {

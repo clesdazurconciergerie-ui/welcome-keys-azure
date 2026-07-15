@@ -28,7 +28,7 @@ export function useIsServiceProvider(): SPInfo {
         const { data, error } = await (supabase as any)
           .from('service_providers')
           .select('id, concierge_user_id')
-          .eq('auth_user_id', user.id)
+          .eq('provider_user_id', user.id)
           .eq('status', 'active')
           .maybeSingle();
 
