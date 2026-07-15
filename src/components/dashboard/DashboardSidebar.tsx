@@ -86,6 +86,21 @@ export function DashboardSidebar() {
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
   const location = useLocation();
+  const { can, isSuper, isTeam } = useTeamPermissions();
+
+  const visibleGroups = navGroups
+    .filter((g: any) => !g.superAdminOnly || isSuper)
+    .map((g: any) => ({
+      ...g,
+      items: g.items.filter((it: any) => {
+        if (it.superAdminOnly && !isSuper) return false;
+        // Team members: filter by permission. Others (super_admin, no role): show all.
+        if (isTeam) return can(it.section, 'r');
+        return true;
+      }),
+    }))
+    .filter((g: any) => g.items.length > 0);
+
 
   const isActive = (path: string) =>
     path === "/dashboard"
