@@ -474,26 +474,13 @@ const Auth = () => {
             <div className="absolute -top-px left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-[#FFFFFF]/40 to-transparent" />
 
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-white">
-                {isDemoMode ? "Créer un compte démo" : "Accéder à MyWelkom"}
-              </h1>
+              <h1 className="text-2xl font-bold text-white">Accéder à MyWelkom</h1>
               <p className="mt-1 text-sm text-white/50">
-                {isDemoMode
-                  ? "Testez MyWelkom gratuitement pendant 30 jours"
-                  : "Connectez-vous pour gérer votre conciergerie"}
+                Connectez-vous pour gérer votre conciergerie
               </p>
             </div>
 
-            <Tabs defaultValue={defaultTab} className="w-full">
-              <TabsList className="flex w-full items-center mb-6 bg-white/5 border border-white/10 rounded-lg h-10 p-1 gap-0">
-                <TabsTrigger value="signin" className="flex-1 h-full text-xs sm:text-sm text-white/60 data-[state=active]:bg-[#FFFFFF]/15 data-[state=active]:text-[#FFFFFF] data-[state=active]:shadow-none rounded-md transition-all">
-                  Connexion
-                </TabsTrigger>
-                <TabsTrigger value="signup" className="flex-1 h-full text-xs sm:text-sm text-white/60 data-[state=active]:bg-[#FFFFFF]/15 data-[state=active]:text-[#FFFFFF] data-[state=active]:shadow-none rounded-md transition-all">
-                  {isDemoMode ? "Démo gratuite" : "Inscription"}
-                </TabsTrigger>
-              </TabsList>
-
+            <Tabs value="signin" className="w-full">
               {/* ── Sign In ── */}
               <TabsContent value="signin">
                 {!showForgotPassword ? (
@@ -523,11 +510,9 @@ const Auth = () => {
                     <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#FFFFFF] to-[#d4b96b] text-[#000000] font-semibold hover:shadow-lg hover:shadow-[#FFFFFF]/20 hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
                       {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Connexion...</>) : "Se connecter"}
                     </Button>
-                    <div className="text-center mt-3">
-                      <button type="button" onClick={handleResendVerification} className="text-xs text-white/40 hover:text-white/60 transition-colors" disabled={loading}>
-                        Email non reçu ? Renvoyer l'email de vérification
-                      </button>
-                    </div>
+                    <p className="text-center text-xs text-white/40 mt-3">
+                      L'inscription se fait uniquement sur invitation de l'administrateur.
+                    </p>
                   </form>
                 ) : (
                   <form onSubmit={handleForgotPassword} className="space-y-4">
@@ -547,39 +532,8 @@ const Auth = () => {
                   </form>
                 )}
               </TabsContent>
-
-              {/* ── Sign Up ── */}
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-email" className={labelClasses}>Email</Label>
-                    <PremiumInput hasError={!!errorFields.email}>
-                      <Input id="signup-email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required className={getInputClass('email')} />
-                    </PremiumInput>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-password" className={labelClasses}>Mot de passe</Label>
-                    <PremiumInput hasError={!!errorFields.password}>
-                      <div className="relative">
-                        <Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} required className={getInputClass('password', 'pr-10')} />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors" aria-label={showPassword ? "Masquer" : "Afficher"} tabIndex={-1}>
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                    </PremiumInput>
-                    <p className="text-xs text-white/40">Minimum 6 caractères</p>
-                  </div>
-                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#FFFFFF] to-[#d4b96b] text-[#000000] font-semibold hover:shadow-lg hover:shadow-[#FFFFFF]/20 hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
-                    {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isDemoMode ? "Création..." : "Inscription..."}</>) : (isDemoMode ? "🎬 Créer ma démo gratuite" : "Créer un compte")}
-                  </Button>
-                  {isDemoMode && (
-                    <p className="text-xs text-center text-white/40 mt-3">
-                      30 jours d'essai gratuit • 1 livret • Aucune carte requise
-                    </p>
-                  )}
-                </form>
-              </TabsContent>
             </Tabs>
+
 
             {/* Footer links */}
             <div className="mt-6 pt-5 border-t border-white/10 flex flex-col items-center gap-3">
