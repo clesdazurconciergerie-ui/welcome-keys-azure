@@ -4405,6 +4405,33 @@ export type Database = {
           },
         ]
       }
+      team_permissions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          sections: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          sections?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          sections?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tourist_tax_records: {
         Row: {
           booking_id: string | null
@@ -4819,6 +4846,7 @@ export type Database = {
         | "pack_business"
         | "pack_premium"
         | "super_admin"
+        | "team_member"
       guest_message_channel: "email" | "sms" | "whatsapp"
       guest_message_status: "pending" | "sent" | "failed" | "cancelled"
       guest_message_trigger:
@@ -4965,6 +4993,7 @@ export const Constants = {
         "pack_business",
         "pack_premium",
         "super_admin",
+        "team_member",
       ],
       guest_message_channel: ["email", "sms", "whatsapp"],
       guest_message_status: ["pending", "sent", "failed", "cancelled"],

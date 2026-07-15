@@ -88,6 +88,7 @@ import DemoGuestMessagingPage from "./pages/demo/DemoGuestMessagingPage";
 import BookingConflictsPage from "./pages/dashboard/BookingConflictsPage";
 import PricingEnginePage from "./pages/dashboard/PricingEnginePage";
 import SmartKeysPage from "./pages/dashboard/SmartKeysPage";
+import UtilisateursPage from "./pages/dashboard/UtilisateursPage";
 import ChannelManagerPage from "./pages/dashboard/ChannelManagerPage";
 import ComplianceHubPage from "./pages/dashboard/ComplianceHubPage";
 import DemoBookingConflictsPage from "./pages/demo/DemoBookingConflictsPage";
@@ -160,6 +161,7 @@ const App = () => (
             <Route path="logements/:id/studio" element={<WelkomStudioPage />} />
             <Route path="aide" element={<HelpCenterPage />} />
             <Route path="cockpit" element={<CockpitPage />} />
+            <Route path="utilisateurs" element={<UtilisateursPage />} />
           </Route>
 
           {/* Owner dashboard */}

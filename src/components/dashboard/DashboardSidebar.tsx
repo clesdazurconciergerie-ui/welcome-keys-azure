@@ -7,77 +7,100 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, BookOpen, Users, Home, Wrench, Settings, LogOut,
-  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass, Zap, Brain, Camera, Mail, ShieldAlert, TrendingUp, KeyRound, Link2, Receipt, BarChart3, RefreshCw, FileText, LineChart, Rocket,
+  Target, Euro, MessageCircle, Briefcase, ClipboardCheck, Palette, HelpCircle, Compass, Zap, Brain, Camera, Mail, ShieldAlert, TrendingUp, KeyRound, Link2, Receipt, BarChart3, RefreshCw, FileText, LineChart, Rocket, ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useTeamPermissions } from "@/hooks/useTeamPermissions";
 
 const navGroups = [
   {
     label: "Pilotage",
     items: [
-      { title: "Tableau de bord", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Cockpit Stratégique", url: "/dashboard/cockpit", icon: Rocket },
-      { title: "Monitoring iCal", url: "/dashboard/ical-monitoring", icon: RefreshCw },
+      { title: "Tableau de bord", url: "/dashboard", icon: LayoutDashboard, section: "dashboard" },
+      { title: "Cockpit Stratégique", url: "/dashboard/cockpit", icon: Rocket, section: "cockpit" },
+      { title: "Monitoring iCal", url: "/dashboard/ical-monitoring", icon: RefreshCw, section: "ical-monitoring" },
     ],
   },
   {
     label: "Logements",
     items: [
-      { title: "Biens / Logements", url: "/dashboard/logements", icon: Home },
-      { title: "Welkom Studio", url: "/dashboard/welkom-studio", icon: Camera },
-      { title: "Propriétaires", url: "/dashboard/proprietaires", icon: Users },
-      { title: "Prestataires", url: "/dashboard/prestataires", icon: Wrench },
-      { title: "Missions", url: "/dashboard/missions", icon: Briefcase },
-      { title: "États des lieux", url: "/dashboard/etats-des-lieux-v2", icon: ClipboardCheck },
-      { title: "Voyageurs", url: "/dashboard/voyageurs", icon: Users },
-      { title: "Messages auto", url: "/dashboard/messages", icon: Mail },
-      { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen },
+      { title: "Biens / Logements", url: "/dashboard/logements", icon: Home, section: "logements" },
+      { title: "Welkom Studio", url: "/dashboard/welkom-studio", icon: Camera, section: "welkom-studio" },
+      { title: "Propriétaires", url: "/dashboard/proprietaires", icon: Users, section: "proprietaires" },
+      { title: "Prestataires", url: "/dashboard/prestataires", icon: Wrench, section: "prestataires" },
+      { title: "Missions", url: "/dashboard/missions", icon: Briefcase, section: "missions" },
+      { title: "États des lieux", url: "/dashboard/etats-des-lieux-v2", icon: ClipboardCheck, section: "etats-des-lieux-v2" },
+      { title: "Voyageurs", url: "/dashboard/voyageurs", icon: Users, section: "voyageurs" },
+      { title: "Messages auto", url: "/dashboard/messages", icon: Mail, section: "messages" },
+      { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen, section: "livrets" },
     ],
   },
   {
     label: "Commercial",
     items: [
-      { title: "Prospection", url: "/dashboard/prospection", icon: Target },
-      { title: "Demandes", url: "/dashboard/demandes-proprietaires", icon: MessageCircle },
-      { title: "Call Prompter", url: "/dashboard/call-prompter", icon: Brain },
+      { title: "Prospection", url: "/dashboard/prospection", icon: Target, section: "prospection" },
+      { title: "Demandes", url: "/dashboard/demandes-proprietaires", icon: MessageCircle, section: "demandes-proprietaires" },
+      { title: "Call Prompter", url: "/dashboard/call-prompter", icon: Brain, section: "call-prompter" },
     ],
   },
   {
     label: "Revenue",
     items: [
-      { title: "Tarification dynamique", url: "/dashboard/tarification", icon: TrendingUp },
-      { title: "Channel Manager", url: "/dashboard/channel-manager", icon: Link2 },
-      { title: "Conflits réservations", url: "/dashboard/conflits", icon: ShieldAlert },
-      { title: "Smart Keys", url: "/dashboard/smart-keys", icon: KeyRound },
+      { title: "Tarification dynamique", url: "/dashboard/tarification", icon: TrendingUp, section: "tarification" },
+      { title: "Channel Manager", url: "/dashboard/channel-manager", icon: Link2, section: "channel-manager" },
+      { title: "Conflits réservations", url: "/dashboard/conflits", icon: ShieldAlert, section: "conflits" },
+      { title: "Smart Keys", url: "/dashboard/smart-keys", icon: KeyRound, section: "smart-keys" },
     ],
   },
   {
     label: "Finance",
     items: [
-      { title: "Finance", url: "/dashboard/finance", icon: Euro },
-      { title: "Taxe de séjour", url: "/dashboard/taxe-sejour", icon: Receipt },
-      
-      { title: "Azurkeys Report", url: "/rapports", icon: FileText },
-      { title: "Estimation locative", url: "/rapports/estimation/nouveau", icon: LineChart },
+      { title: "Finance", url: "/dashboard/finance", icon: Euro, section: "finance" },
+      { title: "Taxe de séjour", url: "/dashboard/taxe-sejour", icon: Receipt, section: "taxe-sejour" },
+      { title: "Azurkeys Report", url: "/rapports", icon: FileText, section: "rapports" },
+      { title: "Estimation locative", url: "/rapports/estimation/nouveau", icon: LineChart, section: "rapports" },
+    ],
+  },
+  {
+    label: "Administration",
+    superAdminOnly: true,
+    items: [
+      { title: "Utilisateurs", url: "/dashboard/utilisateurs", icon: ShieldCheck, section: "utilisateurs", superAdminOnly: true },
     ],
   },
   {
     label: "Paramètres",
     items: [
-      { title: "Paramètres", url: "/dashboard/parametres", icon: Settings },
-      { title: "Automatisation", url: "/dashboard/automatisation", icon: Zap },
-      { title: "Apparence", url: "/dashboard/branding", icon: Palette },
-      { title: "Aide & Guide", url: "/dashboard/aide", icon: HelpCircle },
+      { title: "Paramètres", url: "/dashboard/parametres", icon: Settings, section: "parametres" },
+      { title: "Automatisation", url: "/dashboard/automatisation", icon: Zap, section: "automatisation" },
+      { title: "Apparence", url: "/dashboard/branding", icon: Palette, section: "branding" },
+      { title: "Aide & Guide", url: "/dashboard/aide", icon: HelpCircle, section: "aide" },
     ],
   },
 ];
+
 
 export function DashboardSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
   const location = useLocation();
+  const { can, isSuper, isTeam } = useTeamPermissions();
+
+  const visibleGroups = navGroups
+    .filter((g: any) => !g.superAdminOnly || isSuper)
+    .map((g: any) => ({
+      ...g,
+      items: g.items.filter((it: any) => {
+        if (it.superAdminOnly && !isSuper) return false;
+        // Team members: filter by permission. Others (super_admin, no role): show all.
+        if (isTeam) return can(it.section, 'r');
+        return true;
+      }),
+    }))
+    .filter((g: any) => g.items.length > 0);
+
 
   const isActive = (path: string) =>
     path === "/dashboard"
@@ -136,7 +159,7 @@ export function DashboardSidebar() {
 
         {/* Navigation */}
         <SidebarContent className="relative z-10 flex-1 px-3 pb-4 overflow-y-auto scrollbar-thin">
-          {navGroups.map((group, idx) => (
+          {visibleGroups.map((group, idx) => (
             <SidebarGroup key={group.label} className={idx > 0 ? "mt-1" : ""}>
               {idx > 0 && (
                 <div className="mx-3 mb-3 mt-1 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
