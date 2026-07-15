@@ -17,62 +17,69 @@ const navGroups = [
   {
     label: "Pilotage",
     items: [
-      { title: "Tableau de bord", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Cockpit Stratégique", url: "/dashboard/cockpit", icon: Rocket },
-      { title: "Monitoring iCal", url: "/dashboard/ical-monitoring", icon: RefreshCw },
+      { title: "Tableau de bord", url: "/dashboard", icon: LayoutDashboard, section: "dashboard" },
+      { title: "Cockpit Stratégique", url: "/dashboard/cockpit", icon: Rocket, section: "cockpit" },
+      { title: "Monitoring iCal", url: "/dashboard/ical-monitoring", icon: RefreshCw, section: "ical-monitoring" },
     ],
   },
   {
     label: "Logements",
     items: [
-      { title: "Biens / Logements", url: "/dashboard/logements", icon: Home },
-      { title: "Welkom Studio", url: "/dashboard/welkom-studio", icon: Camera },
-      { title: "Propriétaires", url: "/dashboard/proprietaires", icon: Users },
-      { title: "Prestataires", url: "/dashboard/prestataires", icon: Wrench },
-      { title: "Missions", url: "/dashboard/missions", icon: Briefcase },
-      { title: "États des lieux", url: "/dashboard/etats-des-lieux-v2", icon: ClipboardCheck },
-      { title: "Voyageurs", url: "/dashboard/voyageurs", icon: Users },
-      { title: "Messages auto", url: "/dashboard/messages", icon: Mail },
-      { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen },
+      { title: "Biens / Logements", url: "/dashboard/logements", icon: Home, section: "logements" },
+      { title: "Welkom Studio", url: "/dashboard/welkom-studio", icon: Camera, section: "welkom-studio" },
+      { title: "Propriétaires", url: "/dashboard/proprietaires", icon: Users, section: "proprietaires" },
+      { title: "Prestataires", url: "/dashboard/prestataires", icon: Wrench, section: "prestataires" },
+      { title: "Missions", url: "/dashboard/missions", icon: Briefcase, section: "missions" },
+      { title: "États des lieux", url: "/dashboard/etats-des-lieux-v2", icon: ClipboardCheck, section: "etats-des-lieux-v2" },
+      { title: "Voyageurs", url: "/dashboard/voyageurs", icon: Users, section: "voyageurs" },
+      { title: "Messages auto", url: "/dashboard/messages", icon: Mail, section: "messages" },
+      { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen, section: "livrets" },
     ],
   },
   {
     label: "Commercial",
     items: [
-      { title: "Prospection", url: "/dashboard/prospection", icon: Target },
-      { title: "Demandes", url: "/dashboard/demandes-proprietaires", icon: MessageCircle },
-      { title: "Call Prompter", url: "/dashboard/call-prompter", icon: Brain },
+      { title: "Prospection", url: "/dashboard/prospection", icon: Target, section: "prospection" },
+      { title: "Demandes", url: "/dashboard/demandes-proprietaires", icon: MessageCircle, section: "demandes-proprietaires" },
+      { title: "Call Prompter", url: "/dashboard/call-prompter", icon: Brain, section: "call-prompter" },
     ],
   },
   {
     label: "Revenue",
     items: [
-      { title: "Tarification dynamique", url: "/dashboard/tarification", icon: TrendingUp },
-      { title: "Channel Manager", url: "/dashboard/channel-manager", icon: Link2 },
-      { title: "Conflits réservations", url: "/dashboard/conflits", icon: ShieldAlert },
-      { title: "Smart Keys", url: "/dashboard/smart-keys", icon: KeyRound },
+      { title: "Tarification dynamique", url: "/dashboard/tarification", icon: TrendingUp, section: "tarification" },
+      { title: "Channel Manager", url: "/dashboard/channel-manager", icon: Link2, section: "channel-manager" },
+      { title: "Conflits réservations", url: "/dashboard/conflits", icon: ShieldAlert, section: "conflits" },
+      { title: "Smart Keys", url: "/dashboard/smart-keys", icon: KeyRound, section: "smart-keys" },
     ],
   },
   {
     label: "Finance",
     items: [
-      { title: "Finance", url: "/dashboard/finance", icon: Euro },
-      { title: "Taxe de séjour", url: "/dashboard/taxe-sejour", icon: Receipt },
-      
-      { title: "Azurkeys Report", url: "/rapports", icon: FileText },
-      { title: "Estimation locative", url: "/rapports/estimation/nouveau", icon: LineChart },
+      { title: "Finance", url: "/dashboard/finance", icon: Euro, section: "finance" },
+      { title: "Taxe de séjour", url: "/dashboard/taxe-sejour", icon: Receipt, section: "taxe-sejour" },
+      { title: "Azurkeys Report", url: "/rapports", icon: FileText, section: "rapports" },
+      { title: "Estimation locative", url: "/rapports/estimation/nouveau", icon: LineChart, section: "rapports" },
+    ],
+  },
+  {
+    label: "Administration",
+    superAdminOnly: true,
+    items: [
+      { title: "Utilisateurs", url: "/dashboard/utilisateurs", icon: ShieldCheck, section: "utilisateurs", superAdminOnly: true },
     ],
   },
   {
     label: "Paramètres",
     items: [
-      { title: "Paramètres", url: "/dashboard/parametres", icon: Settings },
-      { title: "Automatisation", url: "/dashboard/automatisation", icon: Zap },
-      { title: "Apparence", url: "/dashboard/branding", icon: Palette },
-      { title: "Aide & Guide", url: "/dashboard/aide", icon: HelpCircle },
+      { title: "Paramètres", url: "/dashboard/parametres", icon: Settings, section: "parametres" },
+      { title: "Automatisation", url: "/dashboard/automatisation", icon: Zap, section: "automatisation" },
+      { title: "Apparence", url: "/dashboard/branding", icon: Palette, section: "branding" },
+      { title: "Aide & Guide", url: "/dashboard/aide", icon: HelpCircle, section: "aide" },
     ],
   },
 ];
+
 
 export function DashboardSidebar() {
   const { state } = useSidebar();
