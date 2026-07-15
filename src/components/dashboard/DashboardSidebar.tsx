@@ -159,7 +159,7 @@ export function DashboardSidebar() {
 
         {/* Navigation */}
         <SidebarContent className="relative z-10 flex-1 px-3 pb-4 overflow-y-auto scrollbar-thin">
-          {navGroups.map((group, idx) => (
+          {visibleGroups.map((group, idx) => (
             <SidebarGroup key={group.label} className={idx > 0 ? "mt-1" : ""}>
               {idx > 0 && (
                 <div className="mx-3 mb-3 mt-1 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
