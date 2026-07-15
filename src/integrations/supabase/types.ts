@@ -4850,6 +4850,8 @@ export type Database = {
         | "pack_premium"
         | "super_admin"
         | "team_member"
+        | "owner"
+        | "service_provider"
       guest_message_channel: "email" | "sms" | "whatsapp"
       guest_message_status: "pending" | "sent" | "failed" | "cancelled"
       guest_message_trigger:
@@ -4997,6 +4999,8 @@ export const Constants = {
         "pack_premium",
         "super_admin",
         "team_member",
+        "owner",
+        "service_provider",
       ],
       guest_message_channel: ["email", "sms", "whatsapp"],
       guest_message_status: ["pending", "sent", "failed", "cancelled"],
