@@ -11,12 +11,15 @@ const BrandMark = ({ variant = "full", className, showIcon = true, light = false
   const textColor = light ? "text-white" : "text-primary";
   const subColor = light ? "text-white/60" : "text-muted-foreground";
 
+  const iconSrc = light ? "/brand/logo-wlekom-white.png" : "/brand/logo-wlekom-icon.png";
+  const fullSrc = light ? "/brand/logo-wlekom-white.png" : "/brand/logo-wlekom.png";
+
   if (variant === "icon-only") {
     return (
       <img 
-        src="/brand/logo-wlekom-icon.png" 
-        alt="MyWelkom" 
-        className={cn("w-8 h-8", className)}
+        src={iconSrc} 
+        alt="Azurkeys Properties" 
+        className={cn("w-8 h-8 object-contain", className)}
       />
     );
   }
@@ -26,9 +29,9 @@ const BrandMark = ({ variant = "full", className, showIcon = true, light = false
       <div className={cn("flex items-center gap-2.5", className)}>
         {showIcon && (
           <img 
-            src="/brand/logo-wlekom-icon.png" 
-            alt="MyWelkom" 
-            className="w-7 h-7 sm:w-8 sm:h-8" 
+            src={iconSrc} 
+            alt="Azurkeys Properties" 
+            className="w-7 h-7 sm:w-8 sm:h-8 object-contain" 
           />
         )}
         <div className="flex flex-col">
@@ -45,9 +48,9 @@ const BrandMark = ({ variant = "full", className, showIcon = true, light = false
     <div className={cn("flex flex-col items-center text-center", className)}>
       {showIcon && (
         <img 
-          src="/brand/logo-wlekom.png" 
-          alt="MyWelkom" 
-          className="w-24 h-24 sm:w-32 sm:h-32 mb-4 sm:mb-6" 
+          src={fullSrc} 
+          alt="Azurkeys Properties" 
+          className="w-24 h-24 sm:w-32 sm:h-32 mb-4 sm:mb-6 object-contain" 
         />
       )}
       <h1 className={cn("font-display font-bold text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-tight tracking-tight", textColor)}>
