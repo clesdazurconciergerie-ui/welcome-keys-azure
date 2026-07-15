@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       email: email.trim().toLowerCase(),
       password,
       email_confirm: true,
-      user_metadata: { full_name: `${first_name} ${last_name}`, role: 'owner' },
+      user_metadata: { full_name: `${first_name} ${last_name}`, role: 'owner', created_by_admin: true, created_by: caller.id },
     });
 
     if (createError) {

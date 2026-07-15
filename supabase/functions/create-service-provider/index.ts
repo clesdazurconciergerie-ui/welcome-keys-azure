@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       email: trimmedEmail,
       password,
       email_confirm: true,
-      user_metadata: { full_name: `${first_name} ${last_name}`, role: 'service_provider' },
+      user_metadata: { full_name: `${first_name} ${last_name}`, role: 'service_provider', created_by_admin: true, created_by: caller.id },
     });
     
     if (newUser?.user) {
