@@ -93,11 +93,11 @@ Deno.serve(async (req) => {
       throw spError;
     }
 
-    // Add service_provider role
-    await adminClient.from('user_roles').insert({
-      user_id: newUser.user.id,
-      role: 'service_provider',
-    });
+    // Assign service_provider role (replace default free_trial from handle_new_user trigger)
+    await adminClient.from('user_roles').delete().eq('user_id', newUser.user.id);
+    await adminClient.from('user_roles').insert({ user_id: newUser.user.id, role: 'service_provider' });
+    await adminClient.from('users').update({ role: 'service_provider', subscription_status: 'active', trial_expires_at: null }).eq('id', newUser.user.id);
+
 
     return new Response(JSON.stringify({ success: true, service_provider: sp }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
