@@ -131,7 +131,7 @@ export function DashboardSidebar() {
               <div className="relative">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-[hsl(var(--gold))]/20 to-transparent blur-sm" />
                 <img
-                  src="/brand/logo-wlekom-icon.png"
+                  src="/brand/logo-wlekom-white.png"
                   alt="MyWelkom"
                   className="relative w-9 h-9 drop-shadow-lg"
                 />
@@ -146,7 +146,7 @@ export function DashboardSidebar() {
             <div className="relative flex items-center justify-center">
               <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-[hsl(var(--gold))]/20 to-transparent blur-sm" />
               <img
-                src="/brand/logo-wlekom-icon.png"
+                src="/brand/logo-wlekom-white.png"
                 alt="W"
                 className="relative w-8 h-8 drop-shadow-lg"
               />
