@@ -22,11 +22,11 @@ export function useTeamPermissions() {
       if (rolesLoading) return;
       const isTeam = hasRole('team_member' as any);
       if (!isTeam) {
-        if (!cancelled) { setSections({}); setLoading(false); }
+        if (!cancelled) { setSections(prev => (Object.keys(prev).length ? {} : prev)); setLoading(false); }
         return;
       }
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
+      if (!user) { if (!cancelled) setLoading(false); return; }
       const { data } = await supabase
         .from('team_permissions' as any)
         .select('sections')
@@ -38,7 +38,9 @@ export function useTeamPermissions() {
       }
     })();
     return () => { cancelled = true; };
-  }, [rolesLoading, hasRole]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rolesLoading]);
+
 
   const isSuper = hasRole('super_admin' as any);
   const isTeam = hasRole('team_member' as any);
