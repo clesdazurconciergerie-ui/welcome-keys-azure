@@ -79,7 +79,7 @@ export function DemoSidebar() {
             <div className="flex items-center gap-3">
               <div className="relative">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-[hsl(var(--gold))]/20 to-transparent blur-sm" />
-                <img src="/brand/logo-wlekom-icon.png" alt="MyWelkom" className="relative w-9 h-9 drop-shadow-lg" />
+                <img src="/brand/logo-wlekom-white.png" alt="MyWelkom" className="relative w-9 h-9 drop-shadow-lg" />
               </div>
               <div className="flex flex-col">
                 <span className="font-display font-bold text-[17px] leading-tight tracking-tight text-white">
@@ -93,7 +93,7 @@ export function DemoSidebar() {
           ) : (
             <div className="relative flex items-center justify-center">
               <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-[hsl(var(--gold))]/20 to-transparent blur-sm" />
-              <img src="/brand/logo-wlekom-icon.png" alt="W" className="relative w-8 h-8 drop-shadow-lg" />
+              <img src="/brand/logo-wlekom-white.png" alt="W" className="relative w-8 h-8 drop-shadow-lg" />
             </div>
           )}
           <div className="mt-5 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
