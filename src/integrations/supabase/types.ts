@@ -4838,6 +4838,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_owner_of_property: { Args: { _property_id: string }; Returns: boolean }
+      is_owner_row: { Args: { _owner_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:
