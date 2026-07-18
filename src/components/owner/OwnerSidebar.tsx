@@ -5,7 +5,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import BrandMark from "@/components/BrandMark";
+
 import {
   LayoutDashboard, Home, BookOpen, ClipboardCheck, FileText, User, LogOut,
   Euro, CalendarDays, MessageCircle, Compass, BarChart3,
@@ -15,9 +15,9 @@ import { toast } from "sonner";
 
 const ownerNav = [
   { title: "Tableau de bord", url: "/proprietaire", icon: LayoutDashboard },
-  { title: "Mes biens", url: "/proprietaire/biens", icon: Home },
+  { title: "Mon bien", url: "/proprietaire/biens", icon: Home },
   { title: "Calendrier", url: "/proprietaire/calendrier", icon: CalendarDays },
-  { title: "Livrets d'accueil", url: "/proprietaire/livrets", icon: BookOpen },
+  { title: "Livret d'accueil", url: "/proprietaire/livrets", icon: BookOpen },
   { title: "État des lieux", url: "/proprietaire/etats-des-lieux", icon: ClipboardCheck },
   { title: "Documents", url: "/proprietaire/documents", icon: FileText },
   { title: "Reporting mensuel", url: "/proprietaire/reporting", icon: BarChart3 },
@@ -48,14 +48,20 @@ export function OwnerSidebar() {
       <div className="h-full flex flex-col bg-[hsl(var(--sidebar-background))] text-white">
         <div className="px-4 py-5 border-b border-white/[0.08]">
           {!collapsed ? (
-            <div>
-              <BrandMark variant="compact" />
-              <p className="section-label text-white/30 mt-2">Espace Propriétaire</p>
+            <div className="flex flex-col items-center">
+              <img
+                src="/brand/logo-wlekom-white.png"
+                alt="Azurkeys Properties"
+                className="h-12 object-contain"
+              />
+              <p className="section-label text-white/40 mt-2 tracking-widest text-[10px]">Espace Propriétaire</p>
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center font-bold text-black text-sm">
-              P
-            </div>
+            <img
+              src="/brand/logo-wlekom-white.png"
+              alt="Azurkeys Properties"
+              className="w-8 h-8 object-contain"
+            />
           )}
         </div>
 
