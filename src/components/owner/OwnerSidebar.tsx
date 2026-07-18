@@ -48,14 +48,20 @@ export function OwnerSidebar() {
       <div className="h-full flex flex-col bg-[hsl(var(--sidebar-background))] text-white">
         <div className="px-4 py-5 border-b border-white/[0.08]">
           {!collapsed ? (
-            <div>
-              <BrandMark variant="compact" />
-              <p className="section-label text-white/30 mt-2">Espace Propriétaire</p>
+            <div className="flex flex-col items-center">
+              <img
+                src="/brand/logo-wlekom-white.png"
+                alt="Azurkeys Properties"
+                className="h-12 object-contain"
+              />
+              <p className="section-label text-white/40 mt-2 tracking-widest text-[10px]">Espace Propriétaire</p>
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center font-bold text-black text-sm">
-              P
-            </div>
+            <img
+              src="/brand/logo-wlekom-white.png"
+              alt="Azurkeys Properties"
+              className="w-8 h-8 object-contain"
+            />
           )}
         </div>
 
