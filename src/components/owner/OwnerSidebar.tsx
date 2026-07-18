@@ -5,7 +5,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import BrandMark from "@/components/BrandMark";
+
 import {
   LayoutDashboard, Home, BookOpen, ClipboardCheck, FileText, User, LogOut,
   Euro, CalendarDays, MessageCircle, Compass, BarChart3,
