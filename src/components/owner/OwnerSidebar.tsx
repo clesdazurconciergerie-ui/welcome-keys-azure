@@ -15,9 +15,9 @@ import { toast } from "sonner";
 
 const ownerNav = [
   { title: "Tableau de bord", url: "/proprietaire", icon: LayoutDashboard },
-  { title: "Mes biens", url: "/proprietaire/biens", icon: Home },
+  { title: "Mon bien", url: "/proprietaire/biens", icon: Home },
   { title: "Calendrier", url: "/proprietaire/calendrier", icon: CalendarDays },
-  { title: "Livrets d'accueil", url: "/proprietaire/livrets", icon: BookOpen },
+  { title: "Livret d'accueil", url: "/proprietaire/livrets", icon: BookOpen },
   { title: "État des lieux", url: "/proprietaire/etats-des-lieux", icon: ClipboardCheck },
   { title: "Documents", url: "/proprietaire/documents", icon: FileText },
   { title: "Reporting mensuel", url: "/proprietaire/reporting", icon: BarChart3 },
