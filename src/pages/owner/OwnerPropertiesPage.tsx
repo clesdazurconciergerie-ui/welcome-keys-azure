@@ -108,7 +108,7 @@ export default function OwnerPropertiesPage() {
   return (
     <div className="space-y-6 max-w-6xl">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold text-foreground">Mes biens</h1>
+        <h1 className="text-3xl font-bold text-foreground">{properties.length > 1 ? "Mes biens" : "Mon bien"}</h1>
         <p className="text-muted-foreground mt-1">{properties.length} bien{properties.length !== 1 ? 's' : ''} associé{properties.length !== 1 ? 's' : ''}</p>
       </motion.div>
 
