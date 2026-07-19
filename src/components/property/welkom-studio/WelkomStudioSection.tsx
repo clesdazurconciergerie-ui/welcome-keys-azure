@@ -61,11 +61,19 @@ export function WelkomStudioSection({ propertyId }: Props) {
       </div>
 
       {/* Tabs Caméra / Importer */}
-      <Tabs defaultValue="upload" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:inline-flex">
+      <Tabs defaultValue="airbnb" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:inline-flex">
+          <TabsTrigger value="airbnb" className="gap-1.5">
+            <Wand2 className="w-4 h-4" />
+            Prêt Airbnb
+          </TabsTrigger>
           <TabsTrigger value="camera" className="gap-1.5">
             <Camera className="w-4 h-4" />
             Caméra Live
+          </TabsTrigger>
+          <TabsTrigger value="upload" className="gap-1.5">
+            <Upload className="w-4 h-4" />
+            HDR
           </TabsTrigger>
           <TabsTrigger value="upload" className="gap-1.5">
             <Upload className="w-4 h-4" />
