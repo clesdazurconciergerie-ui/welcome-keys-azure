@@ -2351,17 +2351,23 @@ export type Database = {
         Row: {
           company_snapshot: Json | null
           created_at: string | null
+          due_date: string | null
+          generated_at: string | null
           id: string
           invoice_date: string | null
           invoice_number: string
+          issue_date: string | null
           notes: string | null
           owner_id: string
           owner_snapshot: Json | null
+          paid_at: string | null
+          pdf_path: string | null
           period_end: string
           period_start: string
           status: string | null
           subtotal: number | null
           total: number | null
+          type: string | null
           updated_at: string | null
           user_id: string
           vat_amount: number | null
@@ -2370,17 +2376,23 @@ export type Database = {
         Insert: {
           company_snapshot?: Json | null
           created_at?: string | null
+          due_date?: string | null
+          generated_at?: string | null
           id?: string
           invoice_date?: string | null
           invoice_number: string
+          issue_date?: string | null
           notes?: string | null
           owner_id: string
           owner_snapshot?: Json | null
+          paid_at?: string | null
+          pdf_path?: string | null
           period_end: string
           period_start: string
           status?: string | null
           subtotal?: number | null
           total?: number | null
+          type?: string | null
           updated_at?: string | null
           user_id: string
           vat_amount?: number | null
@@ -2389,17 +2401,23 @@ export type Database = {
         Update: {
           company_snapshot?: Json | null
           created_at?: string | null
+          due_date?: string | null
+          generated_at?: string | null
           id?: string
           invoice_date?: string | null
           invoice_number?: string
+          issue_date?: string | null
           notes?: string | null
           owner_id?: string
           owner_snapshot?: Json | null
+          paid_at?: string | null
+          pdf_path?: string | null
           period_end?: string
           period_start?: string
           status?: string | null
           subtotal?: number | null
           total?: number | null
+          type?: string | null
           updated_at?: string | null
           user_id?: string
           vat_amount?: number | null
