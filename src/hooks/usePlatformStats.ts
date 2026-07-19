@@ -63,21 +63,23 @@ export function usePlatformStats(propertyId?: string, options: Options = {}) {
     // 1) Manual / direct bookings
     let bookingsQuery = (supabase as any)
       .from("bookings")
-      .select("source, source_platform, gross_amount, check_in, check_out, calendar_event_id")
+      .select("source, gross_amount, check_in, check_out, calendar_event_id")
       .eq("property_id", propertyId);
     if (startDate) bookingsQuery = bookingsQuery.gte("check_out", startDate);
     if (endDate) bookingsQuery = bookingsQuery.lte("check_in", endDate);
-    const { data: bookings } = await bookingsQuery;
+    const { data: bookings, error: bkErr } = await bookingsQuery;
+    if (bkErr && import.meta.env.DEV) console.warn("[usePlatformStats] bookings error", bkErr);
 
     // 2) iCal events (reservations only) — exclude those already mirrored as bookings
     let eventsQuery = (supabase as any)
       .from("calendar_events")
-      .select("id, source_platform, source_name, platform, summary, start_date, end_date, event_type")
+      .select("id, platform, summary, start_date, end_date, event_type")
       .eq("property_id", propertyId)
       .eq("event_type", "reservation");
     if (startDate) eventsQuery = eventsQuery.gte("end_date", startDate);
     if (endDate) eventsQuery = eventsQuery.lte("start_date", endDate);
-    const { data: events } = await eventsQuery;
+    const { data: events, error: evErr } = await eventsQuery;
+    if (evErr && import.meta.env.DEV) console.warn("[usePlatformStats] events error", evErr);
 
     const linkedEventIds = new Set(
       ((bookings || []) as any[]).map(b => b.calendar_event_id).filter(Boolean)
@@ -88,10 +90,7 @@ export function usePlatformStats(propertyId?: string, options: Options = {}) {
     BOOKING_PLATFORMS.forEach(p => buckets.set(p, { bookings: 0, revenue: 0, nights: 0 }));
 
     (bookings || []).forEach((b: any) => {
-      const platform = resolveBookingPlatform({
-        platform: b.source_platform,
-        source: b.source,
-      });
+      const platform = resolveBookingPlatform({ source: b.source });
       const bucket = buckets.get(platform)!;
       bucket.bookings += 1;
       bucket.revenue += Number(b.gross_amount || 0);
@@ -100,19 +99,13 @@ export function usePlatformStats(propertyId?: string, options: Options = {}) {
 
     (events || []).forEach((e: any) => {
       if (linkedEventIds.has(e.id)) return; // avoid double-count
-      // Prefer specific platform fields, but ignore 'other' so we can fall back to title/url heuristics
-      const rawPlatform = e.source_platform && e.source_platform !== "other"
-        ? e.source_platform
-        : (e.platform && e.platform !== "other" ? e.platform : null);
       const platform = resolveBookingPlatform({
-        platform: rawPlatform,
-        source: e.source_name,
+        platform: e.platform && e.platform !== "other" ? e.platform : null,
         summary: e.summary,
       });
       const bucket = buckets.get(platform)!;
       bucket.bookings += 1;
       bucket.nights += diffNights(e.start_date, e.end_date);
-      // No revenue available from raw iCal events
     });
 
     // Compute window length
