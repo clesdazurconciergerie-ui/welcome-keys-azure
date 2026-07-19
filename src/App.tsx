@@ -134,7 +134,7 @@ const App = () => (
             {/* Interventions removed — missions is the single source */}
             <Route path="missions" element={<MissionsPage />} />
             <Route path="etats-des-lieux-v2" element={<Navigate to="/dashboard/etats-des-lieux" replace />} />
-            <Route path="etats-des-lieux-v2/:id" element={<NavigateV2 />} />
+            <Route path="etats-des-lieux-v2/:id" element={<Navigate to="/dashboard/etats-des-lieux" replace />} />
             <Route path="admin/etats-des-lieux" element={<Navigate to="/dashboard/etats-des-lieux" replace />} />
             <Route path="voyageurs" element={<GuestsPage />} />
             <Route path="messages" element={<GuestMessagingPage />} />
