@@ -31,10 +31,53 @@ function readAsDataUrl(file: Blob): Promise<string> {
   });
 }
 
+async function normalizeToJpeg(file: File): Promise<{ blob: Blob; mime: string }> {
+  const name = (file.name || "").toLowerCase();
+  const isHeic =
+    file.type === "image/heic" ||
+    file.type === "image/heif" ||
+    name.endsWith(".heic") ||
+    name.endsWith(".heif");
+
+  let source: Blob = file;
+  if (isHeic) {
+    const heic2any = (await import("heic2any")).default;
+    const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.92 });
+    source = Array.isArray(converted) ? converted[0] : converted;
+  }
+
+  // Re-encode via canvas to guarantee a supported JPEG (also strips EXIF orientation issues)
+  const url = URL.createObjectURL(source);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error("Impossible de décoder l'image (format non supporté par le navigateur)"));
+      i.src = url;
+    });
+    const maxSide = 2048;
+    const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.round(img.naturalWidth * scale);
+    const h = Math.round(img.naturalHeight * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d")!;
+    ctx.drawImage(img, 0, 0, w, h);
+    const blob: Blob = await new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Encodage JPEG échoué"))), "image/jpeg", 0.92)
+    );
+    return { blob, mime: "image/jpeg" };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
   const resp = await fetch(dataUrl);
   return resp.blob();
 }
+
 
 export function WelkomStudioAirbnbTab({ propertyId }: Props) {
   const { toast } = useToast();
