@@ -1,6 +1,6 @@
 // MODULE — Auto-sync iCal quotidien
 // Déclenché par pg_cron ou manuellement. Synchronise tous les calendriers actifs
-// dont la dernière sync est plus ancienne que sync_frequency_hours.
+// dont la dernière sync est plus ancienne que la fréquence par défaut.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -11,6 +11,7 @@ const corsHeaders = {
 
 const TIMEOUT_MS = 30_000;
 const BATCH_SIZE = 5;
+const DEFAULT_SYNC_FREQUENCY_HOURS = 24;
 
 interface SyncResult {
   calendar_id: string;
@@ -41,7 +42,7 @@ Deno.serve(async (req) => {
     // 1. Fetch eligible calendars
     let query = supabase
       .from("ical_calendars")
-      .select("id, user_id, name, url, platform, last_sync_at, sync_frequency_hours, consecutive_failures")
+      .select("id, user_id, property_id, name, url, platform, last_sync_at")
       .eq("is_active", true);
 
     if (onlyCalendarId) query = query.eq("id", onlyCalendarId);
@@ -54,7 +55,7 @@ Deno.serve(async (req) => {
       if (onlyCalendarId) return true;
       if (!c.last_sync_at) return true;
       const last = new Date(c.last_sync_at).getTime();
-      const freqMs = (c.sync_frequency_hours || 24) * 3600 * 1000;
+      const freqMs = DEFAULT_SYNC_FREQUENCY_HOURS * 3600 * 1000;
       return now - last >= freqMs - 60_000;
     });
 
@@ -81,7 +82,7 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("[auto-sync] fatal error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = getErrorMessage(err);
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -91,7 +92,7 @@ Deno.serve(async (req) => {
 
 async function syncOneCalendar(
   supabase: any,
-  cal: { id: string; user_id: string; url: string; platform: string; name: string },
+  cal: { id: string; user_id: string; property_id: string | null; url: string; platform: string; name: string },
   triggeredBy: string,
 ): Promise<SyncResult> {
   const start = Date.now();
@@ -146,7 +147,7 @@ async function syncOneCalendar(
     if (events.length > 0) {
       const rows = events.map((e) => ({
         calendar_id: cal.id,
-        property_id: null,
+        property_id: cal.property_id,
         user_id: cal.user_id,
         summary: e.summary || null,
         start_date: e.startDate,
@@ -157,17 +158,9 @@ async function syncOneCalendar(
         ical_uid: e.uid || null,
         event_type: e.eventType,
       }));
-      // Pull property_id from calendar
-      const { data: calRow } = await supabase
-        .from("ical_calendars")
-        .select("property_id")
-        .eq("id", cal.id)
-        .single();
-      const propertyId = calRow?.property_id;
-      const enrichedRows = rows.map((r) => ({ ...r, property_id: propertyId }));
-      const { error: insErr } = await supabase.from("calendar_events").insert(enrichedRows);
+      const { error: insErr } = await supabase.from("calendar_events").insert(rows);
       if (insErr) throw insErr;
-      inserted = enrichedRows.length;
+      inserted = rows.length;
     }
 
     const completedAt = new Date().toISOString();
@@ -189,12 +182,20 @@ async function syncOneCalendar(
         .eq("id", histId);
     }
 
+    await supabase
+      .from("ical_calendars")
+      .update({
+        last_sync_at: completedAt,
+        last_sync_status: "success",
+      })
+      .eq("id", cal.id);
+
     return { calendar_id: cal.id, status: "success", events_count: inserted, duration_ms: durationMs };
   } catch (err) {
     const completedAt = new Date().toISOString();
     const durationMs = Date.now() - start;
     const isTimeout = err instanceof Error && err.name === "AbortError";
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = getErrorMessage(err);
 
     if (histId) {
       await supabase
@@ -209,6 +210,14 @@ async function syncOneCalendar(
         .eq("id", histId);
     }
 
+    await supabase
+      .from("ical_calendars")
+      .update({
+        last_sync_at: completedAt,
+        last_sync_status: isTimeout ? "timeout" : "failed",
+      })
+      .eq("id", cal.id);
+
     console.error(`[auto-sync] calendar ${cal.id} failed:`, message);
     return {
       calendar_id: cal.id,
@@ -217,6 +226,17 @@ async function syncOneCalendar(
       duration_ms: durationMs,
     };
   }
+}
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object") {
+    const maybe = err as { message?: unknown; error?: unknown; details?: unknown };
+    if (typeof maybe.message === "string") return maybe.message;
+    if (typeof maybe.error === "string") return maybe.error;
+    if (typeof maybe.details === "string") return maybe.details;
+  }
+  return "Erreur inconnue";
 }
 
 interface ParsedEvent {
