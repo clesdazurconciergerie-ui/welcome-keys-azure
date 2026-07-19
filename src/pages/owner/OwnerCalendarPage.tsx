@@ -263,9 +263,31 @@ export default function OwnerCalendarPage() {
             {calendarDays.map((date, i) => {
               if (!date) return <div key={`e-${i}`} className="min-h-[72px]" />;
               const dayEvents = getEventsForDay(date);
+              const dateStr = toDateStr(date);
+              const isPast = dateStr < todayStr;
+              const hasReservation = dayEvents.some(e => e.event_type === "reservation" || e.event_type === "booking");
+              const selected = isInSelection(date);
+              const isSelectionStart = selectionStart === dateStr;
+              const isSelectionEndDay = selectionEnd && dateStr === toDateStr(new Date(new Date(selectionEnd).getTime() - 86400000));
+              const disabled = isPast || hasReservation;
+
+              const baseCls = "min-h-[72px] p-1 rounded-xl border transition-colors";
               const todayCls = isToday(date) ? "ring-2 ring-primary ring-offset-1" : "";
+              const stateCls = selected
+                ? "bg-primary/15 border-primary"
+                : disabled
+                  ? "border-border/40 opacity-60 cursor-not-allowed"
+                  : "border-border/40 hover:bg-primary/5 hover:border-primary/40 cursor-pointer";
+              const edgeCls = (isSelectionStart || isSelectionEndDay) ? "ring-2 ring-primary" : "";
+
               return (
-                <div key={date.toISOString()} className={`min-h-[72px] p-1 rounded-xl border border-border/40 ${todayCls} hover:bg-muted/20 transition-colors`}>
+                <div
+                  key={date.toISOString()}
+                  className={`${baseCls} ${todayCls} ${stateCls} ${edgeCls}`}
+                  onClick={() => !disabled && handleDayClick(date)}
+                  role={disabled ? undefined : "button"}
+                  aria-label={disabled ? undefined : `Sélectionner le ${date.toLocaleDateString("fr-FR")}`}
+                >
                   <p className={`text-[11px] font-medium mb-0.5 ${isToday(date) ? "text-primary font-bold" : "text-muted-foreground"}`}>{date.getDate()}</p>
                   <div className="space-y-0.5">
                     {dayEvents.slice(0, 2).map(ev => {
@@ -284,6 +306,7 @@ export default function OwnerCalendarPage() {
               );
             })}
           </div>
+
 
           {/* Legend */}
           <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t">
