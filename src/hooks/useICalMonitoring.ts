@@ -49,9 +49,17 @@ export function useICalMonitoring() {
       const { data, error } = await (supabase as any)
         .from("ical_calendars")
         .select("*, property:property_id(name)")
-        .order("sync_health_score", { ascending: true, nullsFirst: true });
+        .order("last_sync_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
-      return (data as ICalCalendarMonitoring[]) ?? [];
+      return ((data as any[]) ?? []).map((c) => ({
+        ...c,
+        is_sync_enabled: c.is_sync_enabled ?? c.is_active ?? true,
+        sync_health_score:
+          c.sync_health_score ??
+          (c.last_sync_status === "success" ? 1 : c.last_sync_status ? 0.4 : null),
+        consecutive_failures: c.consecutive_failures ?? 0,
+        sync_frequency_hours: c.sync_frequency_hours ?? 3,
+      })) as ICalCalendarMonitoring[];
     },
     refetchInterval: 30_000,
   });
