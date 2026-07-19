@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { Property } from "@/hooks/useProperties";
 import type { CleaningIntervention } from "@/hooks/useCleaningInterventions";
 import type { NewMission } from "@/hooks/useNewMissions";
-import type { Inspection } from "@/hooks/useInspections";
+type Inspection = any; // v1 inspections hook removed — demo data typed loosely
 import type { Prospect } from "@/hooks/useProspects";
 import type { Booking } from "@/hooks/useBookings";
 import { toast } from "sonner";

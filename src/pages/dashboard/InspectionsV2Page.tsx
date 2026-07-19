@@ -1,5 +1,5 @@
 // MODULE — Page unifiée États des lieux (Inspections + Modèles)
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,19 +46,7 @@ export default function InspectionsV2Page() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState("inspections");
-  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await (supabase as any)
-        .from("user_roles").select("role")
-        .eq("user_id", user.id).eq("role", "super_admin").maybeSingle();
-      setIsAdmin(!!data);
-    })();
-  }, []);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
