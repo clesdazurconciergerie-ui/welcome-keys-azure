@@ -56,11 +56,44 @@ export default function OwnerCalendarPage() {
   const { blocks: ownerBlocks, addBlock, removeBlock } = useOwnerBlocks(selectedProperty);
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
 
+  // Range selection state (Airbnb-like: click start, click end)
+  const [selectionStart, setSelectionStart] = useState<string | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
+
   const loading = propertiesLoading || dataLoading;
+
+  const toDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const todayStr = toDateStr(new Date());
+
+  const clearSelection = () => { setSelectionStart(null); setSelectionEnd(null); };
+
+  const handleDayClick = (date: Date) => {
+    const s = toDateStr(date);
+    if (s < todayStr) return;
+    if (!selectionStart || (selectionStart && selectionEnd)) {
+      setSelectionStart(s);
+      setSelectionEnd(null);
+    } else {
+      if (s <= selectionStart) {
+        setSelectionStart(s);
+        setSelectionEnd(null);
+      } else {
+        // end date is exclusive (checkout day), so store day-after selection
+        const next = new Date(date);
+        next.setDate(next.getDate() + 1);
+        setSelectionEnd(toDateStr(next));
+      }
+    }
+  };
+
+  const openBlockDialog = () => {
+    if (!selectionStart || !selectionEnd) return;
+    setBlockDialogOpen(true);
+  };
 
   const handleAddBlock = async (start: string, end: string, reason: string) => {
     const ok = await addBlock(start, end, reason);
-    if (ok) refetch();
+    if (ok) { refetch(); clearSelection(); }
     return ok;
   };
 
@@ -68,6 +101,16 @@ export default function OwnerCalendarPage() {
     await removeBlock(id);
     refetch();
   };
+
+  const isInSelection = (date: Date) => {
+    if (!selectionStart) return false;
+    const s = toDateStr(date);
+    const endInclusive = selectionEnd
+      ? toDateStr(new Date(new Date(selectionEnd).getTime() - 86400000))
+      : selectionStart;
+    return s >= selectionStart && s <= endInclusive;
+  };
+
 
   // Calendar grid
   const calendarDays = useMemo(() => {
