@@ -144,9 +144,82 @@ export function FinanceSettingsTab() {
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        Logo, couleurs et signature sont configurables dans{' '}
+        Logo et signature sont configurables dans{' '}
         <a href="/dashboard/branding" className="text-primary underline font-medium">Paramètres → Apparence</a>
       </p>
+
+      {/* Invoice Colors */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Couleurs de la facture</CardTitle>
+          <p className="text-xs text-muted-foreground">Personnalisez l'apparence du PDF de facture</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label>Couleur principale</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="color"
+                  value={form.invoice_primary_color}
+                  onChange={e => setForm(f => ({ ...f, invoice_primary_color: e.target.value }))}
+                  className="h-9 w-14 cursor-pointer rounded border border-input"
+                />
+                <Input
+                  value={form.invoice_primary_color}
+                  onChange={e => setForm(f => ({ ...f, invoice_primary_color: e.target.value }))}
+                  className="h-9 font-mono text-xs"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Bandeaux et titres</p>
+            </div>
+            <div>
+              <Label>Couleur d'accent</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="color"
+                  value={form.invoice_accent_color}
+                  onChange={e => setForm(f => ({ ...f, invoice_accent_color: e.target.value }))}
+                  className="h-9 w-14 cursor-pointer rounded border border-input"
+                />
+                <Input
+                  value={form.invoice_accent_color}
+                  onChange={e => setForm(f => ({ ...f, invoice_accent_color: e.target.value }))}
+                  className="h-9 font-mono text-xs"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Filets et surlignages</p>
+            </div>
+            <div>
+              <Label>Couleur du texte (bandeau)</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="color"
+                  value={form.invoice_text_color}
+                  onChange={e => setForm(f => ({ ...f, invoice_text_color: e.target.value }))}
+                  className="h-9 w-14 cursor-pointer rounded border border-input"
+                />
+                <Input
+                  value={form.invoice_text_color}
+                  onChange={e => setForm(f => ({ ...f, invoice_text_color: e.target.value }))}
+                  className="h-9 font-mono text-xs"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Texte sur la couleur principale</p>
+            </div>
+          </div>
+          <div className="rounded-lg border overflow-hidden">
+            <div style={{ backgroundColor: form.invoice_primary_color, color: form.invoice_text_color, padding: "16px 20px" }}>
+              <div style={{ fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", borderBottom: `2px solid ${form.invoice_accent_color}`, display: "inline-block", paddingBottom: 4 }}>
+                {form.company_name || "MA CONCIERGERIE"}
+              </div>
+            </div>
+            <div style={{ padding: "10px 20px", fontSize: 12, color: form.invoice_primary_color }}>
+              Aperçu de l'en-tête
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle className="text-base">Numérotation des factures</CardTitle></CardHeader>
