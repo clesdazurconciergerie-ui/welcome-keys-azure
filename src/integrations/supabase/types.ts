@@ -1527,6 +1527,84 @@ export type Database = {
           },
         ]
       }
+      financial_settings: {
+        Row: {
+          address: string | null
+          bic: string | null
+          company_name: string | null
+          created_at: string
+          default_due_days: number
+          default_signature_url: string | null
+          default_vat_rate: number
+          iban: string | null
+          id: string
+          invoice_accent_color: string | null
+          invoice_prefix: string
+          invoice_primary_color: string | null
+          invoice_text_color: string | null
+          legal_footer: string | null
+          logo_url: string | null
+          next_invoice_number: number
+          org_city: string | null
+          org_phone: string | null
+          org_postal_code: string | null
+          updated_at: string
+          user_id: string
+          vat_enabled: boolean
+          vat_number: string | null
+        }
+        Insert: {
+          address?: string | null
+          bic?: string | null
+          company_name?: string | null
+          created_at?: string
+          default_due_days?: number
+          default_signature_url?: string | null
+          default_vat_rate?: number
+          iban?: string | null
+          id?: string
+          invoice_accent_color?: string | null
+          invoice_prefix?: string
+          invoice_primary_color?: string | null
+          invoice_text_color?: string | null
+          legal_footer?: string | null
+          logo_url?: string | null
+          next_invoice_number?: number
+          org_city?: string | null
+          org_phone?: string | null
+          org_postal_code?: string | null
+          updated_at?: string
+          user_id: string
+          vat_enabled?: boolean
+          vat_number?: string | null
+        }
+        Update: {
+          address?: string | null
+          bic?: string | null
+          company_name?: string | null
+          created_at?: string
+          default_due_days?: number
+          default_signature_url?: string | null
+          default_vat_rate?: number
+          iban?: string | null
+          id?: string
+          invoice_accent_color?: string | null
+          invoice_prefix?: string
+          invoice_primary_color?: string | null
+          invoice_text_color?: string | null
+          legal_footer?: string | null
+          logo_url?: string | null
+          next_invoice_number?: number
+          org_city?: string | null
+          org_phone?: string | null
+          org_postal_code?: string | null
+          updated_at?: string
+          user_id?: string
+          vat_enabled?: boolean
+          vat_number?: string | null
+        }
+        Relationships: []
+      }
       guest_message_templates: {
         Row: {
           body_markdown: string
