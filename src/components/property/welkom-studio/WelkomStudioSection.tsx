@@ -73,13 +73,13 @@ export function WelkomStudioSection({ propertyId }: Props) {
           </TabsTrigger>
           <TabsTrigger value="upload" className="gap-1.5">
             <Upload className="w-4 h-4" />
-            HDR
-          </TabsTrigger>
-          <TabsTrigger value="upload" className="gap-1.5">
-            <Upload className="w-4 h-4" />
-            Importer
+            HDR / Importer
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="airbnb" className="mt-4">
+          <WelkomStudioAirbnbTab propertyId={propertyId} />
+        </TabsContent>
 
         <TabsContent value="camera" className="mt-4">
           <WelkomStudioCamera
@@ -87,6 +87,7 @@ export function WelkomStudioSection({ propertyId }: Props) {
             onCaptured={(blobs) => processBatchLaplacian(blobs)}
           />
         </TabsContent>
+
 
         <TabsContent value="upload" className="mt-4">
           <WelkomStudioUploader
