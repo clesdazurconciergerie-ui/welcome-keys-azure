@@ -130,7 +130,7 @@ export default function InspectionV2DetailPage() {
     <div className="space-y-6 p-4 md:p-6">
       <SEOHead title={`État des lieux ${insp.property?.name}`} description="" />
 
-      <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/etats-des-lieux-v2")}>
+      <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/etats-des-lieux")}>
         <ArrowLeft className="h-4 w-4 mr-1" /> Retour
       </Button>
 
@@ -201,7 +201,7 @@ export default function InspectionV2DetailPage() {
               </p>
             </div>
             {childExit ? (
-              <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/etats-des-lieux-v2/${childExit.id}`)}>
+              <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/etats-des-lieux/${childExit.id}`)}>
                 Ouvrir l'état de sortie →
               </Button>
             ) : (
@@ -221,7 +221,7 @@ export default function InspectionV2DetailPage() {
         defaultPropertyId={insp.property_id}
         defaultType="exit"
         parentInspectionId={insp.id}
-        onCreated={(newId) => navigate(`/dashboard/etats-des-lieux-v2/${newId}`)}
+        onCreated={(newId) => navigate(`/dashboard/etats-des-lieux/${newId}`)}
       />
 
       <Tabs defaultValue="items">

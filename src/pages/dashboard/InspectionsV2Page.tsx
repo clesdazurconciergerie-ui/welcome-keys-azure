@@ -149,7 +149,7 @@ export default function InspectionsV2Page() {
                           <TableRow
                             key={i.id}
                             className="cursor-pointer hover:bg-secondary/40"
-                            onClick={() => navigate(`/dashboard/etats-des-lieux-v2/${i.id}`)}
+                            onClick={() => navigate(`/dashboard/etats-des-lieux/${i.id}`)}
                           >
                             <TableCell className="font-medium">{i.property?.name ?? "—"}</TableCell>
                             <TableCell>
@@ -172,7 +172,7 @@ export default function InspectionsV2Page() {
                             </TableCell>
                             <TableCell onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center gap-1 justify-end">
-                                <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/etats-des-lieux-v2/${i.id}`)}>
+                                <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/etats-des-lieux/${i.id}`)}>
                                   Ouvrir →
                                 </Button>
                                 <AlertDialog>
