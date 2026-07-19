@@ -2878,21 +2878,21 @@ export type Database = {
       }
       owner_properties: {
         Row: {
-          booklet_id: string
+          booklet_id: string | null
           created_at: string
           id: string
           owner_id: string
           property_id: string | null
         }
         Insert: {
-          booklet_id: string
+          booklet_id?: string | null
           created_at?: string
           id?: string
           owner_id: string
           property_id?: string | null
         }
         Update: {
-          booklet_id?: string
+          booklet_id?: string | null
           created_at?: string
           id?: string
           owner_id?: string
