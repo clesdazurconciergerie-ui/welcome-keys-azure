@@ -179,12 +179,41 @@ export default function OwnerCalendarPage() {
                 </SelectContent>
               </Select>
             )}
-            <Button onClick={() => setBlockDialogOpen(true)} disabled={!selectedProperty} className="gap-2">
-              <Lock className="w-4 h-4" /> Bloquer des dates
-            </Button>
           </div>
         </div>
       </motion.div>
+
+      {/* Selection action bar */}
+      <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3 flex items-center justify-between flex-wrap gap-3">
+        <div className="text-sm">
+          {!selectionStart && (
+            <span className="text-muted-foreground">👉 Cliquez sur une date de début, puis sur une date de fin pour bloquer une période.</span>
+          )}
+          {selectionStart && !selectionEnd && (
+            <span>Début : <span className="font-medium">{new Date(selectionStart + "T00:00:00").toLocaleDateString("fr-FR")}</span> — cliquez maintenant la date de fin</span>
+          )}
+          {selectionStart && selectionEnd && (
+            <span>
+              Du <span className="font-medium">{new Date(selectionStart + "T00:00:00").toLocaleDateString("fr-FR")}</span>{" "}
+              au <span className="font-medium">{new Date(new Date(selectionEnd).getTime() - 86400000).toLocaleDateString("fr-FR")}</span>{" "}
+              <span className="text-muted-foreground">({Math.round((new Date(selectionEnd).getTime() - new Date(selectionStart).getTime()) / 86400000)} nuit(s))</span>
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {(selectionStart || selectionEnd) && (
+            <Button variant="ghost" size="sm" onClick={clearSelection}>Effacer</Button>
+          )}
+          <Button
+            size="sm"
+            onClick={openBlockDialog}
+            disabled={!selectionStart || !selectionEnd}
+            className="gap-2"
+          >
+            <Lock className="w-4 h-4" /> Bloquer ces dates
+          </Button>
+        </div>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
