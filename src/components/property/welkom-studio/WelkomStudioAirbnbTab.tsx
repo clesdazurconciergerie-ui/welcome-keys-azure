@@ -78,6 +78,47 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
   return resp.blob();
 }
 
+const SUPPORTED_EXT = ["jpg", "jpeg", "png", "webp", "heic", "heif"];
+const MAX_SIZE_MB = 20;
+const UNSUPPORTED_HELP =
+  "Formats acceptés : JPG, PNG, WEBP ou HEIC (iPhone). Ouvre le fichier dans Aperçu (Mac) ou Photos, puis « Exporter » en JPEG, ou renomme l'extension en .jpg.";
+
+function validateFile(file: File): string | null {
+  const name = (file.name || "").toLowerCase();
+  const ext = name.includes(".") ? name.split(".").pop()! : "";
+  const type = (file.type || "").toLowerCase();
+
+  if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+    return `Fichier trop volumineux (${(file.size / 1024 / 1024).toFixed(1)} Mo). Maximum ${MAX_SIZE_MB} Mo — réduis la résolution avant d'envoyer.`;
+  }
+  const isImageMime = type.startsWith("image/");
+  const isKnownExt = SUPPORTED_EXT.includes(ext);
+  if (!isImageMime && !isKnownExt) {
+    return `Format non supporté (${ext || type || "inconnu"}). ${UNSUPPORTED_HELP}`;
+  }
+  // Explicitly reject formats OpenAI can't handle and heic2any can't convert
+  if (["gif", "bmp", "tiff", "tif", "svg", "avif", "raw", "cr2", "nef", "arw", "dng"].includes(ext)) {
+    return `Format ${ext.toUpperCase()} non supporté. ${UNSUPPORTED_HELP}`;
+  }
+  return null;
+}
+
+function friendlyError(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes("unsupported") || m.includes("non supporté") || m.includes("décoder")) {
+    return `Format d'image non supporté. ${UNSUPPORTED_HELP}`;
+  }
+  if (m.includes("heic")) {
+    return `Conversion HEIC échouée. Ouvre la photo dans Aperçu (Mac) puis « Exporter » en JPEG, ou change le format dans Réglages iPhone → Appareil photo → Formats → « Le plus compatible ».`;
+  }
+  if (m.includes("429") || m.includes("rate")) {
+    return "Trop de requêtes en même temps. Réessaie dans quelques secondes.";
+  }
+  if (m.includes("402") || m.includes("credit")) {
+    return "Crédits IA épuisés. Recharge ton workspace pour continuer.";
+  }
+  return msg;
+}
 
 export function WelkomStudioAirbnbTab({ propertyId }: Props) {
   const { toast } = useToast();
@@ -85,16 +126,34 @@ export function WelkomStudioAirbnbTab({ propertyId }: Props) {
   const [isBusy, setIsBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const addFiles = useCallback((files: File[]) => {
-    const newJobs: PhotoJob[] = files.map((f) => ({
-      id: crypto.randomUUID(),
-      originalUrl: URL.createObjectURL(f),
-      originalFile: f,
-      enhancedUrl: null,
-      status: "idle",
-    }));
-    setJobs((prev) => [...newJobs, ...prev]);
-  }, []);
+  const addFiles = useCallback(
+    (files: File[]) => {
+      const accepted: File[] = [];
+      const rejected: { name: string; reason: string }[] = [];
+      for (const f of files) {
+        const err = validateFile(f);
+        if (err) rejected.push({ name: f.name, reason: err });
+        else accepted.push(f);
+      }
+      if (rejected.length) {
+        toast({
+          title: `${rejected.length} fichier(s) refusé(s)`,
+          description: rejected.map((r) => `• ${r.name} — ${r.reason}`).join("\n"),
+          variant: "destructive",
+        });
+      }
+      if (!accepted.length) return;
+      const newJobs: PhotoJob[] = accepted.map((f) => ({
+        id: crypto.randomUUID(),
+        originalUrl: URL.createObjectURL(f),
+        originalFile: f,
+        enhancedUrl: null,
+        status: "idle",
+      }));
+      setJobs((prev) => [...newJobs, ...prev]);
+    },
+    [toast]
+  );
 
   const enhanceOne = useCallback(
     async (job: PhotoJob) => {
@@ -117,15 +176,17 @@ export function WelkomStudioAirbnbTab({ propertyId }: Props) {
           )
         );
       } catch (e: any) {
-        const msg = e?.message || String(e);
+        const raw = e?.message || String(e);
+        const msg = friendlyError(raw);
         setJobs((prev) =>
           prev.map((j) => (j.id === job.id ? { ...j, status: "error", error: msg } : j))
         );
-        toast({ title: "Échec de l'édition", description: msg, variant: "destructive" });
+        toast({ title: "Édition impossible", description: msg, variant: "destructive" });
       }
     },
     [toast]
   );
+
 
   const enhanceAll = useCallback(async () => {
     setIsBusy(true);
