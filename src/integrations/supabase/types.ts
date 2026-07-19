@@ -809,7 +809,7 @@ export type Database = {
       }
       calendar_events: {
         Row: {
-          calendar_id: string
+          calendar_id: string | null
           created_at: string
           end_date: string
           event_type: string
@@ -825,7 +825,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          calendar_id: string
+          calendar_id?: string | null
           created_at?: string
           end_date: string
           event_type?: string
@@ -841,7 +841,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          calendar_id?: string
+          calendar_id?: string | null
           created_at?: string
           end_date?: string
           event_type?: string
