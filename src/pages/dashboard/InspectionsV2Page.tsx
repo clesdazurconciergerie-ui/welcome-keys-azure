@@ -222,17 +222,6 @@ export default function InspectionsV2Page() {
         onOpenChange={setOpen}
         onCreated={(id) => navigate(`/dashboard/etats-des-lieux/${id}`)}
       />
-          <TabsContent value="admin" className="mt-4 -mx-4 md:-mx-6">
-            <InspectionsAdminPage />
-          </TabsContent>
-        )}
-      </Tabs>
-
-      <CreateInspectionDialog
-        open={open}
-        onOpenChange={setOpen}
-        onCreated={(id) => navigate(`/dashboard/etats-des-lieux-v2/${id}`)}
-      />
     </div>
   );
 }
