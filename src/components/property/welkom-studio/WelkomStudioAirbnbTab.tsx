@@ -102,10 +102,12 @@ export function WelkomStudioAirbnbTab({ propertyId }: Props) {
         prev.map((j) => (j.id === job.id ? { ...j, status: "processing", error: undefined } : j))
       );
       try {
-        const dataUrl = await readAsDataUrl(job.originalFile);
+        const { blob, mime } = await normalizeToJpeg(job.originalFile);
+        const dataUrl = await readAsDataUrl(blob);
         const { data, error } = await supabase.functions.invoke("airbnb-photo-enhance", {
-          body: { imageBase64: dataUrl, mimeType: job.originalFile.type || "image/jpeg" },
+          body: { imageBase64: dataUrl, mimeType: mime },
         });
+
         if (error) throw error;
         const enhanced = (data as any)?.imageDataUrl as string | undefined;
         if (!enhanced) throw new Error("Aucune image retournée par l'IA");
