@@ -364,6 +364,9 @@ export default function OwnerCalendarPage() {
         open={blockDialogOpen}
         onOpenChange={setBlockDialogOpen}
         onConfirm={handleAddBlock}
+        initialStart={selectionStart || undefined}
+        initialEnd={selectionEnd || undefined}
+        hideDateInputs
       />
     </div>
   );
