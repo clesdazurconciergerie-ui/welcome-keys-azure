@@ -8,7 +8,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useOwnerVisibleBookings } from "@/hooks/useOwnerVisibleBookings";
 import { Loader2, Home, ClipboardList, Percent, ChevronLeft, ChevronRight, CalendarDays, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import { getPlatformClasses } from "@/lib/booking-platforms";
+import { getPlatformClasses, resolveBookingPlatform, PLATFORM_LABELS, PLATFORM_CLASSES, BOOKING_PLATFORMS } from "@/lib/booking-platforms";
 import { UpcomingBookingsList } from "@/components/owner/UpcomingBookingsList";
 
 interface PropertySummary {
@@ -100,6 +100,13 @@ export default function OwnerDashboardHome() {
   const getEventsForDay = (date: Date) => {
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     return allEvents.filter(e => e.start_date <= dateStr && e.end_date > dateStr);
+  };
+
+  // Resolve dominant platform for a day (first booking event wins)
+  const getDayPlatform = (events: typeof allEvents) => {
+    const bk = events.find(e => e.event_type === "reservation" || e.event_type === "booking");
+    if (!bk) return null;
+    return resolveBookingPlatform({ platform: bk.platform, source: bk.source, summary: bk.summary });
   };
 
   const today = new Date();
@@ -205,25 +212,48 @@ export default function OwnerDashboardHome() {
                 const dayEvents = getEventsForDay(date);
                 const hasBooking = dayEvents.some(e => e.event_type === "reservation" || e.event_type === "booking");
                 const hasBlocked = dayEvents.some(e => e.event_type !== "reservation" && e.event_type !== "booking");
-                const todayCls = isToday(date) ? "ring-2 ring-primary" : "";
+                const platform = getDayPlatform(dayEvents);
+                const cls = platform ? PLATFORM_CLASSES[platform] : null;
+                const todayCls = isToday(date) ? "ring-2 ring-foreground" : "";
 
                 return (
                   <button
                     key={date.toISOString()}
                     onClick={() => navigate("/proprietaire/calendrier")}
+                    title={platform ? PLATFORM_LABELS[platform] : hasBlocked ? "Bloqué" : ""}
                     className={`h-10 sm:h-8 rounded-md text-xs sm:text-[11px] font-medium transition-colors relative ${todayCls} ${
-                      hasBooking ? "bg-primary/15 text-primary font-bold" : hasBlocked ? "bg-amber-100 text-amber-700" : "hover:bg-muted/40 text-muted-foreground"
+                      hasBooking && cls
+                        ? `${cls.bg} ${cls.text} font-bold`
+                        : hasBlocked
+                          ? "bg-amber-100 text-amber-700"
+                          : "hover:bg-muted/40 text-muted-foreground"
                     }`}
                   >
                     {date.getDate()}
-                    {hasBooking && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 sm:w-1 sm:h-1 rounded-full bg-primary" />}
+                    {hasBooking && cls && (
+                      <span className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${cls.dot}`} />
+                    )}
                   </button>
                 );
               })}
             </div>
 
+            {/* Legend */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 pt-3 border-t">
+              {BOOKING_PLATFORMS.filter(p => p !== "other").map(p => (
+                <div key={p} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span className={`w-2 h-2 rounded-full ${PLATFORM_CLASSES[p].dot}`} />
+                  {PLATFORM_LABELS[p]}
+                </div>
+              ))}
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                Bloqué
+              </div>
+            </div>
+
             {/* Stats summary */}
-            <div className="flex items-center justify-between mt-3 pt-3 border-t text-xs text-muted-foreground">
+            <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
               <span>{occupancyStats.bookedNights} nuits réservées / {occupancyStats.totalNights}</span>
               <Badge variant="outline" className={`text-[10px] ${occupancyStats.occupancyPct >= 50 ? "border-emerald-300 text-emerald-700" : "border-amber-300 text-amber-700"}`}>
                 {occupancyStats.occupancyPct}% occupation
