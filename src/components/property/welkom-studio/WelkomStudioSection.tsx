@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Camera, Sparkles, Upload, Info } from "lucide-react";
+import { Camera, Sparkles, Upload, Info, Wand2 } from "lucide-react";
 import { useWelkomStudio, type PropertyPhotoStudio } from "@/hooks/useWelkomStudio";
 import { WelkomStudioUploader } from "./WelkomStudioUploader";
 import { WelkomStudioProgress } from "./WelkomStudioProgress";
 import { WelkomStudioGallery } from "./WelkomStudioGallery";
 import { WelkomStudioEditor } from "./WelkomStudioEditor";
 import { WelkomStudioCamera } from "./WelkomStudioCamera";
+import { WelkomStudioAirbnbTab } from "./WelkomStudioAirbnbTab";
 
 interface Props {
   propertyId: string;
