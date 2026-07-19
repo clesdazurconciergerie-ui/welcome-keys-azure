@@ -2347,6 +2347,65 @@ export type Database = {
           },
         ]
       }
+      invoice_items: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          item_type: string
+          line_type: string
+          metadata: Json
+          property_id: string | null
+          quantity: number
+          total: number
+          unit_price: number
+          updated_at: string
+          vat_rate: number
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id: string
+          item_type?: string
+          line_type?: string
+          metadata?: Json
+          property_id?: string | null
+          quantity?: number
+          total?: number
+          unit_price?: number
+          updated_at?: string
+          vat_rate?: number
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          item_type?: string
+          line_type?: string
+          metadata?: Json
+          property_id?: string | null
+          quantity?: number
+          total?: number
+          unit_price?: number
+          updated_at?: string
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           company_snapshot: Json | null
