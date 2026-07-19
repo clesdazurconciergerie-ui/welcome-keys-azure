@@ -112,7 +112,7 @@ export function useICalMonitoring() {
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
       const { error } = await (supabase as any)
         .from("ical_calendars")
-        .update({ is_sync_enabled: enabled, consecutive_failures: enabled ? 0 : undefined })
+        .update({ is_active: enabled })
         .eq("id", id);
       if (error) throw error;
     },
