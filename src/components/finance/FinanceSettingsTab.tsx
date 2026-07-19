@@ -60,6 +60,9 @@ export function FinanceSettingsTab() {
         legal_footer: settings.legal_footer || "",
         vat_enabled: settings.vat_enabled ?? true,
         next_invoice_number: settings.next_invoice_number || 1,
+        invoice_primary_color: (settings as any).invoice_primary_color || "#09090B",
+        invoice_accent_color: (settings as any).invoice_accent_color || "#C4A45B",
+        invoice_text_color: (settings as any).invoice_text_color || "#FAFAFA",
       });
     }
   }, [settings]);
