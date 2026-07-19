@@ -6,10 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useOwnerVisibleBookings, OwnerCalEvent } from "@/hooks/useOwnerVisibleBookings";
-import { Loader2, ChevronLeft, ChevronRight, CalendarCheck, Moon } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, CalendarCheck, Moon, Lock, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getPlatformClasses, getPlatformLabel } from "@/lib/booking-platforms";
 import { UpcomingBookingsList } from "@/components/owner/UpcomingBookingsList";
+import { OwnerBlockDatesDialog } from "@/components/owner/OwnerBlockDatesDialog";
+import { useOwnerBlocks } from "@/hooks/useOwnerBlocks";
+
 
 const platformColors = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => getPlatformClasses(key).badge,
