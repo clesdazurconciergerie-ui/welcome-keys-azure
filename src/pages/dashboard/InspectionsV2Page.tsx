@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, AlertTriangle, Search, ListChecks, ClipboardList, ShieldAlert, Trash2 } from "lucide-react";
+import { Plus, AlertTriangle, Search, ListChecks, ClipboardList, Trash2 } from "lucide-react";
 import { usePropertyInspections } from "@/hooks/usePropertyInspections";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -18,8 +18,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CreateInspectionDialog } from "@/components/inspection-v2/CreateInspectionDialog";
 import InspectionTemplatesPage from "./InspectionTemplatesPage";
-import InspectionsAdminPage from "./InspectionsAdminPage";
-import { supabase } from "@/integrations/supabase/client";
 import SEOHead from "@/components/SEOHead";
 
 const TYPE_LABELS: Record<string, string> = {
