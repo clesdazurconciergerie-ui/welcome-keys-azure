@@ -102,6 +102,13 @@ export default function OwnerDashboardHome() {
     return allEvents.filter(e => e.start_date <= dateStr && e.end_date > dateStr);
   };
 
+  // Resolve dominant platform for a day (first booking event wins)
+  const getDayPlatform = (events: typeof allEvents) => {
+    const bk = events.find(e => e.event_type === "reservation" || e.event_type === "booking");
+    if (!bk) return null;
+    return resolveBookingPlatform({ platform: bk.platform, source: bk.source, summary: bk.summary });
+  };
+
   const today = new Date();
   const isToday = (d: Date) => d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
   const monthName = currentDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
