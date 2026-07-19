@@ -86,8 +86,8 @@ Deno.serve(async (req) => {
     await supabase
       .from("ical_calendars")
       .update({
-        last_synced_at: new Date().toISOString(),
-        sync_status: "synced",
+        last_sync_at: new Date().toISOString(),
+        last_sync_status: "success",
       })
       .eq("id", calendar_id);
 
