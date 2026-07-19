@@ -127,14 +127,19 @@ export default function OwnerCalendarPage() {
             <h1 className="text-3xl font-bold text-foreground">Calendrier</h1>
             <p className="text-muted-foreground mt-1">Réservations et disponibilités de vos biens</p>
           </div>
-          {properties.length > 1 && (
-            <Select value={selectedProperty} onValueChange={setSelectedProperty}>
-              <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {properties.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          )}
+          <div className="flex items-center gap-2">
+            {properties.length > 1 && (
+              <Select value={selectedProperty} onValueChange={setSelectedProperty}>
+                <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {properties.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+            <Button onClick={() => setBlockDialogOpen(true)} disabled={!selectedProperty} className="gap-2">
+              <Lock className="w-4 h-4" /> Bloquer des dates
+            </Button>
+          </div>
         </div>
       </motion.div>
 
