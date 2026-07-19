@@ -52,9 +52,22 @@ export default function OwnerCalendarPage() {
 
   // Use the shared hook — filters out hidden reservations automatically
   const propertyIds = useMemo(() => selectedProperty ? [selectedProperty] : [], [selectedProperty]);
-  const { visibleEvents: allEvents, visibleBookingsRaw, visibleCalendarEventsRaw, loading: dataLoading } = useOwnerVisibleBookings(propertyIds);
+  const { visibleEvents: allEvents, visibleBookingsRaw, visibleCalendarEventsRaw, loading: dataLoading, refetch } = useOwnerVisibleBookings(propertyIds);
+  const { blocks: ownerBlocks, addBlock, removeBlock } = useOwnerBlocks(selectedProperty);
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
 
   const loading = propertiesLoading || dataLoading;
+
+  const handleAddBlock = async (start: string, end: string, reason: string) => {
+    const ok = await addBlock(start, end, reason);
+    if (ok) refetch();
+    return ok;
+  };
+
+  const handleRemoveBlock = async (id: string) => {
+    await removeBlock(id);
+    refetch();
+  };
 
   // Calendar grid
   const calendarDays = useMemo(() => {
