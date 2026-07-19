@@ -229,11 +229,46 @@ export default function OwnerCalendarPage() {
         </CardContent>
       </Card>
 
+      {/* Owner blocks management */}
+      {ownerBlocks.length > 0 && (
+        <Card>
+          <CardContent className="pt-5">
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <Lock className="w-4 h-4" /> Mes dates bloquées
+            </h3>
+            <div className="space-y-2">
+              {ownerBlocks.map(b => (
+                <div key={b.id} className="flex items-center justify-between p-2 rounded-lg border border-border/40 bg-muted/20">
+                  <div className="text-sm">
+                    <p className="font-medium">
+                      {new Date(b.start_date).toLocaleDateString("fr-FR")} → {new Date(b.end_date).toLocaleDateString("fr-FR")}
+                    </p>
+                    {b.summary && <p className="text-xs text-muted-foreground">{b.summary}</p>}
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => handleRemoveBlock(b.id)}>
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-3">
+              Ces blocages sont automatiquement diffusés à Airbnb, Booking et toutes les plateformes connectées via iCal (synchronisation OTA 1–3h).
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Upcoming bookings list */}
       <UpcomingBookingsList
         events={allEvents}
         propertyNameById={Object.fromEntries(properties.map(p => [p.id, p.name]))}
         limit={10}
+      />
+
+      <OwnerBlockDatesDialog
+        open={blockDialogOpen}
+        onOpenChange={setBlockDialogOpen}
+        onConfirm={handleAddBlock}
       />
     </div>
   );
