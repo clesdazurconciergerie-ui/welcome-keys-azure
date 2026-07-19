@@ -31,6 +31,21 @@ function readAsDataUrl(file: Blob): Promise<string> {
   });
 }
 
+async function decodeToImage(blob: Blob): Promise<HTMLImageElement> {
+  const url = URL.createObjectURL(blob);
+  try {
+    return await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error("decode_failed"));
+      i.src = url;
+    });
+  } finally {
+    // revoked after draw; keep alive for caller? We draw immediately after, so revoke here is fine
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+}
+
 async function normalizeToJpeg(file: File): Promise<{ blob: Blob; mime: string }> {
   const name = (file.name || "").toLowerCase();
   const isHeic =
@@ -39,39 +54,50 @@ async function normalizeToJpeg(file: File): Promise<{ blob: Blob; mime: string }
     name.endsWith(".heic") ||
     name.endsWith(".heif");
 
-  let source: Blob = file;
-  if (isHeic) {
-    const heic2any = (await import("heic2any")).default;
-    const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.92 });
-    source = Array.isArray(converted) ? converted[0] : converted;
+  let img: HTMLImageElement | null = null;
+
+  // 1) Try native browser decode first (Safari decodes HEIC natively)
+  try {
+    img = await decodeToImage(file);
+  } catch {
+    img = null;
   }
 
-  // Re-encode via canvas to guarantee a supported JPEG (also strips EXIF orientation issues)
-  const url = URL.createObjectURL(source);
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const i = new Image();
-      i.onload = () => resolve(i);
-      i.onerror = () => reject(new Error("Impossible de décoder l'image (format non supporté par le navigateur)"));
-      i.src = url;
-    });
-    const maxSide = 2048;
-    const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
-    const w = Math.round(img.naturalWidth * scale);
-    const h = Math.round(img.naturalHeight * scale);
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d")!;
-    ctx.drawImage(img, 0, 0, w, h);
-    const blob: Blob = await new Promise((resolve, reject) =>
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Encodage JPEG échoué"))), "image/jpeg", 0.92)
-    );
-    return { blob, mime: "image/jpeg" };
-  } finally {
-    URL.revokeObjectURL(url);
+  // 2) HEIC on non-Safari → try heic2any
+  if (!img && isHeic) {
+    try {
+      const heic2any = (await import("heic2any")).default;
+      const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.92 });
+      const jpegBlob = Array.isArray(converted) ? converted[0] : converted;
+      img = await decodeToImage(jpegBlob);
+    } catch (err: any) {
+      const raw = String(err?.message || err);
+      // libheif can't decode HEVC-encoded HEIC in the browser
+      throw new Error(
+        raw.includes("LIBHEIF") || raw.includes("libheif") || raw.includes("format not supported")
+          ? "heic_hevc_unsupported"
+          : "heic_convert_failed"
+      );
+    }
   }
+
+  if (!img) throw new Error("decode_failed");
+
+  const maxSide = 2048;
+  const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.round(img.naturalWidth * scale);
+  const h = Math.round(img.naturalHeight * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(img, 0, 0, w, h);
+  const blob: Blob = await new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Encodage JPEG échoué"))), "image/jpeg", 0.92)
+  );
+  return { blob, mime: "image/jpeg" };
 }
+
 
 async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
   const resp = await fetch(dataUrl);
@@ -105,11 +131,17 @@ function validateFile(file: File): string | null {
 
 function friendlyError(msg: string): string {
   const m = msg.toLowerCase();
-  if (m.includes("unsupported") || m.includes("non supporté") || m.includes("décoder")) {
-    return `Format d'image non supporté. ${UNSUPPORTED_HELP}`;
+  if (m.includes("heic_hevc_unsupported") || m.includes("libheif")) {
+    return "Ce HEIC utilise un encodage (HEVC) que ton navigateur ne sait pas décoder. Solution : ouvre la photo dans Aperçu (Mac) → Fichier → Exporter → format JPEG, puis réimporte. Ou change le format iPhone : Réglages → Appareil photo → Formats → « Le plus compatible ».";
   }
-  if (m.includes("heic")) {
-    return `Conversion HEIC échouée. Ouvre la photo dans Aperçu (Mac) puis « Exporter » en JPEG, ou change le format dans Réglages iPhone → Appareil photo → Formats → « Le plus compatible ».`;
+  if (m.includes("heic_convert_failed") || m.includes("heic")) {
+    return "Conversion HEIC échouée. Ouvre la photo dans Aperçu (Mac) puis « Exporter » en JPEG et réimporte-la.";
+  }
+  if (m.includes("decode_failed")) {
+    return `Impossible de décoder l'image. ${UNSUPPORTED_HELP}`;
+  }
+  if (m.includes("unsupported") || m.includes("non supporté")) {
+    return `Format d'image non supporté. ${UNSUPPORTED_HELP}`;
   }
   if (m.includes("429") || m.includes("rate")) {
     return "Trop de requêtes en même temps. Réessaie dans quelques secondes.";
@@ -119,6 +151,7 @@ function friendlyError(msg: string): string {
   }
   return msg;
 }
+
 
 export function WelkomStudioAirbnbTab({ propertyId }: Props) {
   const { toast } = useToast();
