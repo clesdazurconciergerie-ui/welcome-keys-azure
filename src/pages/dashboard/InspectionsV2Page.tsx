@@ -1,5 +1,5 @@
 // MODULE — Page unifiée États des lieux (Inspections + Modèles)
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, AlertTriangle, Search, ListChecks, ClipboardList, ShieldAlert, Trash2 } from "lucide-react";
+import { Plus, AlertTriangle, Search, ListChecks, ClipboardList, Trash2 } from "lucide-react";
 import { usePropertyInspections } from "@/hooks/usePropertyInspections";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -18,8 +18,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CreateInspectionDialog } from "@/components/inspection-v2/CreateInspectionDialog";
 import InspectionTemplatesPage from "./InspectionTemplatesPage";
-import InspectionsAdminPage from "./InspectionsAdminPage";
-import { supabase } from "@/integrations/supabase/client";
 import SEOHead from "@/components/SEOHead";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -48,19 +46,7 @@ export default function InspectionsV2Page() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState("inspections");
-  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await (supabase as any)
-        .from("user_roles").select("role")
-        .eq("user_id", user.id).eq("role", "super_admin").maybeSingle();
-      setIsAdmin(!!data);
-    })();
-  }, []);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -106,11 +92,6 @@ export default function InspectionsV2Page() {
           <TabsTrigger value="templates" className="gap-2">
             <ListChecks className="h-4 w-4" /> Modèles
           </TabsTrigger>
-          {isAdmin && (
-            <TabsTrigger value="admin" className="gap-2">
-              <ShieldAlert className="h-4 w-4" /> Admin global
-            </TabsTrigger>
-          )}
         </TabsList>
 
         <TabsContent value="inspections" className="space-y-6 mt-4">
@@ -168,7 +149,7 @@ export default function InspectionsV2Page() {
                           <TableRow
                             key={i.id}
                             className="cursor-pointer hover:bg-secondary/40"
-                            onClick={() => navigate(`/dashboard/etats-des-lieux-v2/${i.id}`)}
+                            onClick={() => navigate(`/dashboard/etats-des-lieux/${i.id}`)}
                           >
                             <TableCell className="font-medium">{i.property?.name ?? "—"}</TableCell>
                             <TableCell>
@@ -191,7 +172,7 @@ export default function InspectionsV2Page() {
                             </TableCell>
                             <TableCell onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center gap-1 justify-end">
-                                <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/etats-des-lieux-v2/${i.id}`)}>
+                                <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/etats-des-lieux/${i.id}`)}>
                                   Ouvrir →
                                 </Button>
                                 <AlertDialog>
@@ -234,18 +215,12 @@ export default function InspectionsV2Page() {
         <TabsContent value="templates" className="mt-4 -mx-4 md:-mx-6">
           <InspectionTemplatesPage />
         </TabsContent>
-
-        {isAdmin && (
-          <TabsContent value="admin" className="mt-4 -mx-4 md:-mx-6">
-            <InspectionsAdminPage />
-          </TabsContent>
-        )}
       </Tabs>
 
       <CreateInspectionDialog
         open={open}
         onOpenChange={setOpen}
-        onCreated={(id) => navigate(`/dashboard/etats-des-lieux-v2/${id}`)}
+        onCreated={(id) => navigate(`/dashboard/etats-des-lieux/${id}`)}
       />
     </div>
   );

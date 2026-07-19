@@ -3826,6 +3826,7 @@ export type Database = {
         Row: {
           actual_created_at: string
           booking_id: string | null
+          cleaning_mission_id: string | null
           concierge_signature_url: string | null
           created_at: string
           created_by: string | null
@@ -3841,6 +3842,9 @@ export type Database = {
           official_date: string
           parent_inspection_id: string | null
           property_id: string
+          report_pdf_url: string | null
+          report_sent_at: string | null
+          report_sent_to: string[] | null
           status: string
           updated_at: string
           updated_by: string | null
@@ -3852,6 +3856,7 @@ export type Database = {
         Insert: {
           actual_created_at?: string
           booking_id?: string | null
+          cleaning_mission_id?: string | null
           concierge_signature_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -3867,6 +3872,9 @@ export type Database = {
           official_date: string
           parent_inspection_id?: string | null
           property_id: string
+          report_pdf_url?: string | null
+          report_sent_at?: string | null
+          report_sent_to?: string[] | null
           status?: string
           updated_at?: string
           updated_by?: string | null
@@ -3878,6 +3886,7 @@ export type Database = {
         Update: {
           actual_created_at?: string
           booking_id?: string | null
+          cleaning_mission_id?: string | null
           concierge_signature_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -3893,6 +3902,9 @@ export type Database = {
           official_date?: string
           parent_inspection_id?: string | null
           property_id?: string
+          report_pdf_url?: string | null
+          report_sent_at?: string | null
+          report_sent_to?: string[] | null
           status?: string
           updated_at?: string
           updated_by?: string | null

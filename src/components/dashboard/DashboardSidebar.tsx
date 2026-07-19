@@ -30,7 +30,7 @@ const navGroups = [
       { title: "Propriétaires", url: "/dashboard/proprietaires", icon: Users, section: "proprietaires" },
       { title: "Prestataires", url: "/dashboard/prestataires", icon: Wrench, section: "prestataires" },
       { title: "Missions", url: "/dashboard/missions", icon: Briefcase, section: "missions" },
-      { title: "États des lieux", url: "/dashboard/etats-des-lieux-v2", icon: ClipboardCheck, section: "etats-des-lieux-v2" },
+      { title: "États des lieux", url: "/dashboard/etats-des-lieux", icon: ClipboardCheck, section: "etats-des-lieux" },
       { title: "Voyageurs", url: "/dashboard/voyageurs", icon: Users, section: "voyageurs" },
       { title: "Messages auto", url: "/dashboard/messages", icon: Mail, section: "messages" },
       { title: "Livrets", url: "/dashboard/livrets", icon: BookOpen, section: "livrets" },
