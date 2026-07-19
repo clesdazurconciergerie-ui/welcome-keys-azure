@@ -10,7 +10,6 @@ CRITICAL RULES — READ FIRST:
 
 AIRBNB FORMAT — MANDATORY OUTPUT SPECS:
 - Aspect ratio: 3:2 (landscape/horizontal orientation — NEVER vertical)
-- Minimum resolution: 1920 x 1280 pixels
 - Landscape only — wide, horizontal framing that showcases the full room
 - Composition: wide-angle perspective (equivalent to 16-35mm lens)
 - No black borders, no white margins, no watermarks
@@ -57,9 +56,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY missing" }), {
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
+      return new Response(JSON.stringify({ error: "OPENAI_API_KEY missing" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -73,45 +72,44 @@ Deno.serve(async (req) => {
       });
     }
 
-    const dataUrl = imageBase64.startsWith("data:")
-      ? imageBase64
-      : `data:${mimeType || "image/jpeg"};base64,${imageBase64}`;
+    // Strip data URL prefix if present
+    const rawBase64 = imageBase64.startsWith("data:")
+      ? imageBase64.split(",")[1]
+      : imageBase64;
+    const type = mimeType || "image/png";
 
-    const gwResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Decode base64 -> bytes
+    const binary = Uint8Array.from(atob(rawBase64), (c) => c.charCodeAt(0));
+    const imageBlob = new Blob([binary], { type });
+
+    // OpenAI images/edits (gpt-image-1) — supports editing/transforming an input image
+    const form = new FormData();
+    form.append("model", "gpt-image-1");
+    form.append("image", imageBlob, "input.png");
+    form.append("prompt", AIRBNB_PROMPT);
+    form.append("size", "1536x1024"); // 3:2 landscape
+    form.append("quality", "high");
+    form.append("n", "1");
+
+    const oaResp = await fetch("https://api.openai.com/v1/images/edits", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        modalities: ["image", "text"],
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: AIRBNB_PROMPT },
-              { type: "image_url", image_url: { url: dataUrl } },
-            ],
-          },
-        ],
-      }),
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+      body: form,
     });
 
-    if (!gwResp.ok) {
-      const body = await gwResp.text();
-      console.error("Gateway error", gwResp.status, body);
+    if (!oaResp.ok) {
+      const body = await oaResp.text();
+      console.error("OpenAI error", oaResp.status, body);
       return new Response(
-        JSON.stringify({ error: "AI gateway failed", status: gwResp.status, details: body }),
-        { status: gwResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "OpenAI failed", status: oaResp.status, details: body }),
+        { status: oaResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const payload = await gwResp.json();
-    const images = payload?.choices?.[0]?.message?.images;
-    const editedUrl: string | undefined = images?.[0]?.image_url?.url;
+    const payload = await oaResp.json();
+    const b64: string | undefined = payload?.data?.[0]?.b64_json;
 
-    if (!editedUrl) {
+    if (!b64) {
       console.error("No image returned", JSON.stringify(payload).slice(0, 500));
       return new Response(
         JSON.stringify({ error: "Model did not return an image", raw: payload }),
@@ -119,9 +117,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    return new Response(JSON.stringify({ imageDataUrl: editedUrl }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ imageDataUrl: `data:image/png;base64,${b64}` }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (e) {
     console.error("airbnb-photo-enhance error", e);
     return new Response(
