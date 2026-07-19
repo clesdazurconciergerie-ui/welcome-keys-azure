@@ -92,11 +92,6 @@ export default function InspectionsV2Page() {
           <TabsTrigger value="templates" className="gap-2">
             <ListChecks className="h-4 w-4" /> Modèles
           </TabsTrigger>
-          {isAdmin && (
-            <TabsTrigger value="admin" className="gap-2">
-              <ShieldAlert className="h-4 w-4" /> Admin global
-            </TabsTrigger>
-          )}
         </TabsList>
 
         <TabsContent value="inspections" className="space-y-6 mt-4">
@@ -220,8 +215,13 @@ export default function InspectionsV2Page() {
         <TabsContent value="templates" className="mt-4 -mx-4 md:-mx-6">
           <InspectionTemplatesPage />
         </TabsContent>
+      </Tabs>
 
-        {isAdmin && (
+      <CreateInspectionDialog
+        open={open}
+        onOpenChange={setOpen}
+        onCreated={(id) => navigate(`/dashboard/etats-des-lieux/${id}`)}
+      />
           <TabsContent value="admin" className="mt-4 -mx-4 md:-mx-6">
             <InspectionsAdminPage />
           </TabsContent>
