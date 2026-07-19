@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     let query = supabase
       .from("ical_calendars")
       .select("id, user_id, name, url, platform, last_sync_at, sync_frequency_hours, consecutive_failures")
-      .eq("is_sync_enabled", true);
+      .eq("is_active", true);
 
     if (onlyCalendarId) query = query.eq("id", onlyCalendarId);
 
