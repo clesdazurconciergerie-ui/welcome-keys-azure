@@ -56,11 +56,44 @@ export default function OwnerCalendarPage() {
   const { blocks: ownerBlocks, addBlock, removeBlock } = useOwnerBlocks(selectedProperty);
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
 
+  // Range selection state (Airbnb-like: click start, click end)
+  const [selectionStart, setSelectionStart] = useState<string | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
+
   const loading = propertiesLoading || dataLoading;
+
+  const toDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const todayStr = toDateStr(new Date());
+
+  const clearSelection = () => { setSelectionStart(null); setSelectionEnd(null); };
+
+  const handleDayClick = (date: Date) => {
+    const s = toDateStr(date);
+    if (s < todayStr) return;
+    if (!selectionStart || (selectionStart && selectionEnd)) {
+      setSelectionStart(s);
+      setSelectionEnd(null);
+    } else {
+      if (s <= selectionStart) {
+        setSelectionStart(s);
+        setSelectionEnd(null);
+      } else {
+        // end date is exclusive (checkout day), so store day-after selection
+        const next = new Date(date);
+        next.setDate(next.getDate() + 1);
+        setSelectionEnd(toDateStr(next));
+      }
+    }
+  };
+
+  const openBlockDialog = () => {
+    if (!selectionStart || !selectionEnd) return;
+    setBlockDialogOpen(true);
+  };
 
   const handleAddBlock = async (start: string, end: string, reason: string) => {
     const ok = await addBlock(start, end, reason);
-    if (ok) refetch();
+    if (ok) { refetch(); clearSelection(); }
     return ok;
   };
 
@@ -68,6 +101,16 @@ export default function OwnerCalendarPage() {
     await removeBlock(id);
     refetch();
   };
+
+  const isInSelection = (date: Date) => {
+    if (!selectionStart) return false;
+    const s = toDateStr(date);
+    const endInclusive = selectionEnd
+      ? toDateStr(new Date(new Date(selectionEnd).getTime() - 86400000))
+      : selectionStart;
+    return s >= selectionStart && s <= endInclusive;
+  };
+
 
   // Calendar grid
   const calendarDays = useMemo(() => {
@@ -136,12 +179,41 @@ export default function OwnerCalendarPage() {
                 </SelectContent>
               </Select>
             )}
-            <Button onClick={() => setBlockDialogOpen(true)} disabled={!selectedProperty} className="gap-2">
-              <Lock className="w-4 h-4" /> Bloquer des dates
-            </Button>
           </div>
         </div>
       </motion.div>
+
+      {/* Selection action bar */}
+      <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3 flex items-center justify-between flex-wrap gap-3">
+        <div className="text-sm">
+          {!selectionStart && (
+            <span className="text-muted-foreground">👉 Cliquez sur une date de début, puis sur une date de fin pour bloquer une période.</span>
+          )}
+          {selectionStart && !selectionEnd && (
+            <span>Début : <span className="font-medium">{new Date(selectionStart + "T00:00:00").toLocaleDateString("fr-FR")}</span> — cliquez maintenant la date de fin</span>
+          )}
+          {selectionStart && selectionEnd && (
+            <span>
+              Du <span className="font-medium">{new Date(selectionStart + "T00:00:00").toLocaleDateString("fr-FR")}</span>{" "}
+              au <span className="font-medium">{new Date(new Date(selectionEnd).getTime() - 86400000).toLocaleDateString("fr-FR")}</span>{" "}
+              <span className="text-muted-foreground">({Math.round((new Date(selectionEnd).getTime() - new Date(selectionStart).getTime()) / 86400000)} nuit(s))</span>
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {(selectionStart || selectionEnd) && (
+            <Button variant="ghost" size="sm" onClick={clearSelection}>Effacer</Button>
+          )}
+          <Button
+            size="sm"
+            onClick={openBlockDialog}
+            disabled={!selectionStart || !selectionEnd}
+            className="gap-2"
+          >
+            <Lock className="w-4 h-4" /> Bloquer ces dates
+          </Button>
+        </div>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -191,9 +263,31 @@ export default function OwnerCalendarPage() {
             {calendarDays.map((date, i) => {
               if (!date) return <div key={`e-${i}`} className="min-h-[72px]" />;
               const dayEvents = getEventsForDay(date);
+              const dateStr = toDateStr(date);
+              const isPast = dateStr < todayStr;
+              const hasReservation = dayEvents.some(e => e.event_type === "reservation" || e.event_type === "booking");
+              const selected = isInSelection(date);
+              const isSelectionStart = selectionStart === dateStr;
+              const isSelectionEndDay = selectionEnd && dateStr === toDateStr(new Date(new Date(selectionEnd).getTime() - 86400000));
+              const disabled = isPast || hasReservation;
+
+              const baseCls = "min-h-[72px] p-1 rounded-xl border transition-colors";
               const todayCls = isToday(date) ? "ring-2 ring-primary ring-offset-1" : "";
+              const stateCls = selected
+                ? "bg-primary/15 border-primary"
+                : disabled
+                  ? "border-border/40 opacity-60 cursor-not-allowed"
+                  : "border-border/40 hover:bg-primary/5 hover:border-primary/40 cursor-pointer";
+              const edgeCls = (isSelectionStart || isSelectionEndDay) ? "ring-2 ring-primary" : "";
+
               return (
-                <div key={date.toISOString()} className={`min-h-[72px] p-1 rounded-xl border border-border/40 ${todayCls} hover:bg-muted/20 transition-colors`}>
+                <div
+                  key={date.toISOString()}
+                  className={`${baseCls} ${todayCls} ${stateCls} ${edgeCls}`}
+                  onClick={() => !disabled && handleDayClick(date)}
+                  role={disabled ? undefined : "button"}
+                  aria-label={disabled ? undefined : `Sélectionner le ${date.toLocaleDateString("fr-FR")}`}
+                >
                   <p className={`text-[11px] font-medium mb-0.5 ${isToday(date) ? "text-primary font-bold" : "text-muted-foreground"}`}>{date.getDate()}</p>
                   <div className="space-y-0.5">
                     {dayEvents.slice(0, 2).map(ev => {
@@ -212,6 +306,7 @@ export default function OwnerCalendarPage() {
               );
             })}
           </div>
+
 
           {/* Legend */}
           <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t">
@@ -269,6 +364,9 @@ export default function OwnerCalendarPage() {
         open={blockDialogOpen}
         onOpenChange={setBlockDialogOpen}
         onConfirm={handleAddBlock}
+        initialStart={selectionStart || undefined}
+        initialEnd={selectionEnd || undefined}
+        hideDateInputs
       />
     </div>
   );
