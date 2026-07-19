@@ -322,14 +322,17 @@ export function PropertyCalendar({ propertyId }: Props) {
                     {dayEvents.slice(0, viewMode === "week" ? 5 : 2).map(ev => {
                       const evType = ev.event_type || "unknown";
                       const typeStyle = eventTypeStyles[evType] || eventTypeStyles.unknown;
-                      const colorCls = evType === "unknown" ? typeStyle.bg : (platformColors[ev.platform] || platformColors.other);
+                      const isReservation = evType === "reservation" || evType === "booking";
+                      const colorCls = isReservation
+                        ? (platformColors[ev.platform] || platformColors.other)
+                        : typeStyle.bg;
                       return (
                         <div
                           key={ev.id}
-                          className={`text-[9px] leading-tight px-1.5 py-0.5 rounded-md truncate border ${colorCls} ${typeStyle.bg}`}
+                          className={`text-[9px] leading-tight px-1.5 py-0.5 rounded-md truncate border ${colorCls}`}
                           title={`${typeStyle.label}: ${ev.summary || "Réservation"} ${ev.guest_name ? `- ${ev.guest_name}` : ""}`}
                         >
-                          {(evType === "reservation" || evType === "booking") ? (ev.guest_name || ev.summary || "Réservation") : "Date bloquée"}
+                          {isReservation ? (ev.guest_name || ev.summary || "Réservation") : "Date bloquée"}
                         </div>
                       );
                     })}
