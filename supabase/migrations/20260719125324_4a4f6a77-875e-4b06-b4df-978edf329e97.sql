@@ -1,0 +1,1 @@
+ALTER TABLE public.owner_properties ALTER COLUMN booklet_id DROP NOT NULL;
