@@ -131,11 +131,17 @@ function validateFile(file: File): string | null {
 
 function friendlyError(msg: string): string {
   const m = msg.toLowerCase();
-  if (m.includes("unsupported") || m.includes("non supporté") || m.includes("décoder")) {
-    return `Format d'image non supporté. ${UNSUPPORTED_HELP}`;
+  if (m.includes("heic_hevc_unsupported") || m.includes("libheif")) {
+    return "Ce HEIC utilise un encodage (HEVC) que ton navigateur ne sait pas décoder. Solution : ouvre la photo dans Aperçu (Mac) → Fichier → Exporter → format JPEG, puis réimporte. Ou change le format iPhone : Réglages → Appareil photo → Formats → « Le plus compatible ».";
   }
-  if (m.includes("heic")) {
-    return `Conversion HEIC échouée. Ouvre la photo dans Aperçu (Mac) puis « Exporter » en JPEG, ou change le format dans Réglages iPhone → Appareil photo → Formats → « Le plus compatible ».`;
+  if (m.includes("heic_convert_failed") || m.includes("heic")) {
+    return "Conversion HEIC échouée. Ouvre la photo dans Aperçu (Mac) puis « Exporter » en JPEG et réimporte-la.";
+  }
+  if (m.includes("decode_failed")) {
+    return `Impossible de décoder l'image. ${UNSUPPORTED_HELP}`;
+  }
+  if (m.includes("unsupported") || m.includes("non supporté")) {
+    return `Format d'image non supporté. ${UNSUPPORTED_HELP}`;
   }
   if (m.includes("429") || m.includes("rate")) {
     return "Trop de requêtes en même temps. Réessaie dans quelques secondes.";
@@ -145,6 +151,7 @@ function friendlyError(msg: string): string {
   }
   return msg;
 }
+
 
 export function WelkomStudioAirbnbTab({ propertyId }: Props) {
   const { toast } = useToast();
