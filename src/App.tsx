@@ -66,7 +66,7 @@ import ICalMonitoringPage from "./pages/dashboard/ICalMonitoringPage";
 import InspectionsV2Page from "./pages/dashboard/InspectionsV2Page";
 import InspectionV2DetailPage from "./pages/dashboard/InspectionV2DetailPage";
 import InspectionTemplatesPage from "./pages/dashboard/InspectionTemplatesPage";
-import InspectionsAdminPage from "./pages/dashboard/InspectionsAdminPage";
+import InspectionQuickFillPage from "./pages/dashboard/InspectionQuickFillPage";
 import SPDashboardHome from "./pages/service-provider/SPDashboardHome";
 import SPMissionsUnifiedPage from "./pages/service-provider/SPMissionsUnifiedPage";
 import SPMissionDetailPage from "./pages/service-provider/SPMissionDetailPage";
@@ -79,7 +79,7 @@ import SPSettingsPage from "./pages/service-provider/SPSettingsPage";
 import SPAccountPage from "./pages/service-provider/SPAccountPage";
 import FinancePage from "./pages/dashboard/FinancePage";
 import RevenueCompletionPage from "./pages/dashboard/RevenueCompletionPage";
-import InspectionsPage from "./pages/dashboard/InspectionsPage";
+
 import WelkomStudioPage from "./pages/dashboard/WelkomStudioPage";
 import OwnerFinancesPage from "./pages/owner/OwnerFinancesPage";
 import GuestsPage from "./pages/dashboard/GuestsPage";
@@ -133,7 +133,9 @@ const App = () => (
             <Route path="prestataires" element={<PrestatairesPage />} />
             {/* Interventions removed — missions is the single source */}
             <Route path="missions" element={<MissionsPage />} />
-            <Route path="etats-des-lieux" element={<Navigate to="/dashboard/etats-des-lieux-v2" replace />} />
+            <Route path="etats-des-lieux-v2" element={<Navigate to="/dashboard/etats-des-lieux" replace />} />
+            <Route path="etats-des-lieux-v2/:id" element={<NavigateV2 />} />
+            <Route path="admin/etats-des-lieux" element={<Navigate to="/dashboard/etats-des-lieux" replace />} />
             <Route path="voyageurs" element={<GuestsPage />} />
             <Route path="messages" element={<GuestMessagingPage />} />
             <Route path="conflits" element={<BookingConflictsPage />} />
@@ -147,10 +149,10 @@ const App = () => (
             <Route path="demandes-proprietaires" element={<OwnerRequestsAdminPage />} />
             
             <Route path="ical-monitoring" element={<ICalMonitoringPage />} />
-            <Route path="etats-des-lieux-v2" element={<InspectionsV2Page />} />
-            <Route path="etats-des-lieux-v2/:id" element={<InspectionV2DetailPage />} />
+            <Route path="etats-des-lieux" element={<InspectionsV2Page />} />
+            <Route path="etats-des-lieux/:id" element={<InspectionV2DetailPage />} />
+            <Route path="etats-des-lieux/:id/remplir" element={<InspectionQuickFillPage />} />
             <Route path="etats-des-lieux-modeles" element={<InspectionTemplatesPage />} />
-            <Route path="admin/etats-des-lieux" element={<InspectionsAdminPage />} />
             <Route path="call-prompter" element={<CallPrompterPage />} />
             <Route path="performance" element={<PerformancePage />} />
             <Route path="abonnement" element={<AbonnementPage />} />
