@@ -187,12 +187,13 @@ export function InvoicePrintView({ invoice, items, financialSettings }: Props) {
               padding: "8px",
             }}
           >
-            <img
-              src={co.logo_url}
-              alt="Logo"
-              style={{ maxHeight: 70, maxWidth: 80, objectFit: "contain" }}
-              crossOrigin="anonymous"
-            />
+            {logoDataUrl && (
+              <img
+                src={logoDataUrl}
+                alt="Logo"
+                style={{ maxHeight: 70, maxWidth: 80, objectFit: "contain" }}
+              />
+            )}
           </div>
         ) : (
           <div style={{ width: 20 }} />
