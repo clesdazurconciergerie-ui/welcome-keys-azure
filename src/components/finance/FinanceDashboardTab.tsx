@@ -264,18 +264,37 @@ export function FinanceDashboardTab() {
       {!loading && chartData.length > 1 && (
         <Card>
           <CardContent className="p-5">
-            <h3 className="text-sm font-semibold mb-4">Revenus vs Dépenses</h3>
-            <div className="h-64">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold">Revenus vs Dépenses</h3>
+              <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-foreground" />Revenus</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/60" />Dépenses</span>
+              </div>
+            </div>
+            <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v: number) => formatEUR(v)} />
-                  <Legend />
-                  <Bar dataKey="revenue" name="Revenus" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expenses" name="Dépenses" fill="hsl(0, 84%, 60%)" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--foreground))" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="hsl(var(--foreground))" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gradExpenses" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0.25} />
+                      <stop offset="100%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" tickFormatter={v => v === 0 ? "0" : `${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip
+                    formatter={(v: number) => formatEUR(v)}
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 0, fontSize: 12 }}
+                    cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }}
+                  />
+                  <Area type="monotone" dataKey="revenue" name="Revenus" stroke="hsl(var(--foreground))" strokeWidth={2} fill="url(#gradRevenue)" />
+                  <Area type="monotone" dataKey="expenses" name="Dépenses" stroke="hsl(var(--muted-foreground))" strokeWidth={2} fill="url(#gradExpenses)" />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
