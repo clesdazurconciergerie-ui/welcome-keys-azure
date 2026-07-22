@@ -44,7 +44,7 @@ export function FinanceDashboardTab() {
     const activeInvoices = invoices.filter(inv => {
       const d = new Date(inv.issue_date || inv.invoice_date);
       const inRange = d >= dateRange.start && d <= dateRange.end;
-      const validStatus = ["sent", "paid", "overdue"].includes(inv.status);
+      const validStatus = ["draft", "sent", "paid", "overdue"].includes(inv.status);
       const isInvoice = inv.type !== "credit_note";
       return inRange && validStatus && isInvoice;
     });
