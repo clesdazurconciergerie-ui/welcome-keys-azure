@@ -14,7 +14,7 @@ import {
 import { format, startOfMonth, endOfMonth, subMonths, startOfQuarter, endOfQuarter, startOfYear, endOfYear, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval, isWithinInterval } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatEUR, marginPercent, invoiceStatusLabels, invoiceStatusColors, expenseStatusLabels, expenseStatusColors } from "@/lib/finance-utils";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 export function FinanceDashboardTab() {
   const [period, setPeriod] = useState("current");
