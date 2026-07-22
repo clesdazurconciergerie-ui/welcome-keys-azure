@@ -62,7 +62,7 @@ export function FinanceDashboardTab() {
     const creditNoteTotal = creditNotes.reduce((s, inv) => s + Math.abs(Number(inv[amountField] || 0)), 0);
     
      const paidRevenue = activeInvoices.filter(i => i.status === "paid").reduce((s, i) => s + Number(i[amountField] || 0), 0);
-    const pendingRevenue = activeInvoices.filter(i => ["sent", "overdue"].includes(i.status)).reduce((s, i) => s + Number(i[amountField] || 0), 0);
+    const pendingRevenue = activeInvoices.filter(i => ["draft", "sent", "overdue"].includes(i.status)).reduce((s, i) => s + Number(i[amountField] || 0), 0);
 
     // Cash incomes in period
     const cashInPeriod = cashIncomes.filter(ci => {
