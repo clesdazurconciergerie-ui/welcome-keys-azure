@@ -115,7 +115,7 @@ export function FinanceDashboardTab() {
       const rev = invoices
         .filter(inv => {
           const id = new Date(inv.issue_date || inv.invoice_date);
-          return isWithinInterval(id, interval) && ["sent", "paid", "overdue"].includes(inv.status) && inv.type !== "credit_note";
+          return isWithinInterval(id, interval) && ["draft", "sent", "paid", "overdue"].includes(inv.status) && inv.type !== "credit_note";
         })
         .reduce((s, inv) => s + Number(effectiveDisplayMode === "ht" ? inv.subtotal : inv.total), 0);
 
