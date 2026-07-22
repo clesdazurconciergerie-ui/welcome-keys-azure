@@ -107,8 +107,15 @@ export async function generateAndUploadInvoicePdf(
       .set({
         margin: 0,
         image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+          backgroundColor: "#ffffff",
+          windowWidth: 794,
+        },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"] },
       })
       .from(printEl)
       .outputPdf("blob");
