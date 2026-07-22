@@ -44,6 +44,25 @@ export function InvoicePrintView({ invoice, items, financialSettings }: Props) {
     "dd/MM/yyyy"
   );
 
+  // Convert logo to data URL to avoid CORS/broken-image icon in html2canvas
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!co.logo_url) { setLogoDataUrl(null); return; }
+    (async () => {
+      try {
+        const res = await fetch(co.logo_url, { mode: "cors" });
+        const blob = await res.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => { if (!cancelled) setLogoDataUrl(reader.result as string); };
+        reader.readAsDataURL(blob);
+      } catch {
+        if (!cancelled) setLogoDataUrl(co.logo_url);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [co.logo_url]);
+
   // Custom colors with fallbacks
   const NAVY = co.invoice_primary_color || "#061452";
   const GOLD = co.invoice_accent_color || "#C4A45B";
