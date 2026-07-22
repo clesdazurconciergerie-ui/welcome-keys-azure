@@ -61,8 +61,15 @@ export async function downloadInvoiceAsPdf(invoiceNumber: string): Promise<void>
         margin: 0,
         filename: `Facture-${invoiceNumber}.pdf`,
         image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+          backgroundColor: "#ffffff",
+          windowWidth: 794, // 210mm at 96dpi
+        },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"] },
       })
       .from(printEl)
       .save();
