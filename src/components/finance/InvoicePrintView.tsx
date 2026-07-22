@@ -76,12 +76,11 @@ export function InvoicePrintView({ invoice, items, financialSettings }: Props) {
       style={{
         fontFamily: FONT,
         width: "210mm",
-        height: "297mm",
+        minHeight: "297mm",
         margin: "0 auto",
         background: "#fff",
         color: "#1a1a1a",
         position: "relative",
-        overflow: "hidden",
         boxSizing: "border-box",
         paddingBottom: "26mm",
       }}
