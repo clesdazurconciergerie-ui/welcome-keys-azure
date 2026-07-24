@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,8 +9,9 @@ import { expenseCategories } from "@/hooks/useExpenses";
 import { useProperties } from "@/hooks/useProperties";
 import { useOwners } from "@/hooks/useOwners";
 import { useServiceProviders } from "@/hooks/useServiceProviders";
-import { Plus, Receipt, Trash2, Upload, Users, CheckCircle, Wrench, HardHat } from "lucide-react";
+import { Plus, Trash2, Upload, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { formatEUR, expenseStatusLabels, expenseStatusColors } from "@/lib/finance-utils";
@@ -21,12 +20,6 @@ const typeLabels: Record<string, string> = {
   expense: "Dépense",
   vendor_payment: "Prestataire",
   mission: "Mission",
-};
-
-const typeIcons: Record<string, React.ReactNode> = {
-  expense: <Receipt className="h-4 w-4 text-red-400" />,
-  vendor_payment: <Users className="h-4 w-4 text-primary" />,
-  mission: <HardHat className="h-4 w-4 text-amber-500" />,
 };
 
 export function FinanceExpensesTab() {
@@ -39,7 +32,6 @@ export function FinanceExpensesTab() {
   const { owners } = useOwners();
   const { providers: serviceProviders } = useServiceProviders();
 
-  // Filter state
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -109,7 +101,6 @@ export function FinanceExpensesTab() {
     setVpOpen(false);
   };
 
-  // Filter
   const filtered = unified.filter(u => {
     if (filterType !== "all" && u.type !== filterType) return false;
     if (filterStatus !== "all" && u.status !== filterStatus) return false;
@@ -117,65 +108,49 @@ export function FinanceExpensesTab() {
   });
 
   const handleStatusChange = (item: UnifiedExpense) => {
-    if (item.type === "expense") {
-      const src = item._source as any;
-      updateExpenseStatus(src.id, "paid");
-    } else if (item.type === "vendor_payment") {
-      const src = item._source as any;
-      updateVPStatus(src.id, "paid");
-    }
-    // interventions are already paid
+    if (item.type === "expense") updateExpenseStatus((item._source as any).id, "paid");
+    else if (item.type === "vendor_payment") updateVPStatus((item._source as any).id, "paid");
   };
 
   const handleDelete = (item: UnifiedExpense) => {
-    if (item.type === "expense") {
-      const src = item._source as any;
-      deleteExpense(src.id);
-    } else if (item.type === "vendor_payment") {
-      const src = item._source as any;
-      removeVP(src.id);
-    }
-    // interventions can't be deleted from here
+    if (item.type === "expense") deleteExpense((item._source as any).id);
+    else if (item.type === "vendor_payment") removeVP((item._source as any).id);
   };
 
+  const summary = [
+    { label: "Manuelles", value: paidByType.expense },
+    { label: "Prestataires", value: paidByType.vendor_payment },
+    { label: "Missions", value: paidByType.mission || 0 },
+    { label: "Total payé", value: totalPaid, hint: totalToPay > 0 ? `À payer ${formatEUR(totalToPay)}` : undefined },
+  ];
+
   return (
-    <div className="space-y-6 mt-4">
-      {/* Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Dépenses manuelles</p>
-            <p className="text-xl font-bold text-red-500 mt-1">{formatEUR(paidByType.expense)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Prestataires</p>
-            <p className="text-xl font-bold text-red-500 mt-1">{formatEUR(paidByType.vendor_payment)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Missions</p>
-            <p className="text-xl font-bold text-red-500 mt-1">{formatEUR(paidByType.mission || 0)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Total payé</p>
-            <p className="text-xl font-bold mt-1">{formatEUR(totalPaid)}</p>
-            {totalToPay > 0 && (
-              <p className="text-[11px] text-muted-foreground mt-0.5">À payer: {formatEUR(totalToPay)}</p>
-            )}
-          </CardContent>
-        </Card>
+    <div className="mt-8 space-y-12 animate-fade-in">
+      {/* Summary row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10">
+        {summary.map((s, i) => (
+          <div
+            key={s.label}
+            className="group animate-fade-in"
+            style={{ animationDelay: `${i * 80}ms`, animationFillMode: "backwards" }}
+          >
+            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-3">{s.label}</p>
+            <p className="text-3xl font-light tracking-tight tabular-nums transition-transform duration-300 group-hover:-translate-y-0.5">
+              {formatEUR(s.value)}
+            </p>
+            <div className="mt-3 w-8 h-px bg-foreground/60 transition-all duration-500 group-hover:w-16" />
+            {s.hint && <p className="mt-3 text-[11px] font-mono text-muted-foreground">{s.hint}</p>}
+          </div>
+        ))}
       </div>
 
       {/* Filters + Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-foreground/10 pb-4">
         <div className="flex items-center gap-2">
           <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Type" /></SelectTrigger>
+            <SelectTrigger className="w-40 h-9 rounded-none border-0 border-b border-foreground/30 bg-transparent text-[11px] uppercase tracking-widest focus:ring-0 shadow-none">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les types</SelectItem>
               <SelectItem value="expense">Dépenses</SelectItem>
@@ -184,7 +159,9 @@ export function FinanceExpensesTab() {
             </SelectContent>
           </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-36 h-9"><SelectValue placeholder="Statut" /></SelectTrigger>
+            <SelectTrigger className="w-36 h-9 rounded-none border-0 border-b border-foreground/30 bg-transparent text-[11px] uppercase tracking-widest focus:ring-0 shadow-none">
+              <SelectValue placeholder="Statut" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous</SelectItem>
               <SelectItem value="paid">Payé</SelectItem>
@@ -193,11 +170,13 @@ export function FinanceExpensesTab() {
           </Select>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* New Expense */}
+        <div className="flex items-center gap-3">
           <Dialog open={expOpen} onOpenChange={setExpOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2 h-9"><Plus className="h-4 w-4" />Dépense</Button>
+              <button className="group inline-flex items-center gap-2 h-9 text-[11px] uppercase tracking-widest border-b border-foreground/30 hover:border-foreground transition-colors">
+                <Plus className="h-3.5 w-3.5 transition-transform group-hover:rotate-90 duration-300" strokeWidth={1.5} />
+                Dépense
+              </button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Nouvelle dépense</DialogTitle></DialogHeader>
@@ -258,10 +237,12 @@ export function FinanceExpensesTab() {
             </DialogContent>
           </Dialog>
 
-          {/* New VP */}
           <Dialog open={vpOpen} onOpenChange={setVpOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 h-9"><Plus className="h-4 w-4" />Paiement prestataire</Button>
+              <button className="group inline-flex items-center gap-2 h-9 px-4 text-[11px] uppercase tracking-widest bg-foreground text-background hover:bg-foreground/90 transition-colors">
+                <Plus className="h-3.5 w-3.5 transition-transform group-hover:rotate-90 duration-300" strokeWidth={1.5} />
+                Paiement prestataire
+              </button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Paiement prestataire</DialogTitle></DialogHeader>
@@ -307,66 +288,68 @@ export function FinanceExpensesTab() {
         </div>
       </div>
 
-      {/* Unified List */}
+      {/* Unified list */}
       {loading ? (
-        <p className="text-sm text-muted-foreground text-center py-8">Chargement...</p>
+        <p className="text-[11px] uppercase tracking-widest text-muted-foreground text-center py-16">Chargement…</p>
       ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Receipt className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
-            <p className="text-muted-foreground">Aucune dépense trouvée</p>
-            <div className="flex items-center justify-center gap-2 mt-3">
-              <Button variant="outline" size="sm" onClick={() => setExpOpen(true)} className="gap-1.5">
-                <Plus className="h-3.5 w-3.5" />Dépense
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setVpOpen(true)} className="gap-1.5">
-                <Plus className="h-3.5 w-3.5" />Paiement
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map(item => (
-            <Card key={item.id} className="hover:shadow-sm transition-shadow">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  {typeIcons[item.type]}
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{item.description}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                      <Badge variant="outline" className="text-[9px]">{typeLabels[item.type]}</Badge>
-                      <span>{format(new Date(item.date), "dd/MM/yyyy")}</span>
-                      {item.provider_name && <span>• {item.provider_name}</span>}
-                      {item.property_name && <span>• {item.property_name}</span>}
-                      {item.category && item.type === "expense" && (
-                        <Badge variant="outline" className="text-[9px]">
-                          {expenseCategories.find(c => c.value === item.category)?.label || item.category}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <p className="text-sm font-bold text-red-500">-{formatEUR(item.amount)}</p>
-                  <Badge className={`text-[10px] ${expenseStatusColors[item.status] || ""}`}>
-                    {expenseStatusLabels[item.status] || item.status}
-                  </Badge>
-                  {item.status === "to_pay" && item.type !== "mission" && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleStatusChange(item)} title="Marquer payé">
-                      <CheckCircle className="h-4 w-4 text-emerald-600" />
-                    </Button>
-                  )}
-                  {item.type !== "mission" && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(item)} title="Supprimer">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="py-20 text-center animate-fade-in">
+          <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Aucune dépense trouvée</p>
+          <div className="flex items-center justify-center gap-4 mt-6">
+            <button onClick={() => setExpOpen(true)} className="text-[11px] uppercase tracking-widest border-b border-foreground/30 hover:border-foreground pb-1">+ Dépense</button>
+            <button onClick={() => setVpOpen(true)} className="text-[11px] uppercase tracking-widest border-b border-foreground/30 hover:border-foreground pb-1">+ Paiement</button>
+          </div>
         </div>
+      ) : (
+        <ul>
+          {filtered.map((item, i) => (
+            <li
+              key={item.id}
+              className="group flex items-center justify-between gap-4 py-4 border-b border-foreground/10 hover:pl-2 transition-all duration-300 animate-fade-in"
+              style={{ animationDelay: `${Math.min(i, 10) * 30}ms`, animationFillMode: "backwards" }}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <p className="text-sm truncate">{item.description}</p>
+                  <span className="text-[9px] px-2 py-0.5 uppercase tracking-widest border border-foreground/20 text-muted-foreground">
+                    {typeLabels[item.type]}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground truncate font-mono mt-1">
+                  {format(new Date(item.date), "dd MMM yyyy", { locale: fr })}
+                  {item.provider_name && <span> · {item.provider_name}</span>}
+                  {item.property_name && <span> · {item.property_name}</span>}
+                  {item.category && item.type === "expense" && (
+                    <span> · {expenseCategories.find(c => c.value === item.category)?.label || item.category}</span>
+                  )}
+                </p>
+              </div>
+              <div className="flex items-center gap-4 shrink-0">
+                <span className="text-sm font-mono tabular-nums">− {formatEUR(item.amount)}</span>
+                <span className={`text-[9px] px-2 py-0.5 uppercase tracking-widest ${expenseStatusColors[item.status] || ""}`}>
+                  {expenseStatusLabels[item.status] || item.status}
+                </span>
+                {item.status === "to_pay" && item.type !== "mission" && (
+                  <button
+                    onClick={() => handleStatusChange(item)}
+                    title="Marquer payé"
+                    className="opacity-40 hover:opacity-100 transition-opacity"
+                  >
+                    <CheckCircle className="h-4 w-4" strokeWidth={1.5} />
+                  </button>
+                )}
+                {item.type !== "mission" && (
+                  <button
+                    onClick={() => handleDelete(item)}
+                    title="Supprimer"
+                    className="opacity-40 hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

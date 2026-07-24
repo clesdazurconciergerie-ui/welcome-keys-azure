@@ -1,18 +1,14 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Banknote, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2 } from "lucide-react";
 import { useCashIncomes } from "@/hooks/useCashIncomes";
 import { useProperties } from "@/hooks/useProperties";
 import { formatEUR } from "@/lib/finance-utils";
@@ -60,68 +56,71 @@ export function FinanceCashTab() {
   const total = incomes.reduce((s, i) => s + Number(i.amount), 0);
 
   if (loading) {
-    return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+    return <div className="flex justify-center py-16"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>;
   }
 
   return (
-    <div className="space-y-6 mt-4">
-      <div className="flex items-center justify-between">
+    <div className="mt-8 space-y-12 animate-fade-in">
+      {/* Header + total */}
+      <div className="flex flex-wrap items-end justify-between gap-6 border-b border-foreground/10 pb-8">
         <div>
-          <h2 className="text-lg font-semibold">Encaissements espèces</h2>
-          <p className="text-xs text-muted-foreground">Suivez vos revenus en espèces hors facturation</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-3">Encaissements espèces</p>
+          <p className="text-5xl font-light tracking-tight tabular-nums">{formatEUR(total)}</p>
+          <div className="mt-3 w-8 h-px bg-foreground/60" />
+          <p className="mt-3 text-[11px] text-muted-foreground font-mono">
+            {incomes.length} encaissement{incomes.length > 1 ? "s" : ""} enregistré{incomes.length > 1 ? "s" : ""}
+          </p>
         </div>
-        <Button onClick={() => setAddOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" /> Ajouter
-        </Button>
+        <button
+          onClick={() => setAddOpen(true)}
+          className="group inline-flex items-center gap-2 h-9 px-4 text-[11px] uppercase tracking-widest bg-foreground text-background hover:bg-foreground/90 transition-colors"
+        >
+          <Plus className="h-3.5 w-3.5 transition-transform group-hover:rotate-90 duration-300" strokeWidth={1.5} />
+          Ajouter
+        </button>
       </div>
-
-      {/* Total */}
-      <Card>
-        <CardContent className="p-5 flex items-center gap-3">
-          <Banknote className="h-5 w-5 text-emerald-600" />
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Total encaissé</p>
-            <p className="text-2xl font-bold text-emerald-600">{formatEUR(total)}</p>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* List */}
       {incomes.length === 0 ? (
-        <Card><CardContent className="p-8 text-center text-muted-foreground text-sm">
+        <p className="text-center py-20 text-[11px] uppercase tracking-widest text-muted-foreground">
           Aucun encaissement enregistré
-        </CardContent></Card>
+        </p>
       ) : (
-        <Card>
-          <CardContent className="p-5 space-y-2">
-            {incomes.map(inc => {
-              const prop = properties.find(p => p.id === inc.property_id);
-              return (
-                <div key={inc.id} className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-muted/20">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium truncate">{inc.description}</p>
-                      <Badge variant="outline" className="text-[10px] shrink-0">
-                        {categoryLabels[inc.category || "other"] || inc.category}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-3 mt-0.5 text-[11px] text-muted-foreground">
-                      <span>{format(new Date(inc.income_date), "dd MMM yyyy", { locale: fr })}</span>
-                      {prop && <span>• {prop.name}</span>}
-                      {inc.notes && <span>• {inc.notes}</span>}
-                    </div>
+        <ul>
+          {incomes.map((inc, i) => {
+            const prop = properties.find(p => p.id === inc.property_id);
+            return (
+              <li
+                key={inc.id}
+                className="group flex items-center justify-between gap-4 py-4 border-b border-foreground/10 hover:pl-2 transition-all duration-300 animate-fade-in"
+                style={{ animationDelay: `${Math.min(i, 10) * 30}ms`, animationFillMode: "backwards" }}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <p className="text-sm truncate">{inc.description}</p>
+                    <span className="text-[9px] px-2 py-0.5 uppercase tracking-widest border border-foreground/20 text-muted-foreground">
+                      {categoryLabels[inc.category || "other"] || inc.category}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-emerald-600">+{formatEUR(Number(inc.amount))}</span>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(inc.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  <p className="text-[11px] text-muted-foreground truncate font-mono mt-1">
+                    {format(new Date(inc.income_date), "dd MMM yyyy", { locale: fr })}
+                    {prop && <span> · {prop.name}</span>}
+                    {inc.notes && <span> · {inc.notes}</span>}
+                  </p>
                 </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+                <div className="flex items-center gap-4 shrink-0">
+                  <span className="text-sm font-mono tabular-nums">+ {formatEUR(Number(inc.amount))}</span>
+                  <button
+                    onClick={() => setDeleteId(inc.id)}
+                    className="opacity-40 hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
       {/* Add dialog */}
@@ -176,7 +175,6 @@ export function FinanceCashTab() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete dialog */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

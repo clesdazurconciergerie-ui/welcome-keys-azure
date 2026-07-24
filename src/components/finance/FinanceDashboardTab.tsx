@@ -1,12 +1,10 @@
 import { useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useUnifiedExpenses } from "@/hooks/useUnifiedExpenses";
 import { useFinancialSettings } from "@/hooks/useFinancialSettings";
 import { useCashIncomes } from "@/hooks/useCashIncomes";
-import { FileText, Receipt, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import {
   format, startOfMonth, endOfMonth, subMonths, startOfQuarter, endOfQuarter,
   startOfYear, endOfYear, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval, isWithinInterval,
@@ -72,14 +70,11 @@ export function FinanceDashboardTab() {
 
     const netProfit = grossRevenue - totalExpenses;
 
-    // Receivables (unpaid invoices — not limited to period)
+    // Receivables — all unpaid invoices regardless of period
     const allActive = invoices.filter(i => i.type !== "credit_note");
-    const sentInvoices = allActive.filter(i => i.status === "sent");
-    const overdueInvoices = allActive.filter(i => i.status === "overdue");
-    const draftInvoices = allActive.filter(i => i.status === "draft");
-    const sentTotal = sentInvoices.reduce((s, i) => s + Number(i[amountField] || 0), 0);
-    const overdueTotal = overdueInvoices.reduce((s, i) => s + Number(i[amountField] || 0), 0);
-    const draftTotal = draftInvoices.reduce((s, i) => s + Number(i[amountField] || 0), 0);
+    const sentTotal = allActive.filter(i => i.status === "sent").reduce((s, i) => s + Number(i[amountField] || 0), 0);
+    const overdueTotal = allActive.filter(i => i.status === "overdue").reduce((s, i) => s + Number(i[amountField] || 0), 0);
+    const draftTotal = allActive.filter(i => i.status === "draft").reduce((s, i) => s + Number(i[amountField] || 0), 0);
     const receivable = sentTotal + overdueTotal + draftTotal;
 
     return {
@@ -116,28 +111,34 @@ export function FinanceDashboardTab() {
 
   const recentInvoices = invoices.filter(i => i.type !== "credit_note").slice(0, 5);
   const recentExpenses = allExpenses.slice(0, 5);
-
   const marginPct = stats.grossRevenue > 0 ? (stats.netProfit / stats.grossRevenue) * 100 : 0;
 
+  const kpis = [
+    { label: "Revenu brut", value: stats.grossRevenue, hint: !loading ? `Payées ${formatEUR(stats.paidRevenue)} · Attente ${formatEUR(stats.pendingRevenue)}` : "" },
+    { label: "Dépenses", value: stats.totalExpenses, hint: !loading ? `Manuelles ${formatEUR(stats.expensesTotal)} · Missions ${formatEUR(stats.missionTotal)}` : "" },
+    { label: "Profit net", value: stats.netProfit, hint: !loading && stats.grossRevenue > 0 ? `Marge ${marginPercent(stats.netProfit, stats.grossRevenue)}` : "" },
+    { label: "À recevoir", value: stats.receivable, hint: !loading ? `Envoyées ${formatEUR(stats.sentTotal)} · Retard ${formatEUR(stats.overdueTotal)}${stats.draftTotal > 0 ? ` · Brouillons ${formatEUR(stats.draftTotal)}` : ""}` : "" },
+  ];
+
   return (
-    <div className="mt-6 space-y-10">
+    <div className="mt-8 space-y-16 animate-fade-in">
       {/* Header ribbon */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-foreground/10 pb-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">Vue d'ensemble</p>
-          <h2 className="text-3xl font-serif tracking-tight">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-3">Vue d'ensemble</p>
+          <h2 className="text-4xl font-light tracking-tight capitalize">
             {format(dateRange.start, "MMMM yyyy", { locale: fr })}
           </h2>
-          <p className="mt-1 text-xs text-muted-foreground font-mono">
+          <p className="mt-2 text-[11px] tracking-wider text-muted-foreground font-mono">
             {format(dateRange.start, "dd.MM.yyyy")} — {format(dateRange.end, "dd.MM.yyyy")}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-40 h-9 rounded-none border-foreground/20 text-xs uppercase tracking-wider">
+            <SelectTrigger className="w-44 h-9 rounded-none border-0 border-b border-foreground/30 bg-transparent text-[11px] uppercase tracking-widest focus:ring-0 focus-visible:ring-0 focus:border-foreground shadow-none">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="rounded-none">
+            <SelectContent>
               <SelectItem value="current">Ce mois</SelectItem>
               <SelectItem value="last">Mois dernier</SelectItem>
               <SelectItem value="quarter">Ce trimestre</SelectItem>
@@ -145,62 +146,56 @@ export function FinanceDashboardTab() {
             </SelectContent>
           </Select>
           {vatEnabled && (
-            <Button
-              variant="outline" size="sm"
-              className="h-9 text-[11px] uppercase tracking-wider rounded-none border-foreground/20"
+            <button
+              className="h-9 px-3 text-[11px] uppercase tracking-widest border-b border-foreground/30 hover:border-foreground transition-colors"
               onClick={() => setDisplayMode(displayMode === "ht" ? "ttc" : "ht")}
             >
               {displayMode === "ht" ? "HT" : "TTC"}
-            </Button>
+            </button>
           )}
-          <Button
-            variant={cashOnly ? "default" : "outline"} size="sm"
-            className="h-9 text-[11px] uppercase tracking-wider rounded-none border-foreground/20"
+          <button
+            className={`h-9 px-3 text-[11px] uppercase tracking-widest border-b transition-colors ${cashOnly ? "border-foreground text-foreground" : "border-foreground/30 text-muted-foreground hover:border-foreground hover:text-foreground"}`}
             onClick={() => setCashOnly(!cashOnly)}
           >
             Trésorerie
-          </Button>
+          </button>
         </div>
       </div>
 
-      {/* KPI editorial grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-foreground/10 border-y border-foreground/10">
-        <KpiBlock
-          label="Revenu brut"
-          value={loading ? "—" : formatEUR(stats.grossRevenue)}
-          hint={!loading ? `Payées ${formatEUR(stats.paidRevenue)} · Attente ${formatEUR(stats.pendingRevenue)}` : undefined}
-          direction="up"
-        />
-        <KpiBlock
-          label="Dépenses"
-          value={loading ? "—" : formatEUR(stats.totalExpenses)}
-          hint={!loading ? `Manuelles ${formatEUR(stats.expensesTotal)} · Missions ${formatEUR(stats.missionTotal)}` : undefined}
-          direction="down"
-        />
-        <KpiBlock
-          label="Profit net"
-          value={loading ? "—" : formatEUR(stats.netProfit)}
-          hint={!loading && stats.grossRevenue > 0 ? `Marge ${marginPercent(stats.netProfit, stats.grossRevenue)}` : undefined}
-          direction={stats.netProfit >= 0 ? "up" : "down"}
-          emphasis
-        />
-        <KpiBlock
-          label="À recevoir"
-          value={loading ? "—" : formatEUR(stats.receivable)}
-          hint={!loading ? `Envoyées ${formatEUR(stats.sentTotal)} · Retard ${formatEUR(stats.overdueTotal)}${stats.draftTotal > 0 ? ` · Brouillons ${formatEUR(stats.draftTotal)}` : ""}` : undefined}
-        />
+      {/* KPI editorial row — no cards, no walls */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
+        {kpis.map((k, i) => (
+          <div
+            key={k.label}
+            className="group animate-fade-in"
+            style={{ animationDelay: `${i * 80}ms`, animationFillMode: "backwards" }}
+          >
+            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-3">
+              {k.label}
+            </p>
+            <p className="text-4xl font-light tracking-tight tabular-nums transition-transform duration-300 group-hover:-translate-y-0.5">
+              {loading ? "—" : formatEUR(k.value)}
+            </p>
+            <div className="mt-3 w-8 h-px bg-foreground/60 transition-all duration-500 group-hover:w-16" />
+            {k.hint && (
+              <p className="mt-3 text-[11px] font-mono text-muted-foreground">{k.hint}</p>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Margin bar */}
       {!loading && stats.grossRevenue > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+          <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
             <span>Répartition</span>
             <span className="font-mono">{marginPct.toFixed(1)}% marge</span>
           </div>
-          <div className="h-2 w-full bg-foreground/5 overflow-hidden flex">
-            <div className="h-full bg-foreground" style={{ width: `${Math.min(100, Math.max(0, marginPct))}%` }} />
-            <div className="h-full bg-foreground/25" style={{ width: `${Math.min(100, 100 - Math.max(0, marginPct))}%` }} />
+          <div className="h-[3px] w-full bg-foreground/5 overflow-hidden flex">
+            <div
+              className="h-full bg-foreground transition-[width] duration-1000 ease-out"
+              style={{ width: `${Math.min(100, Math.max(0, marginPct))}%` }}
+            />
           </div>
           <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
             <span>Profit {formatEUR(Math.max(0, stats.netProfit))}</span>
@@ -211,31 +206,27 @@ export function FinanceDashboardTab() {
 
       {/* Chart */}
       {!loading && chartData.length > 1 && (
-        <section className="border border-foreground/10 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <section className="space-y-6 animate-fade-in">
+          <div className="flex items-end justify-between border-b border-foreground/10 pb-3">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Flux</p>
-              <h3 className="text-lg font-serif mt-1">Revenus vs Dépenses</h3>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Flux</p>
+              <h3 className="text-lg font-light mt-1">Revenus vs Dépenses</h3>
             </div>
-            <div className="flex items-center gap-4 text-[11px] uppercase tracking-wider text-muted-foreground">
-              <span className="flex items-center gap-2"><span className="w-3 h-[2px] bg-foreground" />Revenus</span>
-              <span className="flex items-center gap-2"><span className="w-3 h-[2px] bg-foreground/40" style={{ borderTop: "1px dashed" }} />Dépenses</span>
+            <div className="flex items-center gap-5 text-[10px] uppercase tracking-widest text-muted-foreground">
+              <span className="flex items-center gap-2"><span className="w-4 h-px bg-foreground" />Revenus</span>
+              <span className="flex items-center gap-2"><span className="w-4 border-t border-dashed border-foreground/50" />Dépenses</span>
             </div>
           </div>
-          <div className="h-80">
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gradRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--foreground))" stopOpacity={0.28} />
-                    <stop offset="100%" stopColor="hsl(var(--foreground))" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gradExp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--foreground))" stopOpacity={0.1} />
+                    <stop offset="0%" stopColor="hsl(var(--foreground))" stopOpacity={0.22} />
                     <stop offset="100%" stopColor="hsl(var(--foreground))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="2 4" stroke="hsl(var(--foreground))" strokeOpacity={0.08} vertical={false} />
+                <CartesianGrid strokeDasharray="2 4" stroke="hsl(var(--foreground))" strokeOpacity={0.06} vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 10, fontFamily: "monospace" }} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" />
                 <YAxis tick={{ fontSize: 10, fontFamily: "monospace" }} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" tickFormatter={v => v === 0 ? "0" : `${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
@@ -244,17 +235,16 @@ export function FinanceDashboardTab() {
                   cursor={{ stroke: "hsl(var(--foreground))", strokeWidth: 1, strokeDasharray: "2 2" }}
                 />
                 <Area type="monotone" dataKey="revenue" name="Revenus" stroke="hsl(var(--foreground))" strokeWidth={1.5} fill="url(#gradRev)" />
-                <Area type="monotone" dataKey="expenses" name="Dépenses" stroke="hsl(var(--foreground))" strokeOpacity={0.5} strokeWidth={1.5} strokeDasharray="4 3" fill="url(#gradExp)" />
+                <Area type="monotone" dataKey="expenses" name="Dépenses" stroke="hsl(var(--foreground))" strokeOpacity={0.5} strokeWidth={1.5} strokeDasharray="4 3" fill="transparent" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </section>
       )}
 
-      {/* Recent tables */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <ListSection
-          icon={<FileText className="h-3.5 w-3.5" strokeWidth={1.5} />}
+      {/* Recent journals */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <JournalList
           eyebrow="Journal"
           title="Dernières factures"
           empty="Aucune facture"
@@ -267,8 +257,7 @@ export function FinanceDashboardTab() {
             badgeClass: invoiceStatusColors[inv.status] || "",
           }))}
         />
-        <ListSection
-          icon={<Receipt className="h-3.5 w-3.5" strokeWidth={1.5} />}
+        <JournalList
           eyebrow="Journal"
           title="Dernières dépenses"
           empty="Aucune dépense"
@@ -276,10 +265,9 @@ export function FinanceDashboardTab() {
             id: exp.id,
             primary: exp.description,
             secondary: format(new Date(exp.date), "dd MMM yyyy", { locale: fr }),
-            amount: `−${formatEUR(Number(exp.amount))}`,
+            amount: `− ${formatEUR(Number(exp.amount))}`,
             badgeLabel: expenseStatusLabels[exp.status] || exp.status,
             badgeClass: expenseStatusColors[exp.status] || "",
-            negative: true,
           }))}
         />
       </div>
@@ -287,60 +275,39 @@ export function FinanceDashboardTab() {
   );
 }
 
-function KpiBlock({
-  label, value, hint, direction, emphasis,
+function JournalList({
+  eyebrow, title, empty, items,
 }: {
-  label: string; value: string; hint?: string;
-  direction?: "up" | "down"; emphasis?: boolean;
+  eyebrow: string; title: string; empty: string;
+  items: { id: string; primary: string; secondary: string; amount: string; badgeLabel: string; badgeClass: string }[];
 }) {
   return (
-    <div className={`p-6 ${emphasis ? "bg-foreground text-background" : ""}`}>
-      <div className="flex items-center justify-between mb-6">
-        <span className={`text-[10px] uppercase tracking-[0.25em] ${emphasis ? "text-background/60" : "text-muted-foreground"}`}>
-          {label}
-        </span>
-        {direction === "up" && <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.5} />}
-        {direction === "down" && <ArrowDownRight className="h-3.5 w-3.5" strokeWidth={1.5} />}
-      </div>
-      <p className="text-3xl font-serif tracking-tight tabular-nums">{value}</p>
-      {hint && (
-        <p className={`mt-3 text-[11px] font-mono ${emphasis ? "text-background/60" : "text-muted-foreground"}`}>
-          {hint}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function ListSection({
-  icon, eyebrow, title, empty, items,
-}: {
-  icon: React.ReactNode; eyebrow: string; title: string; empty: string;
-  items: { id: string; primary: string; secondary: string; amount: string; badgeLabel: string; badgeClass: string; negative?: boolean }[];
-}) {
-  return (
-    <section>
-      <div className="flex items-end justify-between mb-4 border-b border-foreground/10 pb-3">
+    <section className="animate-fade-in">
+      <div className="flex items-end justify-between mb-5 border-b border-foreground/10 pb-3">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{eyebrow}</p>
-          <h3 className="text-base font-serif mt-1 flex items-center gap-2">{icon}{title}</h3>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{eyebrow}</p>
+          <h3 className="text-lg font-light mt-1">{title}</h3>
         </div>
       </div>
       {items.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-10 uppercase tracking-wider">{empty}</p>
+        <p className="text-[11px] text-muted-foreground text-center py-12 uppercase tracking-widest">{empty}</p>
       ) : (
-        <ul className="divide-y divide-foreground/10">
-          {items.map(item => (
-            <li key={item.id} className="flex items-center justify-between gap-3 py-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{item.primary}</p>
-                <p className="text-[11px] text-muted-foreground truncate font-mono mt-0.5">{item.secondary}</p>
+        <ul>
+          {items.map((item, i) => (
+            <li
+              key={item.id}
+              className="group flex items-center justify-between gap-4 py-4 border-b border-foreground/10 hover:pl-2 transition-all duration-300 animate-fade-in"
+              style={{ animationDelay: `${i * 40}ms`, animationFillMode: "backwards" }}
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm truncate">{item.primary}</p>
+                <p className="text-[11px] text-muted-foreground truncate font-mono mt-1">{item.secondary}</p>
               </div>
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-4 shrink-0">
                 <span className="text-sm font-mono tabular-nums">{item.amount}</span>
-                <Badge className={`text-[10px] rounded-none font-normal uppercase tracking-wider ${item.badgeClass}`}>
+                <span className={`text-[9px] px-2 py-0.5 tracking-widest uppercase ${item.badgeClass}`}>
                   {item.badgeLabel}
-                </Badge>
+                </span>
               </div>
             </li>
           ))}
