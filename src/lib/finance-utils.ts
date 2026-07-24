@@ -18,12 +18,13 @@ export const invoiceStatusLabels: Record<string, string> = {
   canceled: "Annulée",
 };
 
+/** Monochrome status pills — thin outline, subtle fill for emphasis */
 export const invoiceStatusColors: Record<string, string> = {
-  draft: "bg-muted text-muted-foreground",
-  sent: "bg-amber-100 text-amber-700",
-  paid: "bg-emerald-100 text-emerald-700",
-  overdue: "bg-red-100 text-red-700",
-  canceled: "bg-muted text-muted-foreground line-through",
+  draft: "bg-transparent text-muted-foreground border border-foreground/20",
+  sent: "bg-transparent text-foreground border border-foreground/40",
+  paid: "bg-foreground text-background border border-foreground",
+  overdue: "bg-transparent text-foreground border border-foreground border-dashed",
+  canceled: "bg-transparent text-muted-foreground border border-foreground/10 line-through",
 };
 
 export const expenseStatusLabels: Record<string, string> = {
@@ -35,11 +36,11 @@ export const expenseStatusLabels: Record<string, string> = {
 };
 
 export const expenseStatusColors: Record<string, string> = {
-  to_pay: "bg-amber-100 text-amber-700",
-  pending: "bg-amber-100 text-amber-700",
-  pending_payment: "bg-amber-100 text-amber-700",
-  paid: "bg-emerald-100 text-emerald-700",
-  canceled: "bg-muted text-muted-foreground",
+  to_pay: "bg-transparent text-foreground border border-foreground border-dashed",
+  pending: "bg-transparent text-foreground border border-foreground border-dashed",
+  pending_payment: "bg-transparent text-foreground border border-foreground border-dashed",
+  paid: "bg-foreground text-background border border-foreground",
+  canceled: "bg-transparent text-muted-foreground border border-foreground/10",
 };
 
 export const lineTypeLabels: Record<string, string> = {
