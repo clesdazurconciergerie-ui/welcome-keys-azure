@@ -117,6 +117,14 @@ export function PropertyCalendar({ propertyId }: Props) {
     return [...events.map(e => ({ ...e })), ...bookingEvents];
   }, [events, bookingEvents]);
 
+  // Grouped stays (one continuous bar per reservation) for the month grid
+  const stays = useMemo(
+    () => buildStays(allEvents.filter(e => !hiddenEventIds.has(e.id)) as any),
+    [allEvents, hiddenEventIds]
+  );
+
+
+
   const getEventsForDay = (date: Date) => {
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     const dayEvents = allEvents.filter(e => e.start_date <= dateStr && e.end_date > dateStr);
