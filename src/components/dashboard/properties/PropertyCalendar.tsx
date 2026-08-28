@@ -23,7 +23,10 @@ import { useBookings, type Booking } from "@/hooks/useBookings";
 import { useCalendarOverrides } from "@/hooks/useCalendarOverrides";
 import { supabase } from "@/integrations/supabase/client";
 import { getPlatformClasses, getPlatformLabel, resolveBookingPlatform } from "@/lib/booking-platforms";
+import { StayMonthGrid } from "@/components/calendar/StayMonthGrid";
+import { buildStays } from "@/lib/stay-utils";
 import { AddDirectBookingDialog } from "./AddDirectBookingDialog";
+
 
 const platformColors = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => getPlatformClasses(key).badge,
