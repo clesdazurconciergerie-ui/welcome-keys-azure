@@ -59,8 +59,12 @@ export default function InspectionQuickFillPage() {
     }
   }, [insp?.id]);
 
+  const zonesEnsured = useRef(false);
   useEffect(() => {
-    if (flow.zones.isSuccess && zones.length === 0 && id) flow.ensureZones.mutate();
+    if (flow.zones.isSuccess && zones.length === 0 && id && !zonesEnsured.current) {
+      zonesEnsured.current = true;
+      flow.ensureZones.mutate();
+    }
   }, [flow.zones.isSuccess, zones.length, id]);
 
   // Brouillon auto local (résilience fermeture / perte réseau)
@@ -71,7 +75,9 @@ export default function InspectionQuickFillPage() {
       try {
         const d = JSON.parse(saved);
         if (d.generalNotes && !generalNotes) setGeneralNotes(d.generalNotes);
-        if (typeof d.step === "number") setStep(d.step);
+        if (typeof d.step === "number") {
+          setStep(Math.min(Math.max(0, d.step), INSPECTION_ZONES.length + 1));
+        }
       } catch { /* ignore */ }
     }
   }, [id]);
@@ -85,6 +91,7 @@ export default function InspectionQuickFillPage() {
     () => INSPECTION_ZONES.map((z) => zones.find((x) => x.zone_key === z.key)).filter(Boolean) as typeof zones,
     [zones],
   );
+
   const checkedCount = orderedZones.filter((z) => z.status !== "pending").length;
   const totalZones = INSPECTION_ZONES.length;
   const totalSteps = totalZones + 2;
@@ -122,14 +129,18 @@ export default function InspectionQuickFillPage() {
     else setStep(totalZones);
   };
 
-  const bothSigned = !!(insp?.concierge_signature_url || conciergeSig) && !!(insp?.guest_signature_url || guestSig);
-
   const finalize = async () => {
     if (!id || !insp) return;
-    if (!conciergeName.trim() || !guestName.trim()) {
-      toast.error("Indiquez le nom des deux signataires");
+    const missing: string[] = [];
+    if (!conciergeName.trim()) missing.push("nom du signataire conciergerie");
+    if (!guestName.trim()) missing.push("nom du voyageur");
+    if (!(insp.concierge_signature_url || conciergeSig)) missing.push("signature conciergerie");
+    if (!(insp.guest_signature_url || guestSig)) missing.push("signature voyageur");
+    if (missing.length > 0) {
+      toast.error(`Manquant : ${missing.join(", ")}`);
       return;
     }
+
     setFinalizing(true);
     try {
       if (conciergeSig) await flow.saveSignature.mutateAsync({ type: "concierge", dataUrl: conciergeSig, signerName: conciergeName });
@@ -141,18 +152,24 @@ export default function InspectionQuickFillPage() {
       });
       await flow.finalize.mutateAsync();
       await flow.inspection.refetch();
-      // PDF
-      const { data: { user } } = await supabase.auth.getUser();
-      await new Promise((r) => setTimeout(r, 400));
-      await generateAndUploadInspectionPdf({
-        elementId: "inspection-print-view",
-        inspectionId: id,
-        userId: user!.id,
-        propertyName: insp.property?.name ?? "bien",
-        officialDate: insp.official_date,
-      });
       localStorage.removeItem(`edl-draft-${id}`);
-      toast.success("État des lieux finalisé et PDF généré");
+
+      // PDF — un échec ne doit pas bloquer la finalisation (régénérable depuis le rapport)
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Session expirée");
+        await new Promise((r) => setTimeout(r, 500));
+        await generateAndUploadInspectionPdf({
+          elementId: "inspection-print-view",
+          inspectionId: id,
+          userId: user.id,
+          propertyName: insp.property?.name ?? "bien",
+          officialDate: insp.official_date,
+        });
+        toast.success("État des lieux finalisé et PDF généré");
+      } catch {
+        toast.warning("État des lieux finalisé — le PDF pourra être généré depuis le rapport");
+      }
       navigate(`/dashboard/etats-des-lieux/${id}`);
     } catch (e: any) {
       toast.error(e.message ?? "Finalisation impossible");
@@ -160,6 +177,7 @@ export default function InspectionQuickFillPage() {
       setFinalizing(false);
     }
   };
+
 
   if (flow.inspection.isLoading || !insp) {
     return <div className="p-4 space-y-3"><Skeleton className="h-12" /><Skeleton className="h-64" /></div>;
@@ -356,11 +374,12 @@ export default function InspectionQuickFillPage() {
               <FileText className="h-4 w-4 mr-2" /> Voir le rapport
             </Button>
           ) : (
-            <Button className="h-14 flex-1 text-base" disabled={!bothSigned || finalizing} onClick={finalize}>
+            <Button className="h-14 flex-1 text-base" disabled={finalizing} onClick={finalize}>
               {finalizing ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Check className="h-5 w-5 mr-2" />}
               Finaliser et générer le PDF
             </Button>
           )}
+
         </div>
       </div>
 

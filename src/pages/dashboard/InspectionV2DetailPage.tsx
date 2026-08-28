@@ -1,727 +1,341 @@
-// MODULE — Page détail état des lieux v2
+// MODULE — Page détail / rapport d'un état des lieux (v2 : zones, anomalies, photos, signatures)
 import { useParams, useNavigate } from "react-router-dom";
-import { useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Upload, Download, CheckCircle2, AlertTriangle, Trash2, Calendar, Plus, Camera, PenLine, Gauge } from "lucide-react";
-import { useInspectionDetail, type InspectionItem } from "@/hooks/usePropertyInspections";
-import { Select, SelectContent, SelectItem as SelectItemUI, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import html2pdf from "html2pdf.js";
-import { toast } from "sonner";
-import SEOHead from "@/components/SEOHead";
-import { CreateInspectionDialog } from "@/components/inspection-v2/CreateInspectionDialog";
-import { SignaturePad } from "@/components/inspection/SignaturePad";
-import { useQuery } from "@tanstack/react-query";
+import {
+  ArrowLeft, Download, FileText, Loader2, Lock, AlertTriangle, CheckCircle2,
+  ShieldAlert, Trash2, PenLine, DoorOpen, DoorClosed,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-
-const CONDITION_LABELS: Record<string, { label: string; cls: string }> = {
-  excellent: { label: "Excellent", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200" },
-  good: { label: "Bon", cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200" },
-  acceptable: { label: "Acceptable", cls: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200" },
-  damaged: { label: "Abîmé", cls: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200" },
-  broken: { label: "Cassé / HS", cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200" },
-  missing: { label: "Manquant", cls: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200" },
-};
-
-
-const TYPE_LABELS: Record<string, string> = {
-  entry: "État d'entrée",
-  exit: "État de sortie",
-  inventory: "Inventaire",
-  maintenance: "Visite maintenance",
-};
-
-const STATUS_OPTIONS = [
-  { value: "draft", label: "Brouillon" },
-  { value: "in_progress", label: "En cours" },
-  { value: "completed", label: "Terminé" },
-  { value: "validated", label: "Validé" },
-];
+import { useInspectionFlow } from "@/hooks/useInspectionFlow";
+import { usePropertyInspections } from "@/hooks/usePropertyInspections";
+import {
+  INSPECTION_ZONES, ZONE_LABEL, ISSUE_CATEGORY_LABEL, ISSUE_SEVERITY_LABEL,
+  INSPECTION_STATUS_LABEL, INSPECTION_TYPE_LABEL,
+} from "@/lib/inspection-zones";
+import { InspectionPrintView } from "@/components/inspection/InspectionPrintView";
+import { generateAndUploadInspectionPdf } from "@/lib/inspection-pdf";
+import { StorageImage } from "@/components/StorageImage";
+import SEOHead from "@/components/SEOHead";
+import { toast } from "sonner";
 
 export default function InspectionV2DetailPage() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { inspection, photos, items, audit, updateInspection, uploadPhoto, deletePhoto, uploadSignature, updateItem, addItem, deleteItem } = useInspectionDetail(id);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [room, setRoom] = useState("");
-  const [caption, setCaption] = useState("");
-  const [editDateOpen, setEditDateOpen] = useState(false);
-  const [newDate, setNewDate] = useState("");
-  const [createExitOpen, setCreateExitOpen] = useState(false);
+  const qc = useQueryClient();
+  const flow = useInspectionFlow(id);
+  const { remove } = usePropertyInspections();
+  const [generating, setGenerating] = useState(false);
 
-  // Find a child exit inspection if it exists (workflow continuation)
-  const { data: childExit } = useQuery({
-    queryKey: ["inspection-child-exit", id],
-    queryFn: async () => {
-      if (!id) return null;
-      const { data } = await (supabase as any)
-        .from("property_inspections")
-        .select("id, status, official_date, inspection_type")
-        .eq("parent_inspection_id", id)
-        .eq("inspection_type", "exit")
-        .maybeSingle();
-      return data;
-    },
+  const audit = useQuery({
+    queryKey: ["inspection-audit", id],
     enabled: !!id,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("inspection_audit_log")
+        .select("id, action, created_at, changed_by_name")
+        .eq("inspection_id", id)
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
   });
 
-  if (inspection.isLoading) {
+  const insp = flow.inspection.data;
+  const zonesRaw = flow.zones.data ?? [];
+  const issues = flow.issues.data ?? [];
+  const photos = flow.photos.data ?? [];
+
+  // Dédoublonne et ordonne les zones selon le parcours officiel
+  const zones = INSPECTION_ZONES
+    .map((z) => zonesRaw.find((x) => x.zone_key === z.key))
+    .filter(Boolean) as typeof zonesRaw;
+
+  if (flow.inspection.isLoading) {
     return <div className="p-6 space-y-4"><Skeleton className="h-8 w-64" /><Skeleton className="h-96" /></div>;
   }
-  const insp = inspection.data;
-  if (!insp) return <p className="p-6 text-muted-foreground">État des lieux introuvable</p>;
+  if (!insp) {
+    return (
+      <div className="p-6 space-y-4">
+        <p className="text-muted-foreground">État des lieux introuvable.</p>
+        <Button variant="outline" onClick={() => navigate("/dashboard/etats-des-lieux")}>
+          <ArrowLeft className="h-4 w-4 mr-2" /> Retour à la liste
+        </Button>
+      </div>
+    );
+  }
 
-  const officialMs = new Date(insp.official_date).getTime();
-  const actualMs = new Date(insp.actual_created_at).getTime();
-  const isAntedated = Math.abs(actualMs - officialMs) > 86400_000;
+  const locked = !!insp.locked_at || insp.status === "validated";
+  const anomalies = issues.length;
 
-  const photosByRoom = (photos.data ?? []).reduce<Record<string, typeof photos.data>>((acc, p) => {
-    const k = p.room_name ?? "Sans pièce";
-    (acc[k] ||= [] as any).push(p);
-    return acc;
-  }, {});
-
-  const handleUpload = async (file: File) => {
-    await uploadPhoto.mutateAsync({ file, roomName: room || undefined, caption: caption || undefined });
-    setCaption("");
-  };
-
-  const exportPDF = async () => {
-    toast.info("Génération du PDF en cours...");
-    const node = document.getElementById("inspection-pdf-content");
-    if (!node) return;
+  const generatePdf = async () => {
+    if (!id) return;
+    setGenerating(true);
     try {
-      await html2pdf().set({
-        margin: 10,
-        filename: `etat-des-lieux-${insp.property?.name?.replace(/\s+/g, "-")}-${insp.official_date}.pdf`,
-        image: { type: "jpeg", quality: 0.92 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      }).from(node).save();
-      toast.success("PDF téléchargé");
-    } catch (e) {
-      toast.error("Erreur génération PDF");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Non authentifié");
+      await new Promise((r) => setTimeout(r, 300));
+      const url = await generateAndUploadInspectionPdf({
+        elementId: "inspection-print-view",
+        inspectionId: id,
+        userId: user.id,
+        propertyName: insp.property?.name ?? "bien",
+        officialDate: insp.official_date,
+      });
+      await flow.inspection.refetch();
+      qc.invalidateQueries({ queryKey: ["property-inspections"] });
+      toast.success("PDF généré");
+      if (url) window.open(url, "_blank", "noopener");
+    } catch (e: any) {
+      toast.error(e.message ?? "Génération PDF impossible");
+    } finally {
+      setGenerating(false);
     }
   };
 
-  const hasBothSignatures = !!(insp.concierge_signature_url && insp.guest_signature_url);
-  const hasPhotos = (photos.data?.length ?? 0) > 0;
-  const canValidate = hasBothSignatures && hasPhotos;
-
-  const validateInspection = () => {
-    if (!canValidate) {
-      const missing: string[] = [];
-      if (!hasPhotos) missing.push("au moins 1 photo");
-      if (!insp.concierge_signature_url) missing.push("signature gestionnaire");
-      if (!insp.guest_signature_url) missing.push("signature voyageur");
-      toast.error(`Manquant : ${missing.join(", ")}`);
-      return;
-    }
-    updateInspection.mutate({ status: "validated", signed_at: new Date().toISOString() } as any);
+  const handleDelete = async () => {
+    if (!id) return;
+    if (!confirm("Supprimer définitivement cet état des lieux ?")) return;
+    await remove.mutateAsync(id);
+    navigate("/dashboard/etats-des-lieux");
   };
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <SEOHead title={`État des lieux ${insp.property?.name}`} description="" />
+    <div className="p-4 md:p-6 space-y-6 pb-24 max-w-4xl mx-auto">
+      <SEOHead
+        title={`État des lieux — ${insp.property?.name ?? "Bien"}`}
+        description="Rapport d'état des lieux : zones contrôlées, anomalies, photos et signatures."
+      />
 
       <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/etats-des-lieux")}>
         <ArrowLeft className="h-4 w-4 mr-1" /> Retour
       </Button>
 
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            État des lieux — {insp.property?.name}
-          </h1>
-          <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-            <Calendar className="h-3.5 w-3.5" />
-            Date officielle : <strong className="text-foreground">{new Date(insp.official_date).toLocaleDateString("fr-FR")}</strong>
-            {isAntedated && (
-              <Badge variant="outline" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200 gap-1 ml-2">
-                <AlertTriangle className="h-3 w-3" /> Antidaté
-              </Badge>
-            )}
-          </p>
-          <div className="flex gap-2 mt-2">
-            <Badge variant="outline">{TYPE_LABELS[insp.inspection_type] ?? insp.inspection_type}</Badge>
-            <Badge variant="outline">{STATUS_OPTIONS.find((s) => s.value === insp.status)?.label ?? insp.status}</Badge>
+      <header className="space-y-3">
+        <div className="flex items-start gap-2">
+          {insp.inspection_type === "exit"
+            ? <DoorClosed className="h-6 w-6 mt-1 shrink-0" strokeWidth={1.5} />
+            : <DoorOpen className="h-6 w-6 mt-1 shrink-0" strokeWidth={1.5} />}
+          <div className="min-w-0">
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight truncate">
+              {insp.property?.name ?? "Bien"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {INSPECTION_TYPE_LABEL[insp.inspection_type] ?? insp.inspection_type}
+              {" · "}{new Date(insp.official_date).toLocaleDateString("fr-FR")}
+              {insp.reference ? ` · ${insp.reference}` : ""}
+            </p>
           </div>
         </div>
+
         <div className="flex flex-wrap gap-2">
-          {insp.status !== "validated" && (
-            <Button size="sm" onClick={() => navigate(`/dashboard/etats-des-lieux/${insp.id}/remplir`)}>
+          <Badge variant="outline" className="gap-1">
+            {locked ? <Lock className="h-3 w-3" /> : <PenLine className="h-3 w-3" />}
+            {INSPECTION_STATUS_LABEL[insp.status] ?? insp.status}
+          </Badge>
+          <Badge variant="outline" className="gap-1">
+            <AlertTriangle className="h-3 w-3" /> {anomalies} anomalie{anomalies > 1 ? "s" : ""}
+          </Badge>
+          <Badge variant="outline">{photos.length} média{photos.length > 1 ? "s" : ""}</Badge>
+        </div>
+
+        <div className="flex flex-wrap gap-2 pt-1">
+          {!locked && (
+            <Button onClick={() => navigate(`/dashboard/etats-des-lieux/${insp.id}/remplir`)}>
               Reprendre le contrôle
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => { setNewDate(insp.official_date); setEditDateOpen(true); }}>
-            Modifier date
-          </Button>
-          {(insp as any).report_pdf_url ? (
-            <Button asChild variant="outline" size="sm">
-              <a href={(insp as any).report_pdf_url} target="_blank" rel="noreferrer" download>
-                <Download className="h-4 w-4 mr-1" /> PDF
+          {insp.report_pdf_url ? (
+            <Button asChild variant="outline">
+              <a href={insp.report_pdf_url} target="_blank" rel="noreferrer">
+                <Download className="h-4 w-4 mr-2" /> Télécharger le PDF
               </a>
             </Button>
-          ) : (
-            <Button variant="outline" size="sm" onClick={exportPDF}>
-              <Download className="h-4 w-4 mr-1" /> PDF
-            </Button>
-          )}
-          {insp.status !== "validated" && (
-            <Button size="sm" onClick={validateInspection} className="bg-primary text-primary-foreground">
-              <CheckCircle2 className="h-4 w-4 mr-1" /> Valider
+          ) : null}
+          <Button variant="outline" onClick={generatePdf} disabled={generating}>
+            {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
+            {insp.report_pdf_url ? "Régénérer le PDF" : "Générer le PDF"}
+          </Button>
+          {!locked && (
+            <Button variant="ghost" onClick={handleDelete} disabled={remove.isPending}>
+              <Trash2 className="h-4 w-4 mr-2" /> Supprimer
             </Button>
           )}
         </div>
       </header>
 
-      {editDateOpen && (
-        <Card>
-          <CardContent className="pt-4 flex flex-col sm:flex-row gap-2 items-end">
-            <div className="flex-1">
-              <Label>Nouvelle date officielle</Label>
-              <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
-            </div>
-            <Button onClick={async () => { await updateInspection.mutateAsync({ official_date: newDate as any }); setEditDateOpen(false); }}>
-              Enregistrer
-            </Button>
-            <Button variant="ghost" onClick={() => setEditDateOpen(false)}>Annuler</Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Workflow protectif: État d'entrée → État de sortie */}
-      {insp.inspection_type === "entry" && (
-        <Card className="border-l-4 border-l-black">
-          <CardContent className="pt-4 flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="flex-1">
-              <p className="font-medium text-foreground flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-black" />
-                Workflow état des lieux complet
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {insp.status !== "validated"
-                  ? "Validez l'état d'entrée, puis créez l'état de sortie en fin de séjour pour vous protéger."
-                  : childExit
-                    ? `État de sortie en cours (${childExit.status === "validated" ? "validé" : "non validé"} — ${new Date(childExit.official_date).toLocaleDateString("fr-FR")}).`
-                    : "L'état d'entrée est validé. Créez maintenant l'état de sortie pour clôturer le séjour."}
-              </p>
-            </div>
-            {childExit ? (
-              <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/etats-des-lieux/${childExit.id}`)}>
-                Ouvrir l'état de sortie →
-              </Button>
-            ) : (
-              insp.status === "validated" && (
-                <Button size="sm" onClick={() => setCreateExitOpen(true)} className="bg-primary text-primary-foreground">
-                  <Plus className="h-4 w-4 mr-1" /> Créer l'état de sortie
-                </Button>
-              )
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      <CreateInspectionDialog
-        open={createExitOpen}
-        onOpenChange={setCreateExitOpen}
-        defaultPropertyId={insp.property_id}
-        defaultType="exit"
-        parentInspectionId={insp.id}
-        onCreated={(newId) => navigate(`/dashboard/etats-des-lieux/${newId}`)}
-      />
-
-      <Tabs defaultValue="items">
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="items">1. Checklist</TabsTrigger>
-          <TabsTrigger value="photos">2. Photos</TabsTrigger>
-          <TabsTrigger value="meters">3. Compteurs & notes</TabsTrigger>
-          <TabsTrigger value="signatures">
-            4. Signatures
-            {hasBothSignatures && <CheckCircle2 className="h-3.5 w-3.5 ml-1 text-emerald-600" />}
-          </TabsTrigger>
-          <TabsTrigger value="history">Historique ({audit.data?.length ?? 0})</TabsTrigger>
-        </TabsList>
-
-        {/* TAB PHOTOS */}
-        <TabsContent value="photos" className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Ajouter une photo</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <Label>Pièce</Label>
-                  <Input value={room} onChange={(e) => setRoom(e.target.value)} placeholder="Salon, Chambre 1..." />
-                </div>
-                <div>
-                  <Label>Légende</Label>
-                  <Input value={caption} onChange={(e) => setCaption(e.target.value)} />
-                </div>
-              </div>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                style={{ opacity: 0, position: "absolute", pointerEvents: "none" }}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }}
-              />
-              <Button onClick={() => fileRef.current?.click()} disabled={uploadPhoto.isPending}>
-                <Upload className="h-4 w-4 mr-2" />
-                {uploadPhoto.isPending ? "Upload..." : "Choisir une photo"}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                La photo sera officiellement datée du {new Date(insp.official_date).toLocaleDateString("fr-FR")} (héritée de l'état des lieux).
-              </p>
-            </CardContent>
-          </Card>
-
-          {Object.entries(photosByRoom).map(([roomName, list]) => (
-            <Card key={roomName}>
-              <CardHeader><CardTitle className="text-base">{roomName} ({list?.length})</CardTitle></CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {list?.map((p) => (
-                    <figure key={p.id} className="rounded-lg border border-border overflow-hidden bg-card group relative">
-                      <img src={p.file_url} alt={p.caption ?? "Photo"} className="w-full h-32 object-cover" />
-                      <figcaption className="p-2 text-xs">
-                        {p.caption && <p className="font-medium text-foreground truncate">{p.caption}</p>}
-                        <p className="text-muted-foreground">
-                          Prise le {new Date(p.official_date).toLocaleDateString("fr-FR")}
-                        </p>
-                      </figcaption>
-                      <button
-                        onClick={() => deletePhoto.mutate(p)}
-                        className="absolute top-1 right-1 p-1 rounded-md bg-card/90 opacity-0 group-hover:opacity-100 transition-opacity"
-                        aria-label="Supprimer photo"
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </button>
-                    </figure>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </TabsContent>
-
-        {/* TAB ITEMS */}
-        <TabsContent value="items">
-          <ItemsChecklist
-            items={items.data ?? []}
-            loading={items.isLoading}
-            onUpdate={(itemId, patch) => updateItem.mutate({ itemId, patch })}
-            onAdd={(room_name, item_name) => addItem.mutate({ room_name, item_name })}
-            onDelete={(itemId) => deleteItem.mutate(itemId)}
-            onAttachPhoto={async (item, file) => {
-              await uploadPhoto.mutateAsync({
-                file,
-                roomName: item.room_name,
-                caption: item.item_name,
-                itemId: item.id,
-              });
-            }}
+      {/* Informations */}
+      <section className="space-y-2">
+        <SectionTitle>Informations</SectionTitle>
+        <dl className="grid grid-cols-2 gap-y-2 text-sm">
+          <Row label="Voyageur" value={insp.guest_name ?? insp.booking?.guest_name ?? "—"} />
+          <Row
+            label="Séjour"
+            value={insp.booking
+              ? `${new Date(insp.booking.check_in).toLocaleDateString("fr-FR")} → ${new Date(insp.booking.check_out).toLocaleDateString("fr-FR")}`
+              : "—"}
           />
-        </TabsContent>
+          <Row label="Réalisé par" value={insp.inspector_name ?? insp.concierge_signer_name ?? "—"} />
+          <Row
+            label="Signé le"
+            value={insp.signed_at ? new Date(insp.signed_at).toLocaleString("fr-FR") : "Non signé"}
+          />
+        </dl>
+      </section>
 
-        {/* TAB METERS & NOTES */}
-        <TabsContent value="meters" className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Gauge className="h-4 w-4" /> Relevés de compteurs</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <Label>Électricité (kWh)</Label>
-                <Input
-                  defaultValue={insp.meter_electricity ?? ""}
-                  onBlur={(e) => e.target.value !== (insp.meter_electricity ?? "") && updateInspection.mutate({ meter_electricity: e.target.value } as any)}
-                />
-              </div>
-              <div>
-                <Label>Eau (m³)</Label>
-                <Input
-                  defaultValue={insp.meter_water ?? ""}
-                  onBlur={(e) => e.target.value !== (insp.meter_water ?? "") && updateInspection.mutate({ meter_water: e.target.value } as any)}
-                />
-              </div>
-              <div>
-                <Label>Gaz (m³)</Label>
-                <Input
-                  defaultValue={insp.meter_gas ?? ""}
-                  onBlur={(e) => e.target.value !== (insp.meter_gas ?? "") && updateInspection.mutate({ meter_gas: e.target.value } as any)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle className="text-base">Notes & dommages</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <Label>Nombre d'occupants</Label>
-                <Input
-                  type="number"
-                  defaultValue={insp.occupants_count ?? ""}
-                  onBlur={(e) => updateInspection.mutate({ occupants_count: e.target.value ? parseInt(e.target.value) : null } as any)}
-                  className="max-w-[140px]"
-                />
-              </div>
-              <div>
-                <Label>Notes générales</Label>
-                <Textarea
-                  defaultValue={insp.notes ?? ""}
-                  onBlur={(e) => e.target.value !== (insp.notes ?? "") && updateInspection.mutate({ notes: e.target.value })}
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Label>Dommages observés</Label>
-                <Textarea
-                  defaultValue={insp.damage_notes ?? ""}
-                  onBlur={(e) => e.target.value !== (insp.damage_notes ?? "") && updateInspection.mutate({ damage_notes: e.target.value } as any)}
-                  rows={3}
-                  placeholder="Rayures, taches, casse..."
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Zones */}
+      <section className="space-y-2">
+        <SectionTitle>Zones contrôlées</SectionTitle>
+        {zones.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucune zone enregistrée.</p>
+        ) : (
+          <ul className="divide-y divide-border border-y border-border">
+            {zones.map((z) => (
+              <li key={z.id} className="py-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{ZONE_LABEL[z.zone_key] ?? z.zone_label}</p>
+                  {z.note && <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{z.note}</p>}
+                </div>
+                <span className="text-xs flex items-center gap-1.5 shrink-0">
+                  {z.status === "ok" && <><CheckCircle2 className="h-3.5 w-3.5" /> Conforme</>}
+                  {z.status === "issue" && <><AlertTriangle className="h-3.5 w-3.5" /> Problème</>}
+                  {z.status === "pending" && <><ShieldAlert className="h-3.5 w-3.5" /> Non contrôlée</>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-        {/* TAB SIGNATURES */}
-        <TabsContent value="signatures" className="space-y-4">
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-sm text-muted-foreground flex items-start gap-2">
-                <PenLine className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                Les deux parties doivent signer pour valider l'état des lieux. La validation est nécessaire pour finaliser et protéger juridiquement le document.
-              </p>
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <SignatureCard
-              title="Gestionnaire / Concierge"
-              existingUrl={insp.concierge_signature_url}
-              existingName={insp.concierge_signer_name}
-              onSave={(dataUrl, name) => uploadSignature.mutate({ type: "concierge", dataUrl, signerName: name })}
-              pending={uploadSignature.isPending}
-            />
-            <SignatureCard
-              title="Voyageur"
-              existingUrl={insp.guest_signature_url}
-              existingName={insp.guest_signer_name}
-              onSave={(dataUrl, name) => uploadSignature.mutate({ type: "guest", dataUrl, signerName: name })}
-              pending={uploadSignature.isPending}
-            />
+      {/* Anomalies */}
+      <section className="space-y-2">
+        <SectionTitle>Anomalies ({anomalies})</SectionTitle>
+        {anomalies === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucune anomalie signalée.</p>
+        ) : (
+          <div className="space-y-2">
+            {issues.map((i) => (
+              <div key={i.id} className="border border-border p-3 space-y-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge variant="outline">{ZONE_LABEL[i.zone_key] ?? i.zone_key}</Badge>
+                  <Badge variant="outline">{ISSUE_CATEGORY_LABEL[i.category] ?? i.category}</Badge>
+                  <Badge variant={i.severity === "urgent" ? "default" : "outline"}>
+                    {ISSUE_SEVERITY_LABEL[i.severity] ?? i.severity}
+                  </Badge>
+                </div>
+                {i.comment && <p className="text-sm whitespace-pre-wrap">{i.comment}</p>}
+              </div>
+            ))}
           </div>
+        )}
+      </section>
 
-          {!canValidate && insp.status !== "validated" && (
-            <Card className="border-l-4 border-l-yellow-500">
-              <CardContent className="pt-4">
-                <p className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                  Pour valider l'état des lieux, complétez :
+      {/* Médias */}
+      <section className="space-y-2">
+        <SectionTitle>Photos & vidéos ({photos.length})</SectionTitle>
+        {photos.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucun média joint.</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {photos.map((p) => (
+              <figure key={p.id} className="border border-border">
+                {p.media_type === "video" ? (
+                  <video src={p.file_url} controls className="w-full h-28 object-cover bg-muted" />
+                ) : (
+                  <StorageImage src={p.file_url} alt={p.caption ?? "Média état des lieux"} className="w-full h-28 object-cover bg-muted" loading="lazy" />
+                )}
+                <figcaption className="text-[10px] px-1.5 py-1 text-muted-foreground truncate">
+                  {ZONE_LABEL[p.zone_key ?? ""] ?? p.zone_key ?? "—"}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Notes */}
+      {(insp.general_notes || insp.notes) && (
+        <section className="space-y-2">
+          <SectionTitle>Notes générales</SectionTitle>
+          <p className="text-sm whitespace-pre-wrap">{insp.general_notes || insp.notes}</p>
+        </section>
+      )}
+
+      {/* Signatures */}
+      <section className="space-y-2">
+        <SectionTitle>Signatures</SectionTitle>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <SignatureBlock title="Conciergerie" url={insp.concierge_signature_url} name={insp.concierge_signer_name ?? insp.inspector_name} />
+          <SignatureBlock title="Voyageur" url={insp.guest_signature_url} name={insp.guest_signer_name ?? insp.guest_name} />
+        </div>
+      </section>
+
+      {/* Historique */}
+      <section className="space-y-2">
+        <SectionTitle>Historique</SectionTitle>
+        {(audit.data?.length ?? 0) === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucun événement enregistré.</p>
+        ) : (
+          <ol className="space-y-2">
+            {(audit.data ?? []).map((e: any) => (
+              <li key={e.id} className="border-l-2 border-border pl-3">
+                <p className="text-sm capitalize">{String(e.action).replace(/_/g, " ")}</p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(e.created_at).toLocaleString("fr-FR")}
+                  {e.changed_by_name ? ` · ${e.changed_by_name}` : ""}
                 </p>
-                <ul className="text-sm text-muted-foreground mt-2 ml-6 list-disc">
-                  {!hasPhotos && <li>Au moins 1 photo</li>}
-                  {!insp.concierge_signature_url && <li>Signature du gestionnaire</li>}
-                  {!insp.guest_signature_url && <li>Signature du voyageur</li>}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* TAB HISTORY */}
-        <TabsContent value="history">
-          <Card>
-            <CardContent className="pt-6">
-              {audit.isLoading ? <Skeleton className="h-32" /> : (
-                <ol className="space-y-3">
-                  {audit.data?.map((entry) => (
-                    <li key={entry.id} className="border-l-2 border-accent pl-3 py-1">
-                      <p className="text-sm text-foreground">
-                        <strong className="capitalize">{entry.action.replace(/_/g, " ")}</strong>
-                        {entry.field_changed && <> · {entry.field_changed}</>}
-                      </p>
-                      {(entry.old_value || entry.new_value) && (
-                        <p className="text-xs text-muted-foreground">
-                          {entry.old_value && <>De « {entry.old_value} » </>}
-                          {entry.new_value && <>à « {entry.new_value} »</>}
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(entry.created_at).toLocaleString("fr-FR")}
-                      </p>
-                    </li>
-                  ))}
-                  {audit.data?.length === 0 && (
-                    <p className="text-sm text-muted-foreground">Aucun historique</p>
-                  )}
-                </ol>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Hidden PDF content */}
-      <div id="inspection-pdf-content" style={{ position: "absolute", left: -9999, top: 0, width: "210mm", padding: "20mm", background: "#fff", color: "#000000", fontFamily: "system-ui, sans-serif" }}>
-        <h1 style={{ fontSize: 24, marginBottom: 8 }}>État des lieux — {insp.inspection_type}</h1>
-        <p style={{ fontSize: 14, margin: 0 }}><strong>Bien :</strong> {insp.property?.name}</p>
-        {insp.property?.address && <p style={{ fontSize: 14, margin: 0 }}>{insp.property.address}</p>}
-        <p style={{ fontSize: 14, marginTop: 8 }}>
-          <strong>Date :</strong> {new Date(insp.official_date).toLocaleDateString("fr-FR")}
-        </p>
-        {insp.guest_name && <p style={{ fontSize: 14, margin: 0 }}><strong>Voyageur :</strong> {insp.guest_name}</p>}
-        <hr style={{ margin: "12px 0", borderColor: "#FFFFFF" }} />
-
-        {Object.entries(photosByRoom).map(([rn, list]) => (
-          <section key={rn} style={{ marginBottom: 16, breakInside: "avoid" }}>
-            <h2 style={{ fontSize: 16, color: "#FFFFFF" }}>{rn}</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {list?.map((p) => (
-                <figure key={p.id} style={{ margin: 0, breakInside: "avoid" }}>
-                  <img src={p.file_url} crossOrigin="anonymous" style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 4 }} />
-                  <figcaption style={{ fontSize: 10, marginTop: 2 }}>
-                    {p.caption ?? rn} — {new Date(p.official_date).toLocaleDateString("fr-FR")}
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          </section>
-        ))}
-
-        {insp.notes && (
-          <section style={{ marginTop: 16 }}>
-            <h2 style={{ fontSize: 14 }}>Notes</h2>
-            <p style={{ fontSize: 12 }}>{insp.notes}</p>
-          </section>
+              </li>
+            ))}
+          </ol>
         )}
+      </section>
 
-        {(audit.data?.length ?? 0) > 0 && isAntedated && (
-          <section style={{ marginTop: 16, borderTop: "1px solid #ccc", paddingTop: 8 }}>
-            <h3 style={{ fontSize: 12 }}>Historique des modifications</h3>
-            <ul style={{ fontSize: 10, paddingLeft: 16 }}>
-              {audit.data?.slice(0, 10).map((e) => (
-                <li key={e.id}>
-                  {e.action} — {new Date(e.created_at).toLocaleString("fr-FR")}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-        <p style={{ fontSize: 9, marginTop: 24, color: "#666" }}>
-          Document généré le {new Date().toLocaleString("fr-FR")}
-        </p>
+      {/* Rendu PDF hors écran */}
+      <div className="fixed -left-[10000px] top-0" aria-hidden="true">
+        <InspectionPrintView
+          inspection={insp}
+          zones={zones}
+          issues={issues}
+          photos={photos}
+          conciergeSignature={insp.concierge_signature_url}
+          guestSignature={insp.guest_signature_url}
+        />
       </div>
     </div>
   );
 }
 
-function ItemsChecklist({
-  items, loading, onUpdate, onAdd, onDelete, onAttachPhoto,
-}: {
-  items: InspectionItem[];
-  loading: boolean;
-  onUpdate: (itemId: string, patch: Partial<InspectionItem>) => void;
-  onAdd: (roomName: string, itemName: string) => void;
-  onDelete: (itemId: string) => void;
-  onAttachPhoto: (item: InspectionItem, file: File) => Promise<void>;
-}) {
-  const [newRoom, setNewRoom] = useState("");
-  const [newItem, setNewItem] = useState("");
-  const [addingTo, setAddingTo] = useState<string | null>(null);
-  const [quickItem, setQuickItem] = useState("");
-  const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
-
-  if (loading) {
-    return <Card><CardContent className="pt-6"><Skeleton className="h-40" /></CardContent></Card>;
-  }
-
-  const grouped = items.reduce<Record<string, InspectionItem[]>>((acc, it) => {
-    (acc[it.room_name] ||= []).push(it);
-    return acc;
-  }, {});
-  const roomNames = Object.keys(grouped);
-
-  const completion = items.length === 0 ? 0
-    : Math.round((items.filter((i) => i.condition !== "good" || i.notes).length + items.filter((i) => i.condition === "good").length) / items.length * 100);
-
+function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="space-y-4">
-      {items.length > 0 && (
-        <Card>
-          <CardContent className="py-3 flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              <strong className="text-foreground">{items.length}</strong> items répartis sur {roomNames.length} pièce{roomNames.length > 1 ? "s" : ""}
-            </p>
-            <Badge variant="outline">{completion}% checké</Badge>
-          </CardContent>
-        </Card>
-      )}
-
-      {items.length === 0 && (
-        <Card>
-          <CardContent className="py-8 text-center space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Aucun item dans cette checklist. Ajoutez une pièce ou créez votre premier item ci-dessous.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {roomNames.map((roomName) => (
-        <Card key={roomName}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">{roomName} ({grouped[roomName].length})</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {grouped[roomName].map((item) => (
-              <div key={item.id} className="border rounded-lg p-3 space-y-2 bg-card">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium text-sm flex-1 min-w-[140px]">{item.item_name}</p>
-                  <Select
-                    value={item.condition}
-                    onValueChange={(v) => onUpdate(item.id, { condition: v })}
-                  >
-                    <SelectTrigger className="h-8 w-36">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(CONDITION_LABELS).map(([k, v]) => (
-                        <SelectItemUI key={k} value={k}>{v.label}</SelectItemUI>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Badge variant="outline" className={CONDITION_LABELS[item.condition]?.cls ?? ""}>
-                    {CONDITION_LABELS[item.condition]?.label ?? item.condition}
-                  </Badge>
-                  <input
-                    ref={(el) => { fileInputs.current[item.id] = el; }}
-                    type="file"
-                    accept="image/*"
-                    style={{ opacity: 0, position: "absolute", pointerEvents: "none", width: 0, height: 0 }}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) onAttachPhoto(item, f);
-                      e.target.value = "";
-                    }}
-                  />
-                  <Button size="sm" variant="outline" onClick={() => fileInputs.current[item.id]?.click()}>
-                    <Camera className="h-3.5 w-3.5 mr-1" /> Photo
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={() => onDelete(item.id)}>
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </Button>
-                </div>
-                <Textarea
-                  value={item.notes ?? ""}
-                  onChange={(e) => onUpdate(item.id, { notes: e.target.value })}
-                  placeholder="Notes (rayures, marques, fonctionnement...)"
-                  rows={1}
-                  className="text-sm"
-                />
-              </div>
-            ))}
-
-            {addingTo === roomName ? (
-              <div className="flex gap-2">
-                <Input
-                  value={quickItem}
-                  onChange={(e) => setQuickItem(e.target.value)}
-                  placeholder="Nouvel item"
-                  className="h-8"
-                />
-                <Button size="sm" onClick={() => {
-                  if (quickItem.trim()) {
-                    onAdd(roomName, quickItem.trim());
-                    setQuickItem("");
-                    setAddingTo(null);
-                  }
-                }}>Ajouter</Button>
-                <Button size="sm" variant="ghost" onClick={() => { setAddingTo(null); setQuickItem(""); }}>×</Button>
-              </div>
-            ) : (
-              <Button size="sm" variant="ghost" onClick={() => setAddingTo(roomName)}>
-                <Plus className="h-3.5 w-3.5 mr-1" /> Item
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-
-      <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Ajouter une nouvelle pièce</CardTitle></CardHeader>
-        <CardContent className="flex flex-col sm:flex-row gap-2">
-          <Input
-            value={newRoom}
-            onChange={(e) => setNewRoom(e.target.value)}
-            placeholder="Nom de la pièce (ex: Cuisine)"
-          />
-          <Input
-            value={newItem}
-            onChange={(e) => setNewItem(e.target.value)}
-            placeholder="Premier item (optionnel)"
-          />
-          <Button onClick={() => {
-            if (!newRoom.trim()) return;
-            onAdd(newRoom.trim(), newItem.trim() || "À compléter");
-            setNewRoom(""); setNewItem("");
-          }}>
-            <Plus className="h-4 w-4 mr-1" /> Pièce
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+    <h2 className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground border-b border-border pb-2">
+      {children}
+    </h2>
   );
 }
 
-function SignatureCard({
-  title, existingUrl, existingName, onSave, pending,
-}: {
-  title: string;
-  existingUrl?: string | null;
-  existingName?: string | null;
-  onSave: (dataUrl: string, name: string) => void;
-  pending: boolean;
-}) {
-  const [name, setName] = useState(existingName ?? "");
-  const [dataUrl, setDataUrl] = useState<string | null>(null);
-
+function Row({ label, value }: { label: string; value: string }) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center justify-between">
-          {title}
-          {existingUrl && <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200"><CheckCircle2 className="h-3 w-3 mr-1" /> Signé</Badge>}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {existingUrl ? (
-          <div className="space-y-2">
-            <img src={existingUrl} alt={`Signature ${title}`} className="border rounded-md bg-white max-h-32" />
-            {existingName && <p className="text-sm text-muted-foreground">Signé par <strong className="text-foreground">{existingName}</strong></p>}
-            <p className="text-xs text-muted-foreground">Re-signer pour remplacer.</p>
-          </div>
-        ) : null}
-        <div>
-          <Label>Nom du signataire</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom complet" />
+    <>
+      <dt className="text-xs uppercase tracking-wider text-muted-foreground">{label}</dt>
+      <dd className="text-right font-medium">{value}</dd>
+    </>
+  );
+}
+
+function SignatureBlock({ title, url, name }: { title: string; url?: string | null; name?: string | null }) {
+  return (
+    <div className="border border-border p-3 space-y-2">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{title}</p>
+      {url ? (
+        <img src={url} alt={`Signature ${title}`} className="h-20 w-full object-contain bg-white" />
+      ) : (
+        <div className="h-20 flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border">
+          Non signé
         </div>
-        <SignaturePad label="Signature" onSignatureChange={setDataUrl} />
-        <Button
-          size="sm"
-          disabled={!dataUrl || !name.trim() || pending}
-          onClick={() => dataUrl && onSave(dataUrl, name.trim())}
-          className="bg-primary text-primary-foreground"
-        >
-          <PenLine className="h-4 w-4 mr-1" /> Enregistrer la signature
-        </Button>
-      </CardContent>
-    </Card>
+      )}
+      <p className="text-sm border-t border-border pt-2">{name ?? "—"}</p>
+    </div>
   );
 }
