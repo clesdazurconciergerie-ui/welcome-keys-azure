@@ -59,6 +59,15 @@ export default function OwnerCalendarPage() {
   const { blocks: ownerBlocks, addBlock, removeBlock } = useOwnerBlocks(selectedProperty);
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
 
+  // Continuous stays (one bar per réservation) — owner sees only his own properties
+  const stays = useMemo(
+    () => buildStays(allEvents as any, {
+      propertyNameById: Object.fromEntries(properties.map(p => [p.id, p.name])),
+    }),
+    [allEvents, properties]
+  );
+
+
   // Range selection state (Airbnb-like: click start, click end)
   const [selectionStart, setSelectionStart] = useState<string | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
