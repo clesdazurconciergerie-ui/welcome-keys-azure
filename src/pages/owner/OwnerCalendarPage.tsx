@@ -12,6 +12,9 @@ import { getPlatformClasses, getPlatformLabel } from "@/lib/booking-platforms";
 import { UpcomingBookingsList } from "@/components/owner/UpcomingBookingsList";
 import { OwnerBlockDatesDialog } from "@/components/owner/OwnerBlockDatesDialog";
 import { useOwnerBlocks } from "@/hooks/useOwnerBlocks";
+import { StayMonthGrid } from "@/components/calendar/StayMonthGrid";
+import { buildStays } from "@/lib/stay-utils";
+
 
 
 const platformColors = new Proxy({} as Record<string, string>, {
@@ -55,6 +58,15 @@ export default function OwnerCalendarPage() {
   const { visibleEvents: allEvents, visibleBookingsRaw, visibleCalendarEventsRaw, loading: dataLoading, refetch } = useOwnerVisibleBookings(propertyIds);
   const { blocks: ownerBlocks, addBlock, removeBlock } = useOwnerBlocks(selectedProperty);
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+
+  // Continuous stays (one bar per réservation) — owner sees only his own properties
+  const stays = useMemo(
+    () => buildStays(allEvents as any, {
+      propertyNameById: Object.fromEntries(properties.map(p => [p.id, p.name])),
+    }),
+    [allEvents, properties]
+  );
+
 
   // Range selection state (Airbnb-like: click start, click end)
   const [selectionStart, setSelectionStart] = useState<string | null>(null);
@@ -253,59 +265,21 @@ export default function OwnerCalendarPage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 mb-1">
-            {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map(d => (
-              <div key={d} className="text-center text-[11px] font-medium text-muted-foreground py-1.5">{d}</div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((date, i) => {
-              if (!date) return <div key={`e-${i}`} className="min-h-[72px]" />;
-              const dayEvents = getEventsForDay(date);
+          <StayMonthGrid
+            year={year}
+            month={month}
+            stays={stays}
+            onDayClick={handleDayClick}
+            getDayState={(date) => {
               const dateStr = toDateStr(date);
               const isPast = dateStr < todayStr;
-              const hasReservation = dayEvents.some(e => e.event_type === "reservation" || e.event_type === "booking");
-              const selected = isInSelection(date);
-              const isSelectionStart = selectionStart === dateStr;
-              const isSelectionEndDay = selectionEnd && dateStr === toDateStr(new Date(new Date(selectionEnd).getTime() - 86400000));
-              const disabled = isPast || hasReservation;
-
-              const baseCls = "min-h-[72px] p-1 rounded-xl border transition-colors";
-              const todayCls = isToday(date) ? "ring-2 ring-primary ring-offset-1" : "";
-              const stateCls = selected
-                ? "bg-primary/15 border-primary"
-                : disabled
-                  ? "border-border/40 opacity-60 cursor-not-allowed"
-                  : "border-border/40 hover:bg-primary/5 hover:border-primary/40 cursor-pointer";
-              const edgeCls = (isSelectionStart || isSelectionEndDay) ? "ring-2 ring-primary" : "";
-
-              return (
-                <div
-                  key={date.toISOString()}
-                  className={`${baseCls} ${todayCls} ${stateCls} ${edgeCls}`}
-                  onClick={() => !disabled && handleDayClick(date)}
-                  role={disabled ? undefined : "button"}
-                  aria-label={disabled ? undefined : `Sélectionner le ${date.toLocaleDateString("fr-FR")}`}
-                >
-                  <p className={`text-[11px] font-medium mb-0.5 ${isToday(date) ? "text-primary font-bold" : "text-muted-foreground"}`}>{date.getDate()}</p>
-                  <div className="space-y-0.5">
-                    {dayEvents.slice(0, 2).map(ev => {
-                      const isBlocked = ev.event_type !== "reservation" && ev.event_type !== "booking";
-                      const colorCls = isBlocked ? "bg-amber-100 text-amber-700 border-amber-300 border-dashed" : (platformColors[ev.platform] || platformColors.other);
-                      return (
-                        <div key={ev.id} className={`text-[9px] leading-tight px-1.5 py-0.5 rounded-md truncate border ${colorCls}`}
-                          title={isBlocked ? "Date bloquée" : (ev.guest_name || ev.summary || "Réservation")}>
-                          {isBlocked ? "Bloqué" : (ev.guest_name || ev.summary || "Réservation")}
-                        </div>
-                      );
-                    })}
-                    {dayEvents.length > 2 && <p className="text-[9px] text-muted-foreground text-center">+{dayEvents.length - 2}</p>}
-                  </div>
-                </div>
+              const hasReservation = getEventsForDay(date).some(
+                e => e.event_type === "reservation" || e.event_type === "booking"
               );
-            })}
-          </div>
+              return { disabled: isPast || hasReservation, selected: isInSelection(date) };
+            }}
+          />
+
 
 
           {/* Legend */}

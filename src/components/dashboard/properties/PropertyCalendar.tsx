@@ -23,7 +23,10 @@ import { useBookings, type Booking } from "@/hooks/useBookings";
 import { useCalendarOverrides } from "@/hooks/useCalendarOverrides";
 import { supabase } from "@/integrations/supabase/client";
 import { getPlatformClasses, getPlatformLabel, resolveBookingPlatform } from "@/lib/booking-platforms";
+import { StayMonthGrid } from "@/components/calendar/StayMonthGrid";
+import { buildStays } from "@/lib/stay-utils";
 import { AddDirectBookingDialog } from "./AddDirectBookingDialog";
+
 
 const platformColors = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => getPlatformClasses(key).badge,
@@ -113,6 +116,14 @@ export function PropertyCalendar({ propertyId }: Props) {
   const allEvents = useMemo(() => {
     return [...events.map(e => ({ ...e })), ...bookingEvents];
   }, [events, bookingEvents]);
+
+  // Grouped stays (one continuous bar per reservation) for the month grid
+  const stays = useMemo(
+    () => buildStays(allEvents.filter(e => !hiddenEventIds.has(e.id)) as any),
+    [allEvents, hiddenEventIds]
+  );
+
+
 
   const getEventsForDay = (date: Date) => {
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -296,54 +307,61 @@ export function PropertyCalendar({ propertyId }: Props) {
             </Button>
           </div>
 
-          {/* Day headers */}
-          <div className="grid grid-cols-7 gap-1 mb-1">
-            {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map(d => (
-              <div key={d} className="text-center text-[11px] font-medium text-muted-foreground py-1.5">{d}</div>
-            ))}
-          </div>
+          {viewMode === "month" ? (
+            <StayMonthGrid year={year} month={month} stays={stays} showOperations />
+          ) : (
+            <>
+              {/* Day headers */}
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map(d => (
+                  <div key={d} className="text-center text-[11px] font-medium text-muted-foreground py-1.5">{d}</div>
+                ))}
+              </div>
 
-          {/* Grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((date, i) => {
-              if (!date) return <div key={`e-${i}`} className={viewMode === "week" ? "min-h-[120px]" : "min-h-[72px]"} />;
-              const dayEvents = getEventsForDay(date);
-              const todayCls = isToday(date) ? "ring-2 ring-primary ring-offset-1" : "";
+              {/* Grid */}
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((date, i) => {
+                  if (!date) return <div key={`e-${i}`} className="min-h-[120px]" />;
+                  const dayEvents = getEventsForDay(date);
+                  const todayCls = isToday(date) ? "ring-2 ring-primary ring-offset-1" : "";
 
-              return (
-                <div
-                  key={date.toISOString()}
-                  className={`${viewMode === "week" ? "min-h-[120px]" : "min-h-[72px]"} p-1 rounded-xl border border-border/40 ${todayCls} hover:bg-muted/20 transition-colors`}
-                >
-                  <p className={`text-[11px] font-medium mb-0.5 ${isToday(date) ? "text-primary font-bold" : "text-muted-foreground"}`}>
-                    {date.getDate()}
-                  </p>
-                  <div className="space-y-0.5">
-                    {dayEvents.slice(0, viewMode === "week" ? 5 : 2).map(ev => {
-                      const evType = ev.event_type || "unknown";
-                      const typeStyle = eventTypeStyles[evType] || eventTypeStyles.unknown;
-                      const isReservation = evType === "reservation" || evType === "booking";
-                      const colorCls = isReservation
-                        ? (platformColors[ev.platform] || platformColors.other)
-                        : typeStyle.bg;
-                      return (
-                        <div
-                          key={ev.id}
-                          className={`text-[9px] leading-tight px-1.5 py-0.5 rounded-md truncate border ${colorCls}`}
-                          title={`${typeStyle.label}: ${ev.summary || "Réservation"} ${ev.guest_name ? `- ${ev.guest_name}` : ""}`}
-                        >
-                          {isReservation ? (ev.guest_name || ev.summary || "Réservation") : "Date bloquée"}
-                        </div>
-                      );
-                    })}
-                    {dayEvents.length > (viewMode === "week" ? 5 : 2) && (
-                      <p className="text-[9px] text-muted-foreground text-center">+{dayEvents.length - (viewMode === "week" ? 5 : 2)}</p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  return (
+                    <div
+                      key={date.toISOString()}
+                      className={`min-h-[120px] p-1 rounded-xl border border-border/40 ${todayCls} hover:bg-muted/20 transition-colors`}
+                    >
+                      <p className={`text-[11px] font-medium mb-0.5 ${isToday(date) ? "text-primary font-bold" : "text-muted-foreground"}`}>
+                        {date.getDate()}
+                      </p>
+                      <div className="space-y-0.5">
+                        {dayEvents.slice(0, 5).map(ev => {
+                          const evType = ev.event_type || "unknown";
+                          const typeStyle = eventTypeStyles[evType] || eventTypeStyles.unknown;
+                          const isReservation = evType === "reservation" || evType === "booking";
+                          const colorCls = isReservation
+                            ? (platformColors[ev.platform] || platformColors.other)
+                            : typeStyle.bg;
+                          return (
+                            <div
+                              key={ev.id}
+                              className={`text-[9px] leading-tight px-1.5 py-0.5 rounded-md truncate border ${colorCls}`}
+                              title={`${typeStyle.label}: ${ev.summary || "Réservation"} ${ev.guest_name ? `- ${ev.guest_name}` : ""}`}
+                            >
+                              {isReservation ? (ev.guest_name || ev.summary || "Réservation") : "Date bloquée"}
+                            </div>
+                          );
+                        })}
+                        {dayEvents.length > 5 && (
+                          <p className="text-[9px] text-muted-foreground text-center">+{dayEvents.length - 5}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
 
           {/* Legend */}
           <div className="flex flex-wrap gap-4 mt-4 pt-3 border-t">
