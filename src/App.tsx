@@ -67,6 +67,7 @@ import InspectionsV2Page from "./pages/dashboard/InspectionsV2Page";
 import InspectionV2DetailPage from "./pages/dashboard/InspectionV2DetailPage";
 import InspectionTemplatesPage from "./pages/dashboard/InspectionTemplatesPage";
 import InspectionQuickFillPage from "./pages/dashboard/InspectionQuickFillPage";
+import InspectionNewPage from "./pages/dashboard/InspectionNewPage";
 import SPDashboardHome from "./pages/service-provider/SPDashboardHome";
 import SPMissionsUnifiedPage from "./pages/service-provider/SPMissionsUnifiedPage";
 import SPMissionDetailPage from "./pages/service-provider/SPMissionDetailPage";
