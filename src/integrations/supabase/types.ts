@@ -2126,6 +2126,53 @@ export type Database = {
         }
         Relationships: []
       }
+      inspection_issues: {
+        Row: {
+          category: string
+          comment: string | null
+          created_at: string
+          id: string
+          inspection_id: string
+          photo_urls: Json
+          severity: string
+          updated_at: string
+          user_id: string
+          zone_key: string
+        }
+        Insert: {
+          category?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          inspection_id: string
+          photo_urls?: Json
+          severity?: string
+          updated_at?: string
+          user_id: string
+          zone_key: string
+        }
+        Update: {
+          category?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          inspection_id?: string
+          photo_urls?: Json
+          severity?: string
+          updated_at?: string
+          user_id?: string
+          zone_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_issues_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "property_inspections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inspection_items: {
         Row: {
           category: string | null
@@ -2195,12 +2242,14 @@ export type Database = {
           id: string
           inspection_id: string
           inspection_item_id: string | null
+          media_type: string
           mime_type: string | null
           official_date: string
           room_name: string | null
           storage_path: string
           user_id: string
           width: number | null
+          zone_key: string | null
         }
         Insert: {
           actual_uploaded_at?: string
@@ -2214,12 +2263,14 @@ export type Database = {
           id?: string
           inspection_id: string
           inspection_item_id?: string | null
+          media_type?: string
           mime_type?: string | null
           official_date: string
           room_name?: string | null
           storage_path: string
           user_id: string
           width?: number | null
+          zone_key?: string | null
         }
         Update: {
           actual_uploaded_at?: string
@@ -2233,12 +2284,14 @@ export type Database = {
           id?: string
           inspection_id?: string
           inspection_item_id?: string | null
+          media_type?: string
           mime_type?: string | null
           official_date?: string
           room_name?: string | null
           storage_path?: string
           user_id?: string
           width?: number | null
+          zone_key?: string | null
         }
         Relationships: [
           {
@@ -2253,6 +2306,53 @@ export type Database = {
             columns: ["inspection_item_id"]
             isOneToOne: false
             referencedRelation: "inspection_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_zones: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          inspection_id: string
+          note: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          zone_key: string
+          zone_label: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          inspection_id: string
+          note?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          zone_key: string
+          zone_label: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          inspection_id?: string
+          note?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          zone_key?: string
+          zone_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_zones_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "property_inspections"
             referencedColumns: ["id"]
           },
         ]
@@ -3828,23 +3928,29 @@ export type Database = {
           booking_id: string | null
           cleaning_mission_id: string | null
           concierge_signature_url: string | null
+          concierge_signer_name: string | null
           created_at: string
           created_by: string | null
+          general_notes: string | null
           global_condition: string | null
           guest_name: string | null
           guest_signature_url: string | null
+          guest_signer_name: string | null
           id: string
           inspection_type: string
           inspector_name: string | null
           inspector_role: string | null
+          locked_at: string | null
           metadata: Json | null
           notes: string | null
           official_date: string
           parent_inspection_id: string | null
           property_id: string
+          reference: string | null
           report_pdf_url: string | null
           report_sent_at: string | null
           report_sent_to: string[] | null
+          signed_at: string | null
           status: string
           updated_at: string
           updated_by: string | null
@@ -3858,23 +3964,29 @@ export type Database = {
           booking_id?: string | null
           cleaning_mission_id?: string | null
           concierge_signature_url?: string | null
+          concierge_signer_name?: string | null
           created_at?: string
           created_by?: string | null
+          general_notes?: string | null
           global_condition?: string | null
           guest_name?: string | null
           guest_signature_url?: string | null
+          guest_signer_name?: string | null
           id?: string
           inspection_type?: string
           inspector_name?: string | null
           inspector_role?: string | null
+          locked_at?: string | null
           metadata?: Json | null
           notes?: string | null
           official_date: string
           parent_inspection_id?: string | null
           property_id: string
+          reference?: string | null
           report_pdf_url?: string | null
           report_sent_at?: string | null
           report_sent_to?: string[] | null
+          signed_at?: string | null
           status?: string
           updated_at?: string
           updated_by?: string | null
@@ -3888,23 +4000,29 @@ export type Database = {
           booking_id?: string | null
           cleaning_mission_id?: string | null
           concierge_signature_url?: string | null
+          concierge_signer_name?: string | null
           created_at?: string
           created_by?: string | null
+          general_notes?: string | null
           global_condition?: string | null
           guest_name?: string | null
           guest_signature_url?: string | null
+          guest_signer_name?: string | null
           id?: string
           inspection_type?: string
           inspector_name?: string | null
           inspector_role?: string | null
+          locked_at?: string | null
           metadata?: Json | null
           notes?: string | null
           official_date?: string
           parent_inspection_id?: string | null
           property_id?: string
+          reference?: string | null
           report_pdf_url?: string | null
           report_sent_at?: string | null
           report_sent_to?: string[] | null
+          signed_at?: string | null
           status?: string
           updated_at?: string
           updated_by?: string | null
