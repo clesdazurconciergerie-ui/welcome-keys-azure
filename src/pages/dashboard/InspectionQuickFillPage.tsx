@@ -129,8 +129,6 @@ export default function InspectionQuickFillPage() {
     else setStep(totalZones);
   };
 
-  const bothSigned = !!(insp?.concierge_signature_url || conciergeSig) && !!(insp?.guest_signature_url || guestSig);
-
   const finalize = async () => {
     if (!id || !insp) return;
     const missing: string[] = [];
@@ -154,18 +152,24 @@ export default function InspectionQuickFillPage() {
       });
       await flow.finalize.mutateAsync();
       await flow.inspection.refetch();
-      // PDF
-      const { data: { user } } = await supabase.auth.getUser();
-      await new Promise((r) => setTimeout(r, 400));
-      await generateAndUploadInspectionPdf({
-        elementId: "inspection-print-view",
-        inspectionId: id,
-        userId: user!.id,
-        propertyName: insp.property?.name ?? "bien",
-        officialDate: insp.official_date,
-      });
       localStorage.removeItem(`edl-draft-${id}`);
-      toast.success("État des lieux finalisé et PDF généré");
+
+      // PDF — un échec ne doit pas bloquer la finalisation (régénérable depuis le rapport)
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Session expirée");
+        await new Promise((r) => setTimeout(r, 500));
+        await generateAndUploadInspectionPdf({
+          elementId: "inspection-print-view",
+          inspectionId: id,
+          userId: user.id,
+          propertyName: insp.property?.name ?? "bien",
+          officialDate: insp.official_date,
+        });
+        toast.success("État des lieux finalisé et PDF généré");
+      } catch {
+        toast.warning("État des lieux finalisé — le PDF pourra être généré depuis le rapport");
+      }
       navigate(`/dashboard/etats-des-lieux/${id}`);
     } catch (e: any) {
       toast.error(e.message ?? "Finalisation impossible");
@@ -173,6 +177,7 @@ export default function InspectionQuickFillPage() {
       setFinalizing(false);
     }
   };
+
 
   if (flow.inspection.isLoading || !insp) {
     return <div className="p-4 space-y-3"><Skeleton className="h-12" /><Skeleton className="h-64" /></div>;
