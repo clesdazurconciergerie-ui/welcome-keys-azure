@@ -59,8 +59,12 @@ export default function InspectionQuickFillPage() {
     }
   }, [insp?.id]);
 
+  const zonesEnsured = useRef(false);
   useEffect(() => {
-    if (flow.zones.isSuccess && zones.length === 0 && id) flow.ensureZones.mutate();
+    if (flow.zones.isSuccess && zones.length === 0 && id && !zonesEnsured.current) {
+      zonesEnsured.current = true;
+      flow.ensureZones.mutate();
+    }
   }, [flow.zones.isSuccess, zones.length, id]);
 
   // Brouillon auto local (résilience fermeture / perte réseau)
@@ -71,7 +75,9 @@ export default function InspectionQuickFillPage() {
       try {
         const d = JSON.parse(saved);
         if (d.generalNotes && !generalNotes) setGeneralNotes(d.generalNotes);
-        if (typeof d.step === "number") setStep(d.step);
+        if (typeof d.step === "number") {
+          setStep(Math.min(Math.max(0, d.step), INSPECTION_ZONES.length + 1));
+        }
       } catch { /* ignore */ }
     }
   }, [id]);
@@ -85,6 +91,7 @@ export default function InspectionQuickFillPage() {
     () => INSPECTION_ZONES.map((z) => zones.find((x) => x.zone_key === z.key)).filter(Boolean) as typeof zones,
     [zones],
   );
+
   const checkedCount = orderedZones.filter((z) => z.status !== "pending").length;
   const totalZones = INSPECTION_ZONES.length;
   const totalSteps = totalZones + 2;
