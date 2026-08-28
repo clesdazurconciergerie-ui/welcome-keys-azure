@@ -133,10 +133,16 @@ export default function InspectionQuickFillPage() {
 
   const finalize = async () => {
     if (!id || !insp) return;
-    if (!conciergeName.trim() || !guestName.trim()) {
-      toast.error("Indiquez le nom des deux signataires");
+    const missing: string[] = [];
+    if (!conciergeName.trim()) missing.push("nom du signataire conciergerie");
+    if (!guestName.trim()) missing.push("nom du voyageur");
+    if (!(insp.concierge_signature_url || conciergeSig)) missing.push("signature conciergerie");
+    if (!(insp.guest_signature_url || guestSig)) missing.push("signature voyageur");
+    if (missing.length > 0) {
+      toast.error(`Manquant : ${missing.join(", ")}`);
       return;
     }
+
     setFinalizing(true);
     try {
       if (conciergeSig) await flow.saveSignature.mutateAsync({ type: "concierge", dataUrl: conciergeSig, signerName: conciergeName });
