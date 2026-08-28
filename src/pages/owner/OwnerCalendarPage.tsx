@@ -12,6 +12,9 @@ import { getPlatformClasses, getPlatformLabel } from "@/lib/booking-platforms";
 import { UpcomingBookingsList } from "@/components/owner/UpcomingBookingsList";
 import { OwnerBlockDatesDialog } from "@/components/owner/OwnerBlockDatesDialog";
 import { useOwnerBlocks } from "@/hooks/useOwnerBlocks";
+import { StayMonthGrid } from "@/components/calendar/StayMonthGrid";
+import { buildStays } from "@/lib/stay-utils";
+
 
 
 const platformColors = new Proxy({} as Record<string, string>, {
