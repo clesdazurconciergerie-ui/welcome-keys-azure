@@ -67,6 +67,7 @@ import InspectionsV2Page from "./pages/dashboard/InspectionsV2Page";
 import InspectionV2DetailPage from "./pages/dashboard/InspectionV2DetailPage";
 import InspectionTemplatesPage from "./pages/dashboard/InspectionTemplatesPage";
 import InspectionQuickFillPage from "./pages/dashboard/InspectionQuickFillPage";
+import InspectionNewPage from "./pages/dashboard/InspectionNewPage";
 import SPDashboardHome from "./pages/service-provider/SPDashboardHome";
 import SPMissionsUnifiedPage from "./pages/service-provider/SPMissionsUnifiedPage";
 import SPMissionDetailPage from "./pages/service-provider/SPMissionDetailPage";
@@ -150,6 +151,7 @@ const App = () => (
             
             <Route path="ical-monitoring" element={<ICalMonitoringPage />} />
             <Route path="etats-des-lieux" element={<InspectionsV2Page />} />
+            <Route path="etats-des-lieux/nouveau" element={<InspectionNewPage />} />
             <Route path="etats-des-lieux/:id" element={<InspectionV2DetailPage />} />
             <Route path="etats-des-lieux/:id/remplir" element={<InspectionQuickFillPage />} />
             <Route path="etats-des-lieux-modeles" element={<InspectionTemplatesPage />} />

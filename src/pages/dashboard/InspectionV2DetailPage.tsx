@@ -154,12 +154,25 @@ export default function InspectionV2DetailPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {insp.status !== "validated" && (
+            <Button size="sm" onClick={() => navigate(`/dashboard/etats-des-lieux/${insp.id}/remplir`)}>
+              Reprendre le contrôle
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => { setNewDate(insp.official_date); setEditDateOpen(true); }}>
             Modifier date
           </Button>
-          <Button variant="outline" size="sm" onClick={exportPDF}>
-            <Download className="h-4 w-4 mr-1" /> PDF
-          </Button>
+          {(insp as any).report_pdf_url ? (
+            <Button asChild variant="outline" size="sm">
+              <a href={(insp as any).report_pdf_url} target="_blank" rel="noreferrer" download>
+                <Download className="h-4 w-4 mr-1" /> PDF
+              </a>
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={exportPDF}>
+              <Download className="h-4 w-4 mr-1" /> PDF
+            </Button>
+          )}
           {insp.status !== "validated" && (
             <Button size="sm" onClick={validateInspection} className="bg-primary text-primary-foreground">
               <CheckCircle2 className="h-4 w-4 mr-1" /> Valider

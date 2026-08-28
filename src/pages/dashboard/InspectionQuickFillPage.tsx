@@ -1,253 +1,559 @@
-// MODULE — Page mobile-first pour remplir un état des lieux ultra-rapidement
-import { useParams, useNavigate } from "react-router-dom";
-import { useMemo, useState } from "react";
+// MODULE — Parcours mobile-first de remplissage d'un état des lieux
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
-  ArrowLeft, Check, AlertTriangle, X, Camera, ChevronDown, ChevronRight,
-  Sparkles, Send, Loader2,
+  ArrowLeft, ArrowRight, Check, CheckCircle2, AlertTriangle, Camera, StickyNote,
+  Trash2, Loader2, ShieldAlert, FileText, Lock, Sparkles,
 } from "lucide-react";
-import { useInspectionDetail, type InspectionItem } from "@/hooks/usePropertyInspections";
+import { useInspectionFlow } from "@/hooks/useInspectionFlow";
 import { useCleaningPhotosForInspection } from "@/hooks/useCleaningPhotosForInspection";
-import { VoiceDictateButton } from "@/components/inspection-v2/VoiceDictateButton";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import {
+  INSPECTION_ZONES, ISSUE_CATEGORIES, ISSUE_SEVERITIES, ISSUE_CATEGORY_LABEL,
+  ISSUE_SEVERITY_LABEL, ZONE_LABEL, guessZoneFromKind,
+} from "@/lib/inspection-zones";
+import { ZoneMediaStrip } from "@/components/inspection/ZoneMediaStrip";
+import { SignaturePad } from "@/components/inspection/SignaturePad";
+import { InspectionPrintView } from "@/components/inspection/InspectionPrintView";
+import { generateAndUploadInspectionPdf } from "@/lib/inspection-pdf";
+import { supabase } from "@/integrations/supabase/client";
 import SEOHead from "@/components/SEOHead";
+import { toast } from "sonner";
 
-const STATE_MAP: Record<string, { label: string; color: string }> = {
-  good: { label: "OK", color: "text-emerald-700" },
-  damaged: { label: "Défaut", color: "text-amber-700" },
-  broken: { label: "Cassé", color: "text-rose-700" },
-};
+type Step = { kind: "zone"; index: number } | { kind: "summary" } | { kind: "sign" };
 
 export default function InspectionQuickFillPage() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { inspection, items, updateItem, uploadPhoto, updateInspection } = useInspectionDetail(id);
-  const [openRoom, setOpenRoom] = useState<string | null>(null);
-  const insp = inspection.data;
+  const flow = useInspectionFlow(id);
+  const [step, setStep] = useState(0); // 0..6 zones, 7 récap, 8 signatures
+  const [issueZone, setIssueZone] = useState<string | null>(null);
+  const [noteZone, setNoteZone] = useState<string | null>(null);
+  const [generalNotes, setGeneralNotes] = useState("");
+  const [conciergeSig, setConciergeSig] = useState<string | null>(null);
+  const [guestSig, setGuestSig] = useState<string | null>(null);
+  const [conciergeName, setConciergeName] = useState("");
+  const [guestName, setGuestName] = useState("");
+  const [finalizing, setFinalizing] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const uploadZoneRef = useRef<string | null>(null);
+
+  const insp = flow.inspection.data;
+  const zones = flow.zones.data ?? [];
+  const issues = flow.issues.data ?? [];
+  const photos = flow.photos.data ?? [];
+  const locked = !!insp?.locked_at;
 
   const cleaning = useCleaningPhotosForInspection(insp?.property_id, insp?.official_date);
 
-  const grouped = useMemo(() => {
-    return (items.data ?? []).reduce<Record<string, InspectionItem[]>>((acc, it) => {
-      (acc[it.room_name] ||= []).push(it);
-      return acc;
-    }, {});
-  }, [items.data]);
+  useEffect(() => {
+    if (insp) {
+      setGeneralNotes(insp.general_notes ?? insp.notes ?? "");
+      setGuestName(insp.guest_name ?? insp.booking?.guest_name ?? "");
+      setConciergeName(insp.inspector_name ?? "");
+    }
+  }, [insp?.id]);
 
-  const rooms = Object.keys(grouped);
-  const totalItems = items.data?.length ?? 0;
-  const filledItems = (items.data ?? []).filter((i) => i.condition !== "good" || i.notes).length
-    + (items.data ?? []).filter((i) => i.condition === "good").length;
-  const percent = totalItems ? Math.round((filledItems / totalItems) * 100) : 0;
+  useEffect(() => {
+    if (flow.zones.isSuccess && zones.length === 0 && id) flow.ensureZones.mutate();
+  }, [flow.zones.isSuccess, zones.length, id]);
 
-  if (inspection.isLoading || items.isLoading) {
-    return <div className="p-4 space-y-3"><Skeleton className="h-12" /><Skeleton className="h-64" /></div>;
-  }
-  if (!insp) return <p className="p-6 text-muted-foreground">Introuvable</p>;
+  // Brouillon auto local (résilience fermeture / perte réseau)
+  useEffect(() => {
+    if (!id) return;
+    const saved = localStorage.getItem(`edl-draft-${id}`);
+    if (saved) {
+      try {
+        const d = JSON.parse(saved);
+        if (d.generalNotes && !generalNotes) setGeneralNotes(d.generalNotes);
+        if (typeof d.step === "number") setStep(d.step);
+      } catch { /* ignore */ }
+    }
+  }, [id]);
 
-  const applyVoiceUpdates = (updates: Array<{ item_id: string; condition: string; notes: string }>) => {
-    updates.forEach((u) => {
-      updateItem.mutate({
-        itemId: u.item_id,
-        patch: { condition: u.condition, notes: u.notes || null } as any,
-      });
-    });
+  useEffect(() => {
+    if (!id) return;
+    localStorage.setItem(`edl-draft-${id}`, JSON.stringify({ generalNotes, step }));
+  }, [id, generalNotes, step]);
+
+  const orderedZones = useMemo(
+    () => INSPECTION_ZONES.map((z) => zones.find((x) => x.zone_key === z.key)).filter(Boolean) as typeof zones,
+    [zones],
+  );
+  const checkedCount = orderedZones.filter((z) => z.status !== "pending").length;
+  const totalZones = INSPECTION_ZONES.length;
+  const totalSteps = totalZones + 2;
+  const currentZone = step < totalZones ? INSPECTION_ZONES[step] : null;
+  const currentZoneRow = currentZone ? zones.find((z) => z.zone_key === currentZone.key) : null;
+
+  const cleaningByZone = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    for (const p of cleaning.data?.photos ?? []) {
+      const zk = guessZoneFromKind(p.kind) ?? "_other";
+      (map[zk] ||= []).push(p);
+    }
+    return map;
+  }, [cleaning.data]);
+
+  const zonePhotos = (zk: string) => photos.filter((p) => p.zone_key === zk);
+  const zoneIssues = (zk: string) => issues.filter((i) => i.zone_key === zk);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const zk = uploadZoneRef.current;
+    e.target.value = "";
+    if (!file || !zk) return;
+    await flow.uploadZoneMedia.mutateAsync({ file, zone_key: zk });
   };
 
-  const goToDetail = () => navigate(`/dashboard/etats-des-lieux/${id}`);
+  const pickFile = (zk: string) => {
+    uploadZoneRef.current = zk;
+    fileRef.current?.click();
+  };
+
+  const markOk = async (zk: string) => {
+    await flow.setZone.mutateAsync({ zone_key: zk, status: "ok" });
+    if (step < totalZones - 1) setStep((s) => s + 1);
+    else setStep(totalZones);
+  };
+
+  const bothSigned = !!(insp?.concierge_signature_url || conciergeSig) && !!(insp?.guest_signature_url || guestSig);
+
+  const finalize = async () => {
+    if (!id || !insp) return;
+    if (!conciergeName.trim() || !guestName.trim()) {
+      toast.error("Indiquez le nom des deux signataires");
+      return;
+    }
+    setFinalizing(true);
+    try {
+      if (conciergeSig) await flow.saveSignature.mutateAsync({ type: "concierge", dataUrl: conciergeSig, signerName: conciergeName });
+      if (guestSig) await flow.saveSignature.mutateAsync({ type: "guest", dataUrl: guestSig, signerName: guestName });
+      await flow.updateInspection.mutateAsync({
+        general_notes: generalNotes,
+        guest_name: guestName,
+        inspector_name: conciergeName,
+      });
+      await flow.finalize.mutateAsync();
+      await flow.inspection.refetch();
+      // PDF
+      const { data: { user } } = await supabase.auth.getUser();
+      await new Promise((r) => setTimeout(r, 400));
+      await generateAndUploadInspectionPdf({
+        elementId: "inspection-print-view",
+        inspectionId: id,
+        userId: user!.id,
+        propertyName: insp.property?.name ?? "bien",
+        officialDate: insp.official_date,
+      });
+      localStorage.removeItem(`edl-draft-${id}`);
+      toast.success("État des lieux finalisé et PDF généré");
+      navigate(`/dashboard/etats-des-lieux/${id}`);
+    } catch (e: any) {
+      toast.error(e.message ?? "Finalisation impossible");
+    } finally {
+      setFinalizing(false);
+    }
+  };
+
+  if (flow.inspection.isLoading || !insp) {
+    return <div className="p-4 space-y-3"><Skeleton className="h-12" /><Skeleton className="h-64" /></div>;
+  }
 
   return (
-    <div className="min-h-screen bg-background pb-32">
-      <SEOHead title="Remplir l'état des lieux" description="" />
+    <div className="min-h-[100dvh] pb-36">
+      <SEOHead title="Contrôle en cours — Welkom" description="Remplissage rapide d'un état des lieux" />
+      <input ref={fileRef} type="file" accept="image/*,video/*" capture="environment" onChange={handleFile} className="absolute opacity-0 pointer-events-none w-0 h-0" />
 
-      {/* Sticky header */}
-      <header className="sticky top-0 z-30 bg-background border-b border-border">
-        <div className="flex items-center gap-2 px-3 py-2">
-          <Button variant="ghost" size="icon" onClick={goToDetail}>
+      {/* Header sticky */}
+      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border">
+        <div className="px-3 py-2.5 flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/etats-des-lieux")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">
-              {insp.inspection_type === "entry" ? "État d'entrée" : "État de sortie"}
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold truncate">{insp.property?.name ?? "Bien"}</p>
+            <p className="text-[11px] text-muted-foreground">
+              {insp.inspection_type === "exit" ? "État des lieux de sortie" : "État des lieux d'entrée"}
+              {" · "}{checkedCount} zone{checkedCount > 1 ? "s" : ""} sur {totalZones} contrôlée{checkedCount > 1 ? "s" : ""}
             </p>
-            <h1 className="text-sm font-semibold truncate">{insp.property?.name}</h1>
           </div>
-          <Badge variant="outline" className="text-xs">{percent}%</Badge>
+          {locked && <Badge variant="outline" className="gap-1"><Lock className="h-3 w-3" />Verrouillé</Badge>}
         </div>
-        <Progress value={percent} className="h-1 rounded-none" />
+        <div className="h-1 bg-muted">
+          <div className="h-full bg-foreground transition-all" style={{ width: `${(checkedCount / totalZones) * 100}%` }} />
+        </div>
       </header>
 
-      {/* Photos ménage héritées */}
-      {cleaning.data && cleaning.data.photos.length > 0 && (
-        <section className="p-3 border-b border-border bg-muted/30">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
-            <Sparkles className="h-3 w-3" />
-            {cleaning.data.photos.length} photos du dernier ménage
-          </p>
-          <div className="flex gap-2 overflow-x-auto pb-1 snap-x">
-            {cleaning.data.photos.slice(0, 12).map((p) => (
-              <img
-                key={p.id}
-                src={p.url}
-                alt="Photo ménage"
-                className="h-20 w-20 object-cover shrink-0 snap-start border border-border"
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Rooms accordion */}
-      <div className="divide-y divide-border">
-        {rooms.length === 0 && (
-          <div className="p-8 text-center text-sm text-muted-foreground">
-            Aucun item — <Button variant="link" onClick={goToDetail}>ouvrir la vue complète</Button>
-          </div>
-        )}
-        {rooms.map((room) => {
-          const list = grouped[room];
-          const roomDone = list.filter((i) => i.condition !== "good" || i.notes).length + list.filter((i) => i.condition === "good").length;
-          const isOpen = openRoom === room || openRoom === null;
-          return (
-            <div key={room}>
-              <button
-                onClick={() => setOpenRoom(isOpen ? "__none__" : room)}
-                className="w-full flex items-center justify-between px-3 py-3 text-left hover:bg-muted/50"
-              >
-                <div className="flex items-center gap-2">
-                  {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  <span className="font-medium">{room}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">{roomDone}/{list.length}</span>
-              </button>
-              {isOpen && (
-                <ul className="pb-2">
-                  {list.map((item) => (
-                    <QuickItemRow
-                      key={item.id}
-                      item={item}
-                      onUpdate={(patch) => updateItem.mutate({ itemId: item.id, patch })}
-                      onAttachPhoto={(file) => uploadPhoto.mutate({ file, roomName: item.room_name, caption: item.item_name, itemId: item.id })}
-                    />
-                  ))}
-                </ul>
-              )}
+      <div className="px-4 py-5 max-w-3xl mx-auto space-y-6">
+        {/* ÉTAPE ZONE */}
+        {currentZone && (
+          <section className="space-y-5">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Zone {step + 1} / {totalZones}</p>
+              <h2 className="text-2xl font-semibold tracking-tight">{currentZone.label}</h2>
+              <p className="text-sm text-muted-foreground">{currentZone.hint}</p>
             </div>
-          );
-        })}
+
+            <ZoneStatusBadge status={currentZoneRow?.status ?? "pending"} />
+
+            {/* Médias ménage précédent (entrée) */}
+            {insp.inspection_type === "entry" && (
+              <div className="border border-border p-3 space-y-2">
+                <p className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} /> Médias du ménage précédent
+                </p>
+                <ZoneMediaStrip
+                  media={[...(cleaningByZone[currentZone.key] ?? []), ...(cleaningByZone._other ?? [])].map((p: any) => ({
+                    id: p.id, url: p.url, media_type: "photo", captured_at: p.created_at,
+                  }))}
+                  empty="Aucun média de ménage disponible pour cette zone."
+                />
+              </div>
+            )}
+
+            {/* Actions rapides */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                className="h-16 text-base col-span-2" disabled={locked || flow.setZone.isPending}
+                onClick={() => markOk(currentZone.key)}
+              >
+                <CheckCircle2 className="h-5 w-5 mr-2" strokeWidth={1.5} /> Tout est conforme
+              </Button>
+              <Button variant="outline" className="h-14" disabled={locked} onClick={() => setIssueZone(currentZone.key)}>
+                <AlertTriangle className="h-4 w-4 mr-2" strokeWidth={1.5} /> Signaler
+              </Button>
+              <Button variant="outline" className="h-14" disabled={locked} onClick={() => pickFile(currentZone.key)}>
+                {flow.uploadZoneMedia.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" strokeWidth={1.5} />}
+                Photo
+              </Button>
+              <Button variant="outline" className="h-14 col-span-2" disabled={locked} onClick={() => setNoteZone(currentZone.key)}>
+                <StickyNote className="h-4 w-4 mr-2" strokeWidth={1.5} /> Ajouter une note
+              </Button>
+            </div>
+
+            {currentZoneRow?.note && (
+              <p className="text-sm border-l-2 border-foreground pl-3 whitespace-pre-wrap">{currentZoneRow.note}</p>
+            )}
+
+            {/* Photos EDL de la zone */}
+            {zonePhotos(currentZone.key).length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-wider">Photos de ce contrôle</p>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {zonePhotos(currentZone.key).map((p) => (
+                    <div key={p.id} className="relative shrink-0">
+                      <ZoneMediaStrip media={[{ id: p.id, url: p.file_url, media_type: p.media_type }]} />
+                      {!locked && (
+                        <button
+                          type="button" aria-label="Supprimer la photo"
+                          onClick={() => flow.deleteMedia.mutate(p)}
+                          className="absolute top-1 right-1 bg-background border border-border p-1"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Anomalies de la zone */}
+            {zoneIssues(currentZone.key).map((i) => (
+              <IssueRow key={i.id} issue={i} onDelete={() => flow.deleteIssue.mutate(i.id)} locked={locked} />
+            ))}
+          </section>
+        )}
+
+        {/* RÉCAPITULATIF */}
+        {step === totalZones && (
+          <section className="space-y-6">
+            <h2 className="text-2xl font-semibold tracking-tight">Récapitulatif</h2>
+            <SummaryBlock insp={insp} zones={orderedZones} issues={issues} photosCount={photos.length} />
+            <div className="space-y-2">
+              <label className="text-xs font-medium uppercase tracking-wider">Notes générales</label>
+              <Textarea
+                value={generalNotes} disabled={locked}
+                onChange={(e) => setGeneralNotes(e.target.value)}
+                onBlur={() => flow.updateInspection.mutate({ general_notes: generalNotes })}
+                rows={4} placeholder="Observations complémentaires…"
+              />
+            </div>
+          </section>
+        )}
+
+        {/* SIGNATURES */}
+        {step === totalSteps - 1 && (
+          <section className="space-y-6">
+            <h2 className="text-2xl font-semibold tracking-tight">Signatures</h2>
+            <p className="text-sm border border-border p-3 leading-relaxed">
+              Les parties reconnaissent avoir pris connaissance de l'état du logement et des éventuelles
+              observations indiquées ci-dessus.
+            </p>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Input placeholder="Nom du signataire conciergerie" value={conciergeName} disabled={locked}
+                  onChange={(e) => setConciergeName(e.target.value)} className="h-12" />
+                {locked && insp.concierge_signature_url ? (
+                  <img src={insp.concierge_signature_url} alt="Signature conciergerie" className="h-24 border border-border bg-white" />
+                ) : (
+                  <SignaturePad label="Signature de la conciergerie" onSignatureChange={setConciergeSig} existingSignature={insp.concierge_signature_url} />
+                )}
+              </div>
+              <div className="space-y-2">
+                <Input placeholder="Nom du voyageur" value={guestName} disabled={locked}
+                  onChange={(e) => setGuestName(e.target.value)} className="h-12" />
+                {locked && insp.guest_signature_url ? (
+                  <img src={insp.guest_signature_url} alt="Signature voyageur" className="h-24 border border-border bg-white" />
+                ) : (
+                  <SignaturePad label="Signature du voyageur" onSignatureChange={setGuestSig} existingSignature={insp.guest_signature_url} />
+                )}
+              </div>
+            </div>
+
+            {locked && (
+              <p className="text-sm flex items-center gap-2 text-muted-foreground">
+                <Lock className="h-4 w-4" /> Signé le {new Date(insp.signed_at ?? insp.locked_at).toLocaleString("fr-FR")} — document verrouillé.
+              </p>
+            )}
+          </section>
+        )}
       </div>
 
-      {/* Notes + compteurs bloc unique en bas */}
-      <section className="p-4 space-y-3 border-t border-border mt-2">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">Notes finales</p>
-        <Textarea
-          defaultValue={insp.notes ?? ""}
-          placeholder="Remarques générales..."
-          rows={3}
-          onBlur={(e) => e.target.value !== (insp.notes ?? "") && updateInspection.mutate({ notes: e.target.value })}
+      {/* Rendu PDF hors écran */}
+      <div className="fixed -left-[10000px] top-0" aria-hidden="true">
+        <InspectionPrintView
+          inspection={{ ...insp, general_notes: generalNotes, guest_name: guestName, inspector_name: conciergeName }}
+          zones={orderedZones}
+          issues={issues}
+          photos={photos}
+          conciergeSignature={conciergeSig ?? insp.concierge_signature_url}
+          guestSignature={guestSig ?? insp.guest_signature_url}
         />
-      </section>
-
-      {/* Sticky action */}
-      <div className="fixed bottom-0 inset-x-0 z-30 border-t border-border bg-background/95 backdrop-blur p-3">
-        <Button className="w-full h-12" size="lg" onClick={goToDetail}>
-          <Send className="h-4 w-4 mr-2" />
-          Continuer → signatures &amp; envoi
-        </Button>
       </div>
 
-      {/* Voice dictate */}
-      <VoiceDictateButton
-        items={(items.data ?? []).map((i) => ({ id: i.id, room_name: i.room_name, item_name: i.item_name }))}
-        onApply={applyVoiceUpdates}
+      {/* Barre d'action fixe */}
+      <div className="fixed bottom-0 inset-x-0 z-30 border-t border-border bg-background/95 backdrop-blur px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <div className="max-w-3xl mx-auto flex gap-2">
+          {step > 0 && (
+            <Button variant="outline" className="h-14 px-4" onClick={() => setStep((s) => s - 1)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+          {step < totalSteps - 1 ? (
+            <Button className="h-14 flex-1 text-base" onClick={() => setStep((s) => s + 1)}>
+              Continuer <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          ) : locked ? (
+            <Button className="h-14 flex-1 text-base" onClick={() => navigate(`/dashboard/etats-des-lieux/${id}`)}>
+              <FileText className="h-4 w-4 mr-2" /> Voir le rapport
+            </Button>
+          ) : (
+            <Button className="h-14 flex-1 text-base" disabled={!bothSigned || finalizing} onClick={finalize}>
+              {finalizing ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Check className="h-5 w-5 mr-2" />}
+              Finaliser et générer le PDF
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <IssueDialog
+        zoneKey={issueZone}
+        onClose={() => setIssueZone(null)}
+        onSubmit={async (payload) => {
+          await flow.addIssue.mutateAsync(payload);
+          setIssueZone(null);
+        }}
+        onPickPhoto={pickFile}
+      />
+
+      <NoteDialog
+        zoneKey={noteZone}
+        initial={noteZone ? zones.find((z) => z.zone_key === noteZone)?.note ?? "" : ""}
+        onClose={() => setNoteZone(null)}
+        onSubmit={async (note) => {
+          if (!noteZone) return;
+          await flow.setZone.mutateAsync({ zone_key: noteZone, note });
+          setNoteZone(null);
+        }}
       />
     </div>
   );
 }
 
-function QuickItemRow({
-  item, onUpdate, onAttachPhoto,
-}: {
-  item: InspectionItem;
-  onUpdate: (patch: Partial<InspectionItem>) => void;
-  onAttachPhoto: (file: File) => void;
-}) {
-  const [expanded, setExpanded] = useState(item.condition !== "good" || !!item.notes);
-  const state = STATE_MAP[item.condition] ?? STATE_MAP.good;
+function ZoneStatusBadge({ status }: { status: string }) {
+  if (status === "ok") {
+    return <p className="flex items-center gap-2 text-sm border border-foreground px-3 py-2"><CheckCircle2 className="h-4 w-4" strokeWidth={1.5} /> Zone marquée conforme</p>;
+  }
+  if (status === "issue") {
+    return <p className="flex items-center gap-2 text-sm border border-foreground bg-foreground text-background px-3 py-2"><AlertTriangle className="h-4 w-4" strokeWidth={1.5} /> Problème signalé sur cette zone</p>;
+  }
+  return <p className="flex items-center gap-2 text-sm border border-dashed border-border px-3 py-2 text-muted-foreground"><ShieldAlert className="h-4 w-4" strokeWidth={1.5} /> Zone non encore contrôlée</p>;
+}
 
-  const set = (condition: string) => {
-    onUpdate({ condition } as any);
-    if (condition !== "good") setExpanded(true);
-  };
-
-  const inputId = `photo-${item.id}`;
-
+function IssueRow({ issue, onDelete, locked }: { issue: any; onDelete: () => void; locked: boolean }) {
   return (
-    <li className="px-3 py-2 flex flex-col gap-2 border-b border-border last:border-b-0">
-      <div className="flex items-center gap-2">
-        <span className="flex-1 text-sm">{item.item_name}</span>
-        <span className={cn("text-[10px] uppercase tracking-wider font-semibold", state.color)}>
-          {state.label}
-        </span>
+    <div className="border border-border p-3 space-y-1">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant="outline">{ISSUE_CATEGORY_LABEL[issue.category] ?? issue.category}</Badge>
+          <Badge variant={issue.severity === "urgent" ? "default" : "outline"} className="gap-1">
+            <AlertTriangle className="h-3 w-3" /> {ISSUE_SEVERITY_LABEL[issue.severity] ?? issue.severity}
+          </Badge>
+        </div>
+        {!locked && (
+          <button type="button" aria-label="Supprimer l'anomalie" onClick={onDelete}>
+            <Trash2 className="h-4 w-4 text-muted-foreground" />
+          </button>
+        )}
       </div>
-      <div className="flex gap-2">
-        <TouchButton active={item.condition === "good"} onClick={() => set("good")} variant="ok">
-          <Check className="h-5 w-5" />
-        </TouchButton>
-        <TouchButton active={item.condition === "damaged"} onClick={() => set("damaged")} variant="warn">
-          <AlertTriangle className="h-5 w-5" />
-        </TouchButton>
-        <TouchButton active={item.condition === "broken"} onClick={() => set("broken")} variant="bad">
-          <X className="h-5 w-5" />
-        </TouchButton>
-        <label htmlFor={inputId} className="flex-1 h-14 border border-dashed border-border flex items-center justify-center gap-2 text-sm text-muted-foreground active:bg-muted cursor-pointer">
-          <Camera className="h-5 w-5" /> Photo
-        </label>
-        <input
-          id={inputId}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          style={{ opacity: 0, position: "absolute", pointerEvents: "none", width: 0, height: 0 }}
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) onAttachPhoto(f); e.target.value = ""; }}
-        />
-      </div>
-      {expanded && (
-        <Input
-          defaultValue={item.notes ?? ""}
-          placeholder="Commentaire (facultatif)"
-          onBlur={(e) => e.target.value !== (item.notes ?? "") && onUpdate({ notes: e.target.value } as any)}
-        />
-      )}
-    </li>
+      {issue.comment && <p className="text-sm whitespace-pre-wrap">{issue.comment}</p>}
+    </div>
   );
 }
 
-function TouchButton({
-  active, onClick, variant, children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  variant: "ok" | "warn" | "bad";
-  children: React.ReactNode;
-}) {
-  const colors = {
-    ok: active ? "bg-emerald-600 text-white border-emerald-600" : "border-border text-emerald-700",
-    warn: active ? "bg-amber-500 text-white border-amber-500" : "border-border text-amber-700",
-    bad: active ? "bg-rose-600 text-white border-rose-600" : "border-border text-rose-700",
-  }[variant];
+function SummaryBlock({ insp, zones, issues, photosCount }: any) {
+  const stay = insp.booking
+    ? `${new Date(insp.booking.check_in).toLocaleDateString("fr-FR")} → ${new Date(insp.booking.check_out).toLocaleDateString("fr-FR")}`
+    : "—";
   return (
-    <button
-      onClick={onClick}
-      className={cn("h-14 w-14 border flex items-center justify-center active:scale-95 transition", colors)}
-    >
-      {children}
-    </button>
+    <div className="space-y-4 text-sm">
+      <dl className="grid grid-cols-2 gap-y-2">
+        <Row label="Bien" value={insp.property?.name ?? "—"} />
+        <Row label="Type" value={insp.inspection_type === "exit" ? "Sortie" : "Entrée"} />
+        <Row label="Voyageur" value={insp.guest_name ?? insp.booking?.guest_name ?? "—"} />
+        <Row label="Séjour" value={stay} />
+        <Row label="Photos jointes" value={String(photosCount)} />
+        <Row label="Anomalies" value={String(issues.length)} />
+      </dl>
+      <div className="space-y-1">
+        {zones.map((z: any) => (
+          <div key={z.id} className="flex items-center justify-between border-b border-border py-2">
+            <span>{ZONE_LABEL[z.zone_key] ?? z.zone_label}</span>
+            <span className="flex items-center gap-1.5 text-xs">
+              {z.status === "ok" && <><CheckCircle2 className="h-3.5 w-3.5" /> Conforme</>}
+              {z.status === "issue" && <><AlertTriangle className="h-3.5 w-3.5" /> Problème</>}
+              {z.status === "pending" && <><ShieldAlert className="h-3.5 w-3.5" /> Non contrôlée</>}
+            </span>
+          </div>
+        ))}
+      </div>
+      {issues.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wider">Anomalies signalées</p>
+          {issues.map((i: any) => (
+            <div key={i.id} className="border border-border p-2 text-xs">
+              <strong>{ZONE_LABEL[i.zone_key] ?? i.zone_key}</strong> · {ISSUE_CATEGORY_LABEL[i.category]} · {ISSUE_SEVERITY_LABEL[i.severity]}
+              {i.comment ? ` — ${i.comment}` : ""}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <>
+      <dt className="text-muted-foreground text-xs uppercase tracking-wider">{label}</dt>
+      <dd className="text-right font-medium">{value}</dd>
+    </>
+  );
+}
+
+function IssueDialog({ zoneKey, onClose, onSubmit, onPickPhoto }: {
+  zoneKey: string | null;
+  onClose: () => void;
+  onSubmit: (p: { zone_key: string; category: string; severity: string; comment: string }) => Promise<void>;
+  onPickPhoto: (zk: string) => void;
+}) {
+  const [category, setCategory] = useState("cleanliness");
+  const [severity, setSeverity] = useState("minor");
+  const [comment, setComment] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (zoneKey) { setCategory("cleanliness"); setSeverity("minor"); setComment(""); }
+  }, [zoneKey]);
+
+  return (
+    <Dialog open={!!zoneKey} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Signaler un problème — {zoneKey ? ZONE_LABEL[zoneKey] : ""}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wider">Catégorie</p>
+            <div className="grid grid-cols-2 gap-2">
+              {ISSUE_CATEGORIES.map((c) => (
+                <button key={c.value} type="button" onClick={() => setCategory(c.value)}
+                  className={`border px-3 py-3 text-sm min-h-[48px] ${category === c.value ? "bg-foreground text-background border-foreground" : "border-border"}`}>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wider">Niveau</p>
+            <div className="grid grid-cols-3 gap-2">
+              {ISSUE_SEVERITIES.map((s) => (
+                <button key={s.value} type="button" onClick={() => setSeverity(s.value)}
+                  className={`border px-2 py-3 text-sm min-h-[48px] ${severity === s.value ? "bg-foreground text-background border-foreground" : "border-border"}`}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Textarea placeholder="Commentaire (facultatif)" value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
+          {zoneKey && (
+            <Button variant="outline" className="w-full h-12" onClick={() => onPickPhoto(zoneKey)}>
+              <Camera className="h-4 w-4 mr-2" /> Ajouter une photo
+            </Button>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button
+            disabled={saving || !zoneKey}
+            onClick={async () => {
+              if (!zoneKey) return;
+              setSaving(true);
+              try { await onSubmit({ zone_key: zoneKey, category, severity, comment }); }
+              finally { setSaving(false); }
+            }}
+          >
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Enregistrer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function NoteDialog({ zoneKey, initial, onClose, onSubmit }: {
+  zoneKey: string | null; initial: string; onClose: () => void; onSubmit: (note: string) => Promise<void>;
+}) {
+  const [note, setNote] = useState(initial);
+  useEffect(() => setNote(initial), [zoneKey, initial]);
+  return (
+    <Dialog open={!!zoneKey} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Note — {zoneKey ? ZONE_LABEL[zoneKey] : ""}</DialogTitle></DialogHeader>
+        <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={5} placeholder="Observation libre…" />
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button onClick={() => onSubmit(note)}>Enregistrer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
