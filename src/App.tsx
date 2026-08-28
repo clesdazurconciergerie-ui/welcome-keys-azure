@@ -150,6 +150,7 @@ const App = () => (
             
             <Route path="ical-monitoring" element={<ICalMonitoringPage />} />
             <Route path="etats-des-lieux" element={<InspectionsV2Page />} />
+            <Route path="etats-des-lieux/nouveau" element={<InspectionNewPage />} />
             <Route path="etats-des-lieux/:id" element={<InspectionV2DetailPage />} />
             <Route path="etats-des-lieux/:id/remplir" element={<InspectionQuickFillPage />} />
             <Route path="etats-des-lieux-modeles" element={<InspectionTemplatesPage />} />
