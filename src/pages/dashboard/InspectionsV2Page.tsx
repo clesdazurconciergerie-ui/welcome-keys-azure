@@ -135,44 +135,45 @@ export default function InspectionsV2Page() {
                 const anomalies = counts.data?.[i.id] ?? 0;
                 const isFinal = i.status === "validated";
                 return (
-                  <li key={i.id}>
-                    <button
-                      type="button"
+                  <li key={i.id} className="py-4 px-1 hover:bg-muted/40 transition-colors flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() => navigate(`/dashboard/etats-des-lieux/${i.id}`)}
-                      className="w-full text-left py-4 px-1 hover:bg-muted/40 transition-colors flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(`/dashboard/etats-des-lieux/${i.id}`); }}
+                      className="flex-1 min-w-0 cursor-pointer text-left"
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate flex items-center gap-2">
-                          {i.inspection_type === "exit"
-                            ? <DoorClosed className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-                            : <DoorOpen className="h-4 w-4 shrink-0" strokeWidth={1.5} />}
-                          {i.property?.name ?? "Bien"}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {new Date(i.official_date).toLocaleDateString("fr-FR")}
-                          {" · "}{i.inspection_type === "exit" ? "Sortie" : "Entrée"}
-                          {i.guest_name ? ` · ${i.guest_name}` : ""}
-                          {i.reference ? ` · ${i.reference}` : ""}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" className="gap-1">
-                          {isFinal ? <Lock className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
-                          {INSPECTION_STATUS_LABEL[i.status] ?? i.status}
-                        </Badge>
-                        <Badge variant="outline" className="gap-1">
-                          <AlertTriangle className="h-3 w-3" /> {anomalies} anomalie{anomalies > 1 ? "s" : ""}
-                        </Badge>
-                        {i.report_pdf_url && (
-                          <Button asChild size="sm" variant="outline" onClick={(e) => e.stopPropagation()}>
-                            <a href={i.report_pdf_url} target="_blank" rel="noreferrer">
-                              <FileText className="h-3.5 w-3.5 mr-1" /> PDF
-                            </a>
-                          </Button>
-                        )}
-                      </div>
-                    </button>
+                      <p className="font-medium truncate flex items-center gap-2">
+                        {i.inspection_type === "exit"
+                          ? <DoorClosed className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                          : <DoorOpen className="h-4 w-4 shrink-0" strokeWidth={1.5} />}
+                        {i.property?.name ?? "Bien"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {new Date(i.official_date).toLocaleDateString("fr-FR")}
+                        {" · "}{i.inspection_type === "exit" ? "Sortie" : "Entrée"}
+                        {i.guest_name ? ` · ${i.guest_name}` : ""}
+                        {i.reference ? ` · ${i.reference}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="gap-1">
+                        {isFinal ? <Lock className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                        {INSPECTION_STATUS_LABEL[i.status] ?? i.status}
+                      </Badge>
+                      <Badge variant="outline" className="gap-1">
+                        <AlertTriangle className="h-3 w-3" /> {anomalies} anomalie{anomalies > 1 ? "s" : ""}
+                      </Badge>
+                      {i.report_pdf_url && (
+                        <Button asChild size="sm" variant="outline">
+                          <a href={i.report_pdf_url} target="_blank" rel="noreferrer">
+                            <FileText className="h-3.5 w-3.5 mr-1" /> PDF
+                          </a>
+                        </Button>
+                      )}
+                    </div>
                   </li>
+
                 );
               })}
             </ul>
