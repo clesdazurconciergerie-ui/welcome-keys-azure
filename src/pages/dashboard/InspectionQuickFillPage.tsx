@@ -369,11 +369,12 @@ export default function InspectionQuickFillPage() {
               <FileText className="h-4 w-4 mr-2" /> Voir le rapport
             </Button>
           ) : (
-            <Button className="h-14 flex-1 text-base" disabled={!bothSigned || finalizing} onClick={finalize}>
+            <Button className="h-14 flex-1 text-base" disabled={finalizing} onClick={finalize}>
               {finalizing ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Check className="h-5 w-5 mr-2" />}
               Finaliser et générer le PDF
             </Button>
           )}
+
         </div>
       </div>
 
