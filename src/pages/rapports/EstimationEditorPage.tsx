@@ -148,10 +148,14 @@ export default function EstimationEditorPage() {
                 {ESTIMATION_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Button variant="outline" onClick={() => navigate(`/rapports/estimations/${id}/rapport`)}>
+              <FileText className="h-4 w-4 mr-2" strokeWidth={1.5} /> Générer le rapport
+            </Button>
             <Button onClick={saveAll} disabled={flow.save.isPending}>
               {flow.save.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" strokeWidth={1.5} />}
               Enregistrer
             </Button>
+
           </div>
         </div>
       </header>
