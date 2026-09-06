@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Upload, Loader2, Star, Trash2, Sparkles, FileText, Save, Check,
+  ArrowLeft, Upload, Loader2, Star, Trash2, Sparkles, FileText, Save, Check, MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +46,9 @@ export default function EstimationEditorPage() {
   const [features, setFeatures] = useState<Record<string, any>>({});
   const [constraints, setConstraints] = useState<Record<string, any>>({});
   const [notes, setNotes] = useState("");
+  const [geocoding, setGeocoding] = useState(false);
   const hydrated = useRef(false);
+  const lastGeocoded = useRef("");
   const photoInput = useRef<HTMLInputElement>(null);
   const pdfInput = useRef<HTMLInputElement>(null);
 
@@ -110,6 +112,41 @@ export default function EstimationEditorPage() {
       const arr: string[] = f[k] ?? [];
       return { ...f, [k]: arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value] };
     });
+  };
+
+  // Géocodage automatique : dès que l'adresse est renseignée, on récupère
+  // latitude / longitude (et ville / code postal / quartier si vides).
+  const geocodeAddress = async (silent = false) => {
+    const query = [bien.address, bien.postal_code, bien.city].filter(Boolean).join(", ").trim();
+    if (query.length < 5) {
+      if (!silent) toast.error("Renseignez d'abord une adresse");
+      return;
+    }
+    if (geocoding || query === lastGeocoded.current) return;
+    lastGeocoded.current = query;
+    setGeocoding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("geocode-address", { body: { address: query } });
+      if (error) throw error;
+      if (!data?.found) {
+        if (!silent) toast.error("Adresse introuvable — vérifiez la saisie");
+        return;
+      }
+      setBien((b) => ({
+        ...b,
+        lat: data.lat ?? b.lat,
+        lng: data.lng ?? b.lng,
+        city: b.city || data.city || "",
+        postal_code: b.postal_code || data.postal_code || "",
+        district: b.district || data.district || "",
+      }));
+      toast.success("Coordonnées trouvées automatiquement");
+    } catch (e: any) {
+      console.error("geocode-address:", e);
+      if (!silent) toast.error("Géocodage impossible pour le moment");
+    } finally {
+      setGeocoding(false);
+    }
   };
 
   if (flow.estimation.isLoading) {
@@ -194,7 +231,21 @@ export default function EstimationEditorPage() {
         {/* ── Bien / localisation ──────────────────────── */}
         <TabsContent value="bien" className="space-y-6 pt-8">
           <Field label="Adresse complète">
-            <Input value={bien.address ?? ""} onChange={(e) => setBien({ ...bien, address: e.target.value })} placeholder="12 avenue des Golfs, Saint-Raphaël" />
+            <div className="flex gap-2">
+              <Input
+                value={bien.address ?? ""}
+                onChange={(e) => setBien({ ...bien, address: e.target.value })}
+                onBlur={() => { if (!bien.lat || !bien.lng) geocodeAddress(true); }}
+                placeholder="12 avenue des Golfs, Saint-Raphaël"
+              />
+              <Button
+                type="button" variant="outline" onClick={() => geocodeAddress(false)} disabled={geocoding}
+                title="Trouver la latitude et la longitude automatiquement"
+              >
+                {geocoding ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" strokeWidth={1.5} />}
+                <span className="ml-2 hidden sm:inline">Localiser</span>
+              </Button>
+            </div>
           </Field>
           <div className="grid sm:grid-cols-3 gap-5">
             <Field label="Ville"><Input value={bien.city ?? ""} onChange={(e) => setBien({ ...bien, city: e.target.value })} /></Field>
