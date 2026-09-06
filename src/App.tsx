@@ -109,6 +109,8 @@ import AirbnbReportView from "./pages/rapports/AirbnbReportView";
 import AirbnbReportsHistory from "./pages/rapports/AirbnbReportsHistory";
 import CockpitPage from "./pages/dashboard/CockpitPage";
 
+import ReportLayoutHarness from "./pages/rapports/__ReportLayoutHarness";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -123,6 +125,7 @@ const App = () => (
           <Route path="/pricing" element={<PricingNew />} />
           <Route path="/billing/success" element={<BillingSuccess />} />
           <Route path="/acces-livret" element={<AccessBooklet />} />
+            <Route path="/__report-harness" element={<ReportLayoutHarness />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           
