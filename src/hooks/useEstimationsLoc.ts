@@ -9,6 +9,13 @@ import {
   normalizeAiPayload, resolveFacts, factsToFeatures, toEngineAiScores,
   selectReportPhotos, buildPropertySummary, normalizeRdnaExtraction, rdnaToEngineData,
 } from "@/lib/estimation-locative/ai-analysis";
+import {
+  buildMarketSnapshot, computeDataQuality, contrastSources, normalizeWebCandidate,
+  selectComparables, toEngineMarketPayload, normalizePoolKind, normalizeViewKind,
+  normalizeParkingKind, normalizeAcKind, normalizeExteriorKind, phraseNuisance,
+  INSUFFICIENT_WEB_MESSAGE,
+  type MarketComparable, type SubjectProfile,
+} from "@/lib/estimation-locative/market-research";
 
 const db = supabase as any;
 
@@ -461,6 +468,27 @@ export function useEstimation(id?: string) {
         photos_count: photos.data?.length ?? 0,
         comparables: (comparables.data ?? []).map(toComparableInput),
       };
+
+      // §26 — les données externes alimentent le moteur (comparables retenus et
+      // taux d'équipement observés) sans modifier le moindre coefficient.
+      const subjectProfile = buildSubjectProfile(est);
+      const market = toEngineMarketPayload(
+        subjectProfile,
+        (comparables.data ?? []).map(toMarketComparable),
+      );
+      const primaryIds = new Set(market.comparables.map((c) => c.id));
+      input.comparables = input.comparables.map((c) => ({
+        ...c, excluded: c.excluded || !primaryIds.has(c.id),
+      }));
+      input.market_data = {
+        ...(est.market_data ?? {}),
+        amenity_penetration: {
+          ...((est.rdna_data as any)?.amenity_penetration ?? {}),
+          ...market.amenity_penetration,
+        },
+        snapshot: market.snapshot,
+      };
+
       const output = runEngine(input, (est as any).engine_params);
 
       // Persistance des scores de similarité sur chaque comparable (traçabilité).
@@ -478,7 +506,8 @@ export function useEstimation(id?: string) {
         confidence_score: output.confidence.score,
         results: toResults(output),
         seasonality: { source: output.trace.find((t) => t.step === "Saisonnalité")?.detail ?? null },
-        market_data: { ...(est.market_data ?? {}), baseline_adr: output.market.baseline_adr.value },
+        market_data: { ...input.market_data, baseline_adr: output.market.baseline_adr.value },
+        data_quality_score: market.data_quality.score,
         status: output.status === "ok" ? "analyzed" : est.status,
       }).eq("id", id);
       if (error) throw error;
@@ -512,6 +541,8 @@ export function useEstimation(id?: string) {
     estimation, photos, documents, comparables,
     save, saveOwner, uploadPhotos, updatePhoto, setCover, deletePhoto,
     uploadRdna, analyzePhotos, compute, setOverride, togglePhotoSelection, overrideFact,
+    researchMarket, addComparable, updateComparable, deleteComparable,
+    marketView: buildMarketView(estimation.data, comparables.data ?? []),
   };
 }
 
