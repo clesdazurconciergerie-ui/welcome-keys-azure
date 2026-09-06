@@ -1411,66 +1411,162 @@ export type Database = {
       }
       estim_comparables: {
         Row: {
+          ac_kind: string
+          actual_revenue: number | null
+          ai_visual: Json
+          amenities: Json
           annual_revenue: number | null
+          availability: Json
+          bathrooms: number | null
           bedrooms: number | null
           capacity: number | null
+          city: string | null
+          cleaning_fee: number | null
           created_at: string
+          created_manually: boolean
+          currency: string | null
           data: Json
           displayed_price: number | null
+          distance_m: number | null
+          district: string | null
           estimation_id: string
           excluded: boolean
+          exterior_kind: string
           id: string
           is_primary: boolean
+          kept_manually: boolean
+          lat: number | null
+          lng: number | null
+          manual_overrides: Json
           name: string | null
+          not_relevant: boolean
+          observed_at: string | null
           occupancy_pct: number | null
+          origin: string
+          other_fees: number | null
           outlier: boolean
+          parking_kind: string
+          platform: string | null
+          pool_kind: string
+          price_context: Json
+          property_type: string | null
+          rating: number | null
+          reviews_count: number | null
           similarity_detail: Json
           similarity_score: number | null
           source: string
+          sources: Json
+          surface_m2: number | null
+          total_stay_price: number | null
           url: string | null
           user_id: string
+          view_kind: string
           weight: number | null
         }
         Insert: {
+          ac_kind?: string
+          actual_revenue?: number | null
+          ai_visual?: Json
+          amenities?: Json
           annual_revenue?: number | null
+          availability?: Json
+          bathrooms?: number | null
           bedrooms?: number | null
           capacity?: number | null
+          city?: string | null
+          cleaning_fee?: number | null
           created_at?: string
+          created_manually?: boolean
+          currency?: string | null
           data?: Json
           displayed_price?: number | null
+          distance_m?: number | null
+          district?: string | null
           estimation_id: string
           excluded?: boolean
+          exterior_kind?: string
           id?: string
           is_primary?: boolean
+          kept_manually?: boolean
+          lat?: number | null
+          lng?: number | null
+          manual_overrides?: Json
           name?: string | null
+          not_relevant?: boolean
+          observed_at?: string | null
           occupancy_pct?: number | null
+          origin?: string
+          other_fees?: number | null
           outlier?: boolean
+          parking_kind?: string
+          platform?: string | null
+          pool_kind?: string
+          price_context?: Json
+          property_type?: string | null
+          rating?: number | null
+          reviews_count?: number | null
           similarity_detail?: Json
           similarity_score?: number | null
           source?: string
+          sources?: Json
+          surface_m2?: number | null
+          total_stay_price?: number | null
           url?: string | null
           user_id: string
+          view_kind?: string
           weight?: number | null
         }
         Update: {
+          ac_kind?: string
+          actual_revenue?: number | null
+          ai_visual?: Json
+          amenities?: Json
           annual_revenue?: number | null
+          availability?: Json
+          bathrooms?: number | null
           bedrooms?: number | null
           capacity?: number | null
+          city?: string | null
+          cleaning_fee?: number | null
           created_at?: string
+          created_manually?: boolean
+          currency?: string | null
           data?: Json
           displayed_price?: number | null
+          distance_m?: number | null
+          district?: string | null
           estimation_id?: string
           excluded?: boolean
+          exterior_kind?: string
           id?: string
           is_primary?: boolean
+          kept_manually?: boolean
+          lat?: number | null
+          lng?: number | null
+          manual_overrides?: Json
           name?: string | null
+          not_relevant?: boolean
+          observed_at?: string | null
           occupancy_pct?: number | null
+          origin?: string
+          other_fees?: number | null
           outlier?: boolean
+          parking_kind?: string
+          platform?: string | null
+          pool_kind?: string
+          price_context?: Json
+          property_type?: string | null
+          rating?: number | null
+          reviews_count?: number | null
           similarity_detail?: Json
           similarity_score?: number | null
           source?: string
+          sources?: Json
+          surface_m2?: number | null
+          total_stay_price?: number | null
           url?: string | null
           user_id?: string
+          view_kind?: string
           weight?: number | null
         }
         Relationships: [
@@ -1548,6 +1644,7 @@ export type Database = {
           confidence_score: number | null
           constraints: Json
           created_at: string
+          data_quality_score: number | null
           district: string | null
           engine_output: Json
           engine_params: Json
@@ -1557,9 +1654,12 @@ export type Database = {
           internal_notes: string | null
           lat: number | null
           lng: number | null
+          local_context: Json
+          local_events: Json
           location_data: Json
           manual_overrides: Json
           market_data: Json
+          market_snapshot: Json
           owner_id: string | null
           postal_code: string | null
           property_type: string | null
@@ -1567,6 +1667,9 @@ export type Database = {
           reference: string
           report_photo_selection: Json
           report_url: string | null
+          research_error: string | null
+          research_status: string
+          researched_at: string | null
           results: Json
           seasonality: Json
           sources: Json
@@ -1590,6 +1693,7 @@ export type Database = {
           confidence_score?: number | null
           constraints?: Json
           created_at?: string
+          data_quality_score?: number | null
           district?: string | null
           engine_output?: Json
           engine_params?: Json
@@ -1599,9 +1703,12 @@ export type Database = {
           internal_notes?: string | null
           lat?: number | null
           lng?: number | null
+          local_context?: Json
+          local_events?: Json
           location_data?: Json
           manual_overrides?: Json
           market_data?: Json
+          market_snapshot?: Json
           owner_id?: string | null
           postal_code?: string | null
           property_type?: string | null
@@ -1609,6 +1716,9 @@ export type Database = {
           reference: string
           report_photo_selection?: Json
           report_url?: string | null
+          research_error?: string | null
+          research_status?: string
+          researched_at?: string | null
           results?: Json
           seasonality?: Json
           sources?: Json
@@ -1632,6 +1742,7 @@ export type Database = {
           confidence_score?: number | null
           constraints?: Json
           created_at?: string
+          data_quality_score?: number | null
           district?: string | null
           engine_output?: Json
           engine_params?: Json
@@ -1641,9 +1752,12 @@ export type Database = {
           internal_notes?: string | null
           lat?: number | null
           lng?: number | null
+          local_context?: Json
+          local_events?: Json
           location_data?: Json
           manual_overrides?: Json
           market_data?: Json
+          market_snapshot?: Json
           owner_id?: string | null
           postal_code?: string | null
           property_type?: string | null
@@ -1651,6 +1765,9 @@ export type Database = {
           reference?: string
           report_photo_selection?: Json
           report_url?: string | null
+          research_error?: string | null
+          research_status?: string
+          researched_at?: string | null
           results?: Json
           seasonality?: Json
           sources?: Json

@@ -9,6 +9,13 @@ import {
   normalizeAiPayload, resolveFacts, factsToFeatures, toEngineAiScores,
   selectReportPhotos, buildPropertySummary, normalizeRdnaExtraction, rdnaToEngineData,
 } from "@/lib/estimation-locative/ai-analysis";
+import {
+  buildMarketSnapshot, computeDataQuality, contrastSources, normalizeWebCandidate,
+  selectComparables, toEngineMarketPayload, normalizePoolKind, normalizeViewKind,
+  normalizeParkingKind, normalizeAcKind, normalizeExteriorKind, phraseNuisance,
+  INSUFFICIENT_WEB_MESSAGE,
+  type MarketComparable, type SubjectProfile,
+} from "@/lib/estimation-locative/market-research";
 
 const db = supabase as any;
 
@@ -461,6 +468,27 @@ export function useEstimation(id?: string) {
         photos_count: photos.data?.length ?? 0,
         comparables: (comparables.data ?? []).map(toComparableInput),
       };
+
+      // §26 — les données externes alimentent le moteur (comparables retenus et
+      // taux d'équipement observés) sans modifier le moindre coefficient.
+      const subjectProfile = buildSubjectProfile(est);
+      const market = toEngineMarketPayload(
+        subjectProfile,
+        (comparables.data ?? []).map(toMarketComparable),
+      );
+      const primaryIds = new Set(market.comparables.map((c) => c.id));
+      input.comparables = input.comparables.map((c) => ({
+        ...c, excluded: c.excluded || !primaryIds.has(c.id),
+      }));
+      input.market_data = {
+        ...(est.market_data ?? {}),
+        amenity_penetration: {
+          ...((est.rdna_data as any)?.amenity_penetration ?? {}),
+          ...market.amenity_penetration,
+        },
+        snapshot: market.snapshot,
+      };
+
       const output = runEngine(input, (est as any).engine_params);
 
       // Persistance des scores de similarité sur chaque comparable (traçabilité).
@@ -478,7 +506,8 @@ export function useEstimation(id?: string) {
         confidence_score: output.confidence.score,
         results: toResults(output),
         seasonality: { source: output.trace.find((t) => t.step === "Saisonnalité")?.detail ?? null },
-        market_data: { ...(est.market_data ?? {}), baseline_adr: output.market.baseline_adr.value },
+        market_data: { ...input.market_data, baseline_adr: output.market.baseline_adr.value },
+        data_quality_score: market.data_quality.score,
         status: output.status === "ok" ? "analyzed" : est.status,
       }).eq("id", id);
       if (error) throw error;
@@ -508,10 +537,286 @@ export function useEstimation(id?: string) {
     onError: (e: any) => toast.error(e.message ?? "Correction non enregistrée"),
   });
 
+  /**
+   * §2 à §25 — recherche externe de comparables et enrichissement local.
+   * Source SUPPLÉMENTAIRE : RDNA n'est jamais remplacé (§17), rien n'est inventé
+   * et une recherche pauvre n'est pas une erreur (§30).
+   */
+  const researchMarket = useMutation({
+    mutationFn: async () => {
+      if (!id) throw new Error("Estimation inconnue");
+      const est = estimation.data;
+      if (!est) throw new Error("Estimation non chargée");
+
+      await db.from("estim_estimations")
+        .update({ research_status: "running", research_error: null }).eq("id", id);
+      qc.invalidateQueries({ queryKey: key });
+
+      const subject = buildSubjectProfile(est);
+      const { data, error } = await supabase.functions.invoke("estimation-market-research", {
+        body: {
+          estimation_id: id,
+          subject: {
+            ...subject,
+            address: (est as any).address ?? null,
+            nearby_cities: NEARBY_CITIES,
+          },
+        },
+      });
+
+      if (error || data?.error) {
+        const message = data?.error ?? error?.message ?? "Recherche externe impossible";
+        await db.from("estim_estimations")
+          .update({ research_status: "failed", research_error: String(message).slice(0, 500) })
+          .eq("id", id);
+        throw new Error(message);
+      }
+
+      const user_id = await uid();
+      const observedAt: string = data.observed_at ?? new Date().toISOString();
+
+      // Les comparables web précédents sont remplacés ; RDNA et ajouts manuels intacts (§17, §29).
+      await db.from("estim_comparables").delete()
+        .eq("estimation_id", id).eq("origin", "web");
+
+      const candidates: MarketComparable[] = (Array.isArray(data.candidates) ? data.candidates : [])
+        .map((raw: Record<string, unknown>) =>
+          normalizeWebCandidate(raw, subject, { observed_at: observedAt, id: crypto.randomUUID() }))
+        .filter((c: MarketComparable) => !!c.name || !!c.url);
+
+      if (candidates.length) {
+        const { error: insErr } = await db.from("estim_comparables").insert(
+          candidates.map((c) => ({
+            id: c.id, user_id, estimation_id: id, origin: "web", source: c.platform ?? "web",
+            platform: c.platform, name: c.name, url: c.url, property_type: c.property_type,
+            bedrooms: c.bedrooms, capacity: c.capacity, bathrooms: c.bathrooms,
+            surface_m2: c.surface_m2, city: c.city, district: c.district,
+            lat: c.lat, lng: c.lng, distance_m: c.distance_m,
+            pool_kind: c.pool_kind, view_kind: c.view_kind, parking_kind: c.parking_kind,
+            ac_kind: c.ac_kind, exterior_kind: c.exterior_kind, amenities: c.amenities,
+            rating: c.rating, reviews_count: c.reviews_count,
+            displayed_price: c.displayed_price, cleaning_fee: c.cleaning_fee,
+            other_fees: c.other_fees, total_stay_price: c.total_stay_price,
+            actual_revenue: c.actual_revenue, currency: c.currency,
+            observed_at: c.observed_at, price_context: (candidatesContext(data, c) ?? {}),
+            sources: { platform: c.platform, url: c.url, observed_at: c.observed_at },
+            data: {},
+          })),
+        );
+        if (insErr) throw insErr;
+      }
+
+      // Qualification : score de similarité, sélection, instantané du marché.
+      const rdnaComparables = (comparables.data ?? [])
+        .filter((c: any) => c.origin !== "web")
+        .map(toMarketComparable);
+      const all = [...rdnaComparables, ...candidates];
+      const selection = selectComparables(subject, all);
+      const snapshot = buildMarketSnapshot(all, selection.primary.map((p) => p.comparable));
+      const quality = computeDataQuality({
+        scored: selection.scored, primary: selection.primary,
+        rdnaCount: rdnaComparables.length,
+      });
+
+      for (const s of selection.scored) {
+        await db.from("estim_comparables").update({
+          similarity_score: s.score,
+          similarity_detail: { axes: s.axes, coverage: s.coverage, missing: s.missing, reason: s.reason },
+          is_primary: s.selected,
+        }).eq("id", s.comparable.id);
+      }
+
+      const local = data.local ?? {};
+      const { error: upErr } = await db.from("estim_estimations").update({
+        market_snapshot: { ...snapshot, contrast: contrastSources(snapshot), notes: data.notes ?? [] },
+        local_context: {
+          pois: Array.isArray(local.pois) ? local.pois : [],
+          nuisances: (Array.isArray(local.nuisances) ? local.nuisances : []).map((n: any) => ({
+            kind: n?.kind ?? "autre",
+            message: phraseNuisance(n?.kind ?? "autre", n?.detail ?? null),
+            source: n?.source ?? null,
+          })),
+          sources: data.sources ?? [],
+          searched: data.searched ?? 0,
+          scraped: data.scraped ?? 0,
+        },
+        local_events: Array.isArray(local.events) ? local.events : [],
+        data_quality_score: quality.score,
+        researched_at: observedAt,
+        research_status: candidates.length ? "done" : "empty",
+        research_error: candidates.length ? null : INSUFFICIENT_WEB_MESSAGE,
+      }).eq("id", id);
+      if (upErr) throw upErr;
+
+      return { found: candidates.length, selected: selection.primary.length, sufficient: selection.sufficient };
+    },
+    onSuccess: (r) => {
+      if (!r.found) toast.warning(INSUFFICIENT_WEB_MESSAGE);
+      else if (!r.sufficient) toast.warning("Nombre de comparables fiables insuffisant.");
+      else toast.success(`${r.selected} comparables retenus sur ${r.found} trouvés`);
+      qc.invalidateQueries({ queryKey: key });
+      qc.invalidateQueries({ queryKey: ["estim-comps", id] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Recherche externe impossible"),
+  });
+
+  /** §29 — ajout manuel d'un comparable. */
+  const addComparable = useMutation({
+    mutationFn: async (patch: Record<string, any>) => {
+      if (!id) throw new Error("Estimation inconnue");
+      const user_id = await uid();
+      const { error } = await db.from("estim_comparables").insert({
+        user_id, estimation_id: id, origin: "manual", source: patch.platform ?? "manuel",
+        created_manually: true, observed_at: patch.observed_at ?? new Date().toISOString(),
+        ...patch,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Comparable ajouté");
+      qc.invalidateQueries({ queryKey: ["estim-comps", id] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Ajout impossible"),
+  });
+
+  /** §29 — toute modification est tracée comme correction manuelle. */
+  const updateComparable = useMutation({
+    mutationFn: async ({ compId, patch }: { compId: string; patch: Record<string, any> }) => {
+      const current = (comparables.data ?? []).find((c: any) => c.id === compId) as any;
+      const overrides = { ...(current?.manual_overrides ?? {}) };
+      for (const [k, v] of Object.entries(patch)) {
+        overrides[k] = { value: v, previous: current?.[k] ?? null, at: new Date().toISOString() };
+      }
+      const { error } = await db.from("estim_comparables")
+        .update({ ...patch, manual_overrides: overrides }).eq("id", compId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["estim-comps", id] }),
+    onError: (e: any) => toast.error(e.message ?? "Modification impossible"),
+  });
+
+  const deleteComparable = useMutation({
+    mutationFn: async (compId: string) => {
+      const { error } = await db.from("estim_comparables").delete().eq("id", compId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["estim-comps", id] }),
+    onError: (e: any) => toast.error(e.message ?? "Suppression impossible"),
+  });
+
   return {
     estimation, photos, documents, comparables,
     save, saveOwner, uploadPhotos, updatePhoto, setCover, deletePhoto,
     uploadRdna, analyzePhotos, compute, setOverride, togglePhotoSelection, overrideFact,
+    researchMarket, addComparable, updateComparable, deleteComparable,
+    marketView: buildMarketView(estimation.data, comparables.data ?? []),
+  };
+}
+
+
+/** Communes prioritaires pour l'élargissement géographique (§2, §23). */
+const NEARBY_CITIES = [
+  "Saint-Raphaël", "Fréjus", "Roquebrune-sur-Argens", "Les Issambres",
+  "Sainte-Maxime", "Le Trayas",
+];
+
+function candidatesContext(data: any, c: MarketComparable) {
+  const raw = (Array.isArray(data.candidates) ? data.candidates : [])
+    .find((x: any) => (x?.url ?? null) === c.url);
+  return raw?.price_context ?? { notes: raw?.availability_note ?? null };
+}
+
+/** Profil du bien étudié tel que résolu aux étapes 1 à 3 (aucune invention). */
+function buildSubjectProfile(est: any): SubjectProfile {
+  const facts = resolveFacts({
+    features: (est?.features ?? {}) as any,
+    ai: (est?.ai_analysis ?? null) as any,
+    rdna: (est?.rdna_data ?? {}) as any,
+    overrides: (est?.manual_overrides ?? {}) as any,
+  });
+  const f = factsToFeatures((est?.features ?? {}) as Record<string, unknown>, facts) as any;
+  const loc = (est?.location_data ?? {}) as any;
+  const num = (v: any) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  return {
+    city: est?.city ?? null,
+    district: est?.district ?? null,
+    lat: num(est?.lat), lng: num(est?.lng),
+    property_type: est?.property_type ?? null,
+    bedrooms: num(f?.chambres), capacity: num(f?.couchages ?? f?.capacite),
+    bathrooms: num(f?.salles_de_bain), surface_m2: num(f?.surface_interieure_m2),
+    pool_kind: normalizePoolKind(f?.piscine),
+    view_kind: normalizeViewKind(f?.vue),
+    parking_kind: normalizeParkingKind(f?.parking),
+    ac_kind: normalizeAcKind(f?.climatisation),
+    exterior_kind: normalizeExteriorKind(f?.exterieurs),
+    amenities: Array.isArray(f?.equipements) ? f.equipements.map(String) : [],
+    standing: num((est?.ai_analysis as any)?.scores?.STANDING_SCORE),
+    distance_sea_m: num(loc?.distance_mer_m ?? loc?.distance_sea_m),
+    distance_center_m: num(loc?.distance_centre_m ?? loc?.distance_center_m),
+  };
+}
+
+/** Ligne `estim_comparables` → comparable qualifié (§14). */
+function toMarketComparable(c: any): MarketComparable {
+  const d = c.data ?? {};
+  const num = (v: any) => (v === null || v === undefined || v === "" ? null : Number(v));
+  return {
+    id: c.id,
+    origin: (c.origin ?? "rdna") as MarketComparable["origin"],
+    name: c.name ?? null,
+    platform: c.platform ?? c.source ?? null,
+    url: c.url ?? null,
+    property_type: c.property_type ?? d.type ?? null,
+    bedrooms: num(c.bedrooms ?? d.chambres),
+    capacity: num(c.capacity ?? d.voyageurs),
+    bathrooms: num(c.bathrooms ?? d.sdb),
+    surface_m2: num(c.surface_m2 ?? d.surface_m2),
+    city: c.city ?? d.ville ?? null,
+    district: c.district ?? d.quartier ?? null,
+    lat: num(c.lat), lng: num(c.lng), distance_m: num(c.distance_m ?? d.distance_m),
+    pool_kind: normalizePoolKind(c.pool_kind ?? d.piscine),
+    view_kind: normalizeViewKind(c.view_kind ?? d.vue),
+    parking_kind: normalizeParkingKind(c.parking_kind ?? d.parking),
+    ac_kind: normalizeAcKind(c.ac_kind ?? d.climatisation),
+    exterior_kind: normalizeExteriorKind(c.exterior_kind ?? d.exterieur),
+    amenities: Array.isArray(c.amenities) ? c.amenities.map(String) : (d.equipements ?? []),
+    rating: num(c.rating), reviews_count: num(c.reviews_count),
+    displayed_price: num(c.displayed_price ?? d.adr_eur ?? d.adr),
+    cleaning_fee: num(c.cleaning_fee), other_fees: num(c.other_fees),
+    total_stay_price: num(c.total_stay_price),
+    actual_revenue: num(c.actual_revenue),
+    occupancy_pct: num(c.occupancy_pct ?? d.occupation_pct),
+    annual_revenue: num(c.annual_revenue),
+    currency: c.currency ?? d.currency ?? "EUR",
+    observed_at: c.observed_at ?? null,
+    standing: num(d.standing ?? c.ai_visual?.standing),
+    distance_sea_m: num(d.distance_mer_m),
+    distance_center_m: num(d.distance_centre_m),
+    excluded: !!c.excluded,
+    not_relevant: !!c.not_relevant,
+    kept_manually: !!c.kept_manually,
+  };
+}
+
+/** Vue prête pour l'écran « Marché & comparables » (§27). */
+function buildMarketView(est: any, rows: any[]) {
+  if (!est) return null;
+  const subject = buildSubjectProfile(est);
+  const all = rows.map(toMarketComparable);
+  const selection = selectComparables(subject, all);
+  const snapshot = buildMarketSnapshot(all, selection.primary.map((p) => p.comparable));
+  return {
+    subject,
+    scored: selection.scored,
+    primary: selection.primary,
+    sufficient: selection.sufficient,
+    message: selection.message,
+    snapshot,
+    contrast: contrastSources(snapshot),
+    quality: computeDataQuality({
+      scored: selection.scored, primary: selection.primary,
+      rdnaCount: all.filter((c) => c.origin === "rdna").length,
+    }),
   };
 }
 
