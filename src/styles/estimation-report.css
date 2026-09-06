@@ -1,18 +1,31 @@
 /* MODULE — Estimation locative · rapport propriétaire (A4 portrait, monochrome).
-   Noir, blanc et gris uniquement. Aucune couleur d'accent. */
+   Noir, blanc et gris uniquement. Aucune couleur d'accent, aucun dégradé coloré.
+   Grille unique : marges 18mm, échelle d'espacement er-s1..er-s6. */
 
 .er-doc {
-  --er-ink: #111111;
-  --er-ink-soft: #4a4a4a;
-  --er-muted: #7a7a7a;
-  --er-line: #d8d8d8;
-  --er-line-soft: #ebebeb;
-  --er-bg-soft: #f5f5f5;
+  --er-ink: #000000;
+  --er-ink-1: #1c1c1c;
+  --er-ink-2: #4a4a4a;
+  --er-muted: #8a8a8a;
+  --er-line: #cfcfcf;
+  --er-line-soft: #e8e8e8;
+  --er-bg-soft: #f4f4f4;
+
+  --er-margin: 18mm;
+  --er-s1: 2mm;
+  --er-s2: 4mm;
+  --er-s3: 7mm;
+  --er-s4: 11mm;
+  --er-s5: 16mm;
+  --er-s6: 24mm;
+
   background: #ffffff;
-  color: var(--er-ink);
+  color: var(--er-ink-1);
   font-family: "Montserrat", "Inter", system-ui, sans-serif;
-  font-size: 10.5pt;
-  line-height: 1.55;
+  font-size: 10pt;
+  font-weight: 300;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
 .er-page {
@@ -20,7 +33,7 @@
   width: 210mm;
   min-height: 297mm;
   height: 297mm;
-  padding: 18mm 18mm 16mm;
+  padding: var(--er-margin) var(--er-margin) 13mm;
   margin: 0 auto;
   background: #ffffff;
   overflow: hidden;
@@ -31,125 +44,305 @@
 }
 .er-page:last-child { page-break-after: auto; break-after: auto; }
 
-.er-doc.er-preview .er-page {
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
-  margin-bottom: 10mm;
-  border: 1px solid var(--er-line-soft);
+/* Zone de contenu : compressible automatiquement si le contenu déborde. */
+.er-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  transform-origin: top left;
 }
 
-/* ── En-têtes / pieds ─────────────────────────────────────────── */
+.er-doc.er-preview .er-page {
+  border: 1px solid var(--er-line-soft);
+  box-shadow: 0 2px 18px rgba(0, 0, 0, 0.06);
+  margin-bottom: 12mm;
+}
+
+/* ── En-tête / pied ───────────────────────────────────────────── */
 .er-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  border-bottom: 1px solid var(--er-line);
-  padding-bottom: 4mm;
-  margin-bottom: 8mm;
+  margin-bottom: var(--er-s4);
+  flex: none;
 }
-.er-head span { font-size: 7.5pt; letter-spacing: 0.22em; text-transform: uppercase; color: var(--er-muted); }
+.er-head span {
+  font-size: 6.8pt;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--er-muted);
+  font-weight: 400;
+}
 
 .er-foot {
-  margin-top: auto;
-  padding-top: 4mm;
+  flex: none;
+  margin-top: var(--er-s3);
+  padding-top: 3mm;
   border-top: 1px solid var(--er-line-soft);
   display: flex;
   justify-content: space-between;
-  font-size: 7pt;
-  letter-spacing: 0.16em;
+  gap: 6mm;
+  font-size: 6.4pt;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--er-muted);
+  font-weight: 400;
 }
+.er-foot .er-foot-mid { flex: 1; text-align: center; }
 
 /* ── Typographie ──────────────────────────────────────────────── */
+.er-serif { font-family: "Cormorant Garamond", Georgia, serif; }
+
 .er-title {
   font-family: "Cormorant Garamond", Georgia, serif;
-  font-weight: 400;
-  font-size: 26pt;
-  line-height: 1.1;
-  letter-spacing: 0.01em;
-  margin: 0 0 2mm;
+  font-weight: 300;
+  font-size: 30pt;
+  line-height: 1.05;
+  letter-spacing: 0.005em;
+  margin: 0 0 var(--er-s2);
+  color: var(--er-ink);
 }
-.er-subtitle { font-size: 9pt; letter-spacing: 0.24em; text-transform: uppercase; color: var(--er-muted); margin: 0 0 7mm; }
+.er-eyebrow {
+  font-size: 6.8pt;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--er-muted);
+  font-weight: 400;
+  margin: 0 0 var(--er-s1);
+}
+.er-subtitle {
+  font-size: 7.5pt;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--er-muted);
+  font-weight: 400;
+  margin: 0 0 var(--er-s3);
+}
 .er-h2 {
   font-family: "Cormorant Garamond", Georgia, serif;
-  font-size: 16pt;
-  font-weight: 500;
-  margin: 7mm 0 3mm;
+  font-size: 15pt;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  margin: var(--er-s4) 0 var(--er-s2);
+  padding-bottom: 2mm;
+  border-bottom: 1px solid var(--er-line-soft);
+  color: var(--er-ink);
+  break-after: avoid;
+  page-break-after: avoid;
 }
 .er-h2:first-child { margin-top: 0; }
-.er-lead { font-size: 10.5pt; color: var(--er-ink-soft); max-width: 150mm; }
-.er-small { font-size: 8pt; color: var(--er-muted); line-height: 1.5; }
-.er-mono { font-variant-numeric: tabular-nums; }
+.er-lead { font-size: 10pt; color: var(--er-ink-2); max-width: 148mm; margin: 0 0 var(--er-s2); }
+.er-small { font-size: 7.6pt; color: var(--er-muted); line-height: 1.55; }
+.er-mono, .er-num { font-variant-numeric: tabular-nums; }
+.er-na { color: var(--er-muted); font-style: italic; }
 
 /* ── Couverture ───────────────────────────────────────────────── */
 .er-cover { padding: 0; }
-.er-cover-media { height: 150mm; background: var(--er-bg-soft); overflow: hidden; position: relative; }
-.er-cover-media img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%) contrast(1.02); }
-.er-cover-body { padding: 14mm 18mm 16mm; display: flex; flex-direction: column; flex: 1; }
-.er-cover-brand { font-size: 9pt; letter-spacing: 0.34em; text-transform: uppercase; }
-.er-cover-rule { height: 1px; background: var(--er-ink); width: 28mm; margin: 6mm 0; }
-.er-cover-title { font-family: "Cormorant Garamond", Georgia, serif; font-size: 34pt; line-height: 1.05; margin: 0; }
-.er-cover-meta { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; font-size: 8.5pt; color: var(--er-ink-soft); }
+.er-cover-media {
+  height: 168mm;
+  background: var(--er-bg-soft);
+  overflow: hidden;
+  position: relative;
+  flex: none;
+}
+.er-cover-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: grayscale(100%) contrast(1.03);
+  display: block;
+}
+.er-cover-media.er-cover-empty {
+  background: #ffffff;
+  border-bottom: 1px solid var(--er-ink);
+  height: 96mm;
+}
+.er-cover-body {
+  padding: var(--er-s5) var(--er-margin) 14mm;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.er-cover-brand {
+  font-size: 8.5pt;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  font-weight: 400;
+  color: var(--er-ink);
+}
+.er-cover-rule { height: 1px; background: var(--er-ink); width: 26mm; margin: var(--er-s3) 0; }
+.er-cover-kicker {
+  font-size: 8pt;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: var(--er-muted);
+  margin-bottom: var(--er-s1);
+}
+.er-cover-title {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 300;
+  font-size: 40pt;
+  line-height: 1.02;
+  margin: 0;
+  color: var(--er-ink);
+}
+.er-cover-place { font-size: 10pt; color: var(--er-ink-2); margin-top: var(--er-s2); }
+.er-cover-place strong { font-weight: 500; color: var(--er-ink-1); }
+.er-cover-meta {
+  margin-top: auto;
+  padding-top: var(--er-s3);
+  border-top: 1px solid var(--er-line);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 8mm;
+  font-size: 7.6pt;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--er-ink-2);
+}
 
-/* ── Chiffres clés ────────────────────────────────────────────── */
-.er-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; margin: 4mm 0 8mm; }
-.er-kpi { border-top: 1px solid var(--er-ink); padding-top: 3mm; }
-.er-kpi-label { font-size: 7.5pt; letter-spacing: 0.2em; text-transform: uppercase; color: var(--er-muted); }
-.er-kpi-value { font-family: "Cormorant Garamond", Georgia, serif; font-size: 24pt; line-height: 1.15; margin-top: 1mm; }
-.er-kpi-value.er-na { font-size: 11pt; color: var(--er-muted); font-family: inherit; }
+/* ── Chiffres clés hiérarchisés ───────────────────────────────── */
+.er-hero-kpi { border-top: 2px solid var(--er-ink); padding-top: var(--er-s2); margin-bottom: var(--er-s3); }
+.er-hero-kpi .er-kpi-label { font-size: 7.4pt; letter-spacing: 0.28em; text-transform: uppercase; color: var(--er-muted); }
+.er-hero-kpi .er-kpi-value {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 46pt;
+  line-height: 1.02;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: var(--er-ink);
+  margin-top: 1mm;
+}
+.er-hero-kpi .er-kpi-value.er-na { font-size: 13pt; font-family: inherit; font-style: italic; }
+.er-hero-kpi .er-kpi-sub { font-size: 8pt; color: var(--er-muted); margin-top: 1mm; }
+
+.er-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--er-s3); margin: var(--er-s2) 0 var(--er-s3); }
+.er-kpis-2 { grid-template-columns: repeat(2, 1fr); }
+.er-kpi { border-top: 1px solid var(--er-line); padding-top: 2.5mm; }
+.er-kpi-label { font-size: 6.8pt; letter-spacing: 0.24em; text-transform: uppercase; color: var(--er-muted); }
+.er-kpi-value {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 22pt;
+  line-height: 1.15;
+  font-weight: 400;
+  margin-top: 0.8mm;
+  color: var(--er-ink);
+}
+.er-kpi-value.er-na { font-size: 9.5pt; font-family: inherit; }
+
+/* ── Saisons ──────────────────────────────────────────────────── */
+.er-seasons { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--er-s3); margin-top: var(--er-s2); }
+.er-season { border-top: 1px solid var(--er-ink); padding-top: 2.5mm; }
+.er-season-label { font-size: 6.8pt; letter-spacing: 0.22em; text-transform: uppercase; color: var(--er-muted); }
+.er-season-price {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 24pt;
+  line-height: 1.15;
+  font-weight: 400;
+  color: var(--er-ink);
+  margin-top: 0.8mm;
+}
+.er-season-price.er-na { font-size: 10pt; font-family: inherit; }
+.er-season-unit { font-size: 7.6pt; color: var(--er-muted); }
+.er-season-meta { margin-top: 2mm; }
+.er-season-meta div { display: flex; justify-content: space-between; gap: 3mm; font-size: 7.8pt; padding: 1mm 0; border-bottom: 1px solid var(--er-line-soft); }
+.er-season-meta span:first-child { color: var(--er-muted); }
 
 /* ── Tables ───────────────────────────────────────────────────── */
-.er-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+.er-table { width: 100%; border-collapse: collapse; font-size: 8.6pt; table-layout: fixed; }
 .er-table th {
-  text-align: left; font-size: 7.5pt; letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--er-muted); font-weight: 500; padding: 0 0 2.5mm; border-bottom: 1px solid var(--er-ink);
+  text-align: left; font-size: 6.6pt; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--er-muted); font-weight: 500; padding: 0 3mm 2mm 0; border-bottom: 1px solid var(--er-ink);
 }
-.er-table td { padding: 3mm 0; border-bottom: 1px solid var(--er-line-soft); vertical-align: top; }
+.er-table td {
+  padding: 2.4mm 3mm 2.4mm 0;
+  border-bottom: 1px solid var(--er-line-soft);
+  vertical-align: top;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.er-table th:last-child, .er-table td:last-child { padding-right: 0; }
 .er-table td.er-num, .er-table th.er-num { text-align: right; font-variant-numeric: tabular-nums; }
+.er-table tr { break-inside: avoid; page-break-inside: avoid; }
+.er-table tr.er-total td { border-top: 1px solid var(--er-ink); border-bottom: none; font-weight: 500; padding-top: 3mm; }
 
-/* ── Listes ───────────────────────────────────────────────────── */
+/* ── Listes / faits ───────────────────────────────────────────── */
 .er-list { list-style: none; padding: 0; margin: 0; }
-.er-list li { padding: 2mm 0 2mm 6mm; position: relative; border-bottom: 1px solid var(--er-line-soft); }
-.er-list li:before { content: ""; position: absolute; left: 0; top: 4.4mm; width: 3mm; height: 1px; background: var(--er-ink); }
+.er-list li { padding: 1.8mm 0 1.8mm 6mm; position: relative; border-bottom: 1px solid var(--er-line-soft); font-size: 9pt; }
+.er-list li:before { content: ""; position: absolute; left: 0; top: 4.2mm; width: 3mm; height: 1px; background: var(--er-ink); }
 .er-list.er-plain li { border-bottom: none; }
 
-.er-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm 8mm; }
-.er-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8mm; }
-.er-fact { display: flex; justify-content: space-between; gap: 4mm; padding: 2.4mm 0; border-bottom: 1px solid var(--er-line-soft); font-size: 9.5pt; }
+.er-cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--er-s2) var(--er-s4); }
+.er-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--er-s4); }
+.er-facts-1 { grid-template-columns: 1fr; }
+.er-fact { display: flex; justify-content: space-between; gap: 4mm; padding: 2mm 0; border-bottom: 1px solid var(--er-line-soft); font-size: 8.8pt; }
 .er-fact span:first-child { color: var(--er-muted); }
-.er-fact .er-na { color: var(--er-muted); font-style: italic; }
+.er-fact span:last-child { text-align: right; }
 
-.er-tags { display: flex; flex-wrap: wrap; gap: 2mm; margin-top: 2mm; }
-.er-tag { border: 1px solid var(--er-line); padding: 1mm 3mm; font-size: 8pt; letter-spacing: 0.06em; }
+.er-tags { display: flex; flex-wrap: wrap; gap: 1.6mm; margin-top: 1mm; }
+.er-tag { border: 1px solid var(--er-line); padding: 0.8mm 2.6mm; font-size: 7.4pt; letter-spacing: 0.08em; color: var(--er-ink-2); }
 
-/* ── Galerie ──────────────────────────────────────────────────── */
-.er-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin-top: 5mm; }
-.er-gallery figure { margin: 0; }
-.er-gallery img { width: 100%; height: 44mm; object-fit: cover; filter: grayscale(100%); display: block; }
+/* ── Photos ───────────────────────────────────────────────────── */
+.er-photo { margin: 0; overflow: hidden; background: var(--er-bg-soft); }
+.er-photo img { width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(100%); }
+.er-photo-cap { font-size: 6.6pt; letter-spacing: 0.2em; text-transform: uppercase; color: var(--er-muted); margin-top: 1.4mm; }
 
-/* ── Cartes saison / comparables ──────────────────────────────── */
-.er-season { border-top: 1px solid var(--er-ink); padding: 3mm 0 4mm; }
-.er-season-label { font-size: 8pt; letter-spacing: 0.2em; text-transform: uppercase; color: var(--er-muted); }
-.er-season-price { font-family: "Cormorant Garamond", Georgia, serif; font-size: 22pt; line-height: 1.2; }
-.er-season-range { font-size: 8.5pt; color: var(--er-ink-soft); }
+.er-gallery { display: grid; gap: var(--er-s2); margin-top: var(--er-s2); }
+.er-gallery-1 { grid-template-columns: 1fr; }
+.er-gallery-1 .er-photo { height: 92mm; }
+.er-gallery-2 { grid-template-columns: 1fr 1fr; }
+.er-gallery-2 .er-photo { height: 60mm; }
+.er-gallery-3 { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; }
+.er-gallery-3 .er-photo { height: 100%; }
+.er-gallery-3 .er-photo:first-child { grid-row: span 2; }
+.er-gallery-3 { height: 84mm; }
+.er-gallery-4 { grid-template-columns: 1fr 1fr; }
+.er-gallery-4 .er-photo { height: 48mm; }
 
-.er-comp { border-bottom: 1px solid var(--er-line-soft); padding: 3.5mm 0; }
-.er-comp-top { display: flex; justify-content: space-between; gap: 6mm; align-items: baseline; }
-.er-comp-name { font-size: 10pt; }
-.er-comp-price { font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* ── Graphiques sobres ────────────────────────────────────────── */
+.er-chart { margin-top: var(--er-s2); }
+.er-chart-unit { font-size: 6.8pt; letter-spacing: 0.2em; text-transform: uppercase; color: var(--er-muted); margin-bottom: 1.5mm; }
+.er-bars { display: flex; align-items: flex-end; gap: 1.6mm; height: 32mm; border-bottom: 1px solid var(--er-ink); }
+.er-bar { flex: 1; background: var(--er-ink-1); min-height: 0.6mm; }
+.er-bar.er-bar-soft { background: var(--er-line); }
+.er-bar-labels { display: flex; gap: 1.6mm; margin-top: 1.2mm; }
+.er-bar-labels span { flex: 1; text-align: center; font-size: 6pt; color: var(--er-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 
-/* ── Barres (sans couleur) ────────────────────────────────────── */
-.er-bars { display: flex; align-items: flex-end; gap: 2mm; height: 34mm; margin-top: 4mm; border-bottom: 1px solid var(--er-ink); }
-.er-bar { flex: 1; background: repeating-linear-gradient(45deg, #111 0 1px, transparent 1px 4px); border: 1px solid var(--er-ink); border-bottom: none; min-height: 1mm; }
-.er-bar-labels { display: flex; gap: 2mm; margin-top: 1.5mm; }
-.er-bar-labels span { flex: 1; text-align: center; font-size: 6.5pt; color: var(--er-muted); text-transform: uppercase; }
+.er-hbars { margin-top: var(--er-s2); }
+.er-hbar { display: grid; grid-template-columns: 34mm 1fr 22mm; gap: 3mm; align-items: center; padding: 1.6mm 0; }
+.er-hbar-label { font-size: 7.6pt; letter-spacing: 0.16em; text-transform: uppercase; color: var(--er-muted); }
+.er-hbar-track { height: 2.4mm; background: var(--er-line-soft); }
+.er-hbar-fill { height: 100%; background: var(--er-ink-1); }
+.er-hbar-value { font-size: 8.4pt; text-align: right; font-variant-numeric: tabular-nums; }
 
-/* ── Étapes ───────────────────────────────────────────────────── */
-.er-steps { counter-reset: er-step; }
-.er-step { display: flex; gap: 5mm; padding: 2.6mm 0; border-bottom: 1px solid var(--er-line-soft); }
-.er-step-num { font-variant-numeric: tabular-nums; color: var(--er-muted); font-size: 8.5pt; min-width: 8mm; padding-top: 0.6mm; }
+/* Axe de positionnement */
+.er-axis { margin-top: var(--er-s2); }
+.er-axis-title { font-size: 7pt; letter-spacing: 0.22em; text-transform: uppercase; color: var(--er-muted); }
+.er-axis-line { position: relative; height: 1px; background: var(--er-line); margin: 5mm 0 2mm; }
+.er-axis-dot { position: absolute; top: -1.6mm; width: 3.2mm; height: 3.2mm; background: var(--er-ink); transform: translateX(-50%); border-radius: 50%; }
+.er-axis-ends { display: flex; justify-content: space-between; font-size: 7pt; color: var(--er-muted); text-transform: uppercase; letter-spacing: 0.14em; }
 
-.er-note { border-left: 1px solid var(--er-ink); padding-left: 4mm; margin-top: 5mm; }
+/* ── Recommandations ──────────────────────────────────────────── */
+.er-recos { margin-top: var(--er-s2); }
+.er-reco { display: grid; grid-template-columns: 14mm 1fr; gap: 4mm; padding: var(--er-s2) 0; border-bottom: 1px solid var(--er-line-soft); break-inside: avoid; page-break-inside: avoid; }
+.er-reco-num { font-family: "Cormorant Garamond", Georgia, serif; font-size: 20pt; line-height: 1; color: var(--er-line); }
+.er-reco-prio { font-size: 6.6pt; letter-spacing: 0.24em; text-transform: uppercase; color: var(--er-muted); }
+.er-reco-label { font-size: 10.5pt; font-weight: 500; margin: 0.6mm 0 1mm; color: var(--er-ink); }
+.er-reco-why { font-size: 8.6pt; color: var(--er-ink-2); }
+.er-reco-why b { font-weight: 500; color: var(--er-ink-1); }
+
+/* ── Étapes (méthode) ─────────────────────────────────────────── */
+.er-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--er-s5); margin-top: var(--er-s2); }
+.er-steps-1 { grid-template-columns: 1fr; }
+.er-step { display: grid; grid-template-columns: 12mm 1fr; gap: 3mm; padding: 3mm 0; border-bottom: 1px solid var(--er-line-soft); break-inside: avoid; }
+.er-step-num { font-family: "Cormorant Garamond", Georgia, serif; font-size: 15pt; line-height: 1; color: var(--er-line); }
+.er-step-label { font-size: 9pt; letter-spacing: 0.06em; }
+
+.er-note { border-left: 1px solid var(--er-ink); padding-left: 4mm; margin-top: var(--er-s3); }
+.er-spacer { flex: 1; min-height: 0; }
 
 @media print {
   .er-doc.er-preview .er-page { box-shadow: none; border: none; margin-bottom: 0; }
