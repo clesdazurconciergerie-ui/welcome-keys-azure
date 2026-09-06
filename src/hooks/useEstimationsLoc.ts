@@ -265,28 +265,160 @@ export function useEstimation(id?: string) {
     onError: (e: any) => toast.error(e.message ?? "Lecture du PDF impossible"),
   });
 
+  /**
+   * §2 à §24 — analyse IA du logement.
+   * L'IA observe : ses sorties sont normalisées ici, confrontées à la saisie,
+   * puis transmises au moteur. En cas d'échec, rien n'est effacé (§27).
+   */
   const analyzePhotos = useMutation({
     mutationFn: async () => {
       if (!id) throw new Error("Estimation inconnue");
+      const est = estimation.data;
       const items = photos.data ?? [];
-      if (!items.length) throw new Error("Ajoute au moins une photo");
-      const urls: string[] = [];
-      for (const p of items.slice(0, 12)) {
-        const { data } = await supabase.storage
-          .from("estimation-photos").createSignedUrl(p.storage_path, 900);
-        if (data?.signedUrl) urls.push(data.signedUrl);
-      }
-      const { data, error } = await supabase.functions.invoke("estimation-analyze-photos", {
-        body: { estimation_id: id, image_urls: urls },
-      });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      toast.success("Analyse IA terminée");
+      if (!items.length) throw new Error("Ajoute au moins une photo avant de lancer l'analyse.");
+
+      await db.from("estim_estimations").update({ ai_status: "running", ai_error: null }).eq("id", id);
       qc.invalidateQueries({ queryKey: key });
+
+      const withUrls: { id: string; url: string; category?: string | null }[] = [];
+      for (const p of items.slice(0, 24)) {
+        const { data } = await supabase.storage
+          .from("estimation-photos").createSignedUrl(p.storage_path, 1800);
+        if (data?.signedUrl) withUrls.push({ id: p.id, url: data.signedUrl, category: p.category });
+      }
+      if (!withUrls.length) throw new Error("Impossible d'accéder aux photos.");
+
+      const rdna = (est?.rdna_data ?? {}) as any;
+      const { data, error } = await supabase.functions.invoke("estimation-analyze-photos", {
+        body: {
+          estimation_id: id,
+          photos: withUrls,
+          context: {
+            features: est?.features ?? {},
+            location: est?.location_data ?? {},
+            address: est?.address ?? null,
+            city: est?.city ?? null,
+            property_type: est?.property_type ?? null,
+            amenity_penetration: rdna.amenity_penetration ?? {},
+          },
+        },
+      });
+
+      if (error || data?.error) {
+        const message = data?.error ?? error?.message ?? "Analyse IA impossible";
+        await db.from("estim_estimations")
+          .update({ ai_status: "failed", ai_error: String(message).slice(0, 500) }).eq("id", id);
+        throw new Error(message);
+      }
+
+      const payload = normalizeAiPayload(data.raw, {
+        photos_analyzed: data.photos_analyzed ?? 0,
+        photos_failed: data.photos_failed ?? 0,
+        errors: data.errors ?? [],
+      });
+
+      const facts = resolveFacts({
+        features: (est?.features ?? {}) as any,
+        ai: payload,
+        rdna,
+        overrides: (est?.manual_overrides ?? {}) as any,
+      });
+
+      // Notes par photo + sélection automatique pour le futur rapport (§6).
+      const scoreById = new Map(payload.photo_scores.map((s) => [s.photo_id, s]));
+      const selection = selectReportPhotos(
+        items.map((p) => {
+          const s = scoreById.get(p.id);
+          return {
+            id: p.id, category: s?.category ?? p.category,
+            aesthetic: s?.aesthetic ?? null, technical: s?.technical ?? null,
+            importance: s?.importance ?? null, usable: s?.usable,
+          };
+        }),
+        ((est as any)?.report_photo_selection ?? {}) as Record<string, boolean>,
+      );
+      for (const sel of selection) {
+        const s = scoreById.get(sel.id);
+        await db.from("estim_photos").update({
+          aesthetic_score: s?.aesthetic ?? null,
+          technical_score: s?.technical ?? null,
+          importance_score: s?.importance ?? null,
+          quality_score: sel.score,
+          ai_usable: s?.usable ?? null,
+          selected_for_report: sel.selected,
+          ai_analysis: s ?? {},
+        }).eq("id", sel.id);
+      }
+
+      const incomplete = payload.photos_failed > 0 || payload.errors.length > 0;
+      const { error: upErr } = await db.from("estim_estimations").update({
+        ai_analysis: payload as any,
+        ai_scores: toEngineAiScores(payload) as any,
+        ai_facts: { facts } as any,
+        ai_summary: buildPropertySummary(payload, facts) as any,
+        ai_analyzed_at: new Date().toISOString(),
+        // §27 : une analyse partielle n'est pas déclarée terminée.
+        ai_status: incomplete ? "partial" : "done",
+        ai_error: incomplete ? payload.errors.join(" · ").slice(0, 500) : null,
+        status: est?.status === "draft" ? "analyzed" : est?.status,
+      }).eq("id", id);
+      if (upErr) throw upErr;
+
+      return { payload, incomplete };
+    },
+    onSuccess: (res) => {
+      toast[res.incomplete ? "warning" : "success"](
+        res.incomplete
+          ? "Analyse partielle : certaines photos n'ont pas pu être analysées."
+          : "Analyse du logement terminée",
+      );
+      qc.invalidateQueries({ queryKey: key });
+      qc.invalidateQueries({ queryKey: ["estim-photos", id] });
     },
     onError: (e: any) => toast.error(e.message ?? "Analyse IA impossible"),
+  });
+
+  /** §6 — l'utilisateur garde la main sur les photos du rapport. */
+  const togglePhotoSelection = useMutation({
+    mutationFn: async ({ photoId, selected }: { photoId: string; selected: boolean }) => {
+      if (!id) throw new Error("Estimation inconnue");
+      const current = { ...(((estimation.data as any)?.report_photo_selection ?? {}) as Record<string, boolean>) };
+      current[photoId] = selected;
+      await db.from("estim_estimations").update({ report_photo_selection: current }).eq("id", id);
+      const { error } = await db.from("estim_photos").update({ selected_for_report: selected }).eq("id", photoId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: key });
+      qc.invalidateQueries({ queryKey: ["estim-photos", id] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Sélection non enregistrée"),
+  });
+
+  /** §20 — correction manuelle d'une caractéristique observée. */
+  const overrideFact = useMutation({
+    mutationFn: async ({ factKey, value }: { factKey: string; value: unknown }) => {
+      if (!id) throw new Error("Estimation inconnue");
+      const est = estimation.data;
+      const current = { ...(((est?.manual_overrides ?? {}) as any)) };
+      const field = `fact.${factKey}`;
+      if (value === null || value === undefined || value === "") delete current[field];
+      else current[field] = { value, at: new Date().toISOString() };
+
+      const facts = resolveFacts({
+        features: (est?.features ?? {}) as any,
+        ai: (est?.ai_analysis ?? null) as any,
+        rdna: (est?.rdna_data ?? {}) as any,
+        overrides: current,
+      });
+      const { error } = await db.from("estim_estimations").update({
+        manual_overrides: current,
+        ai_facts: { facts } as any,
+      }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: key }),
+    onError: (e: any) => toast.error(e.message ?? "Correction non enregistrée"),
   });
 
   /** §33 — exécution du moteur : les résultats sont recalculés, jamais devinés. */
