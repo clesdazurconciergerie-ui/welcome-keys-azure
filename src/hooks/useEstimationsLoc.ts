@@ -203,6 +203,7 @@ export function useEstimation(id?: string) {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["estim-photos", id] }),
+    onError: (e: any) => toast.error(e.message ?? "Photo non mise à jour"),
   });
 
   const setCover = useMutation({
@@ -212,6 +213,7 @@ export function useEstimation(id?: string) {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["estim-photos", id] }),
+    onError: (e: any) => toast.error(e.message ?? "Photo de couverture non enregistrée"),
   });
 
   const deletePhoto = useMutation({
@@ -221,6 +223,8 @@ export function useEstimation(id?: string) {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["estim-photos", id] }),
+    onError: (e: any) => toast.error(e.message ?? "Suppression de la photo impossible"),
+
   });
 
   const uploadRdna = useMutation({
