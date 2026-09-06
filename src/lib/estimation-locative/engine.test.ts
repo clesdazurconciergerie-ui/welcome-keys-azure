@@ -238,12 +238,12 @@ describe("normalisation des listes de caractéristiques", () => {
 
   it("TEST 3 — null", () => {
     const out = run({ exterieurs: null, equipements: null });
-    expect(out.seasons.length).toBe(3);
+    expect(Object.keys(out.seasons)).toHaveLength(3);
   });
 
   it("TEST 4 — undefined", () => {
     const out = run({ exterieurs: undefined, equipements: undefined });
-    expect(out.seasons.length).toBe(3);
+    expect(Object.keys(out.seasons)).toHaveLength(3);
   });
 
   it("TEST 5 — JSON stringifié : normalisé puis calculé comme un tableau", () => {
@@ -254,7 +254,7 @@ describe("normalisation des listes de caractéristiques", () => {
   it("TEST 6 — valeur inattendue : pas de plantage, estimation produite", () => {
     for (const v of [42, {}, true, "Terrasse"]) {
       const out = run({ exterieurs: v as any, equipements: v as any });
-      expect(out.seasons.length).toBe(3);
+      expect(Object.keys(out.seasons)).toHaveLength(3);
     }
   });
 
