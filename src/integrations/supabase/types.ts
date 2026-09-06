@@ -1418,14 +1418,18 @@ export type Database = {
           data: Json
           displayed_price: number | null
           estimation_id: string
+          excluded: boolean
           id: string
           is_primary: boolean
           name: string | null
           occupancy_pct: number | null
+          outlier: boolean
+          similarity_detail: Json
           similarity_score: number | null
           source: string
           url: string | null
           user_id: string
+          weight: number | null
         }
         Insert: {
           annual_revenue?: number | null
@@ -1435,14 +1439,18 @@ export type Database = {
           data?: Json
           displayed_price?: number | null
           estimation_id: string
+          excluded?: boolean
           id?: string
           is_primary?: boolean
           name?: string | null
           occupancy_pct?: number | null
+          outlier?: boolean
+          similarity_detail?: Json
           similarity_score?: number | null
           source?: string
           url?: string | null
           user_id: string
+          weight?: number | null
         }
         Update: {
           annual_revenue?: number | null
@@ -1452,14 +1460,18 @@ export type Database = {
           data?: Json
           displayed_price?: number | null
           estimation_id?: string
+          excluded?: boolean
           id?: string
           is_primary?: boolean
           name?: string | null
           occupancy_pct?: number | null
+          outlier?: boolean
+          similarity_detail?: Json
           similarity_score?: number | null
           source?: string
           url?: string | null
           user_id?: string
+          weight?: number | null
         }
         Relationships: [
           {
@@ -1524,10 +1536,14 @@ export type Database = {
           ai_analysis: Json
           ai_scores: Json
           city: string | null
+          computed_at: string | null
           confidence_score: number | null
           constraints: Json
           created_at: string
           district: string | null
+          engine_output: Json
+          engine_params: Json
+          engine_version: string | null
           features: Json
           id: string
           internal_notes: string | null
@@ -1549,16 +1565,21 @@ export type Database = {
           title: string | null
           updated_at: string
           user_id: string
+          validated_at: string | null
         }
         Insert: {
           address?: string | null
           ai_analysis?: Json
           ai_scores?: Json
           city?: string | null
+          computed_at?: string | null
           confidence_score?: number | null
           constraints?: Json
           created_at?: string
           district?: string | null
+          engine_output?: Json
+          engine_params?: Json
+          engine_version?: string | null
           features?: Json
           id?: string
           internal_notes?: string | null
@@ -1580,16 +1601,21 @@ export type Database = {
           title?: string | null
           updated_at?: string
           user_id: string
+          validated_at?: string | null
         }
         Update: {
           address?: string | null
           ai_analysis?: Json
           ai_scores?: Json
           city?: string | null
+          computed_at?: string | null
           confidence_score?: number | null
           constraints?: Json
           created_at?: string
           district?: string | null
+          engine_output?: Json
+          engine_params?: Json
+          engine_version?: string | null
           features?: Json
           id?: string
           internal_notes?: string | null
@@ -1611,6 +1637,7 @@ export type Database = {
           title?: string | null
           updated_at?: string
           user_id?: string
+          validated_at?: string | null
         }
         Relationships: [
           {
