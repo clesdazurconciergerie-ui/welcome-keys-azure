@@ -5,6 +5,10 @@ import { toast } from "sonner";
 import type { Estimation, EstimPhoto, EstimDocument, EstimComparable } from "@/lib/estimation-locative/types";
 import { runEngine, type EngineInput } from "@/lib/estimation-locative/engine";
 import type { ComparableInput } from "@/lib/estimation-locative/engine-types";
+import {
+  normalizeAiPayload, resolveFacts, factsToFeatures, toEngineAiScores,
+  selectReportPhotos, buildPropertySummary, normalizeRdnaExtraction, rdnaToEngineData,
+} from "@/lib/estimation-locative/ai-analysis";
 
 const db = supabase as any;
 
@@ -238,8 +242,16 @@ export function useEstimation(id?: string) {
       await db.from("estim_documents")
         .update({ status: "extracted", extracted: parsed ?? {} }).eq("id", doc.id);
 
-      const rdna = mapRdna(parsed);
+      // §15/§16 — extraction fidèle conservée (valeur, devise, unité, page), et
+      // vue convertie pour le moteur, la conversion étant explicite.
+      const extraction = normalizeRdnaExtraction(
+        (parsed as any)?.raw_extraction ?? {},
+        { file_name: file.name, storage_path: path },
+      );
+      const rdna = { ...mapRdna(parsed), ...rdnaToEngineData(extraction, 0.92), extraction };
       await db.from("estim_estimations").update({ rdna_data: rdna }).eq("id", id);
+      await db.from("estim_documents")
+        .update({ raw_extraction: extraction as any }).eq("id", doc.id);
 
       const comps = (parsed?.comparables ?? []) as any[];
       if (comps.length) {
@@ -431,9 +443,18 @@ export function useEstimation(id?: string) {
         city: est.city, district: est.district, property_type: est.property_type,
         lat: est.lat, lng: est.lng,
         location_data: est.location_data ?? {},
-        features: est.features ?? {},
+        // §23 — le moteur reçoit les caractéristiques résolues (saisie > IA), pas l'IA brute.
+        features: factsToFeatures(
+          est.features ?? {},
+          resolveFacts({
+            features: (est.features ?? {}) as any,
+            ai: (est.ai_analysis ?? null) as any,
+            rdna: (est.rdna_data ?? {}) as any,
+            overrides: (est.manual_overrides ?? {}) as any,
+          }),
+        ),
         constraints: est.constraints ?? {},
-        ai_scores: est.ai_scores ?? {},
+        ai_scores: { ...(est.ai_scores ?? {}), ...toEngineAiScores((est.ai_analysis ?? null) as any) },
         ai_analysis: est.ai_analysis ?? {},
         rdna_data: est.rdna_data ?? {},
         market_data: est.market_data ?? {},
@@ -490,7 +511,7 @@ export function useEstimation(id?: string) {
   return {
     estimation, photos, documents, comparables,
     save, saveOwner, uploadPhotos, updatePhoto, setCover, deletePhoto,
-    uploadRdna, analyzePhotos, compute, setOverride,
+    uploadRdna, analyzePhotos, compute, setOverride, togglePhotoSelection, overrideFact,
   };
 }
 
