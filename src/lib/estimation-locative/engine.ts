@@ -396,6 +396,13 @@ function buildAdjustments(input: EngineInput, pen: Record<string, number>, cfg: 
 function estimateElasticity(comps: ScoredComparable[], cfg: EngineConfig): { value: number; source: DataSource } {
   const pts = comps.filter((c) => c.used && isNum(c.adr) && isNum(c.occupancy) && (c.occupancy as number) > 0);
   if (pts.length < 4) return { value: cfg.elasticity.default, source: "CALCULATED" };
+  // Sans dispersion de prix suffisante, une régression n'a aucun sens (§28 : ne rien inventer).
+  const logs = pts.map((p) => Math.log(p.adr as number));
+  const mean = logs.reduce((s, v) => s + v, 0) / logs.length;
+  const dispersion = Math.sqrt(logs.reduce((s, v) => s + (v - mean) ** 2, 0) / logs.length);
+  if (dispersion < cfg.elasticity.min_price_dispersion) {
+    return { value: cfg.elasticity.default, source: "CALCULATED" };
+  }
   // Régression log-log pondérée : ln(occ) = a + e·ln(prix)
   const W = pts.map((p) => p.weight || 0.01);
   const X = pts.map((p) => Math.log(p.adr as number));
@@ -578,9 +585,13 @@ export function runEngine(input: EngineInput, overrides?: unknown): EngineOutput
     cleaningFactor = 1 - clamp(load, 0, cfg.cleaning.max_occupancy_impact_pct / 100);
   }
 
+  // Le prix « juste » du bien (référence) est l'ancrage : à ce prix, le bien réalise
+  // l'occupation de marché. S'en écarter fait décrocher l'occupation, d'autant plus
+  // vite que l'écart grandit (courbure) — c'est ce qui crée un optimum de revenu réel.
   const occAt = (price: number) => {
-    if (!isNum(baselineOcc) || !isNum(baselineAdr) || baselineAdr <= 0) return null;
-    const raw = baselineOcc * Math.pow(price / baselineAdr, el.value);
+    if (!isNum(baselineOcc) || !isNum(referenceAdr) || referenceAdr <= 0 || price <= 0) return null;
+    const x = Math.log(price / referenceAdr);
+    const raw = baselineOcc * Math.exp(el.value * x - cfg.elasticity.curvature * x * x);
     return clamp(raw * minStayFactor * cleaningFactor, cfg.elasticity.occupancy_floor, cfg.elasticity.occupancy_cap);
   };
 

@@ -138,6 +138,11 @@ export interface EngineConfig {
   elasticity: {
     /** Élasticité par défaut (variation d'occupation pour +1 % de prix). */
     default: number;
+    /** Courbure : l'occupation chute d'autant plus vite que le prix s'éloigne du prix juste.
+     *  Sans courbure, le revenu croîtrait indéfiniment avec le prix (élasticité > -1). */
+    curvature: number;
+    /** Dispersion minimale des prix des comparables pour déduire une élasticité fiable. */
+    min_price_dispersion: number;
     /** Bornes de l'élasticité déduite des comparables. */
     min: number;
     max: number;
@@ -322,6 +327,8 @@ export const DEFAULT_ENGINE_CONFIG: EngineConfig = {
 
   elasticity: {
     default: -0.9,
+    curvature: 1.6,
+    min_price_dispersion: 0.08,
     min: -2.2,
     max: -0.35,
     occupancy_cap: 0.93,
