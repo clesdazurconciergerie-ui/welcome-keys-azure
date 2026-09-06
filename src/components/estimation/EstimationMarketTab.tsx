@@ -4,8 +4,7 @@
 // absente s'affiche « Inconnu » et n'est jamais remplacée par une moyenne.
 import { useMemo, useState } from "react";
 import {
-  AlertTriangle, ExternalLink, FileText, Globe, Loader2, MapPin, Plus,
-  RefreshCw, Search, Trash2,
+  AlertTriangle, ExternalLink, FileText, Globe, Loader2, MapPin, Plus, Search, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -431,5 +430,3 @@ function ManualComparableDialog({ onAdd }: { onAdd: (patch: Record<string, any>)
     </Dialog>
   );
 }
-
-export { RefreshCw };

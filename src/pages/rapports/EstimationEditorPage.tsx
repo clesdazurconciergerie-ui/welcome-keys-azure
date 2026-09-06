@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEstimation } from "@/hooks/useEstimationsLoc";
 import { computeConfidence } from "@/lib/estimation-locative/types";
 import EstimationEngineTab from "@/components/estimation/EstimationEngineTab";
+import EstimationMarketTab from "@/components/estimation/EstimationMarketTab";
 import {
   AC_OPTIONS, AMENITIES, COMPARABLES_DISCLAIMER, ESTIMATION_STATUSES, EXTERIOR_OPTIONS,
   FLOOR_OPTIONS, MIN_STAY_OPTIONS, OWNER_STRATEGY_OPTIONS, PARKING_OPTIONS, PETS_OPTIONS,
@@ -406,76 +407,33 @@ export default function EstimationEditorPage() {
         </TabsContent>
 
         {/* ── Analyse de marché ────────────────────────── */}
-        <TabsContent value="marche" className="space-y-8 pt-8">
-          <div>
-            <Button variant="outline" onClick={() => pdfInput.current?.click()} disabled={flow.uploadRdna.isPending}>
-              {flow.uploadRdna.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" strokeWidth={1.5} />}
-              Importer un PDF AirDNA / RDNA
-            </Button>
-            <input
-              ref={pdfInput} type="file" accept="application/pdf"
-              className="absolute opacity-0 w-0 h-0"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) flow.uploadRdna.mutate(f);
-                e.target.value = "";
-              }}
-            />
-          </div>
-
-          {documents.length > 0 && (
-            <ul className="text-sm divide-y border-t">
-              {documents.map((d) => (
-                <li key={d.id} className="py-3 flex items-center justify-between gap-3">
-                  <span className="truncate">{d.file_name}</span>
-                  <Badge variant="outline" className="text-[10px] uppercase tracking-[0.18em]">{d.status}</Badge>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <Group title="Données RDNA extraites">
-            {Object.keys(est.rdna_data ?? {}).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucune donnée importée.</p>
-            ) : (
-              <dl className="grid sm:grid-cols-3 gap-4 text-sm">
-                <Stat label="Market score" value={est.rdna_data.market_score} />
-                <Stat label="ADR" value={est.rdna_data.adr_eur} suffix=" €" />
-                <Stat label="Occupation" value={est.rdna_data.occupation_pct} suffix=" %" />
-                <Stat label="Revenu annuel" value={est.rdna_data.revenu_annuel_eur} suffix=" €" />
-                <Stat label="Chambres" value={est.rdna_data.chambres} />
-                <Stat label="Voyageurs" value={est.rdna_data.voyageurs} />
-              </dl>
-            )}
-          </Group>
-
-          <Group title="Comparables">
-            {comparables.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucun comparable pour l'instant.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-[10px] uppercase tracking-[0.2em] text-muted-foreground border-b">
-                      <th className="py-2">Logement</th><th>Chambres</th><th>Prix affiché</th><th>Occupation</th><th>Revenu</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {comparables.map((c) => (
-                      <tr key={c.id} className="border-b">
-                        <td className="py-2 pr-3">{c.name ?? "—"}</td>
-                        <td>{c.bedrooms ?? "—"}</td>
-                        <td>{c.displayed_price ? `${c.displayed_price} €` : "—"}</td>
-                        <td>{c.occupancy_pct ? `${c.occupancy_pct} %` : "—"}</td>
-                        <td>{c.annual_revenue ? `${c.annual_revenue} €` : "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-4 border-l-2 pl-3">{COMPARABLES_DISCLAIMER}</p>
-          </Group>
+        <TabsContent value="marche">
+          <input
+            ref={pdfInput} type="file" accept="application/pdf"
+            className="absolute opacity-0 w-0 h-0"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) flow.uploadRdna.mutate(f);
+              e.target.value = "";
+            }}
+          />
+          <EstimationMarketTab
+            view={flow.marketView}
+            localContext={(est as any).local_context ?? {}}
+            localEvents={((est as any).local_events ?? []) as any[]}
+            researchStatus={(est as any).research_status ?? null}
+            researchError={(est as any).research_error ?? null}
+            researchedAt={(est as any).researched_at ?? null}
+            researching={flow.researchMarket.isPending}
+            onResearch={() => flow.researchMarket.mutate()}
+            onImportRdna={() => pdfInput.current?.click()}
+            importingRdna={flow.uploadRdna.isPending}
+            rdnaData={(est.rdna_data ?? {}) as Record<string, any>}
+            documents={documents as any}
+            onUpdateComparable={(compId, patch) => flow.updateComparable.mutate({ compId, patch })}
+            onDeleteComparable={(compId) => flow.deleteComparable.mutate(compId)}
+            onAddComparable={(patch) => flow.addComparable.mutate(patch)}
+          />
         </TabsContent>
 
         {/* ── Moteur de calcul (interne) ───────────────── */}
