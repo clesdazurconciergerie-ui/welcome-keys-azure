@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import EstimationAnalysisTab from "@/components/estimation/EstimationAnalysisTab";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -161,6 +162,7 @@ export default function EstimationEditorPage() {
           <TabsTrigger value="caracteristiques">Caractéristiques</TabsTrigger>
           <TabsTrigger value="contraintes">Contraintes</TabsTrigger>
           <TabsTrigger value="photos">Photos</TabsTrigger>
+          <TabsTrigger value="analyse">Analyse du logement</TabsTrigger>
           <TabsTrigger value="marche">Analyse de marché</TabsTrigger>
           <TabsTrigger value="moteur">Moteur</TabsTrigger>
           <TabsTrigger value="verification">Vérification</TabsTrigger>
@@ -381,6 +383,26 @@ export default function EstimationEditorPage() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* ── Analyse du logement (étape 3) ───────────── */}
+        <TabsContent value="analyse">
+          <EstimationAnalysisTab
+            analysis={(est?.ai_analysis ?? null) as any}
+            features={(est?.features ?? {}) as Record<string, unknown>}
+            rdna={(est?.rdna_data ?? {}) as Record<string, unknown>}
+            overrides={(est?.manual_overrides ?? {}) as Record<string, unknown>}
+            photos={photos as any}
+            status={(est as any)?.ai_status ?? "idle"}
+            error={(est as any)?.ai_error ?? null}
+            analyzedAt={(est as any)?.ai_analyzed_at ?? null}
+            running={flow.analyzePhotos.isPending}
+            onAnalyze={() => flow.analyzePhotos.mutate()}
+            onToggleSelection={(photoId, selected) =>
+              flow.togglePhotoSelection.mutate({ photoId, selected })}
+            onOverrideFact={(factKey, value) => flow.overrideFact.mutate({ factKey, value })}
+            renderThumb={(p) => <SignedPhoto path={p.storage_path} alt={p.file_name ?? "Photo du logement"} />}
+          />
         </TabsContent>
 
         {/* ── Analyse de marché ────────────────────────── */}
