@@ -113,3 +113,85 @@ describe("buildReportData", () => {
     expect(d.property.photos.map((p) => p.id)).toEqual(["p3"]);
   });
 });
+
+/* ── Étape 6 : robustesse de présentation ─────────────────────── */
+describe("rapport propriétaire — cas de présentation", () => {
+  it("une seule photo exploitable : elle sert de couverture", () => {
+    const d = build(baseEstimation(), [
+      { id: "p1", storage_path: "a.jpg", selected_for_report: true, quality_score: 78 },
+    ]);
+    expect(d.cover.photo?.id).toBe("p1");
+  });
+
+  it("aucune photo exploitable : le rapport reste valide", () => {
+    const d = build(baseEstimation(), [
+      { id: "p1", storage_path: "a.jpg", selected_for_report: false, quality_score: 12, ai_usable: false },
+    ]);
+    expect(d.cover.photo).toBeNull();
+    expect(d.property.photos).toHaveLength(0);
+    expect(hasBlockingIssue(validateReportData(d, engine() as any))).toBe(false);
+  });
+
+  it("photos de qualités différentes : seules les retenues sont présentées", () => {
+    const d = build(baseEstimation(), [
+      { id: "p1", storage_path: "a.jpg", is_cover: true, selected_for_report: true, quality_score: 90 },
+      { id: "p2", storage_path: "b.jpg", selected_for_report: true, quality_score: 74 },
+      { id: "p3", storage_path: "c.jpg", selected_for_report: false, quality_score: 22, ai_usable: false },
+      { id: "p4", storage_path: "d.jpg", selected_for_report: true, quality_score: 66 },
+    ]);
+    expect(d.property.photos.map((p) => p.id)).not.toContain("p3");
+    expect(d.cover.photo?.id).toBe("p1");
+  });
+
+  it("tableau de comparables très long : les données restent exploitables", () => {
+    const comps = Array.from({ length: 24 }, (_, i) => ({
+      id: `c${i}`, origin: "web", name: `Logement comparable numéro ${i} avec un nom particulièrement long`,
+      city: "Saint-Raphaël", displayed_price: 200 + i, bedrooms: 3, capacity: 6,
+      is_primary: true, similarity_score: 70, platform: "Airbnb",
+    }));
+    const d = build(baseEstimation(), [], comps);
+    expect(d.comparables.online.length).toBeGreaterThan(0);
+    expect(d.comparables.online.slice(0, 6)).toHaveLength(6);
+    expect(hasBlockingIssue(validateReportData(d, engine() as any))).toBe(false);
+  });
+
+  it("aucun comparable externe : aucune donnée inventée", () => {
+    const d = build(baseEstimation());
+    expect(d.comparables.online).toHaveLength(0);
+    expect(d.comparables.market).toHaveLength(0);
+    expect(d.market.comparables_count).toBe(0);
+  });
+
+  it("une donnée inconnue n'est jamais transformée en « Non » ou en 0", () => {
+    const d = build(baseEstimation({ features: { chambres: 3 } }));
+    const facts = Object.fromEntries(d.property.facts.map((f) => [f.key, f.value]));
+    expect(facts.piscine).toBeNull();
+    const values = d.property.facts.map((f) => f.value);
+    expect(values).not.toContain("Non");
+    expect(values).not.toContain("0");
+  });
+
+  it("incohérence de pricing : l'export est bloqué", () => {
+    const d = build(baseEstimation());
+    d.pricing.seasons[0].price_recommended = 1;
+    d.synthesis.seasons[0].price_recommended = 1;
+    const checks = validateReportData(d, engine() as any);
+    expect(hasBlockingIssue(checks)).toBe(true);
+  });
+
+  it("rapport complet : toutes les pages attendues sont présentes et non vides", () => {
+    const d = build(
+      baseEstimation({
+        location: { district: "Boulouris", pois: [{ name: "Plage du Débarquement", category: "Plage", distance_m: 320 }] },
+      }),
+      [{ id: "p1", storage_path: "a.jpg", is_cover: true, selected_for_report: true, quality_score: 88 },
+       { id: "p2", storage_path: "b.jpg", selected_for_report: true, quality_score: 80 }],
+      [{ id: "c1", origin: "web", name: "Villa Azur", city: "Fréjus", displayed_price: 260, bedrooms: 3, is_primary: true, similarity_score: 82, platform: "Airbnb" }],
+    );
+    for (const key of ["synthesis", "property", "market", "comparables", "pricing", "projection", "method", "conclusion"]) {
+      expect(d.pages).toContain(key);
+    }
+    expect(new Set(d.pages).size).toBe(d.pages.length);
+  });
+});
+

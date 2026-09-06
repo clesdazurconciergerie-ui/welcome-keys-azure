@@ -1,7 +1,10 @@
-// MODULE — Estimation locative · étape 5 : aperçu et export du rapport propriétaire.
-import { useEffect, useMemo, useState } from "react";
+// MODULE — Estimation locative · aperçu et export du rapport propriétaire (étape 6).
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Download, Loader2, RefreshCw, Check, AlertTriangle } from "lucide-react";
+import {
+  ArrowLeft, Download, Loader2, RefreshCw, Check, AlertTriangle, Pencil,
+  ZoomIn, ZoomOut, ChevronLeft, ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -9,7 +12,7 @@ import SEOHead from "@/components/SEOHead";
 import { resolveStorageUrl } from "@/components/StorageImage";
 import { useEstimation } from "@/hooks/useEstimationsLoc";
 import { useFinancialSettings } from "@/hooks/useFinancialSettings";
-import OwnerReportDocument from "@/components/estimation/report/OwnerReportDocument";
+import OwnerReportDocument, { type ReportFitReport } from "@/components/estimation/report/OwnerReportDocument";
 import {
   buildReportData, validateReportData, hasBlockingIssue, type ReportCheck,
 } from "@/lib/estimation-locative/report-data";
@@ -26,6 +29,8 @@ async function toDataUrl(url: string): Promise<string> {
   });
 }
 
+const ZOOM_STEPS = [0.5, 0.6, 0.7, 0.8, 0.92, 1, 1.15, 1.3];
+
 export default function EstimationOwnerReportPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -34,6 +39,13 @@ export default function EstimationOwnerReportPage() {
   const est = flow.estimation.data as any;
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [exporting, setExporting] = useState(false);
+  const [zoom, setZoom] = useState(0.8);
+  const [fitReport, setFitReport] = useState<ReportFitReport>({ compressed: [], overflowing: [] });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [docHeight, setDocHeight] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const docRef = useRef<HTMLDivElement>(null);
+
 
   const data = useMemo(() => {
     if (!est) return null;
@@ -55,7 +67,28 @@ export default function EstimationOwnerReportPage() {
     () => (data ? validateReportData(data, est?.engine_output ?? null) : []),
     [data, est],
   );
-  const blocked = hasBlockingIssue(checks);
+  const dataBlocked = hasBlockingIssue(checks);
+  const layoutBlocked = fitReport.overflowing.length > 0;
+  const noEngine = !est?.engine_output;
+  const blocked = dataBlocked || layoutBlocked || noEngine;
+
+  const blockingReasons = useMemo(() => {
+    const reasons: string[] = [];
+    if (noEngine) reasons.push("Le calcul n'a pas encore été lancé pour cette estimation.");
+    checks.filter((c) => c.level === "error").forEach((c) => reasons.push(c.detail ? `${c.label} — ${c.detail}` : c.label));
+    fitReport.overflowing.forEach((o) => reasons.push(`La page ${o.page} (${o.title}) ne tient pas dans le format A4.`));
+    return reasons;
+  }, [checks, fitReport, noEngine]);
+
+  const onFit = useCallback((r: ReportFitReport) => {
+    setFitReport((prev) => {
+      const same = prev.overflowing.length === r.overflowing.length
+        && prev.compressed.length === r.compressed.length
+        && prev.overflowing.every((o, i) => o.page === r.overflowing[i]?.page)
+        && prev.compressed.every((c, i) => c.page === r.compressed[i]?.page);
+      return same ? prev : r;
+    });
+  }, []);
 
   useEffect(() => {
     if (!data) return;
@@ -76,17 +109,57 @@ export default function EstimationOwnerReportPage() {
     return () => { cancelled = true; };
   }, [data]);
 
+  /** Hauteur réelle du document, pour que le zoom conserve un défilement correct. */
+  useEffect(() => {
+    const el = docRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setDocHeight(el.scrollHeight));
+    ro.observe(el);
+    setDocHeight(el.scrollHeight);
+    return () => ro.disconnect();
+  }, [data, photoUrls]);
+
+  /** Page actuellement visible dans l'aperçu. */
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const pages = Array.from(el.querySelectorAll<HTMLElement>(".er-page"));
+      const top = el.getBoundingClientRect().top;
+      let active = 1;
+      pages.forEach((page, i) => {
+        if (page.getBoundingClientRect().top - top < 120) active = i + 1;
+      });
+      setCurrentPage(active);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [data]);
+
+  const goToPage = (n: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const pages = Array.from(el.querySelectorAll<HTMLElement>(".er-page"));
+    const target = pages[Math.max(0, Math.min(pages.length - 1, n - 1))];
+    if (!target) return;
+    el.scrollTo({ top: target.offsetTop * zoom - 8, behavior: "smooth" });
+  };
+
   const exportPdf = async () => {
     const el = document.getElementById("estimation-report");
     if (!el || !data) return;
     setExporting(true);
     const toastId = toast.loading("Génération du PDF…");
+    // L'aperçu et le PDF partagent exactement le même rendu : on retire seulement
+    // les décorations d'écran (ombre, bordure, marge inter-pages) le temps de l'export.
+    el.classList.remove("er-preview");
     try {
       const html2pdf = (await import("html2pdf.js")).default;
       await html2pdf().set({
         margin: 0,
         filename: `Estimation-locative-${data.meta.reference}.pdf`,
-        image: { type: "jpeg", quality: 0.96 },
+        image: { type: "jpeg", quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", windowWidth: 794 },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
         pagebreak: { mode: ["css", "legacy"] },
@@ -95,12 +168,13 @@ export default function EstimationOwnerReportPage() {
     } catch (e: any) {
       toast.error(e?.message ?? "Export impossible", { id: toastId });
     } finally {
+      el.classList.add("er-preview");
       setExporting(false);
     }
   };
 
   if (flow.estimation.isLoading) {
-    return <div className="max-w-4xl mx-auto space-y-4"><Skeleton className="h-10 w-72" /><Skeleton className="h-[600px]" /></div>;
+    return <div className="max-w-5xl mx-auto space-y-4"><Skeleton className="h-10 w-72" /><Skeleton className="h-[600px]" /></div>;
   }
   if (!est || !data) {
     return (
@@ -113,10 +187,11 @@ export default function EstimationOwnerReportPage() {
     );
   }
 
-  const noEngine = !est.engine_output;
+  const totalPages = data.pages.length;
+  const zoomIndex = ZOOM_STEPS.indexOf(zoom) === -1 ? 4 : ZOOM_STEPS.indexOf(zoom);
 
   return (
-    <div className="max-w-[900px] mx-auto space-y-8 pb-24">
+    <div className="max-w-[1200px] mx-auto space-y-8 pb-24">
       <SEOHead title={`${data.meta.reference} — Rapport d'estimation locative`} description="Rapport propriétaire d'estimation de potentiel locatif." />
 
       <header className="space-y-4 border-b pb-6">
@@ -128,12 +203,15 @@ export default function EstimationOwnerReportPage() {
             <p className="font-mono text-xs tracking-wider text-muted-foreground">{data.meta.reference}</p>
             <h1 className="text-2xl font-light tracking-tight mt-1">Rapport propriétaire</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="ghost" onClick={() => navigate(`/rapports/estimations/${id}`)}>
+              <Pencil className="h-4 w-4 mr-2" strokeWidth={1.5} /> Modifier l'estimation
+            </Button>
             <Button variant="outline" onClick={() => flow.compute.mutate()} disabled={flow.compute.isPending}>
               {flow.compute.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" strokeWidth={1.5} />}
-              Recalculer
+              Générer le rapport
             </Button>
-            <Button onClick={exportPdf} disabled={exporting || blocked || noEngine}>
+            <Button onClick={exportPdf} disabled={exporting || blocked}>
               {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" strokeWidth={1.5} />}
               Exporter en PDF
             </Button>
@@ -141,10 +219,13 @@ export default function EstimationOwnerReportPage() {
         </div>
       </header>
 
-      {noEngine && (
-        <p className="text-sm border-l-2 pl-3 text-muted-foreground">
-          Le calcul n'a pas encore été lancé pour cette estimation : lancez-le pour obtenir les tarifs et la projection.
-        </p>
+      {blocked && (
+        <section className="border-l-2 border-foreground pl-4 space-y-1">
+          <h2 className="text-xs uppercase tracking-[0.24em]">Export bloqué</h2>
+          <ul className="text-sm text-muted-foreground space-y-1">
+            {blockingReasons.map((r) => <li key={r}>— {r}</li>)}
+          </ul>
+        </section>
       )}
 
       <section className="space-y-2">
@@ -161,14 +242,62 @@ export default function EstimationOwnerReportPage() {
               </span>
             </li>
           ))}
+          <li className="flex items-start gap-2 text-sm">
+            {fitReport.overflowing.length === 0
+              ? <Check className="h-4 w-4 mt-0.5 shrink-0" strokeWidth={1.5} />
+              : <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" strokeWidth={1.5} />}
+            <span>
+              Mise en page A4 — aucun contenu coupé
+              {fitReport.compressed.length > 0 && (
+                <span className="block text-xs text-muted-foreground">
+                  {fitReport.compressed.length} page(s) automatiquement ajustée(s) pour tenir dans la page.
+                </span>
+              )}
+            </span>
+          </li>
         </ul>
       </section>
 
-      <section className="overflow-x-auto">
-        <div className="origin-top-left" style={{ transform: "scale(0.92)", width: "217mm" }}>
-          <OwnerReportDocument data={data} photoUrls={photoUrls} preview />
+      {/* Barre d'outils de l'aperçu */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-y py-2 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1} aria-label="Page précédente">
+            <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
+          </Button>
+          <span className="text-xs font-mono tracking-wider tabular-nums">
+            Page {currentPage} / {totalPages}
+          </span>
+          <Button variant="ghost" size="icon" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages} aria-label="Page suivante">
+            <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => setZoom(ZOOM_STEPS[Math.max(0, zoomIndex - 1)])} disabled={zoomIndex <= 0} aria-label="Dézoomer">
+            <ZoomOut className="h-4 w-4" strokeWidth={1.5} />
+          </Button>
+          <span className="text-xs font-mono tabular-nums w-12 text-center">{Math.round(zoom * 100)} %</span>
+          <Button variant="ghost" size="icon" onClick={() => setZoom(ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, zoomIndex + 1)])} disabled={zoomIndex >= ZOOM_STEPS.length - 1} aria-label="Zoomer">
+            <ZoomIn className="h-4 w-4" strokeWidth={1.5} />
+          </Button>
+        </div>
+      </div>
+
+      <section
+        ref={scrollRef}
+        className="overflow-auto bg-muted/30 p-4 max-h-[80vh]"
+        style={{ scrollbarWidth: "thin" }}
+      >
+        <div style={{ width: `${210 * zoom}mm`, height: docHeight * zoom }}>
+          <div
+            ref={docRef}
+            className="origin-top-left"
+            style={{ transform: `scale(${zoom})`, width: "210mm" }}
+          >
+            <OwnerReportDocument data={data} photoUrls={photoUrls} preview onFit={onFit} />
+          </div>
         </div>
       </section>
+
     </div>
   );
 }
