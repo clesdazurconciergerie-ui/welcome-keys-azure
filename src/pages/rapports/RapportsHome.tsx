@@ -100,7 +100,20 @@ export default function RapportsHome() {
             Gérer les logements <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.8} />
           </Link>
         </div>
+
+        <div className="az-card p-8">
+          <div className="flex items-center gap-3 mb-4">
+            <Sparkles className="w-4 h-4 text-[hsl(var(--az-gold))]" strokeWidth={1.6} />
+            <span className="az-eyebrow">Prospection</span>
+          </div>
+          <h2 className="font-display text-2xl mb-3">Estimation locative</h2>
+          <p className="font-body text-[13px] text-[hsl(var(--az-muted))] leading-relaxed mb-6">
+            Estimez le potentiel locatif courte durée d'un bien dans le Var : propriétaire, adresse, photos, rapport AirDNA.
+          </p>
+          <Link to="/rapports/estimations" className="az-btn-primary">Ouvrir</Link>
+        </div>
       </section>
+
 
       {drafts.length > 0 && (
         <section>

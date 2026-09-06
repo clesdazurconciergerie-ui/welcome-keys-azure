@@ -101,6 +101,8 @@ import "./layouts/rapports-theme.css";
 import RapportsHome from "./pages/rapports/RapportsHome";
 import LogementsAdminPage from "./pages/rapports/LogementsAdminPage";
 import EstimationWizardPage from "./pages/rapports/EstimationWizardPage";
+import EstimationsDashboardPage from "./pages/rapports/EstimationsDashboardPage";
+import EstimationEditorPage from "./pages/rapports/EstimationEditorPage";
 import EstimationReportPage from "./pages/rapports/EstimationReportPage";
 import AirbnbReportWizard from "./pages/rapports/AirbnbReportWizard";
 import AirbnbReportView from "./pages/rapports/AirbnbReportView";
@@ -227,6 +229,8 @@ const App = () => (
           {/* Azurkeys Report — uses the main dashboard sidebar for a unified look */}
           <Route path="/rapports" element={<DashboardErrorBoundary><DashboardLayout /></DashboardErrorBoundary>}>
             <Route index element={<RapportsHome />} />
+            <Route path="estimations" element={<EstimationsDashboardPage />} />
+            <Route path="estimations/:id" element={<EstimationEditorPage />} />
             <Route path="estimation/nouveau" element={<EstimationWizardPage />} />
             <Route path="estimation/:id" element={<EstimationReportPage />} />
             <Route path="logements" element={<LogementsAdminPage />} />

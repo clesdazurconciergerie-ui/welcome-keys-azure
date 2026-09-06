@@ -1409,6 +1409,302 @@ export type Database = {
           },
         ]
       }
+      estim_comparables: {
+        Row: {
+          annual_revenue: number | null
+          bedrooms: number | null
+          capacity: number | null
+          created_at: string
+          data: Json
+          displayed_price: number | null
+          estimation_id: string
+          id: string
+          is_primary: boolean
+          name: string | null
+          occupancy_pct: number | null
+          similarity_score: number | null
+          source: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          annual_revenue?: number | null
+          bedrooms?: number | null
+          capacity?: number | null
+          created_at?: string
+          data?: Json
+          displayed_price?: number | null
+          estimation_id: string
+          id?: string
+          is_primary?: boolean
+          name?: string | null
+          occupancy_pct?: number | null
+          similarity_score?: number | null
+          source?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          annual_revenue?: number | null
+          bedrooms?: number | null
+          capacity?: number | null
+          created_at?: string
+          data?: Json
+          displayed_price?: number | null
+          estimation_id?: string
+          id?: string
+          is_primary?: boolean
+          name?: string | null
+          occupancy_pct?: number | null
+          similarity_score?: number | null
+          source?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estim_comparables_estimation_id_fkey"
+            columns: ["estimation_id"]
+            isOneToOne: false
+            referencedRelation: "estim_estimations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estim_documents: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          estimation_id: string
+          extracted: Json
+          file_name: string | null
+          id: string
+          kind: string
+          status: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          estimation_id: string
+          extracted?: Json
+          file_name?: string | null
+          id?: string
+          kind?: string
+          status?: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          estimation_id?: string
+          extracted?: Json
+          file_name?: string | null
+          id?: string
+          kind?: string
+          status?: string
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estim_documents_estimation_id_fkey"
+            columns: ["estimation_id"]
+            isOneToOne: false
+            referencedRelation: "estim_estimations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estim_estimations: {
+        Row: {
+          address: string | null
+          ai_analysis: Json
+          ai_scores: Json
+          city: string | null
+          confidence_score: number | null
+          constraints: Json
+          created_at: string
+          district: string | null
+          features: Json
+          id: string
+          internal_notes: string | null
+          lat: number | null
+          lng: number | null
+          location_data: Json
+          manual_overrides: Json
+          market_data: Json
+          owner_id: string | null
+          postal_code: string | null
+          property_type: string | null
+          rdna_data: Json
+          reference: string
+          report_url: string | null
+          results: Json
+          seasonality: Json
+          sources: Json
+          status: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          ai_analysis?: Json
+          ai_scores?: Json
+          city?: string | null
+          confidence_score?: number | null
+          constraints?: Json
+          created_at?: string
+          district?: string | null
+          features?: Json
+          id?: string
+          internal_notes?: string | null
+          lat?: number | null
+          lng?: number | null
+          location_data?: Json
+          manual_overrides?: Json
+          market_data?: Json
+          owner_id?: string | null
+          postal_code?: string | null
+          property_type?: string | null
+          rdna_data?: Json
+          reference: string
+          report_url?: string | null
+          results?: Json
+          seasonality?: Json
+          sources?: Json
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          ai_analysis?: Json
+          ai_scores?: Json
+          city?: string | null
+          confidence_score?: number | null
+          constraints?: Json
+          created_at?: string
+          district?: string | null
+          features?: Json
+          id?: string
+          internal_notes?: string | null
+          lat?: number | null
+          lng?: number | null
+          location_data?: Json
+          manual_overrides?: Json
+          market_data?: Json
+          owner_id?: string | null
+          postal_code?: string | null
+          property_type?: string | null
+          rdna_data?: Json
+          reference?: string
+          report_url?: string | null
+          results?: Json
+          seasonality?: Json
+          sources?: Json
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estim_estimations_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "estim_owners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estim_owners: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      estim_photos: {
+        Row: {
+          ai_analysis: Json
+          category: string | null
+          created_at: string
+          estimation_id: string
+          file_name: string | null
+          id: string
+          is_cover: boolean
+          position: number
+          quality_score: number | null
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          ai_analysis?: Json
+          category?: string | null
+          created_at?: string
+          estimation_id: string
+          file_name?: string | null
+          id?: string
+          is_cover?: boolean
+          position?: number
+          quality_score?: number | null
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          ai_analysis?: Json
+          category?: string | null
+          created_at?: string
+          estimation_id?: string
+          file_name?: string | null
+          id?: string
+          is_cover?: boolean
+          position?: number
+          quality_score?: number | null
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estim_photos_estimation_id_fkey"
+            columns: ["estimation_id"]
+            isOneToOne: false
+            referencedRelation: "estim_estimations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       etoile_polaire: {
         Row: {
           created_at: string
@@ -5125,6 +5421,7 @@ export type Database = {
       }
       is_owner_of_property: { Args: { _property_id: string }; Returns: boolean }
       is_owner_row: { Args: { _owner_id: string }; Returns: boolean }
+      next_estimation_reference: { Args: never; Returns: string }
     }
     Enums: {
       app_role:
