@@ -196,15 +196,17 @@ export function scoreComparable(
   detail.parking = categoricalScore(parkingKind(f.parking), parkingKind(c.parking), ["aucun", "rue", "prive", "garage"]);
   // Vue panoramique ≠ absence de vue (§5).
   detail.vue = categoricalScore(viewKind(f.vue), viewKind(c.view), ["aucune", "degagee", "partielle", "panoramique"]);
+  const subjectExteriors = toStringList(f.exterieurs);
   detail.exterieur = c.exterior
-    ? (f.exterieurs ?? []).some((e: string) => has(c.exterior, e.toLowerCase())) ? 1 : 0
+    ? subjectExteriors.some((e) => has(c.exterior, e.toLowerCase())) ? 1 : 0
     : null;
   detail.climatisation = categoricalScore(acKind(f.climatisation), acKind(c.ac), ["aucune", "partielle", "totale"]);
   detail.standing = isNum(c.standing) && isNum(subject.ai_scores?.standing)
     ? clamp(1 - Math.abs(Number(subject.ai_scores.standing) - c.standing) / 100, 0, 1)
     : null;
-  detail.equipements = c.amenities?.length && (f.equipements ?? []).length
-    ? jaccard(f.equipements as string[], c.amenities)
+  const subjectAmenities = toStringList(f.equipements);
+  detail.equipements = c.amenities?.length && subjectAmenities.length
+    ? jaccard(subjectAmenities, c.amenities)
     : null;
   detail.proximite_mer = isNum(c.distance_sea_m) && isNum(subject.location_data?.distance_mer_m)
     ? clamp(1 - Math.abs(Number(subject.location_data.distance_mer_m) - c.distance_sea_m) / 3000, 0, 1)
@@ -375,7 +377,7 @@ function buildAdjustments(input: EngineInput, pen: Record<string, number>, cfg: 
   if (p === "privee") push("piscine", "Piscine privée", A.features.piscine_privee, "piscine");
   else if (p === "commune") push("piscine", "Piscine commune", A.features.piscine_commune, "piscine");
 
-  const ext: string[] = f.exterieurs ?? [];
+  const ext: string[] = toStringList(f.exterieurs);
   if (ext.some((e) => /jardin/i.test(e))) push("jardin", "Jardin", A.features.jardin);
   else if (ext.some((e) => /terrasse|rooftop|patio/i.test(e))) push("terrasse", "Terrasse", A.features.terrasse);
   else if (ext.some((e) => /balcon/i.test(e))) push("balcon", "Balcon", A.features.balcon);
