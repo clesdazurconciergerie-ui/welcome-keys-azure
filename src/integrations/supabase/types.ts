@@ -1492,6 +1492,7 @@ export type Database = {
           file_name: string | null
           id: string
           kind: string
+          raw_extraction: Json
           status: string
           storage_path: string
           user_id: string
@@ -1504,6 +1505,7 @@ export type Database = {
           file_name?: string | null
           id?: string
           kind?: string
+          raw_extraction?: Json
           status?: string
           storage_path: string
           user_id: string
@@ -1516,6 +1518,7 @@ export type Database = {
           file_name?: string | null
           id?: string
           kind?: string
+          raw_extraction?: Json
           status?: string
           storage_path?: string
           user_id?: string
@@ -1534,7 +1537,12 @@ export type Database = {
         Row: {
           address: string | null
           ai_analysis: Json
+          ai_analyzed_at: string | null
+          ai_error: string | null
+          ai_facts: Json
           ai_scores: Json
+          ai_status: string
+          ai_summary: Json
           city: string | null
           computed_at: string | null
           confidence_score: number | null
@@ -1557,6 +1565,7 @@ export type Database = {
           property_type: string | null
           rdna_data: Json
           reference: string
+          report_photo_selection: Json
           report_url: string | null
           results: Json
           seasonality: Json
@@ -1570,7 +1579,12 @@ export type Database = {
         Insert: {
           address?: string | null
           ai_analysis?: Json
+          ai_analyzed_at?: string | null
+          ai_error?: string | null
+          ai_facts?: Json
           ai_scores?: Json
+          ai_status?: string
+          ai_summary?: Json
           city?: string | null
           computed_at?: string | null
           confidence_score?: number | null
@@ -1593,6 +1607,7 @@ export type Database = {
           property_type?: string | null
           rdna_data?: Json
           reference: string
+          report_photo_selection?: Json
           report_url?: string | null
           results?: Json
           seasonality?: Json
@@ -1606,7 +1621,12 @@ export type Database = {
         Update: {
           address?: string | null
           ai_analysis?: Json
+          ai_analyzed_at?: string | null
+          ai_error?: string | null
+          ai_facts?: Json
           ai_scores?: Json
+          ai_status?: string
+          ai_summary?: Json
           city?: string | null
           computed_at?: string | null
           confidence_score?: number | null
@@ -1629,6 +1649,7 @@ export type Database = {
           property_type?: string | null
           rdna_data?: Json
           reference?: string
+          report_photo_selection?: Json
           report_url?: string | null
           results?: Json
           seasonality?: Json
@@ -1684,42 +1705,57 @@ export type Database = {
       }
       estim_photos: {
         Row: {
+          aesthetic_score: number | null
           ai_analysis: Json
+          ai_usable: boolean | null
           category: string | null
           created_at: string
           estimation_id: string
           file_name: string | null
           id: string
+          importance_score: number | null
           is_cover: boolean
           position: number
           quality_score: number | null
+          selected_for_report: boolean
           storage_path: string
+          technical_score: number | null
           user_id: string
         }
         Insert: {
+          aesthetic_score?: number | null
           ai_analysis?: Json
+          ai_usable?: boolean | null
           category?: string | null
           created_at?: string
           estimation_id: string
           file_name?: string | null
           id?: string
+          importance_score?: number | null
           is_cover?: boolean
           position?: number
           quality_score?: number | null
+          selected_for_report?: boolean
           storage_path: string
+          technical_score?: number | null
           user_id: string
         }
         Update: {
+          aesthetic_score?: number | null
           ai_analysis?: Json
+          ai_usable?: boolean | null
           category?: string | null
           created_at?: string
           estimation_id?: string
           file_name?: string | null
           id?: string
+          importance_score?: number | null
           is_cover?: boolean
           position?: number
           quality_score?: number | null
+          selected_for_report?: boolean
           storage_path?: string
+          technical_score?: number | null
           user_id?: string
         }
         Relationships: [

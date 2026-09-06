@@ -28,9 +28,16 @@ SCHÉMA :
   "revenu_annuel_usd": number | null,
   "operating_expenses_usd": number | null,
   "net_operating_income_usd": number | null,
-  "monthly_revenue_usd": [{ "month": string, "revenue_usd": number }],
-  "comparables": [{ "nom": string, "chambres": number|null, "adr_usd": number|null, "occupation_pct": number|null, "revenu_annuel_usd": number|null }]
-}`;
+  "available_days": number | null,
+  "confidence": string | null,
+  "pages": number | null,
+  "monthly_revenue_usd": [{ "month": string, "revenue_usd": number, "page": number|null }],
+  "annual_revenue_history_usd": [{ "year": string, "revenue_usd": number, "page": number|null }],
+  "amenity_penetration_pct": { "piscine": number|null, "climatisation": number|null, "parking": number|null, "vue": number|null, "lave_vaisselle": number|null, "lave_linge": number|null },
+  "comparables": [{ "nom": string, "chambres": number|null, "sdb": number|null, "capacite": number|null, "adr_usd": number|null, "occupation_pct": number|null, "revenu_annuel_usd": number|null, "jours_disponibles": number|null, "localisation": string|null, "equipements": string[], "page": number|null }]
+}
+
+Indique la page du PDF (champ "page") chaque fois que tu peux la déterminer, sinon null.`;
 
 interface ExtractedRaw {
   adresse: string | null;
@@ -43,8 +50,17 @@ interface ExtractedRaw {
   revenu_annuel_usd: number | null;
   operating_expenses_usd: number | null;
   net_operating_income_usd: number | null;
-  monthly_revenue_usd: { month: string; revenue_usd: number }[];
-  comparables: { nom: string; chambres: number | null; adr_usd: number | null; occupation_pct: number | null; revenu_annuel_usd: number | null }[];
+  available_days: number | null;
+  confidence: string | null;
+  pages: number | null;
+  monthly_revenue_usd: { month: string; revenue_usd: number; page?: number | null }[];
+  annual_revenue_history_usd: { year: string; revenue_usd: number; page?: number | null }[];
+  amenity_penetration_pct: Record<string, number | null> | null;
+  comparables: {
+    nom: string; chambres: number | null; sdb?: number | null; capacite?: number | null;
+    adr_usd: number | null; occupation_pct: number | null; revenu_annuel_usd: number | null;
+    jours_disponibles?: number | null; localisation?: string | null; equipements?: string[]; page?: number | null;
+  }[];
 }
 
 Deno.serve(async (req) => {
@@ -135,7 +151,51 @@ Deno.serve(async (req) => {
       })),
     };
 
-    return json(out, 200);
+    // §16 — extraction fidèle : valeur d'origine, devise, unité, source et page.
+    // Aucune conversion ici : le moteur convertira explicitement s'il en a besoin.
+    const val = (v: number | null | undefined, currency: string | null, unit: string | null, page: number | null = null) =>
+      v == null ? null : { value: v, currency, unit, source: "RDNA", page };
+
+    const penetration: Record<string, number> = {};
+    for (const [k, v] of Object.entries(extracted.amenity_penetration_pct ?? {})) {
+      if (typeof v === "number" && Number.isFinite(v)) penetration[k] = v;
+    }
+
+    const raw_extraction = {
+      currency: "USD",
+      pages: extracted.pages ?? null,
+      confidence: extracted.confidence ?? null,
+      market_score: val(extracted.market_score, null, "/100"),
+      projected_revenue: val(extracted.revenu_annuel_usd, "USD", "an"),
+      occupancy_pct: val(extracted.occupation_pct, null, "%"),
+      adr: val(extracted.adr_usd, "USD", "nuit"),
+      available_days: val(extracted.available_days, null, "jours"),
+      operating_expenses: val(extracted.operating_expenses_usd, "USD", "an"),
+      net_operating_income: val(extracted.net_operating_income_usd, "USD", "an"),
+      monthly_revenue: (extracted.monthly_revenue_usd ?? []).map((m) => ({
+        month: m.month, value: val(m.revenue_usd, "USD", "mois", m.page ?? null),
+      })),
+      annual_revenue_history: (extracted.annual_revenue_history_usd ?? []).map((y) => ({
+        year: y.year, value: val(y.revenue_usd, "USD", "an", y.page ?? null),
+      })),
+      amenity_penetration: penetration,
+      comparables: (extracted.comparables ?? []).slice(0, 15).map((c) => ({
+        titre: c.nom ?? null,
+        chambres: c.chambres ?? null,
+        sdb: c.sdb ?? null,
+        capacite: c.capacite ?? null,
+        revenus: val(c.revenu_annuel_usd, "USD", "an", c.page ?? null),
+        jours_disponibles: c.jours_disponibles ?? null,
+        occupation_pct: c.occupation_pct ?? null,
+        adr: val(c.adr_usd, "USD", "nuit", c.page ?? null),
+        localisation: c.localisation ?? null,
+        equipements: c.equipements ?? [],
+        page: c.page ?? null,
+      })),
+      extra: { adresse: extracted.adresse ?? null, chambres: extracted.chambres ?? null, sdb: extracted.sdb ?? null, voyageurs: extracted.voyageurs ?? null },
+    };
+
+    return json({ ...out, raw_extraction, filename }, 200);
   } catch (e) {
     console.error("parse-airdna-pdf error", e);
     return json({ error: "unexpected", message: (e as Error).message }, 500);
