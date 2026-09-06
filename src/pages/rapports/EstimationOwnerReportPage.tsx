@@ -42,7 +42,10 @@ export default function EstimationOwnerReportPage() {
   const [zoom, setZoom] = useState(0.8);
   const [fitReport, setFitReport] = useState<ReportFitReport>({ compressed: [], overflowing: [] });
   const [currentPage, setCurrentPage] = useState(1);
+  const [docHeight, setDocHeight] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const docRef = useRef<HTMLDivElement>(null);
+
 
   const data = useMemo(() => {
     if (!est) return null;
