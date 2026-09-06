@@ -30,8 +30,8 @@
 
 .er-page {
   position: relative;
+  box-sizing: border-box;
   width: 210mm;
-  min-height: 297mm;
   height: 297mm;
   padding: var(--er-margin) var(--er-margin) 13mm;
   margin: 0 auto;
@@ -39,10 +39,11 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  page-break-after: always;
-  break-after: page;
+  /* Une page logique = une page physique : la hauteur fixe suffit,
+     aucun saut de page supplémentaire n'est déclaré (source des pages blanches). */
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
-.er-page:last-child { page-break-after: auto; break-after: auto; }
 
 /* Zone de contenu : compressible automatiquement si le contenu déborde. */
 .er-body {
@@ -205,50 +206,71 @@
 }
 
 /* ── Chiffres clés hiérarchisés ───────────────────────────────── */
-.er-hero-kpi { border-top: 2px solid var(--er-ink); padding-top: var(--er-s2); margin-bottom: var(--er-s3); }
-.er-hero-kpi .er-kpi-label { font-size: 7.4pt; letter-spacing: 0.28em; text-transform: uppercase; color: var(--er-muted); }
+.er-hero-kpi {
+  border-top: 2px solid var(--er-ink);
+  padding-top: var(--er-s2);
+  margin-bottom: var(--er-s3);
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+  height: auto;
+}
+.er-hero-kpi .er-kpi-label { font-size: 7.4pt; letter-spacing: 0.28em; text-transform: uppercase; color: var(--er-muted); line-height: 1.4; }
 .er-hero-kpi .er-kpi-value {
   font-family: "Cormorant Garamond", Georgia, serif;
   font-size: 46pt;
-  line-height: 1.02;
+  line-height: 1.22;
   font-weight: 300;
   letter-spacing: -0.01em;
   color: var(--er-ink);
-  margin-top: 1mm;
+  margin: 0;
+  display: block;
+  overflow-wrap: anywhere;
 }
-.er-hero-kpi .er-kpi-value.er-na { font-size: 13pt; font-family: inherit; font-style: italic; }
-.er-hero-kpi .er-kpi-sub { font-size: 8pt; color: var(--er-muted); margin-top: 1mm; }
+.er-hero-kpi .er-kpi-value.er-na { font-size: 13pt; font-family: inherit; font-style: italic; line-height: 1.5; }
+.er-hero-kpi .er-kpi-sub { font-size: 8pt; color: var(--er-muted); margin: 0; line-height: 1.5; }
 
 .er-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--er-s3); margin: var(--er-s2) 0 var(--er-s3); }
 .er-kpis-2 { grid-template-columns: repeat(2, 1fr); }
-.er-kpi { border-top: 1px solid var(--er-line); padding-top: 2.5mm; }
-.er-kpi-label { font-size: 6.8pt; letter-spacing: 0.24em; text-transform: uppercase; color: var(--er-muted); }
+.er-kpi { border-top: 1px solid var(--er-line); padding-top: 2.5mm; display: flex; flex-direction: column; gap: 1.4mm; height: auto; }
+.er-kpi-label { font-size: 6.8pt; letter-spacing: 0.24em; text-transform: uppercase; color: var(--er-muted); line-height: 1.4; }
 .er-kpi-value {
   font-family: "Cormorant Garamond", Georgia, serif;
   font-size: 22pt;
-  line-height: 1.15;
+  line-height: 1.3;
   font-weight: 400;
-  margin-top: 0.8mm;
+  margin: 0;
   color: var(--er-ink);
+  overflow-wrap: anywhere;
 }
-.er-kpi-value.er-na { font-size: 9.5pt; font-family: inherit; }
+.er-kpi-value.er-na { font-size: 9.5pt; font-family: inherit; line-height: 1.5; }
 
 /* ── Saisons ──────────────────────────────────────────────────── */
 .er-seasons { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--er-s3); margin-top: var(--er-s2); }
-.er-season { border-top: 1px solid var(--er-ink); padding-top: 2.5mm; }
-.er-season-label { font-size: 6.8pt; letter-spacing: 0.22em; text-transform: uppercase; color: var(--er-muted); }
+.er-season {
+  border-top: 1px solid var(--er-ink);
+  padding-top: 2.5mm;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2mm;
+  height: auto;
+  break-inside: avoid;
+}
+.er-season-label { font-size: 6.8pt; letter-spacing: 0.22em; text-transform: uppercase; color: var(--er-muted); line-height: 1.4; }
 .er-season-price {
   font-family: "Cormorant Garamond", Georgia, serif;
   font-size: 24pt;
-  line-height: 1.15;
+  line-height: 1.28;
   font-weight: 400;
   color: var(--er-ink);
-  margin-top: 0.8mm;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
-.er-season-price.er-na { font-size: 10pt; font-family: inherit; }
-.er-season-unit { font-size: 7.6pt; color: var(--er-muted); }
-.er-season-meta { margin-top: 2mm; }
-.er-season-meta div { display: flex; justify-content: space-between; gap: 3mm; font-size: 7.8pt; padding: 1mm 0; border-bottom: 1px solid var(--er-line-soft); }
+.er-season-price.er-na { font-size: 10pt; font-family: inherit; line-height: 1.5; }
+.er-season-unit { font-size: 7.6pt; color: var(--er-muted); line-height: 1.4; }
+.er-season-meta { margin-top: 1.6mm; }
+.er-season-meta div { display: flex; justify-content: space-between; align-items: baseline; gap: 3mm; font-size: 7.8pt; line-height: 1.5; padding: 1.2mm 0; border-bottom: 1px solid var(--er-line-soft); }
+.er-season-meta span { overflow-wrap: anywhere; }
 .er-season-meta span:first-child { color: var(--er-muted); }
 
 /* ── Tables ───────────────────────────────────────────────────── */
@@ -258,6 +280,8 @@
   color: var(--er-muted); font-weight: 500; padding: 0 3mm 2mm 0; border-bottom: 1px solid var(--er-ink);
 }
 .er-table td {
+  height: auto;
+  line-height: 1.45;
   padding: 2.4mm 3mm 2.4mm 0;
   border-bottom: 1px solid var(--er-line-soft);
   vertical-align: top;
@@ -345,5 +369,9 @@
 .er-spacer { flex: 1; min-height: 0; }
 
 @media print {
+  @page { size: A4 portrait; margin: 0; }
   .er-doc.er-preview .er-page { box-shadow: none; border: none; margin-bottom: 0; }
+  /* Stratégie unique : chaque page occupe exactement une feuille A4. */
+  .er-page { break-inside: avoid; page-break-inside: avoid; }
+  .er-page + .er-page { break-before: page; page-break-before: always; }
 }

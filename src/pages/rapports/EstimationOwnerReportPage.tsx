@@ -146,6 +146,11 @@ export default function EstimationOwnerReportPage() {
     el.scrollTo({ top: target.offsetTop * zoom - 8, behavior: "smooth" });
   };
 
+  /**
+   * Export PDF : une page logique de l'aperçu = exactement une page A4.
+   * Chaque `.er-page` est rasterisée séparément puis posée sur sa propre feuille,
+   * ce qui supprime toute fragmentation automatique (source des pages blanches).
+   */
   const exportPdf = async () => {
     const el = document.getElementById("estimation-report");
     if (!el || !data) return;
@@ -155,16 +160,23 @@ export default function EstimationOwnerReportPage() {
     // les décorations d'écran (ombre, bordure, marge inter-pages) le temps de l'export.
     el.classList.remove("er-preview");
     try {
-      const html2pdf = (await import("html2pdf.js")).default;
-      await html2pdf().set({
-        margin: 0,
-        filename: `Estimation-locative-${data.meta.reference}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", windowWidth: 794 },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["css", "legacy"] },
-      }).from(el).save();
-      toast.success("Rapport téléchargé", { id: toastId });
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+      const pages = Array.from(el.querySelectorAll<HTMLElement>(".er-page"));
+      if (pages.length === 0) throw new Error("Aucune page à exporter.");
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+      for (let i = 0; i < pages.length; i++) {
+        const canvas = await html2canvas(pages[i], {
+          scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false,
+        });
+        const img = canvas.toDataURL("image/jpeg", 0.98);
+        if (i > 0) pdf.addPage("a4", "portrait");
+        pdf.addImage(img, "JPEG", 0, 0, 210, 297, undefined, "FAST");
+      }
+      pdf.save(`Estimation-locative-${data.meta.reference}.pdf`);
+      toast.success(`Rapport téléchargé — ${pages.length} pages`, { id: toastId });
     } catch (e: any) {
       toast.error(e?.message ?? "Export impossible", { id: toastId });
     } finally {
@@ -172,6 +184,7 @@ export default function EstimationOwnerReportPage() {
       setExporting(false);
     }
   };
+
 
   if (flow.estimation.isLoading) {
     return <div className="max-w-5xl mx-auto space-y-4"><Skeleton className="h-10 w-72" /><Skeleton className="h-[600px]" /></div>;
