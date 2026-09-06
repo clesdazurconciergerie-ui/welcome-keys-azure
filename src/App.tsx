@@ -233,8 +233,9 @@ const App = () => (
             <Route path="estimations" element={<EstimationsDashboardPage />} />
             <Route path="estimations/:id" element={<EstimationEditorPage />} />
             <Route path="estimations/:id/rapport" element={<EstimationOwnerReportPage />} />
-            <Route path="estimation/nouveau" element={<EstimationWizardPage />} />
-            <Route path="estimation/:id" element={<EstimationReportPage />} />
+            <Route path="estimation/nouveau" element={<Navigate to="/rapports/estimations" replace />} />
+            <Route path="estimation/:id" element={<Navigate to="/rapports/estimations" replace />} />
+
             <Route path="logements" element={<LogementsAdminPage />} />
             <Route path="airbnb/nouveau" element={<AirbnbReportWizard />} />
             <Route path="airbnb/logement/:slug" element={<AirbnbReportsHistory />} />
