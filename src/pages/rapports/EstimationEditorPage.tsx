@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Upload, Loader2, Star, Trash2, Sparkles, FileText, Save, Check,
+  ArrowLeft, Upload, Loader2, Star, Trash2, Sparkles, FileText, Save, Check, MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +46,9 @@ export default function EstimationEditorPage() {
   const [features, setFeatures] = useState<Record<string, any>>({});
   const [constraints, setConstraints] = useState<Record<string, any>>({});
   const [notes, setNotes] = useState("");
+  const [geocoding, setGeocoding] = useState(false);
   const hydrated = useRef(false);
+  const lastGeocoded = useRef("");
   const photoInput = useRef<HTMLInputElement>(null);
   const pdfInput = useRef<HTMLInputElement>(null);
 
