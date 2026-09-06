@@ -62,6 +62,9 @@ const UNKNOWN_WORDS = [
 /** true si la chaîne exprime une absence d'information (et non une absence de l'équipement). */
 export function isUnknownValue(v: unknown): boolean {
   if (v === null || v === undefined) return true;
+  if (isNum(v)) return false;
+  if (typeof v === "boolean") return false;
+  if (Array.isArray(v)) return v.length === 0;
   const s = txt(v);
   if (!s) return true;
   return UNKNOWN_WORDS.some((w) => s === w || s.includes(w));
