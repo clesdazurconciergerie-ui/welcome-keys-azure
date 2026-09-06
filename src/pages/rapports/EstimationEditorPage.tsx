@@ -23,6 +23,7 @@ import { StorageImage } from "@/components/StorageImage";
 import { supabase } from "@/integrations/supabase/client";
 import { useEstimation } from "@/hooks/useEstimationsLoc";
 import { computeConfidence } from "@/lib/estimation-locative/types";
+import EstimationEngineTab from "@/components/estimation/EstimationEngineTab";
 import {
   AC_OPTIONS, AMENITIES, COMPARABLES_DISCLAIMER, ESTIMATION_STATUSES, EXTERIOR_OPTIONS,
   FLOOR_OPTIONS, MIN_STAY_OPTIONS, OWNER_STRATEGY_OPTIONS, PARKING_OPTIONS, PETS_OPTIONS,
@@ -161,6 +162,7 @@ export default function EstimationEditorPage() {
           <TabsTrigger value="contraintes">Contraintes</TabsTrigger>
           <TabsTrigger value="photos">Photos</TabsTrigger>
           <TabsTrigger value="marche">Analyse de marché</TabsTrigger>
+          <TabsTrigger value="moteur">Moteur</TabsTrigger>
           <TabsTrigger value="verification">Vérification</TabsTrigger>
         </TabsList>
 
@@ -454,6 +456,18 @@ export default function EstimationEditorPage() {
           </Group>
         </TabsContent>
 
+        {/* ── Moteur de calcul (interne) ───────────────── */}
+        <TabsContent value="moteur">
+          <EstimationEngineTab
+            raw={((est as any).engine_output && Object.keys((est as any).engine_output).length
+              ? (est as any).engine_output : null)}
+            overrides={(est.manual_overrides ?? {}) as any}
+            computing={flow.compute.isPending}
+            onCompute={() => flow.compute.mutate()}
+            onOverride={(field, value, computed) => flow.setOverride.mutate({ field, value, computed })}
+          />
+        </TabsContent>
+
         {/* ── Vérification ─────────────────────────────── */}
         <TabsContent value="verification" className="space-y-8 pt-8">
           <div className="flex items-baseline gap-4 border-b pb-6">
@@ -511,10 +525,10 @@ export default function EstimationEditorPage() {
           </Group>
 
           <div className="border border-dashed p-5 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground mb-1">Moteur d'estimation — étape suivante</p>
-            Les fourchettes de prix par saison, l'occupation estimée et le chiffre d'affaires annuel
-            seront calculés par le moteur (pondérations, comparaison RDNA / comparables, saisonnalité).
-            Aucun prix n'est affiché tant que le moteur n'est pas construit.
+            <p className="font-medium text-foreground mb-1">Résultats du moteur</p>
+            Les prix par saison, l'occupation et le chiffre d'affaires annuel se calculent dans
+            l'onglet <span className="text-foreground">Moteur</span>. Tu peux y corriger chaque
+            valeur à la main : la valeur calculée d'origine reste affichée à côté.
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
