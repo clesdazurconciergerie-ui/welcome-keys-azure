@@ -42,6 +42,36 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 const round2 = (v: number) => Math.round(v * 100) / 100;
 const pct = (v: number) => Math.round(v * 1000) / 10;
 
+/**
+ * Normalise en liste de chaînes une donnée conceptuellement multi-valuée
+ * (extérieurs, équipements). Les données persistées ou importées peuvent
+ * arriver sous forme de tableau, de JSON stringifié, de chaîne simple, ou
+ * être absentes. Aucune information n'est inventée : une valeur inexploitable
+ * donne une liste vide (donnée absente), jamais une valeur par défaut.
+ */
+export function toStringList(v: unknown): string[] {
+  if (Array.isArray(v)) {
+    return v
+      .filter((x) => typeof x === "string" || typeof x === "number")
+      .map((x) => String(x).trim())
+      .filter((x) => x.length > 0);
+  }
+  if (typeof v === "string") {
+    const s = v.trim();
+    if (!s) return [];
+    if (s.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed)) return toStringList(parsed);
+      } catch {
+        // chaîne non parsable : traitée comme une valeur unique ci-dessous
+      }
+    }
+    return [s];
+  }
+  return [];
+}
+
 function median(xs: number[]): number | null {
   if (!xs.length) return null;
   const s = [...xs].sort((a, b) => a - b);
