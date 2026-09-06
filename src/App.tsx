@@ -100,10 +100,9 @@ import DemoComplianceHubPage from "./pages/demo/DemoComplianceHubPage";
 import "./layouts/rapports-theme.css";
 import RapportsHome from "./pages/rapports/RapportsHome";
 import LogementsAdminPage from "./pages/rapports/LogementsAdminPage";
-import EstimationWizardPage from "./pages/rapports/EstimationWizardPage";
 import EstimationsDashboardPage from "./pages/rapports/EstimationsDashboardPage";
 import EstimationEditorPage from "./pages/rapports/EstimationEditorPage";
-import EstimationReportPage from "./pages/rapports/EstimationReportPage";
+
 import EstimationOwnerReportPage from "./pages/rapports/EstimationOwnerReportPage";
 import AirbnbReportWizard from "./pages/rapports/AirbnbReportWizard";
 import AirbnbReportView from "./pages/rapports/AirbnbReportView";
