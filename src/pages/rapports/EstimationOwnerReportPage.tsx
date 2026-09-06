@@ -273,15 +273,17 @@ export default function EstimationOwnerReportPage() {
         className="overflow-auto bg-muted/30 p-4 max-h-[80vh]"
         style={{ scrollbarWidth: "thin" }}
       >
-        <div
-          className="origin-top-left"
-          style={{ transform: `scale(${zoom})`, width: `${210 * zoom + 8}mm`, height: "1px" }}
-        >
-          <div style={{ width: "210mm" }}>
+        <div style={{ width: `${210 * zoom}mm`, height: docHeight * zoom }}>
+          <div
+            ref={docRef}
+            className="origin-top-left"
+            style={{ transform: `scale(${zoom})`, width: "210mm" }}
+          >
             <OwnerReportDocument data={data} photoUrls={photoUrls} preview onFit={onFit} />
           </div>
         </div>
       </section>
+
     </div>
   );
 }
