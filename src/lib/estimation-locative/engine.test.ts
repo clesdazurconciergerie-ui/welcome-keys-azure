@@ -219,3 +219,48 @@ describe("moteur d'estimation locative", () => {
     expect(usd.market.rdna_adr).toBeCloseTo(200 * DEFAULT_ENGINE_CONFIG.currency.usd_to_eur, 1);
   });
 });
+
+/* ── Régression : extérieurs/équipements non tableau (bug « m.some is not a function ») ── */
+describe("normalisation des listes de caractéristiques", () => {
+  const run = (features: Record<string, any>) =>
+    runEngine(base({ features: { ...base().features, ...features } }));
+
+  const reference = run({});
+
+  it("TEST 1 — tableau valide : calcul identique à la référence", () => {
+    const out = run({ exterieurs: ["Terrasse"], equipements: ["Lave-linge", "TV"] });
+    expect(out.annual.revenue).toBe(reference.annual.revenue);
+  });
+
+  it("TEST 2 — tableau vide", () => {
+    expect(() => run({ exterieurs: [], equipements: [] })).not.toThrow();
+  });
+
+  it("TEST 3 — null", () => {
+    const out = run({ exterieurs: null, equipements: null });
+    expect(Object.keys(out.seasons)).toHaveLength(3);
+  });
+
+  it("TEST 4 — undefined", () => {
+    const out = run({ exterieurs: undefined, equipements: undefined });
+    expect(Object.keys(out.seasons)).toHaveLength(3);
+  });
+
+  it("TEST 5 — JSON stringifié : normalisé puis calculé comme un tableau", () => {
+    const out = run({ exterieurs: '["Terrasse"]', equipements: '["Lave-linge","TV"]' });
+    expect(out.annual.revenue).toBe(reference.annual.revenue);
+  });
+
+  it("TEST 6 — valeur inattendue : pas de plantage, estimation produite", () => {
+    for (const v of [42, {}, true, "Terrasse"]) {
+      const out = run({ exterieurs: v as any, equipements: v as any });
+      expect(Object.keys(out.seasons)).toHaveLength(3);
+    }
+  });
+
+  it("TEST 7 — estimation rechargée (features sérialisées puis relues)", () => {
+    const stored = JSON.parse(JSON.stringify({ ...base().features, exterieurs: '["Jardin"]' }));
+    const out = runEngine(base({ features: stored }));
+    expect(out.annual.revenue).not.toBeNull();
+  });
+});
