@@ -445,7 +445,7 @@ export function useEstimation(id?: string) {
         location_data: est.location_data ?? {},
         // §23 — le moteur reçoit les caractéristiques résolues (saisie > IA), pas l'IA brute.
         features: factsToFeatures(
-          est.features ?? {},
+          (est.features ?? {}) as Record<string, unknown>,
           resolveFacts({
             features: (est.features ?? {}) as any,
             ai: (est.ai_analysis ?? null) as any,
