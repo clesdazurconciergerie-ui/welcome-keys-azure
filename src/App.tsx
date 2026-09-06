@@ -100,10 +100,9 @@ import DemoComplianceHubPage from "./pages/demo/DemoComplianceHubPage";
 import "./layouts/rapports-theme.css";
 import RapportsHome from "./pages/rapports/RapportsHome";
 import LogementsAdminPage from "./pages/rapports/LogementsAdminPage";
-import EstimationWizardPage from "./pages/rapports/EstimationWizardPage";
 import EstimationsDashboardPage from "./pages/rapports/EstimationsDashboardPage";
 import EstimationEditorPage from "./pages/rapports/EstimationEditorPage";
-import EstimationReportPage from "./pages/rapports/EstimationReportPage";
+
 import EstimationOwnerReportPage from "./pages/rapports/EstimationOwnerReportPage";
 import AirbnbReportWizard from "./pages/rapports/AirbnbReportWizard";
 import AirbnbReportView from "./pages/rapports/AirbnbReportView";
@@ -233,8 +232,9 @@ const App = () => (
             <Route path="estimations" element={<EstimationsDashboardPage />} />
             <Route path="estimations/:id" element={<EstimationEditorPage />} />
             <Route path="estimations/:id/rapport" element={<EstimationOwnerReportPage />} />
-            <Route path="estimation/nouveau" element={<EstimationWizardPage />} />
-            <Route path="estimation/:id" element={<EstimationReportPage />} />
+            <Route path="estimation/nouveau" element={<Navigate to="/rapports/estimations" replace />} />
+            <Route path="estimation/:id" element={<Navigate to="/rapports/estimations" replace />} />
+
             <Route path="logements" element={<LogementsAdminPage />} />
             <Route path="airbnb/nouveau" element={<AirbnbReportWizard />} />
             <Route path="airbnb/logement/:slug" element={<AirbnbReportsHistory />} />

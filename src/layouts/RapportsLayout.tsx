@@ -7,7 +7,7 @@ import "./rapports-theme.css";
 
 const nav = [
   { to: "/rapports", end: true, label: "Rapports", icon: FileText },
-  { to: "/rapports/estimation/nouveau", end: false, label: "Estimation", icon: LineChart },
+  { to: "/rapports/estimations", end: false, label: "Estimation", icon: LineChart },
   { to: "/rapports/logements", end: false, label: "Logements", icon: Home },
 ];
 
