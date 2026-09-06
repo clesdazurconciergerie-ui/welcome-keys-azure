@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Estimation, EstimPhoto, EstimDocument, EstimComparable } from "@/lib/estimation-locative/types";
+import { runEngine, type EngineInput } from "@/lib/estimation-locative/engine";
+import type { ComparableInput } from "@/lib/estimation-locative/engine-types";
 
 const db = supabase as any;
 
@@ -287,10 +289,128 @@ export function useEstimation(id?: string) {
     onError: (e: any) => toast.error(e.message ?? "Analyse IA impossible"),
   });
 
+  /** §33 — exécution du moteur : les résultats sont recalculés, jamais devinés. */
+  const compute = useMutation({
+    mutationFn: async () => {
+      if (!id) throw new Error("Estimation inconnue");
+      const est = estimation.data;
+      if (!est) throw new Error("Estimation non chargée");
+      const input: EngineInput = {
+        city: est.city, district: est.district, property_type: est.property_type,
+        lat: est.lat, lng: est.lng,
+        location_data: est.location_data ?? {},
+        features: est.features ?? {},
+        constraints: est.constraints ?? {},
+        ai_scores: est.ai_scores ?? {},
+        ai_analysis: est.ai_analysis ?? {},
+        rdna_data: est.rdna_data ?? {},
+        market_data: est.market_data ?? {},
+        photos_count: photos.data?.length ?? 0,
+        comparables: (comparables.data ?? []).map(toComparableInput),
+      };
+      const output = runEngine(input, (est as any).engine_params);
+
+      // Persistance des scores de similarité sur chaque comparable (traçabilité).
+      for (const c of output.comparables) {
+        await db.from("estim_comparables").update({
+          similarity_score: c.score, weight: c.weight,
+          outlier: c.outlier, similarity_detail: c.detail,
+        }).eq("id", c.id);
+      }
+
+      const { error } = await db.from("estim_estimations").update({
+        engine_output: output,
+        engine_version: output.version,
+        computed_at: output.computed_at,
+        confidence_score: output.confidence.score,
+        results: toResults(output),
+        seasonality: { source: output.trace.find((t) => t.step === "Saisonnalité")?.detail ?? null },
+        market_data: { ...(est.market_data ?? {}), baseline_adr: output.market.baseline_adr.value },
+        status: output.status === "ok" ? "analyzed" : est.status,
+      }).eq("id", id);
+      if (error) throw error;
+      return output;
+    },
+    onSuccess: (out) => {
+      toast[out.status === "ok" ? "success" : "warning"](
+        out.status === "ok" ? "Estimation calculée" : "Données insuffisantes — rien n'a été inventé",
+      );
+      qc.invalidateQueries({ queryKey: key });
+      qc.invalidateQueries({ queryKey: ["estim-comps", id] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Calcul impossible"),
+  });
+
+  /** §27 — correction manuelle d'une valeur calculée (la valeur d'origine est conservée). */
+  const setOverride = useMutation({
+    mutationFn: async ({ field, value, computed }: { field: string; value: number | null; computed: number | null }) => {
+      if (!id) throw new Error("Estimation inconnue");
+      const current = { ...((estimation.data?.manual_overrides as any) ?? {}) };
+      if (value === null || Number.isNaN(value)) delete current[field];
+      else current[field] = { value, computed, at: new Date().toISOString() };
+      const { error } = await db.from("estim_estimations").update({ manual_overrides: current }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: key }),
+    onError: (e: any) => toast.error(e.message ?? "Correction non enregistrée"),
+  });
+
   return {
     estimation, photos, documents, comparables,
     save, saveOwner, uploadPhotos, updatePhoto, setCover, deletePhoto,
-    uploadRdna, analyzePhotos,
+    uploadRdna, analyzePhotos, compute, setOverride,
+  };
+}
+
+/** Mise à plat d'une ligne `estim_comparables` vers l'entrée du moteur. */
+function toComparableInput(c: any): ComparableInput {
+  const d = c.data ?? {};
+  return {
+    id: c.id,
+    name: c.name,
+    source: c.source,
+    excluded: !!c.excluded,
+    adr: c.displayed_price ?? d.adr_eur ?? d.adr ?? null,
+    currency: d.currency ?? c.currency ?? "EUR",
+    occupancy_pct: c.occupancy_pct ?? d.occupation_pct ?? null,
+    annual_revenue: c.annual_revenue ?? null,
+    bedrooms: c.bedrooms ?? d.chambres ?? null,
+    capacity: c.capacity ?? d.voyageurs ?? null,
+    bathrooms: d.sdb ?? d.salles_de_bain ?? null,
+    surface_m2: d.surface_m2 ?? null,
+    property_type: d.type ?? d.property_type ?? null,
+    city: d.ville ?? d.city ?? null,
+    district: d.quartier ?? d.district ?? null,
+    distance_m: d.distance_m ?? null,
+    pool: d.piscine ?? d.pool ?? null,
+    parking: d.parking ?? null,
+    view: d.vue ?? d.view ?? null,
+    exterior: d.exterieur ?? d.exterior ?? null,
+    ac: d.climatisation ?? d.ac ?? null,
+    standing: d.standing ?? null,
+    amenities: d.equipements ?? d.amenities ?? [],
+    distance_sea_m: d.distance_mer_m ?? null,
+  };
+}
+
+/** Résumé stocké dans `results` — sert de socle au futur rapport propriétaire (§32). */
+function toResults(out: any) {
+  const s = (k: string) => ({
+    label: out.seasons[k].label,
+    prix_recommande: out.seasons[k].price_recommended,
+    prix_min: out.seasons[k].price_min,
+    prix_max: out.seasons[k].price_max,
+    occupation_pct: out.seasons[k].occupancy_pct,
+  });
+  return {
+    basse: s("basse"), moyenne: s("moyenne"), haute: s("haute"),
+    annuel: {
+      nuits_commercialisables: out.annual.nights_sellable,
+      occupation_pct: out.annual.occupancy_pct,
+      adr_moyen: out.annual.adr_weighted,
+      ca_annuel: out.annual.revenue,
+    },
+    engine_version: out.version,
   };
 }
 
