@@ -109,7 +109,18 @@ export default function EstimationOwnerReportPage() {
     return () => { cancelled = true; };
   }, [data]);
 
+  /** Hauteur réelle du document, pour que le zoom conserve un défilement correct. */
+  useEffect(() => {
+    const el = docRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setDocHeight(el.scrollHeight));
+    ro.observe(el);
+    setDocHeight(el.scrollHeight);
+    return () => ro.disconnect();
+  }, [data, photoUrls]);
+
   /** Page actuellement visible dans l'aperçu. */
+
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
