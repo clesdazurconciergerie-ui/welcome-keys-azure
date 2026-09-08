@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import ChangePasswordCard from "@/components/settings/ChangePasswordCard";
 
 const ParametresPage = () => {
   const { flags, loading, update } = useFeatureFlags();
@@ -14,6 +15,8 @@ const ParametresPage = () => {
         <h1 className="text-3xl font-bold text-foreground">Paramètres</h1>
         <p className="text-muted-foreground mt-1">Configuration de votre compte</p>
       </motion.div>
+
+      <ChangePasswordCard />
 
       {/* AI Feature Flags */}
       <Card>
