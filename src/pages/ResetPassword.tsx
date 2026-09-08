@@ -59,11 +59,37 @@ const ResetPassword = () => {
 
         // Check if there's a recovery token in the URL hash
         const hashParams = new URLSearchParams(location.hash.substring(1));
+        const queryParams = new URLSearchParams(location.search);
         const accessToken = hashParams.get('access_token');
-        const type = hashParams.get('type');
-        
-        console.log('Hash params - type:', type, 'has token:', !!accessToken);
-        
+        const type = hashParams.get('type') ?? queryParams.get('type');
+
+        // Nouveau format des liens Supabase : ?code=... ou ?token_hash=...
+        const code = queryParams.get('code');
+        const tokenHash = queryParams.get('token_hash');
+
+        if (code) {
+          const { data, error: exErr } = await supabase.auth.exchangeCodeForSession(code);
+          if (data?.session && mounted) {
+            setVerifying(false);
+            setError(null);
+            return;
+          }
+          console.error('Code exchange error:', exErr);
+        }
+
+        if (tokenHash) {
+          const { data, error: otpErr } = await supabase.auth.verifyOtp({
+            type: 'recovery',
+            token_hash: tokenHash,
+          });
+          if (data?.session && mounted) {
+            setVerifying(false);
+            setError(null);
+            return;
+          }
+          console.error('OTP verify error:', otpErr);
+        }
+
         if (type === 'recovery' && accessToken) {
           console.log('Recovery token found in URL, waiting for Supabase to process...');
           // Token is present, Supabase auth listener will handle the session creation
