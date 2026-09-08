@@ -16,6 +16,8 @@ const ParametresPage = () => {
         <p className="text-muted-foreground mt-1">Configuration de votre compte</p>
       </motion.div>
 
+      <ChangePasswordCard />
+
       {/* AI Feature Flags */}
       <Card>
         <CardHeader>
