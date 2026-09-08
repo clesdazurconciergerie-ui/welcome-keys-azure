@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import ChangePasswordCard from "@/components/settings/ChangePasswordCard";
 
 const ParametresPage = () => {
   const { flags, loading, update } = useFeatureFlags();
