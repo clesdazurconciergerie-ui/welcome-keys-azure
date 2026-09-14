@@ -29,6 +29,19 @@ async function toDataUrl(url: string): Promise<string> {
   });
 }
 
+async function waitForImages(root: HTMLElement): Promise<void> {
+  const images = Array.from(root.querySelectorAll<HTMLImageElement>("img"));
+  await Promise.all(images.map(async (img) => {
+    if (!img.complete) {
+      await new Promise<void>((resolve) => {
+        img.addEventListener("load", () => resolve(), { once: true });
+        img.addEventListener("error", () => resolve(), { once: true });
+      });
+    }
+    try { await img.decode(); } catch { /* l'image chargée reste exportable */ }
+  }));
+}
+
 const ZOOM_STEPS = [0.5, 0.6, 0.7, 0.8, 0.92, 1, 1.15, 1.3];
 
 export default function EstimationOwnerReportPage() {
@@ -156,20 +169,43 @@ export default function EstimationOwnerReportPage() {
     if (!el || !data) return;
     setExporting(true);
     const toastId = toast.loading("Génération du PDF…");
-    // L'aperçu et le PDF partagent exactement le même rendu : on retire seulement
-    // les décorations d'écran (ombre, bordure, marge inter-pages) le temps de l'export.
-    el.classList.remove("er-preview");
+    let exportHost: HTMLDivElement | null = null;
     try {
+      await document.fonts.ready;
+      await waitForImages(el);
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
         import("html2canvas"),
         import("jspdf"),
       ]);
-      const pages = Array.from(el.querySelectorAll<HTMLElement>(".er-page"));
+
+      // Capture une copie hors écran à taille A4 native. L'aperçu est placé dans
+      // un parent zoomé ; le capturer directement altère les métriques des lignes.
+      exportHost = document.createElement("div");
+      exportHost.setAttribute("aria-hidden", "true");
+      exportHost.style.cssText = "position:fixed;left:-10000px;top:0;width:210mm;background:#fff;z-index:-1;";
+      const exportRoot = el.cloneNode(true) as HTMLElement;
+      exportRoot.removeAttribute("id");
+      exportRoot.classList.remove("er-preview");
+      exportHost.appendChild(exportRoot);
+      document.body.appendChild(exportHost);
+      await waitForImages(exportRoot);
+
+      const pages = Array.from(exportRoot.querySelectorAll<HTMLElement>(".er-page"));
       if (pages.length === 0) throw new Error("Aucune page à exporter.");
+      const overflowingPage = pages.find((page) => {
+        const body = page.querySelector<HTMLElement>(".er-body");
+        return body ? body.scrollHeight > body.clientHeight + 1 : false;
+      });
+      if (overflowingPage) {
+        throw new Error(`La page ${overflowingPage.dataset.page ?? "?"} dépasse encore le format A4.`);
+      }
       const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
       for (let i = 0; i < pages.length; i++) {
         const canvas = await html2canvas(pages[i], {
           scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false,
+          width: pages[i].offsetWidth,
+          height: pages[i].offsetHeight,
+          windowWidth: pages[i].offsetWidth,
         });
         const img = canvas.toDataURL("image/jpeg", 0.98);
         if (i > 0) pdf.addPage("a4", "portrait");
@@ -180,7 +216,7 @@ export default function EstimationOwnerReportPage() {
     } catch (e: any) {
       toast.error(e?.message ?? "Export impossible", { id: toastId });
     } finally {
-      el.classList.add("er-preview");
+      exportHost?.remove();
       setExporting(false);
     }
   };
