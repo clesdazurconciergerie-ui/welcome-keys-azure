@@ -51,8 +51,47 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  transform-origin: top left;
 }
+
+/* Densités A4 déterministes. Contrairement à transform:scale(), ces règles
+   recalculent réellement les lignes avant leur capture par html2canvas. */
+.er-page.er-density-1 {
+  --er-s1: 1.8mm; --er-s2: 3.6mm; --er-s3: 6.2mm;
+  --er-s4: 9.8mm; --er-s5: 14.5mm; --er-s6: 22mm;
+}
+.er-page.er-density-2 {
+  --er-s1: 1.6mm; --er-s2: 3.2mm; --er-s3: 5.4mm;
+  --er-s4: 8.5mm; --er-s5: 13mm; --er-s6: 20mm;
+}
+.er-page.er-density-3 {
+  --er-s1: 1.4mm; --er-s2: 2.8mm; --er-s3: 4.8mm;
+  --er-s4: 7.5mm; --er-s5: 11.5mm; --er-s6: 18mm;
+}
+.er-page.er-density-1 .er-body { font-size: 9.5pt; line-height: 1.52; }
+.er-page.er-density-2 .er-body { font-size: 9pt; line-height: 1.46; }
+.er-page.er-density-3 .er-body { font-size: 8.4pt; line-height: 1.4; }
+.er-page.er-density-1 .er-title { font-size: 28pt; }
+.er-page.er-density-2 .er-title { font-size: 26pt; }
+.er-page.er-density-3 .er-title { font-size: 24pt; }
+.er-page.er-density-1 .er-hero-kpi .er-kpi-value { font-size: 42pt; }
+.er-page.er-density-2 .er-hero-kpi .er-kpi-value { font-size: 38pt; }
+.er-page.er-density-3 .er-hero-kpi .er-kpi-value { font-size: 34pt; }
+.er-page.er-density-1 .er-kpi-value { font-size: 21pt; }
+.er-page.er-density-2 .er-kpi-value { font-size: 19pt; }
+.er-page.er-density-3 .er-kpi-value { font-size: 17pt; }
+.er-page.er-density-1 .er-season-price { font-size: 22pt; }
+.er-page.er-density-2 .er-season-price { font-size: 20pt; }
+.er-page.er-density-3 .er-season-price { font-size: 18pt; }
+.er-page.er-density-1 .er-table td { padding-top: 2.1mm; padding-bottom: 2.1mm; }
+.er-page.er-density-2 .er-table { font-size: 8.1pt; }
+.er-page.er-density-2 .er-table td { padding-top: 1.8mm; padding-bottom: 1.8mm; }
+.er-page.er-density-3 .er-table { font-size: 7.6pt; }
+.er-page.er-density-3 .er-table td { padding-top: 1.5mm; padding-bottom: 1.5mm; }
+.er-page.er-density-1 .er-list li { padding-top: 1.55mm; padding-bottom: 1.55mm; }
+.er-page.er-density-2 .er-list li { padding-top: 1.3mm; padding-bottom: 1.3mm; font-size: 8.6pt; }
+.er-page.er-density-3 .er-list li { padding-top: 1mm; padding-bottom: 1mm; font-size: 8.1pt; }
+.er-page.er-density-2 .er-reco { padding-top: 3.2mm; padding-bottom: 3.2mm; }
+.er-page.er-density-3 .er-reco { padding-top: 2.5mm; padding-bottom: 2.5mm; }
 
 .er-doc.er-preview .er-page {
   border: 1px solid var(--er-line-soft);

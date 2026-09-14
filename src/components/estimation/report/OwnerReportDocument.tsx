@@ -166,7 +166,9 @@ export default function OwnerReportDocument({ data, photoUrls, preview, onFit }:
       </Page>
     ) : null;
 
-  /* Auto-ajustement : aucune page ne doit couper son contenu. */
+  /* Auto-ajustement : densité typographique réelle, sans transform CSS.
+     Les transforms déforment les métriques de texte dans html2canvas et peuvent
+     superposer des lignes dans le PDF alors que l'aperçu paraît correct. */
   const fit = useCallback(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -175,17 +177,22 @@ export default function OwnerReportDocument({ data, photoUrls, preview, onFit }:
     root.querySelectorAll<HTMLElement>(".er-page").forEach((page) => {
       const body = page.querySelector<HTMLElement>(".er-body");
       if (!body) return;
-      body.style.transform = "";
-      body.style.width = "";
+      page.classList.remove("er-density-1", "er-density-2", "er-density-3");
       const available = body.clientHeight;
-      const needed = body.scrollHeight;
-      if (available <= 0 || needed <= available + 1) return;
-      const scale = Math.max(0.72, available / needed);
-      body.style.transform = `scale(${scale})`;
-      body.style.width = `${100 / scale}%`;
+      if (available <= 0 || body.scrollHeight <= available + 1) return;
+
+      let level = 0;
+      for (const candidate of [1, 2, 3]) {
+        page.classList.remove("er-density-1", "er-density-2", "er-density-3");
+        page.classList.add(`er-density-${candidate}`);
+        level = candidate;
+        if (body.scrollHeight <= body.clientHeight + 1) break;
+      }
+
+      const scale = level === 1 ? 0.95 : level === 2 ? 0.9 : 0.84;
       const info = { page: Number(page.dataset.page ?? 0), title: page.dataset.title ?? "" };
       compressed.push({ ...info, scale });
-      if (needed * scale > available + 2) overflowing.push(info);
+      if (body.scrollHeight > body.clientHeight + 1) overflowing.push(info);
     });
     onFit?.({ compressed, overflowing });
   }, [onFit]);
