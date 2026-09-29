@@ -1,90 +1,25 @@
-// MODULE 4 — Version démo
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { KeyRound, Plus, Battery, Lock, Smartphone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertTriangle, Archive, Download, History, KeyRound, Nfc, Plus, UserRoundCheck } from "lucide-react";
 
-const MOCK_LOCKS = [
-  { name: "Porte d'entrée Villa Azur", property: "Villa Azur — Cannes", battery: 87 },
-  { name: "Studio Marina", property: "Loft Marina — Nice", battery: 62 },
-];
-
-const MOCK_CODES = [
-  { pin: "847291", guest: "Marie Dubois", validity: "12 août 16h → 15 août 11h", status: "active" },
-  { pin: "203487", guest: "John Smith", validity: "10 août 15h → 12 août 10h", status: "expired" },
+const demoPouches = [
+  { code: "AK-VB-01", name: "Pochette voyageurs", property: "Villa Bianca", status: "Attribuée", holder: "Famille Martin", contents: "2× clés • 1× badge" },
+  { code: "AK-VB-02", name: "Pochette ménage", property: "Villa Bianca", status: "Avec le ménage", holder: "Équipe Sofia", contents: "2× clés • 1× télécommande" },
+  { code: "AK-VR-01", name: "Pochette de secours", property: "Villa du Rastel", status: "Au stock", holder: "Stock Azure Keys", contents: "3× clés" },
 ];
 
 export default function DemoSmartKeysPage() {
-  return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <KeyRound className="h-6 w-6 text-primary" />
-            Smart Keys — Serrures connectées
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Igloohome, Nuki, TTLock — codes générés par réservation.
-          </p>
-        </div>
-        <Button><Plus className="h-4 w-4 mr-1" /> Ajouter serrure</Button>
-      </div>
+  return <div className="space-y-6 p-4 sm:p-6">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div><div className="flex items-center gap-3"><div className="h-11 w-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center"><KeyRound className="h-6 w-6" /></div><div><p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Exploitation</p><h1 className="text-2xl font-bold">Pochettes de clés</h1></div></div><p className="mt-3 text-sm text-muted-foreground">Registre NFC, détenteurs, contenu attendu et étiquettes PDF.</p></div>
+      <Button><Plus className="h-4 w-4 mr-2" /> Nouvelle pochette</Button>
+    </header>
+    <section className="grid grid-cols-3 gap-3"><Metric label="Pochettes" value="3" icon={Archive} /><Metric label="En circulation" value="2" icon={UserRoundCheck} /><Metric label="Alertes" value="0" icon={AlertTriangle} /></section>
+    <Card><CardHeader><CardTitle>Registre</CardTitle></CardHeader><CardContent className="grid gap-3 xl:grid-cols-2">{demoPouches.map((pouch) => <article key={pouch.code} className="rounded-xl border p-4"><div className="flex flex-wrap items-center gap-2"><span className="font-mono font-bold">{pouch.code}</span><Badge variant="secondary">{pouch.status}</Badge></div><h2 className="mt-2 font-semibold">{pouch.name}</h2><p className="text-sm text-muted-foreground">{pouch.property}</p><div className="mt-4 grid gap-2 sm:grid-cols-2"><div className="rounded-lg bg-muted p-3 text-sm"><p className="text-xs text-muted-foreground">Détenteur</p><p className="font-medium">{pouch.holder}</p></div><div className="rounded-lg bg-muted p-3 text-sm"><p className="text-xs text-muted-foreground">Contenu</p><p className="font-medium">{pouch.contents}</p></div></div><div className="mt-4 flex flex-wrap gap-2 border-t pt-4"><Button size="sm" variant="outline"><Download className="h-4 w-4 mr-1" /> PDF</Button><Button size="sm" variant="outline"><Nfc className="h-4 w-4 mr-1" /> NFC</Button><Button size="sm" variant="ghost"><History className="h-4 w-4 mr-1" /> Historique</Button></div></article>)}</CardContent></Card>
+  </div>;
+}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card><CardContent className="pt-6"><div className="flex items-center gap-3">
-          <div className="p-3 rounded-lg bg-primary/10"><Lock className="h-5 w-5 text-primary" /></div>
-          <div><p className="text-2xl font-bold">2</p><p className="text-xs text-muted-foreground">Serrures</p></div>
-        </div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center gap-3">
-          <div className="p-3 rounded-lg bg-emerald-500/10"><KeyRound className="h-5 w-5 text-emerald-600" /></div>
-          <div><p className="text-2xl font-bold">5</p><p className="text-xs text-muted-foreground">Codes actifs</p></div>
-        </div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center gap-3">
-          <div className="p-3 rounded-lg bg-amber-500/10"><Smartphone className="h-5 w-5 text-amber-600" /></div>
-          <div><p className="text-2xl font-bold">1</p><p className="text-xs text-muted-foreground">Comptes connectés</p></div>
-        </div></CardContent></Card>
-      </div>
-
-      <Card>
-        <CardHeader><CardTitle>Mes serrures</CardTitle></CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {MOCK_LOCKS.map((l, i) => (
-              <div key={i} className="flex items-center justify-between border rounded-lg p-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Lock className="h-4 w-4 text-primary" />
-                    <span className="font-semibold">{l.name}</span>
-                    <Badge variant="outline" className="gap-1"><Battery className="h-3 w-3" /> {l.battery}%</Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{l.property}</p>
-                </div>
-                <Button size="sm" variant="outline">Générer code</Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle>Codes récents</CardTitle></CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {MOCK_CODES.map((c, i) => (
-              <div key={i} className="flex items-center justify-between border rounded-lg p-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <code className="font-mono text-lg font-bold">{c.pin}</code>
-                    <Badge variant={c.status === "active" ? "default" : "secondary"}>{c.status}</Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{c.guest} • {c.validity}</p>
-                </div>
-                {c.status === "active" && <Button variant="ghost" size="sm">Révoquer</Button>}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+function Metric({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Archive }) {
+  return <Card><CardContent className="p-4 flex items-center gap-3"><div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center"><Icon className="h-5 w-5" /></div><div><p className="text-2xl font-bold">{value}</p><p className="text-xs text-muted-foreground">{label}</p></div></CardContent></Card>;
 }
