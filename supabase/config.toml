@@ -2,3 +2,6 @@ project_id = "adfdysfwowafvphwqenv"
 
 [functions.parse-airdna-pdf]
 verify_jwt = false
+
+[functions.jarvis-invoice-creation]
+verify_jwt = false

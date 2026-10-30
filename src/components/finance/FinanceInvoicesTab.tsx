@@ -15,13 +15,14 @@ import { useFinancialSettings } from "@/hooks/useFinancialSettings";
 import { useOwners } from "@/hooks/useOwners";
 import { useProperties } from "@/hooks/useProperties";
 import { useServicesCatalog } from "@/hooks/useServicesCatalog";
-import { Plus, FileText, Printer, Trash2, CheckCircle, X, Loader2, Send, Ban, ChevronDown, Wrench, ArrowUpDown, Receipt, Home, Download, Eye, Save } from "lucide-react";
+import { Plus, FileText, Printer, Trash2, CheckCircle, X, Loader2, Send, Ban, ChevronDown, Wrench, ArrowUpDown, Receipt, Home, Download, Eye, Save, ShieldCheck } from "lucide-react";
 import { format, startOfMonth, endOfMonth, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { InvoicePrintView } from "./InvoicePrintView";
 import { formatEUR, invoiceStatusLabels, invoiceStatusColors } from "@/lib/finance-utils";
-import { generateAndUploadInvoicePdf, printInvoice, downloadInvoiceAsPdf, validateInvoiceForGeneration } from "@/lib/invoice-pdf";
+import { assertInvoiceValidForPdf, printInvoice, downloadInvoiceAsPdf } from "@/lib/invoice-pdf";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 // ── Location row (commission-based) ──
 interface LocationRow {
@@ -42,6 +43,7 @@ interface ExtraLine {
   quantity: number;
   unit_price: number;
   vat_rate: number;
+  property_id: string;
 }
 
 const extraTypeLabels: Record<string, string> = {
@@ -56,7 +58,8 @@ const extraTypeIcons: Record<string, React.ReactNode> = {
 };
 
 export function FinanceInvoicesTab() {
-  const { invoices, loading, createInvoice, updateInvoiceStatus, updateInvoicePdf, deleteInvoice, fetchInvoiceWithItems } = useInvoices();
+  const navigate = useNavigate();
+  const { invoices, loading, prepareInvoice, updateInvoiceStatus, deleteInvoice, fetchInvoiceWithItems } = useInvoices();
   const { settings: fs } = useFinancialSettings();
   const { owners } = useOwners();
   const { properties } = useProperties();
@@ -74,8 +77,6 @@ export function FinanceInvoicesTab() {
   const [genMonth, setGenMonth] = useState(format(new Date(), "yyyy-MM"));
   const [dueDate, setDueDate] = useState("");
   const [invoiceType, setInvoiceType] = useState("invoice");
-  const [invoiceStatus, setInvoiceStatus] = useState("draft");
-  const [invoiceNotes, setInvoiceNotes] = useState("");
   const [creating, setCreating] = useState(false);
 
   // Location rows
@@ -84,7 +85,7 @@ export function FinanceInvoicesTab() {
   const [extras, setExtras] = useState<ExtraLine[]>([]);
   // Extra add modal
   const [extraModalType, setExtraModalType] = useState<"service" | "pass_through_cost" | "adjustment" | null>(null);
-  const [extraForm, setExtraForm] = useState<Omit<ExtraLine, "id" | "type">>({ description: "", quantity: 1, unit_price: 0, vat_rate: vatEnabled ? (fs?.default_vat_rate || 20) : 0 });
+  const [extraForm, setExtraForm] = useState<Omit<ExtraLine, "id" | "type">>({ description: "", quantity: 1, unit_price: 0, vat_rate: vatEnabled ? (fs?.default_vat_rate || 20) : 0, property_id: "" });
 
   // Preview
   const [previewInvoice, setPreviewInvoice] = useState<any>(null);
@@ -102,7 +103,6 @@ export function FinanceInvoicesTab() {
   useEffect(() => {
     setLocations([]);
     setExtras([]);
-    setInvoiceNotes("");
   }, [genOwner, genMonth]);
 
   // ── Location helpers ──
@@ -129,11 +129,11 @@ export function FinanceInvoicesTab() {
   // ── Extra helpers ──
   const openExtraModal = (type: "service" | "pass_through_cost" | "adjustment") => {
     setExtraModalType(type);
-    setExtraForm({ description: "", quantity: 1, unit_price: 0, vat_rate: vatEnabled ? (fs?.default_vat_rate || 20) : 0 });
+    setExtraForm({ description: "", quantity: 1, unit_price: 0, vat_rate: vatEnabled ? (fs?.default_vat_rate || 20) : 0, property_id: "" });
   };
 
   const confirmExtra = () => {
-    if (!extraModalType || !extraForm.description) return;
+    if (!extraModalType || !extraForm.description || !extraForm.property_id) return;
     setExtras(prev => [...prev, { id: crypto.randomUUID(), type: extraModalType, ...extraForm }]);
     setExtraModalType(null);
   };
@@ -159,6 +159,10 @@ export function FinanceInvoicesTab() {
     if (locations.length === 0 && extras.length === 0) return;
     const owner = owners.find(o => o.id === genOwner);
     if (!owner) return;
+    if (locations.some((line) => !line.property_id) || extras.some((line) => !line.property_id)) {
+      toast.error("Rattachez chaque ligne à un logement avant de continuer.");
+      return;
+    }
 
     const [y, m] = genMonth.split("-").map(Number);
     const start = startOfMonth(new Date(y, m - 1));
@@ -174,7 +178,7 @@ export function FinanceInvoicesTab() {
         unit_price: l.rental_amount * l.commission_rate / 100,
         total: l.rental_amount * l.commission_rate / 100,
         item_type: "revenue" as const,
-        line_type: "rental_manual",
+        line_type: "commission",
         vat_rate: vatEnabled ? (fs?.default_vat_rate || 20) : 0,
         property_id: l.property_id || null,
         metadata: { rental_amount: l.rental_amount, commission_rate: l.commission_rate, platform: l.platform },
@@ -193,32 +197,29 @@ export function FinanceInvoicesTab() {
         item_type: e.type === "service" ? "revenue" : e.type,
         line_type: e.type,
         vat_rate: vatEnabled ? e.vat_rate : 0,
-        property_id: null,
+        property_id: e.property_id,
         metadata: {},
         };
       }),
     ];
 
     setCreating(true);
-    await createInvoice({
+    const prepared = await prepareInvoice({
       owner_id: genOwner,
       period_start: format(start, "yyyy-MM-dd"),
       period_end: format(end, "yyyy-MM-dd"),
       due_date: dueDate || undefined,
       type: invoiceType,
-      status: invoiceStatus,
-      vat_rate: vatEnabled ? (fs?.default_vat_rate || 0) : 0,
       vatEnabled,
       items,
       financial_settings: fs,
-      owner,
-      notes: invoiceNotes || undefined,
     });
     setCreating(false);
+    if (!prepared) return;
     setCreateOpen(false);
     setLocations([]);
     setExtras([]);
-    setInvoiceNotes("");
+    navigate(`/dashboard/finance/factures/approuver/${prepared.draft_id}`);
   };
 
   const handlePreview = async (invoiceId: string) => {
@@ -437,7 +438,7 @@ export function FinanceInvoicesTab() {
                         {catalog.filter(s => s.active).map(svc => (
                           <button
                             key={svc.id}
-                            onClick={() => setExtras(prev => [...prev, { id: crypto.randomUUID(), type: "service", description: svc.name, quantity: 1, unit_price: Number(svc.default_unit_price), vat_rate: vatEnabled ? (Number(svc.default_vat_rate) || 20) : 0 }])}
+                          onClick={() => setExtras(prev => [...prev, { id: crypto.randomUUID(), type: "service", description: svc.name, quantity: 1, unit_price: Number(svc.default_unit_price), vat_rate: vatEnabled ? (Number(svc.default_vat_rate) || 20) : 0, property_id: "" }])}
                             className="text-[11px] px-2.5 py-1 rounded-full border border-dashed border-primary/30 text-primary hover:bg-primary/5 transition-colors"
                           >
                             + {svc.name} ({formatEUR(svc.default_unit_price)})
@@ -455,6 +456,10 @@ export function FinanceInvoicesTab() {
                             <span className="shrink-0 text-muted-foreground">{extraTypeIcons[extra.type]}</span>
                             <Badge variant="outline" className="text-[9px] shrink-0">{extraTypeLabels[extra.type]}</Badge>
                             <span className="text-sm flex-1 truncate">{extra.description}</span>
+                            <Select value={extra.property_id || "none"} onValueChange={value => setExtras(prev => prev.map(item => item.id === extra.id ? { ...item, property_id: value === "none" ? "" : value } : item))}>
+                              <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Logement" /></SelectTrigger>
+                              <SelectContent><SelectItem value="none">Logement…</SelectItem>{properties.map(property => <SelectItem key={property.id} value={property.id}>{property.name}</SelectItem>)}</SelectContent>
+                            </Select>
                             <span className="text-xs text-muted-foreground shrink-0">{extra.quantity} × {formatEUR(extra.unit_price)}</span>
                             {vatEnabled && <span className="text-xs text-muted-foreground shrink-0">TVA {extra.vat_rate}%</span>}
                             <span className="text-sm font-semibold shrink-0">{formatEUR(extra.quantity * extra.unit_price)}</span>
@@ -504,11 +509,6 @@ export function FinanceInvoicesTab() {
                     )}
                   </div>
 
-                  {/* Notes */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Notes internes (optionnel)</Label>
-                    <Input value={invoiceNotes} onChange={e => setInvoiceNotes(e.target.value)} className="h-9 text-sm" placeholder="Notes…" />
-                  </div>
                 </>
               ) : (
                 <div className="flex items-center justify-center h-full">
@@ -520,20 +520,12 @@ export function FinanceInvoicesTab() {
             {/* ── STICKY FOOTER ── */}
             <div className="shrink-0 border-t bg-background px-6 py-4 flex gap-3">
               <Button
-                variant="outline"
-                className="flex-1 h-10"
-                disabled={creating || !hasLines}
-                onClick={() => { setInvoiceStatus("draft"); handleCreate(); }}
-              >
-                Sauvegarder brouillon
-              </Button>
-              <Button
                 className="flex-1 h-10 gap-2"
                 disabled={creating || !hasLines}
-                onClick={() => { setInvoiceStatus("sent"); handleCreate(); }}
+                onClick={handleCreate}
               >
                 {creating && <Loader2 className="h-4 w-4 animate-spin" />}
-                <Send className="h-4 w-4" />Envoyer la facture
+                <ShieldCheck className="h-4 w-4" />Vérifier le brouillon
               </Button>
             </div>
           </DialogContent>
@@ -552,6 +544,13 @@ export function FinanceInvoicesTab() {
             <div className="space-y-1.5">
               <Label className="text-xs">Description *</Label>
               <Input value={extraForm.description} onChange={e => setExtraForm(f => ({ ...f, description: e.target.value }))} className="h-9" placeholder="Ex: Ménage supplémentaire" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Logement *</Label>
+              <Select value={extraForm.property_id || "none"} onValueChange={value => setExtraForm(form => ({ ...form, property_id: value === "none" ? "" : value }))}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                <SelectContent><SelectItem value="none">Sélectionner</SelectItem>{properties.map(property => <SelectItem key={property.id} value={property.id}>{property.name}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
             <div className={`grid gap-3 ${vatEnabled ? "grid-cols-3" : "grid-cols-2"}`}>
               <div className="space-y-1.5">
@@ -575,7 +574,7 @@ export function FinanceInvoicesTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setExtraModalType(null)}>Annuler</Button>
-            <Button onClick={confirmExtra} disabled={!extraForm.description}>Ajouter</Button>
+            <Button onClick={confirmExtra} disabled={!extraForm.description || !extraForm.property_id}>Ajouter</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -631,12 +630,19 @@ export function FinanceInvoicesTab() {
                       setPreviewInvoice(invoice);
                       setPreviewItems(items);
                       setPreviewOpen(true);
-                      setTimeout(() => printInvoice(), 600);
+                      setTimeout(() => void printInvoice(inv.id), 600);
                     }} title="Télécharger PDF">
                       <Download className="h-4 w-4" />
                     </Button>
                     {inv.status === "draft" && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateInvoiceStatus(inv.id, "sent")} title="Envoyer">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={async () => {
+                        try {
+                          await assertInvoiceValidForPdf(inv.id);
+                          await updateInvoiceStatus(inv.id, "sent");
+                        } catch {
+                          toast.error("Envoi bloqué : la validation serveur de la facture a échoué.");
+                        }
+                      }} title="Envoyer">
                         <Send className="h-4 w-4 text-primary" />
                       </Button>
                     )}
@@ -670,12 +676,12 @@ export function FinanceInvoicesTab() {
               Facture {previewInvoice?.invoice_number}
             </DialogTitle>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              <Button size="sm" variant="outline" className="gap-2 h-8 text-xs" onClick={() => printInvoice()}>
+              <Button size="sm" variant="outline" className="gap-2 h-8 text-xs" onClick={() => previewInvoice && printInvoice(previewInvoice.id)}>
                 <Printer className="h-3.5 w-3.5" />Imprimer
               </Button>
               <Button size="sm" className="gap-2 h-8 text-xs" onClick={() => {
                 if (!previewInvoice) return;
-                downloadInvoiceAsPdf(previewInvoice.invoice_number);
+                downloadInvoiceAsPdf(previewInvoice.id, previewInvoice.invoice_number);
               }}>
                 <Download className="h-3.5 w-3.5" />Télécharger PDF
               </Button>
