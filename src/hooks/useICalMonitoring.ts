@@ -11,9 +11,10 @@ export interface ICalCalendarMonitoring {
   property_id: string;
   user_id: string;
   last_sync_at: string | null;
+  last_attempt_at: string | null;
+  last_success_at: string | null;
+  last_sync_origin: string | null;
   last_sync_status: string | null;
-  sync_health_score: number | null;
-  consecutive_failures: number;
   is_sync_enabled: boolean;
   sync_frequency_hours: number;
   property?: { name: string } | null;
@@ -54,10 +55,6 @@ export function useICalMonitoring() {
       return ((data as any[]) ?? []).map((c) => ({
         ...c,
         is_sync_enabled: c.is_sync_enabled ?? c.is_active ?? true,
-        sync_health_score:
-          c.sync_health_score ??
-          (c.last_sync_status === "success" ? 1 : c.last_sync_status ? 0.4 : null),
-        consecutive_failures: c.consecutive_failures ?? 0,
         sync_frequency_hours: c.sync_frequency_hours ?? 3,
       })) as ICalCalendarMonitoring[];
     },
@@ -86,8 +83,12 @@ export function useICalMonitoring() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      toast.success("Synchronisation lancée");
+    onSuccess: (data: any) => {
+      if ((data?.summary?.requires_review ?? 0) > 0) {
+        toast.warning("Synchronisation protégée : vérification requise, aucune suppression suspecte effectuée");
+      } else {
+        toast.success("Synchronisation terminée");
+      }
       qc.invalidateQueries({ queryKey: ["ical-monitoring"] });
     },
     onError: (e: any) => toast.error(e.message ?? "Erreur sync"),
@@ -102,7 +103,11 @@ export function useICalMonitoring() {
       return data;
     },
     onSuccess: (data: any) => {
-      toast.success(`Sync terminée : ${data?.summary?.success ?? 0}/${data?.summary?.total ?? 0} OK`);
+      if ((data?.summary?.requires_review ?? 0) > 0) {
+        toast.warning("Synchronisation terminée avec une vérification requise");
+      } else {
+        toast.success(`Sync terminée : ${data?.summary?.success ?? 0}/${data?.summary?.total ?? 0} OK`);
+      }
       qc.invalidateQueries({ queryKey: ["ical-monitoring"] });
     },
     onError: (e: any) => toast.error(e.message ?? "Erreur sync globale"),

@@ -14,6 +14,7 @@ import {
 import { RefreshCw, CheckCircle2, XCircle, Clock, Activity } from "lucide-react";
 import { useICalMonitoring, type SyncHistoryEntry } from "@/hooks/useICalMonitoring";
 import { CalendarHealthBadge } from "@/components/monitoring/CalendarHealthBadge";
+import { getICalFreshness } from "@/lib/icalFreshness";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import SEOHead from "@/components/SEOHead";
@@ -21,7 +22,8 @@ import SEOHead from "@/components/SEOHead";
 const statusBadge = (s: string) => {
   if (s === "success") return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200";
   if (s === "running") return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200";
-  if (s === "partial_success") return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200";
+  if (s === "partial_success" || s === "requires_review") return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200";
+  if (s === "never") return "bg-muted text-muted-foreground";
   return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200";
 };
 
@@ -31,8 +33,8 @@ export default function ICalMonitoringPage() {
 
   const kpis = useMemo(() => {
     const active = calendars.filter((c) => c.is_sync_enabled).length;
-    const lastSync = calendars
-      .map((c) => c.last_sync_at)
+    const lastSuccess = calendars
+      .map((c) => c.last_success_at)
       .filter(Boolean)
       .sort()
       .pop();
@@ -41,11 +43,11 @@ export default function ICalMonitoringPage() {
     );
     const successRate = recent.length
       ? Math.round((recent.filter((h) => h.status === "success").length / recent.length) * 100)
-      : 100;
-    const avgHealth = calendars.length
-      ? calendars.reduce((s, c) => s + (Number(c.sync_health_score) || 0), 0) / calendars.length
-      : 1;
-    return { active, lastSync, successRate, avgHealth };
+      : null;
+    const fresh = calendars.filter(
+      (calendar) => getICalFreshness(calendar.last_success_at, calendar.is_sync_enabled).state === "fresh",
+    ).length;
+    return { active, lastSuccess, successRate, fresh };
   }, [calendars, history]);
 
   if (isLoading) {
@@ -98,13 +100,13 @@ export default function ICalMonitoringPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4 text-accent" /> Dernière sync
+              <Clock className="h-4 w-4 text-accent" /> Dernier succès serveur
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-base font-semibold text-foreground">
-              {kpis.lastSync
-                ? formatDistanceToNow(new Date(kpis.lastSync), { addSuffix: true, locale: fr })
+              {kpis.lastSuccess
+                ? formatDistanceToNow(new Date(kpis.lastSuccess), { addSuffix: true, locale: fr })
                 : "Aucune"}
             </p>
           </CardContent>
@@ -117,16 +119,22 @@ export default function ICalMonitoringPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-foreground">{kpis.successRate}%</p>
+            <p className="text-3xl font-bold text-foreground">
+              {kpis.successRate === null ? "—" : `${kpis.successRate}%`}
+            </p>
+            {kpis.successRate === null && (
+              <p className="text-xs text-muted-foreground">Aucune exécution sur 7 jours</p>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Santé moyenne</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Données à jour</CardTitle>
           </CardHeader>
           <CardContent>
-            <CalendarHealthBadge score={kpis.avgHealth} />
+            <p className="text-3xl font-bold text-foreground">{kpis.fresh}/{kpis.active}</p>
+            <p className="text-xs text-muted-foreground">succès datant de moins de 6 h</p>
           </CardContent>
         </Card>
       </div>
@@ -148,10 +156,11 @@ export default function ICalMonitoringPage() {
                   <TableRow>
                     <TableHead>Logement</TableHead>
                     <TableHead>Plateforme</TableHead>
-                    <TableHead>Dernière sync</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Santé</TableHead>
-                    <TableHead>Auto</TableHead>
+                    <TableHead>Dernier succès</TableHead>
+                    <TableHead>Dernière tentative</TableHead>
+                    <TableHead>Résultat</TableHead>
+                    <TableHead>Fraîcheur</TableHead>
+                    <TableHead>Planification</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -163,8 +172,16 @@ export default function ICalMonitoringPage() {
                         <Badge variant="outline" className="capitalize">{c.platform}</Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {c.last_sync_at
-                          ? formatDistanceToNow(new Date(c.last_sync_at), { addSuffix: true, locale: fr })
+                        {c.last_success_at
+                          ? formatDistanceToNow(new Date(c.last_success_at), { addSuffix: true, locale: fr })
+                          : "Jamais"}
+                        {c.last_sync_origin && c.last_success_at && (
+                          <span className="block text-xs">{c.last_sync_origin === "cron" ? "Serveur" : "Manuelle"}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {c.last_attempt_at
+                          ? formatDistanceToNow(new Date(c.last_attempt_at), { addSuffix: true, locale: fr })
                           : "Jamais"}
                       </TableCell>
                       <TableCell>
@@ -175,14 +192,22 @@ export default function ICalMonitoringPage() {
                         ) : <span className="text-muted-foreground text-sm">—</span>}
                       </TableCell>
                       <TableCell>
-                        <CalendarHealthBadge score={c.sync_health_score} />
+                        <CalendarHealthBadge
+                          lastSuccessAt={c.last_success_at}
+                          isActive={c.is_sync_enabled}
+                        />
                       </TableCell>
                       <TableCell>
-                        <Switch
-                          checked={c.is_sync_enabled}
-                          onCheckedChange={(v) => toggleEnabled.mutate({ id: c.id, enabled: v })}
-                          aria-label="Activer la synchronisation auto"
-                        />
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={c.is_sync_enabled}
+                            onCheckedChange={(v) => toggleEnabled.mutate({ id: c.id, enabled: v })}
+                            aria-label="Activer la planification serveur"
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            {c.is_sync_enabled ? `Toutes les ${c.sync_frequency_hours} h` : "En pause"}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
