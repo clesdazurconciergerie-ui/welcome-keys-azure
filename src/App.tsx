@@ -11,7 +11,6 @@ import EditBookletWrapper from "./pages/EditBookletWrapper";
 import ViewBooklet from "./pages/ViewBooklet";
 import PreviewBooklet from "./pages/PreviewBooklet";
 import AccessBooklet from "./pages/AccessBooklet";
-import KeyTagLandingPage from "./pages/KeyTagLandingPage";
 import BookletWizardPage from "./pages/BookletWizardPage";
 import NotFound from "./pages/NotFound";
 import ExampleProprietaires from "./pages/ExampleProprietaires";
@@ -124,7 +123,6 @@ const App = () => (
           <Route path="/pricing" element={<PricingNew />} />
           <Route path="/billing/success" element={<BillingSuccess />} />
           <Route path="/acces-livret" element={<AccessBooklet />} />
-          <Route path="/cles/:token" element={<KeyTagLandingPage />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           

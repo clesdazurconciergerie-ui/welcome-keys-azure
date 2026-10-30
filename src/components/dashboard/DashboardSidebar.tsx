@@ -50,7 +50,7 @@ const navGroups = [
       { title: "Tarification dynamique", url: "/dashboard/tarification", icon: TrendingUp, section: "tarification" },
       { title: "Channel Manager", url: "/dashboard/channel-manager", icon: Link2, section: "channel-manager" },
       { title: "Conflits réservations", url: "/dashboard/conflits", icon: ShieldAlert, section: "conflits" },
-      { title: "Pochettes de clés", url: "/dashboard/smart-keys", icon: KeyRound, section: "smart-keys" },
+      { title: "Smart Keys", url: "/dashboard/smart-keys", icon: KeyRound, section: "smart-keys" },
     ],
   },
   {

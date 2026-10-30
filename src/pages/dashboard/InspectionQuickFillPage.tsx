@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   ArrowLeft, ArrowRight, Check, CheckCircle2, AlertTriangle, Camera, StickyNote,
-  Trash2, Loader2, ShieldAlert, FileText, Lock, Sparkles, KeyRound,
+  Trash2, Loader2, ShieldAlert, FileText, Lock, Sparkles,
 } from "lucide-react";
 import { useInspectionFlow } from "@/hooks/useInspectionFlow";
 import { useCleaningPhotosForInspection } from "@/hooks/useCleaningPhotosForInspection";
@@ -24,7 +24,6 @@ import { generateAndUploadInspectionPdf } from "@/lib/inspection-pdf";
 import { supabase } from "@/integrations/supabase/client";
 import SEOHead from "@/components/SEOHead";
 import { toast } from "sonner";
-import { useInspectionKeyChecks, useKeySets } from "@/hooks/useKeySets";
 
 type Step = { kind: "zone"; index: number } | { kind: "summary" } | { kind: "sign" };
 
@@ -51,12 +50,6 @@ export default function InspectionQuickFillPage() {
   const locked = !!insp?.locked_at;
 
   const cleaning = useCleaningPhotosForInspection(insp?.property_id, insp?.official_date);
-  const keys = useKeySets();
-  const keyChecks = useInspectionKeyChecks(id);
-  const propertyKeySets = useMemo(
-    () => keys.keySets.filter((keySet) => keySet.property_id === insp?.property_id),
-    [keys.keySets, insp?.property_id],
-  );
 
   useEffect(() => {
     if (insp) {
@@ -143,7 +136,6 @@ export default function InspectionQuickFillPage() {
     if (!guestName.trim()) missing.push("nom du voyageur");
     if (!(insp.concierge_signature_url || conciergeSig)) missing.push("signature conciergerie");
     if (!(insp.guest_signature_url || guestSig)) missing.push("signature voyageur");
-    if (propertyKeySets.some((keySet) => !keyChecks.checkedKeySetIds.has(keySet.id))) missing.push("contrôle des pochettes de clés");
     if (missing.length > 0) {
       toast.error(`Manquant : ${missing.join(", ")}`);
       return;
@@ -302,28 +294,6 @@ export default function InspectionQuickFillPage() {
           <section className="space-y-6">
             <h2 className="text-2xl font-semibold tracking-tight">Récapitulatif</h2>
             <SummaryBlock insp={insp} zones={orderedZones} issues={issues} photosCount={photos.length} />
-            {propertyKeySets.length > 0 && (
-              <div className="space-y-3 border border-border p-4" aria-labelledby="key-check-title">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 id="key-check-title" className="font-semibold flex items-center gap-2"><KeyRound className="h-4 w-4" /> Contrôle des pochettes de clés</h3>
-                    <p className="mt-1 text-xs text-muted-foreground">Vérifiez la présence et le contenu avant de signer l'état des lieux.</p>
-                  </div>
-                  <Badge variant="outline">{propertyKeySets.filter((keySet) => keyChecks.checkedKeySetIds.has(keySet.id)).length}/{propertyKeySets.length}</Badge>
-                </div>
-                <div className="space-y-2">
-                  {propertyKeySets.map((keySet) => {
-                    const checked = keyChecks.checkedKeySetIds.has(keySet.id);
-                    return <div key={keySet.id} className="flex flex-col gap-3 rounded-lg bg-muted/50 p-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div><p className="font-mono text-sm font-semibold">{keySet.code}</p><p className="text-sm">{keySet.name}</p><p className="text-xs text-muted-foreground">{keySet.expected_items.map((item) => `${item.quantity}× ${item.label}`).join(" • ")}</p></div>
-                      <Button type="button" variant={checked ? "secondary" : "outline"} className="min-h-11 shrink-0" disabled={checked || locked || keys.isSaving} onClick={() => keys.transferKeySet({ id: keySet.id, status: keySet.status, holder_type: keySet.current_holder_type, holder_label: keySet.current_holder_label, booking_id: keySet.current_booking_id, due_back_at: keySet.due_back_at, inspection_id: id, note: `Contenu contrôlé pendant l'état des lieux ${insp.inspection_type === "exit" ? "de sortie" : "d'entrée"}.` })}>
-                        {checked ? <><Check className="h-4 w-4 mr-2" /> Contrôlée</> : "Confirmer le contenu"}
-                      </Button>
-                    </div>;
-                  })}
-                </div>
-              </div>
-            )}
             <div className="space-y-2">
               <label className="text-xs font-medium uppercase tracking-wider">Notes générales</label>
               <Textarea
