@@ -9,6 +9,8 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { InvoicePrintView } from "@/components/finance/InvoicePrintView";
 import { motion } from "framer-motion";
+import { assertInvoiceValidForPdf, downloadInvoiceAsPdf } from "@/lib/invoice-pdf";
+import { toast } from "sonner";
 
 export default function OwnerFinancesPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -19,7 +21,7 @@ export default function OwnerFinancesPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data } = await supabase.from("invoices" as any).select("*").order("created_at", { ascending: false });
+      const { data } = await supabase.from("invoices" as any).select("*").in("status", ["sent","paid"]).order("created_at", { ascending: false });
       setInvoices(data || []);
       setLoading(false);
     };
@@ -27,6 +29,8 @@ export default function OwnerFinancesPage() {
   }, []);
 
   const handlePreview = async (invoiceId: string) => {
+    try { await assertInvoiceValidForPdf(invoiceId); }
+    catch { toast.error("Facture à vérifier : le PDF est bloqué par le contrôle serveur."); return; }
     const { data: invoice } = await supabase.from("invoices" as any).select("*").eq("id", invoiceId).single();
     const { data: items } = await supabase.from("invoice_items" as any).select("*").eq("invoice_id", invoiceId);
     setPreviewInvoice(invoice);
@@ -94,8 +98,8 @@ export default function OwnerFinancesPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>Facture {previewInvoice?.invoice_number}</span>
-              <Button size="sm" variant="outline" className="gap-2" onClick={() => window.print()}>
-                <Printer className="h-4 w-4" />Imprimer / PDF
+              <Button size="sm" variant="outline" className="gap-2" onClick={() => downloadInvoiceAsPdf(previewInvoice.id,previewInvoice.invoice_number)}>
+                <Printer className="h-4 w-4" />Télécharger le PDF
               </Button>
             </DialogTitle>
           </DialogHeader>

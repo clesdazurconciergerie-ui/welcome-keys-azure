@@ -42,9 +42,28 @@ export function validateInvoiceForGeneration(
 }
 
 /**
+ * Mandatory server-side gate. A missing, rejected or inconsistent validation
+ * blocks every PDF action; the local checks above are only ergonomic hints.
+ */
+export async function assertInvoiceValidForPdf(invoiceId: string): Promise<void> {
+  if (!invoiceId) throw new Error("invoice_validation_missing_id");
+  const { data, error } = await (supabase as any).rpc("validate_invoice_before_pdf", {
+    p_invoice_id: invoiceId,
+  });
+  if (error) throw new Error("invoice_validation_unavailable");
+  if (!data || data.valid !== true) throw new Error("invoice_validation_refused");
+}
+
+/**
  * Download the invoice as PDF using html2pdf.js
  */
-export async function downloadInvoiceAsPdf(invoiceNumber: string): Promise<void> {
+export async function downloadInvoiceAsPdf(invoiceId: string, invoiceNumber: string): Promise<void> {
+  try {
+    await assertInvoiceValidForPdf(invoiceId);
+  } catch {
+    toast.error("PDF bloqué : la facture n’a pas passé la validation serveur.");
+    return;
+  }
   const printEl = document.getElementById("invoice-print");
   if (!printEl) {
     toast.error("Prévisualisation introuvable. Ouvrez d'abord la facture.");
@@ -88,6 +107,12 @@ export async function generateAndUploadInvoicePdf(
   invoiceId: string,
   invoiceNumber: string,
 ): Promise<string | null> {
+  try {
+    await assertInvoiceValidForPdf(invoiceId);
+  } catch {
+    toast.error("PDF bloqué : la facture n’a pas passé la validation serveur.");
+    return null;
+  }
   const printEl = document.getElementById("invoice-print");
   if (!printEl) {
     toast.error("Impossible de trouver le contenu de la facture.");
@@ -146,14 +171,26 @@ export async function generateAndUploadInvoicePdf(
 /**
  * Download the invoice via window.print()
  */
-export function printInvoice() {
+export async function printInvoice(invoiceId: string) {
+  try {
+    await assertInvoiceValidForPdf(invoiceId);
+  } catch {
+    toast.error("Impression bloquée : la facture n’a pas passé la validation serveur.");
+    return;
+  }
   window.print();
 }
 
 /**
  * Get a download URL for a stored invoice PDF
  */
-export async function getInvoiceDownloadUrl(pdfPath: string): Promise<string | null> {
+export async function getInvoiceDownloadUrl(invoiceId: string, pdfPath: string): Promise<string | null> {
+  try {
+    await assertInvoiceValidForPdf(invoiceId);
+  } catch {
+    toast.error("Téléchargement bloqué : la facture n’a pas passé la validation serveur.");
+    return null;
+  }
   const { data, error } = await supabase.storage
     .from("invoices")
     .createSignedUrl(pdfPath, 3600);
