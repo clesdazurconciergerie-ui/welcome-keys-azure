@@ -207,8 +207,10 @@ export function useProperties() {
       if (error) throw error;
       toast.success('Bien supprimé');
       await fetchProperties();
+      return true;
     } catch (err) {
       toast.error('Erreur lors de la suppression');
+      return false;
     }
   };
 

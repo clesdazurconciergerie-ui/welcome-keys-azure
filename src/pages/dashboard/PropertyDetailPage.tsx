@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useCleaningInterventions } from "@/hooks/useCleaningInterventions";
 import { motion } from "framer-motion";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProperties, type Property, type PropertyPhoto, type PropertyDocument } from "@/hooks/useProperties";
@@ -32,6 +33,7 @@ import { PhotoRequirementsAdmin } from "@/components/property/PhotoRequirementsA
 import { PropertyInspectionsList } from "@/components/inspection-v2/PropertyInspectionsList";
 import { CreateInspectionDialog } from "@/components/inspection-v2/CreateInspectionDialog";
 import { PropertyFinanceSettings } from "@/components/finance/PropertyFinanceSettings";
+import { ListingPeriodsEditor } from "@/components/finance/ListingPeriodsEditor";
 import { CleaningAutomationSection } from "@/components/property/CleaningAutomationSection";
 import { PlatformPerformance } from "@/components/dashboard/PlatformPerformance";
 import { AddDirectBookingDialog } from "@/components/dashboard/properties/AddDirectBookingDialog";
@@ -717,7 +719,7 @@ const PropertyDetailPage = () => {
 
         {/* FINANCE TAB */}
         <TabsContent value="finance">
-          {id && <PropertyFinanceSettings propertyId={id} />}
+          {id && <><PropertyFinanceSettings propertyId={id} /><ListingPeriodsEditor propertyId={id} /></>}
         </TabsContent>
 
         {/* STATS TAB */}
@@ -801,15 +803,21 @@ const PropertyDetailPage = () => {
             <AlertDialogTitle>Supprimer ce bien ?</AlertDialogTitle>
             <AlertDialogDescription>
               Cette action est irréversible. Le bien "{property?.name}" ainsi que ses photos, documents et paramètres associés seront définitivement supprimés.
+              Un logement avec des périodes de commercialisation doit être retiré de l'offre pour préserver son historique.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground"
-              onClick={async () => {
+              onClick={async (event) => {
+                event.preventDefault();
                 if (!id) return;
-                await deleteProperty(id);
+                const { data, error } = await (supabase as unknown as SupabaseClient)
+                  .from("property_listing_periods").select("id").eq("property_id", id).limit(1);
+                if (error) { toast.error("Impossible de vérifier l'historique du logement."); return; }
+                if (data?.length) { toast.error("Retirez ce logement de l'offre : son historique doit être conservé."); return; }
+                if (!(await deleteProperty(id))) return;
                 setDeletePropertyOpen(false);
                 navigate("/dashboard/logements");
               }}
