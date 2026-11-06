@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Link2, Copy, RefreshCw, Trash2, ExternalLink, CheckCircle2 } from "lucide-react";
+import { Plus, Link2, Copy, RefreshCw, Trash2, ExternalLink, CheckCircle2, CircleAlert, BookOpenCheck } from "lucide-react";
+import { getICalExportConnectionState } from "@/lib/ical-export-status";
 import { toast } from "sonner";
 
 export default function ChannelManagerPage() {
@@ -44,7 +45,7 @@ export default function ChannelManagerPage() {
             Channel Manager
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Génère un lien iCal sortant à coller dans Airbnb, Booking, VRBO. Synchronisation automatique des disponibilités.
+            Crée un flux iCal sortant pour chaque logement, puis importe ce lien dans Airbnb, Booking ou VRBO.
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -89,7 +90,7 @@ export default function ChannelManagerPage() {
             <div className="text-center py-12">
               <Link2 className="h-12 w-12 text-primary/40 mx-auto mb-3" />
               <p className="font-semibold">Aucun lien généré</p>
-              <p className="text-sm text-muted-foreground mt-1">Crée ton premier lien iCal pour synchroniser tes plateformes.</p>
+              <p className="text-sm text-muted-foreground mt-1">Crée un lien, puis importe-le dans la plateforme concernée.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -109,9 +110,12 @@ export default function ChannelManagerPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-amber-50 border-amber-200">
+      <Card>
         <CardContent className="p-4 text-sm">
-          <p className="font-semibold mb-1">📋 Tutoriel Airbnb</p>
+          <p className="font-semibold mb-1 flex items-center gap-2">
+            <BookOpenCheck className="h-4 w-4" aria-hidden="true" />
+            Connecter Airbnb
+          </p>
           <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
             <li>Connecte-toi à Airbnb → Calendrier → Disponibilités</li>
             <li>Section "Synchroniser les calendriers" → Importer un calendrier</li>
@@ -139,42 +143,55 @@ function ExportRow({
   onRegenerate: () => void;
   onRemove: () => void;
 }) {
+  const connectionState = getICalExportConnectionState({
+    isActive: exp.is_active,
+    lastAccessedAt: exp.last_accessed_at,
+  });
+
   return (
     <div className="border rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Switch checked={exp.is_active} onCheckedChange={(v) => onUpdate({ is_active: v })} />
           <span className="font-semibold">{propertyName}</span>
-          {exp.is_active ? (
-            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Actif</Badge>
-          ) : (
-            <Badge variant="outline">Inactif</Badge>
+          {connectionState === "connected" && (
+            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Consulté</Badge>
           )}
+          {connectionState === "waiting" && (
+            <Badge className="bg-amber-100 text-amber-800 border-amber-200">À connecter</Badge>
+          )}
+          {connectionState === "disabled" && <Badge variant="outline">Désactivé</Badge>}
         </div>
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" onClick={onRegenerate} title="Regénérer le token">
+          <Button variant="ghost" size="icon" onClick={onRegenerate} title="Régénérer le lien" aria-label="Régénérer le lien iCal">
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={onRemove}>
+          <Button variant="ghost" size="icon" onClick={onRemove} title="Supprimer le lien" aria-label="Supprimer le lien iCal">
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
         </div>
       </div>
       <div className="flex gap-2">
         <Input value={getICalUrl(exp.feed_token)} readOnly className="font-mono text-xs" />
-        <Button variant="outline" size="icon" onClick={() => onCopy(exp.feed_token)}>
+        <Button variant="outline" size="icon" onClick={() => onCopy(exp.feed_token)} title="Copier le lien" aria-label="Copier le lien iCal">
           <Copy className="h-4 w-4" />
         </Button>
         <Button variant="outline" size="icon" asChild>
-          <a href={getICalUrl(exp.feed_token)} target="_blank" rel="noopener noreferrer">
+          <a href={getICalUrl(exp.feed_token)} target="_blank" rel="noopener noreferrer" title="Vérifier le flux" aria-label="Ouvrir le flux iCal">
             <ExternalLink className="h-4 w-4" />
           </a>
         </Button>
       </div>
+      {connectionState === "waiting" && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>Aucune plateforme n’a encore consulté ce lien. Importe-le pour activer la synchronisation sortante.</span>
+        </div>
+      )}
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <CheckCircle2 className="h-3 w-3" />
-          {exp.access_count} accès
+          {exp.access_count} consultation{exp.access_count > 1 ? "s" : ""} enregistrée{exp.access_count > 1 ? "s" : ""}
         </span>
         {exp.last_accessed_at && (
           <span>Dernier accès : {new Date(exp.last_accessed_at).toLocaleString("fr-FR")}</span>

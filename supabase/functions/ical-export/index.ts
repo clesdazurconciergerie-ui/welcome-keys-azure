@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     // Lookup feed
     const { data: feed, error: feedErr } = await supabase
       .from("property_ical_exports")
-      .select("id, property_id, is_active, include_blocked, include_manual")
+      .select("id, property_id, is_active, include_blocked, include_manual, access_count")
       .eq("feed_token", token)
       .maybeSingle();
 
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     // Get bookings
     const { data: bookings } = await supabase
       .from("bookings")
-      .select("id, check_in, check_out, guest_name, is_manual, price_status")
+      .select("id, check_in, check_out, is_manual, price_status")
       .eq("property_id", feed.property_id)
       .neq("price_status", "canceled");
 
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
           `DTSTAMP:${now}`,
           `DTSTART;VALUE=DATE:${formatICalDate(b.check_in)}`,
           `DTEND;VALUE=DATE:${formatICalDate(b.check_out)}`,
-          `SUMMARY:${escapeICal(b.guest_name ? `Réservé - ${b.guest_name}` : "Réservé")}`,
+          "SUMMARY:Réservé",
           `STATUS:CONFIRMED`,
           "TRANSP:OPAQUE",
           "END:VEVENT",
@@ -112,25 +112,18 @@ Deno.serve(async (req) => {
       "END:VCALENDAR",
     ].join("\r\n");
 
-    // Track access (fire-and-forget)
-    supabase
+    // Enregistre une seule consultation avant de répondre.
+    const { error: trackingError } = await supabase
       .from("property_ical_exports")
-      .update({ last_accessed_at: new Date().toISOString(), access_count: 1 })
-      .eq("id", feed.id)
-      .then(async () => {
-        // increment manuel
-        const { data: cur } = await supabase
-          .from("property_ical_exports")
-          .select("access_count")
-          .eq("id", feed.id)
-          .single();
-        if (cur) {
-          await supabase
-            .from("property_ical_exports")
-            .update({ access_count: (cur.access_count ?? 0) + 1 })
-            .eq("id", feed.id);
-        }
-      });
+      .update({
+        last_accessed_at: new Date().toISOString(),
+        access_count: (feed.access_count ?? 0) + 1,
+      })
+      .eq("id", feed.id);
+
+    if (trackingError) {
+      console.error("ical-export tracking error", trackingError);
+    }
 
     return new Response(ical, {
       headers: {

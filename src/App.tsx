@@ -3,7 +3,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NewBooklet from "./pages/NewBooklet";
@@ -17,8 +16,6 @@ import ExampleProprietaires from "./pages/ExampleProprietaires";
 import ExampleConciergeries from "./pages/ExampleConciergeries";
 import ExampleMaisonsDHotes from "./pages/ExampleMaisonsDHotes";
 import ExampleHotelsResidences from "./pages/ExampleHotelsResidences";
-import Pricing from "./pages/Pricing";
-import PricingNew from "./pages/PricingNew";
 import BillingSuccess from "./pages/BillingSuccess";
 import ExpiredDemoPage from "./components/ExpiredDemoPage";
 import DemoDashboardLayout from "./layouts/DemoDashboardLayout";
@@ -120,9 +117,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/tarifs" element={<Pricing />} />
-          <Route path="/pricing" element={<PricingNew />} />
+          <Route path="/" element={<Navigate to="/auth" replace />} />
+          <Route path="/tarifs" element={<Navigate to="/auth" replace />} />
+          <Route path="/pricing" element={<Navigate to="/auth" replace />} />
           <Route path="/billing/success" element={<BillingSuccess />} />
           <Route path="/acces-livret" element={<AccessBooklet />} />
           <Route path="/auth" element={<Auth />} />
