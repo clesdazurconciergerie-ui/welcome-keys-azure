@@ -321,7 +321,7 @@ export default function OwnerCalendarPage() {
               ))}
             </div>
             <p className="text-[11px] text-muted-foreground mt-3">
-              Ces blocages sont automatiquement diffusés à Airbnb, Booking et toutes les plateformes connectées via iCal (synchronisation OTA 1–3h).
+              Les blocages sont inclus dans le flux sortant lorsque le lien iCal du logement est activé dans le Channel Manager et importé sur la plateforme concernée.
             </p>
           </CardContent>
         </Card>

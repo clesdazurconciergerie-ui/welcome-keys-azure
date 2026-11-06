@@ -223,7 +223,6 @@ Deno.serve(async (req) => {
             payout_amount: prop.cleaning_payout_amount || 0,
             instructions,
             status: isOpen ? "open" : "draft",
-            is_open_to_all: isOpen,
             source_type: "calendar_event",
             source_id: ev.id,
           })

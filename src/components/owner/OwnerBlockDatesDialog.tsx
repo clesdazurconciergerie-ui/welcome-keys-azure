@@ -54,7 +54,7 @@ export function OwnerBlockDatesDialog({ open, onOpenChange, onConfirm, initialSt
             <Lock className="w-4 h-4" /> Bloquer ces dates
           </DialogTitle>
           <DialogDescription>
-            Ces dates seront indisponibles à la réservation. Elles sont automatiquement transmises via iCal à Airbnb, Booking et toutes les plateformes connectées (délai OTA : 1 à 3 heures).
+            Ces dates seront bloquées dans MyWelkom. Elles seront aussi diffusées aux plateformes uniquement si le lien iCal sortant du logement a été créé dans le Channel Manager puis importé dans Airbnb, Booking ou l’autre plateforme concernée.
           </DialogDescription>
         </DialogHeader>
 

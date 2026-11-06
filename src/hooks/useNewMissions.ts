@@ -90,7 +90,6 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
           end_at: data.end_at || null,
           duration_minutes: data.duration_minutes || null,
           payout_amount: data.payout_amount || 0,
-          is_open_to_all: isOpen,
           selected_provider_id: selectedProviderId,
           status: isOpen ? 'open' : (selectedProviderId ? 'assigned' : 'draft'),
         })
@@ -176,7 +175,9 @@ export function useNewMissions(mode: 'concierge' | 'provider' = 'concierge') {
       toast.success('Mission créée');
       await fetchMissions();
     } catch (err: any) {
+      console.error('Error creating mission:', err);
       toast.error(err.message || 'Erreur création mission');
+      throw err;
     }
   };
 
